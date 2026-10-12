@@ -1,48 +1,50 @@
-# Demo video: Kova on Monad (2:55)
+# Demo video: Kova on Monad (2:50)
 
 Rules (§4, §9): 3 minutes at most, public (YouTube, Loom or Vimeo), the product in actual
 operation, not mockups or slides, and showing Monad interactions. Every number on screen comes
-from a transaction made during the take, and every key moment cuts to Monadscan.
+from a transaction made during the take, and the key moments cut to Monadscan.
 
-Judges score product quality, technical excellence, Monad integration, track fit and impact; the
-bounties we enter want cross-border payments in AUSD (Agora), Privy sign-in and payment, and a
-CRE workflow (Chainlink). Each scene below names what it proves.
+Judges score product quality, technical excellence, Monad integration, track fit and impact (20%
+each). The bounties want cross-border payments in AUSD (Agora, $10k), Privy sign-in and payment
+($5k) and a CRE workflow (Chainlink, $3k). Each scene names what it proves.
 
-## Setup (the day before)
+**One idea, held all film: money that moves like a message.** The problem first (about a quarter),
+then the product working, one beat per proof, ending on mainnet.
 
-- **Phone:** the Kova iOS app. A real iPhone is best (Face ID, camera scanning). On the Simulator,
-  scan scenes become a pay link and Face ID becomes the dev wallet: still the real app.
-- **Laptop:** Chrome at mykova.app, signed in as the shop (Blue Door Coffee) in one window and as
-  the friend abroad (Lucía, EUR) in another.
-- **Fresh state:** a new wallet for Ada (NGN), Lucía's web wallet with a published note key, the
-  café with a catalogue (flat white $4.50, croissant $3.00).
-- **Rates:** publish a fresh Chainlink report within the hour before recording, so the label reads
-  "Chainlink rate from a few min ago" (`cre workflow simulate kova-rates --target
-  staging-settings --broadcast` from `apps/rates`).
-- **Recording:** iPhone screen recording (or QuickTime on the Simulator) plus QuickTime on the
-  laptop; 1080p, notifications off, battery full, Wi-Fi only. Voiceover recorded separately,
-  calm and short.
+## Setup (before recording)
+
+- **Phone:** the Kova iOS app on the Kova iPhone 16 Simulator (or a real iPhone), testnet build.
+  A fresh wallet for Ada, funded from the faucet.
+- **Laptop:** Chrome. One window as the friend abroad (Lucía, a fresh browser, no wallet), one
+  as Ada's Bakery's dashboard (orders board), one on Monadscan.
+- **Shop:** Ada's Bakery with 6 tables and a 5-stamp card; menu cleaned of duplicates.
+- **Rates:** publish a fresh Chainlink report within the hour (`cre workflow simulate kova-rates
+  --target staging-settings --broadcast` in `apps/rates`) so the label reads "a few min ago".
+- **Mainnet proof:** one small AUSD send on mainnet (`pnpm mainnet:check` in apps/api) the same
+  day, for the closing explorer shot.
+- **Recording:** screen captures at 1080p, notifications off. Voiceover recorded separately
+  (calm, short), captions for every line.
 
 ## Script
 
 | Time | Shot | Voiceover | Proves |
 |---|---|---|---|
-| 0:00–0:10 | Phone, Home. Thumb hovers over the balance. | "This is Kova: a dollar wallet with your shop inside it. No seed phrase, no gas token, and it settles on Monad in about a second." | Track fit |
-| 0:10–0:28 | Delete-and-create: Welcome → name "Ada" → Face ID → Home. Add money → test dollars → coins rain, balance counts up to $5.00. | "Ada makes a wallet with Face ID. The passkey is the wallet: same passkey, same wallet, on the phone and the web." | Passkey wallet (Mera PRF), product quality |
-| 0:28–0:55 | Laptop: café till, tap Flat white, QR appears. Phone: scan, Face ID, Paid: "0.9 s". Cut: Monadscan tx, fee paid by Kova's relayer. Till shows Paid, takings update. | "She pays the café: one tap, Face ID, paid in under a second. Monad finalises that fast, and gas is cheap enough for Kova to pay it for everyone." | Monad integration, sponsored gas, EIP-3009 |
-| 0:55–1:30 | Phone: Send → Lucía → $20 → "Lucía sees ≈ €17.64" → review: Kovi's arc, "Chainlink rate from 4 min ago", note "Rent share 🏠" sealed → slide to send → sheet drops to Sent "1.02 s", balance behind counts down. | "Sending abroad is one sheet. Lucía thinks in euros, so Kova shows euros, at a rate Chainlink publishes on Monad. The note is sealed for the two of them." | Cross-border in AUSD (Agora), Chainlink CRE, private notes |
-| 1:30–1:45 | Laptop: Lucía's web wallet. Activity shows +$20.00 with the lock; receipt shows "Rent share 🏠, sealed: only the two of you can read it". Cut: Monadscan, the same tx. | "It's there on her side, with the note. Kova only ever stored ciphertext." | Real-time, end-to-end encryption |
-| 1:45–2:10 | Phone: Home → Open a shop → stall page → till keypad $3.00 → QR. Laptop: guest opens the pay link → Email (Privy) → paid. Page offers "Keep your $2.00 in Kova" → passkey → "$2.00 is in Kova, 1.3 s". | "Any wallet can be a shop. A customer without Kova pays with their email, then keeps their change in a Kova wallet of their own, in one step." | Shop in wallet, Privy, guest to Kova |
-| 2:10–2:30 | Phone: shop takings for today, live. Then Add money → From another chain: EVM, Solana, Tron, Bitcoin. | "Takings land in the same wallet, live. And dollars from any chain arrive through Aurora Intents as Kova moves to mainnet." | Completeness, roadmap (Aurora) |
-| 2:30–2:45 | Monadscan: KovaRates contract with the Chainlink report; the relayer's transactions. | "Everything you saw is on Monad: the payments, the sends, and the exchange rates." | Monad integration, CRE |
-| 2:45–2:55 | Phone, Home, Kovi waves. Text: mykova.app. | "Kova. Tap, paid, anywhere. Try it at mykova.app." | Close |
+| 0:00–0:12 | Black, then a phone: a bank transfer form, "3–5 business days", "fee $25". Cut to a café queue and a buzzer that never lights. | "Sending $20 to a friend abroad still takes days and a fee. Paying for a coffee still means a queue and a card machine." | Problem (track fit) |
+| 0:12–0:24 | Phone, Kova Home. Make a wallet: name "Ada" → Face ID → Home, $5 lands. | "Kova is a dollar wallet that lives behind your Face ID. No seed phrase, no gas token, dollars that settle on Monad in about a second." | Passkey wallet, product quality |
+| 0:24–0:58 | **Send by link.** Send → "Send as a link" → $20, note "Birthday coffee 🎂" → share to WhatsApp. Laptop: Lucía opens the link: "Ada sent you $20.00, about €18.40 (Chainlink rate, 3 min ago)" → "Claim with email" (Privy) → "It's yours, 0.7 s". Cut: Monadscan, the claim tx, gas paid by Kova. | "Ada sends Lucía twenty dollars with a link. Lucía has no wallet and no app. She opens it, sees it in euros at a rate Chainlink publishes on Monad, claims it with her email, and it's hers in under a second." | **Agora cross-border (AUSD), Privy, Chainlink CRE**, Monad |
+| 0:58–1:12 | Phone: Ada's link list: "Claimed by Lucía". Lucía's side: she pays it on, or keeps it. | "Unclaimed links come back to the sender. Nothing is lost in an envelope." | Completeness |
+| 1:12–1:52 | **A café, from the table.** Phone scans table 3's code → Ada's Bakery opens with "Table 3" → flat white + croissant → Face ID → "Paid 0.76 s". Laptop: the orders board pings "Table 3"; the shop taps Ready. Phone: "Your order is ready. We're bringing it to table 3." | "At a café, the table is the counter. Order and pay from your seat. The shop sees table three, taps ready, and your phone tells you. No queue, no buzzer, no card machine." | Consumer payments, shop OS, product quality |
+| 1:52–2:10 | Phone: the stamp card fills over visits (time-lapse of real orders) → "Your next croissant is free" → pays $0.00 → Monadscan: the $0 receipt. | "Regulars collect stamps without signing up: the wallet that pays is the card. The sixth is free, and even that has a receipt on Monad." | Innovation |
+| 2:10–2:30 | Phone: the shop side: Today: takings, kept $X in card fees; the stock count. | "The shop runs its whole day from the same wallet, and keeps what card machines would have taken." | Impact for small merchants |
+| 2:30–2:45 | Monadscan on **mainnet**: Kova's relayer, the KovaCard contract, a live AUSD payment; KovaRates on testnet with the Chainlink report. | "This is live on Monad mainnet today. The payments, the links and the rates are all on Monad." | Monad integration (load-bearing) |
+| 2:45–2:50 | Kovi waves. mykova.app. | "Kova. Tap. Paid. Anywhere." | Close |
 
 ## Rules for the edit
 
-- No fake numbers: the times and amounts are whatever the take produced. If a send takes 1.4 s,
+- No fake numbers: times and amounts are whatever the take produced. If something takes 1.4 s,
   say "about a second".
-- Show the explorer at least three times (pay, send, rates).
-- Keep each scene's cut on the moment money moves: the slide, the Face ID, the Paid.
-- Captions for the key numbers ("0.9 s", "$0.00 fee", "€17.64"), large, in Kova's ink on paper.
-- Export 1080p, under 3:00 including titles; upload public on YouTube; link it in the README and
-  the submission.
+- Show the explorer at least three times (claim, table payment, mainnet).
+- Cut on the moment money moves: the slide, the Face ID, the claim.
+- Captions for key numbers ("0.7 s", "$0.00 fee", "€18.40"), in Kova's Manrope.
+- Export 1080p, under 3:00; upload public (YouTube, unlisted is not enough); link it in the
+  README and the submission.
