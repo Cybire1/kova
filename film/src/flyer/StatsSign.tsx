@@ -4,7 +4,6 @@
  * swung a little, Kovi peeking over its top. The sign now says how many times Kova has been paid.
  * Landscape for X (1600 x 900). Numbers are props from the live API; they count wallets, not people.
  */
-import type React from 'react'
 import { useEffect, useState } from 'react'
 import { AbsoluteFill, continueRender, delayRender, Img, staticFile } from 'remotion'
 import { fontsReady } from '../theme'
@@ -23,19 +22,13 @@ export interface SignProps {
   swing: number
 }
 
-const chip: React.CSSProperties = {
-  boxSizing: 'border-box',
-  padding: '18px 22px 16px',
-  borderRadius: 22,
-  background: CARD,
-  border: `5px solid ${INK}`,
-}
+const MUTED = '#5B6A6D'
 
-function Chip({ value, label, color = INK }: { value: string; label: string; color?: string }) {
+function Stat({ value, label, color = INK }: { value: string; label: string; color?: string }) {
   return (
-    <div style={chip}>
-      <div style={{ fontSize: 46, fontWeight: 800, letterSpacing: -1.5, lineHeight: 1, color, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: '#3D4C4F', marginTop: 8 }}>{label}</div>
+    <div>
+      <div style={{ fontSize: 44, fontWeight: 700, letterSpacing: -1.5, lineHeight: 1, color, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      <div style={{ fontSize: 20, fontWeight: 600, color: MUTED, marginTop: 10 }}>{label}</div>
     </div>
   )
 }
@@ -49,24 +42,28 @@ export function StatsSign({ payments = 230, wallets = 108, shops = 18, volume = 
 
   return (
     <AbsoluteFill style={{ background: ground, fontFamily: 'Manrope', color: INK, overflow: 'hidden' }}>
-      <Img src={staticFile('art/kova-logo.png')} style={{ position: 'absolute', left: 96, top: 92, height: 56 }} />
+      <Img src={staticFile('art/kova-logo.png')} style={{ position: 'absolute', left: 96, top: 92, height: 46 }} />
       <h1 style={{ position: 'absolute', left: 98, top: 196, width: 640, margin: 0, fontSize: 92, lineHeight: 0.95, letterSpacing: -4, fontWeight: 700 }}>
         {wallets} wallets.
         <br />
         {shops} shops.
       </h1>
-      <div style={{ position: 'absolute', left: 98, top: 420, width: 600, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 26 }}>
-        <Chip value={dollars} label="test dollars paid" />
-        <Chip value="$0.00" label="card fees" color={CORAL} />
+      <div style={{ position: 'absolute', left: 98, top: 420, width: 560, borderTop: '2px solid rgba(11,26,29,0.14)', paddingTop: 30, display: 'flex', gap: 72 }}>
+        <Stat value={dollars} label="test dollars paid" />
+        <Stat value="$0.00" label="card fees" color="#A94B40" />
       </div>
-      <p style={{ position: 'absolute', left: 98, top: 612, width: 600, margin: 0, fontSize: 30, lineHeight: 1.3, fontWeight: 700 }}>
+      <p style={{ position: 'absolute', left: 98, top: 584, width: 560, margin: 0, fontSize: 26, lineHeight: 1.4, fontWeight: 600, color: MUTED }}>
         Tap to pay. Paid in about a second.
-        <br />
-        Testnet numbers. Kova is live on mainnet.
       </p>
-      <div style={{ position: 'absolute', left: 96, bottom: 96, display: 'flex', alignItems: 'center', height: 86, padding: '0 38px', borderRadius: 43, background: INK, color: CARD, fontSize: 38, fontWeight: 800, letterSpacing: -1 }}>
+      <div style={{ position: 'absolute', left: 96, bottom: 156, display: 'flex', alignItems: 'center', gap: 14, height: 64, padding: '0 8px 0 30px', borderRadius: 32, background: INK, color: CARD, fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>
         mykova.app/try
+        <span style={{ width: 48, height: 48, borderRadius: 24, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </span>
       </div>
+      <p style={{ position: 'absolute', left: 98, bottom: 114, margin: 0, fontSize: 18, fontWeight: 600, color: MUTED }}>Testnet numbers. Kova is live on Monad mainnet.</p>
 
       <div style={{ position: 'absolute', left: 760, top: 0, width: 760, height: 900, transformOrigin: '380px 60px', transform: `rotate(${swing}deg)` }}>
         <svg width={760} height={320} viewBox="0 0 760 320" style={{ position: 'absolute', left: 0, top: 0 }}>
