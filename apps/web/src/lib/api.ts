@@ -100,6 +100,8 @@ export interface Merchant {
   network: string
   country: string
   livemode: boolean
+  /** Each sale goes to a one-time address of its own instead of settlement_address. */
+  private_takings: boolean
   explorer_url: string
   created_at: string
 }

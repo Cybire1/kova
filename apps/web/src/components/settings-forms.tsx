@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useActionState, useState } from 'react'
 import { type FormState, updateAccount } from '@/app/actions'
 import { Icon } from './brand'
@@ -24,7 +25,7 @@ export function NameForm({ name }: { name: string }) {
   )
 }
 
-export function AddressForm({ address, explorer }: { address: string; explorer: string }) {
+export function AddressForm({ address, explorer, privateTakings }: { address: string; explorer: string; privateTakings: boolean }) {
   const [state, action, pending] = useActionState<FormState, FormData>(updateAccount, {})
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(address)
@@ -33,7 +34,14 @@ export function AddressForm({ address, explorer }: { address: string; explorer: 
   return (
     <form action={action} className="setting-form">
       <span className="field-label">Where money lands</span>
-      <p className="field-help">Every payment settles straight to this Monad address. Kova never holds your money.</p>
+      {privateTakings ? (
+        <p className="field-help">
+          Each sale goes to its own address; see <Link href="/dashboard/private">Private takings</Link>. Moving them home brings them to this
+          address.
+        </p>
+      ) : (
+        <p className="field-help">Every payment settles straight to this Monad address. Kova never holds your money.</p>
+      )}
       {editing && !state.ok ? (
         <>
           <input name="address" value={value} onChange={(e) => setValue(e.target.value)} className="mono-input" spellCheck={false} aria-label="Settlement address" />

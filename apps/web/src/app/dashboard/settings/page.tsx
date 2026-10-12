@@ -26,7 +26,7 @@ export default async function SettingsPage() {
           ) : (
             <>
               <NameForm name={merchant.name} />
-              <AddressForm address={merchant.settlement_address} explorer={merchant.explorer_url} />
+              <AddressForm address={merchant.settlement_address} explorer={merchant.explorer_url} privateTakings={merchant.private_takings} />
             </>
           )}
         </section>
