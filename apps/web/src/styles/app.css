@@ -77,11 +77,13 @@
   box-shadow: 0 0 0 2.5px var(--paper);
 }
 
+/* Room under the last row for the dock, its gap from the bottom edge, and a breath. */
 .shop-main {
+  --clear-dock: calc(var(--dock-h, 3.625rem) + var(--dock-gap, 1rem) + 2rem);
   width: 100%;
   max-width: 76rem;
   margin: 0 auto;
-  padding: 0.75rem 2.25rem calc(7.5rem + env(safe-area-inset-bottom, 0px));
+  padding: 0.75rem 2.25rem var(--clear-dock);
 }
 
 .demo-bar {
@@ -102,13 +104,57 @@
 
 @media (max-width: 900px) {
   .shop-main {
-    padding: 0.5rem 1.25rem calc(7.5rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.5rem 1.25rem var(--clear-dock);
   }
 
   .demo-bar {
     margin: 0 1.25rem 0.5rem;
     border-radius: 1rem;
     font-size: 0.8125rem;
+  }
+}
+
+/* A sheet (pairing a phone, an item, a menu) comes up over the dock, as a sheet does in the app,
+   its close button in the corner (the frame's round buttons are otherwise in the flow). */
+.shop-mode .overlay {
+  z-index: 40;
+}
+
+.shop-mode .sheet .sheet-close {
+  position: absolute;
+}
+
+/* An item's photo is shown whole while you edit it, not cropped to a strip. */
+.shop-mode .item-sheet .photo-pick img {
+  object-fit: contain;
+}
+
+/* On a phone: the app's proportions (the wallet's frame sets its text, pills and round buttons). */
+@media (max-width: 640px) {
+  .shop-mode .card {
+    border-radius: 1.5rem;
+  }
+
+  .shop-back {
+    height: 2.25rem;
+    padding: 0 0.85rem 0 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .shop-id {
+    gap: 0.5rem;
+    font-size: 0.9375rem;
+  }
+
+  .shop-id-badge,
+  .shop-id-badge img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .demo-bar {
+    margin: 0 1rem 0.5rem;
+    padding: 0.55rem 1rem;
   }
 }
 
@@ -211,6 +257,44 @@
   font-size: 0.8125rem;
 }
 
+@media (max-width: 640px) {
+  .more {
+    gap: 1rem;
+  }
+
+  .more-head {
+    gap: 0.85rem;
+  }
+
+  .more-head img {
+    width: 52px;
+    height: 52px;
+  }
+
+  .more-head h1 {
+    font-size: 1.5rem;
+  }
+
+  .more-head p {
+    font-size: 0.875rem;
+  }
+
+  .more-row {
+    gap: 0.75rem;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .more-icon {
+    width: 2.375rem;
+    height: 2.375rem;
+  }
+
+  .more-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
 /* --- Page scaffolding --------------------------------------------------------------------- */
 
 .pagehead {
@@ -239,6 +323,49 @@
   display: flex;
   gap: 0.6rem;
   align-items: center;
+}
+
+/* Charge has its own place in the dock; on a desk the page offers it too. */
+@media (max-width: 900px) {
+  .desk-charge {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .pagehead {
+    gap: 0.9rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .pagehead h1 {
+    font-size: 1.75rem;
+    letter-spacing: -0.035em;
+  }
+
+  .pagehead p {
+    margin-top: 0.2rem;
+    font-size: 0.875rem;
+  }
+
+  /* Two actions share the row, half each, a little tighter inside; on the narrowest phones they
+     stack. */
+  .pagehead-actions:has(> * + *) {
+    --pill-pl: 1rem;
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.25rem, 1fr));
+    gap: 0.5rem;
+  }
+
+  .pagehead-actions:has(> * + *) .pill {
+    gap: 0.5rem;
+  }
+
+  /* Words a label can do without when the button is half a phone wide. */
+  .pill-more {
+    display: none;
+  }
 }
 
 .stack {
@@ -534,6 +661,72 @@
   background: var(--teal);
 }
 
+@media (max-width: 640px) {
+  .ov-shop {
+    gap: 0.75rem;
+  }
+
+  .ov-shop img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .ov-shop h1 {
+    font-size: 1.5rem;
+  }
+
+  .ov-shop p {
+    font-size: 0.875rem;
+  }
+
+  .ov-total {
+    margin-top: 1.5rem;
+  }
+
+  .ov-label {
+    font-size: 0.875rem;
+  }
+
+  .ov-amount {
+    margin-top: 0.15rem;
+    font-size: 3.5rem;
+  }
+
+  .ov-chips {
+    gap: 0.4rem;
+    margin-top: 1rem;
+  }
+
+  .ov-chips .chip {
+    height: 1.75rem;
+    padding: 0 0.7rem;
+    font-size: 0.75rem;
+  }
+
+  /* The steps, then the line, then its button under the line. */
+  .setup {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.65rem 0.75rem;
+    margin-top: 1.25rem;
+    padding: 0.9rem 1rem;
+    border-radius: 1.25rem;
+  }
+
+  .setup p {
+    min-width: 0;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  .setup .mini {
+    grid-column: 2;
+    justify-self: start;
+    height: 2.25rem;
+  }
+}
+
 /* The day, hour by hour */
 
 .dc {
@@ -609,9 +802,15 @@
   gap: 0.45rem;
 }
 
+/* A quiet day draws only its baseline, not a tall empty frame. */
+.dc-bars[data-empty] {
+  height: 3.25rem;
+}
+
 .dc-bar {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 0.5rem;
   outline: none;
@@ -660,11 +859,21 @@
   border-radius: 0.4rem;
 }
 
+/* Centred over its bar even when wider than it; at the ends of the day it leans inwards. */
 .dc-top {
-  text-align: center;
+  display: flex;
+  justify-content: center;
   font-size: 0.75rem;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.dc-bar:nth-child(-n + 2) .dc-top {
+  justify-content: flex-start;
+}
+
+.dc-bar:nth-last-child(-n + 2) .dc-top {
+  justify-content: flex-end;
 }
 
 .dc-bar[data-state="now"] .dc-top,
@@ -674,7 +883,8 @@
 }
 
 .dc-label {
-  text-align: center;
+  display: flex;
+  justify-content: center;
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--muted);
@@ -712,21 +922,22 @@
   transform: translate(-50%, 0);
 }
 
-.dc-bar:first-child .dc-tip {
+/* Near either end of the day the tip opens inwards, so it never runs off the page. */
+.dc-bar:nth-child(-n + 3) .dc-tip {
   left: 0;
   transform: translate(0, 0.3rem);
 }
 
-.dc-bar:last-child .dc-tip {
+.dc-bar:nth-last-child(-n + 3) .dc-tip {
   left: auto;
   right: 0;
   transform: translate(0, 0.3rem);
 }
 
-.dc-bar:first-child:hover .dc-tip,
-.dc-bar:first-child:focus-visible .dc-tip,
-.dc-bar:last-child:hover .dc-tip,
-.dc-bar:last-child:focus-visible .dc-tip {
+.dc-bar:nth-child(-n + 3):hover .dc-tip,
+.dc-bar:nth-child(-n + 3):focus-visible .dc-tip,
+.dc-bar:nth-last-child(-n + 3):hover .dc-tip,
+.dc-bar:nth-last-child(-n + 3):focus-visible .dc-tip {
   transform: none;
 }
 
@@ -890,6 +1101,53 @@
 .phone-add:hover {
   border-color: var(--ink);
   background: var(--surface);
+}
+
+.src-first {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.8rem 1.1rem 0.8rem 0.8rem;
+  border: 2px dashed rgba(11, 26, 29, 0.35);
+  border-radius: 1.4rem;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.src-first:hover {
+  border-color: var(--ink);
+  background: var(--surface);
+}
+
+.src-first img {
+  flex: none;
+}
+
+.src-first-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.src-first-text strong {
+  font-weight: 800;
+}
+
+.src-first-text small {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.src-first > svg {
+  flex: none;
+  color: var(--muted);
 }
 
 /* The tape */
@@ -1163,24 +1421,41 @@
       "src";
   }
 
+  /* Out of the side column the tape is a receipt: as long as the day's latest sales, torn off below. */
   .tape {
     position: relative;
-    height: 32rem;
+    height: auto;
     margin-top: 2.25rem;
+  }
+
+  .tape::after {
+    content: "";
+    flex: none;
+    height: 0.625rem;
+    margin-top: -1px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='10' viewBox='0 0 16 10'%3E%3Cpath d='M0 0 8 8 16 0z' fill='%23f8f7f3'/%3E%3Cpath d='M0 0 8 8 16 0' fill='none' stroke='%230b1a1d' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E")
+      0 0 / 16px 100% round no-repeat;
+  }
+
+  .tape-line:nth-child(8 of .tape-line) ~ li {
+    display: none;
+  }
+
+  .tape-empty {
+    gap: 0.9rem;
+    padding: 1.5rem 1.25rem 1.75rem;
   }
 }
 
 @media (max-width: 900px) {
-  .ov-charge {
-    display: none;
-  }
-
   .src-row {
     grid-template-columns: none;
     grid-auto-flow: column;
     grid-auto-columns: 11rem;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
+    /* Snap each phone to the page's edge, not the screen's. */
+    scroll-padding-inline: 1.25rem;
     margin-inline: -1.25rem;
     padding: 0.25rem 1.25rem 0.5rem;
     scrollbar-width: none;
@@ -1196,6 +1471,181 @@
 
   .dc-label {
     font-size: 0.625rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .dc,
+  .src {
+    margin-top: 2rem;
+  }
+
+  /* The range switch sits beside the title, the line under both. */
+  .dc-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.15rem 0.75rem;
+  }
+
+  .dc-head > div {
+    display: contents;
+  }
+
+  .dc-head h2 {
+    grid-area: 1 / 1;
+  }
+
+  .dc-head p {
+    grid-area: 2 / 1 / 3 / 3;
+    margin-top: 0;
+    font-size: 0.875rem;
+  }
+
+  .dc-head .seg {
+    grid-area: 1 / 2;
+  }
+
+  .dc-head h2,
+  .src-head h2 {
+    font-size: 1.125rem;
+  }
+
+  .seg {
+    padding: 0.2rem;
+  }
+
+  .seg button {
+    height: 1.75rem;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .dc-bars {
+    height: 10.5rem;
+    margin-top: 1.1rem;
+  }
+
+  .dc-bars[data-empty] {
+    height: 3rem;
+  }
+
+  .dc-fill {
+    border-radius: 0.6rem;
+  }
+
+  .dc-top {
+    font-size: 0.6875rem;
+  }
+
+  .src-head a {
+    font-size: 0.8125rem;
+  }
+
+  .src-row {
+    grid-auto-columns: 9.5rem;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+  }
+
+  .phone {
+    height: 13.25rem;
+    padding: 0.4rem;
+    border-radius: 1.75rem;
+  }
+
+  .phone-screen {
+    padding: 2rem 0.9rem 0.9rem;
+    border-radius: 1.4rem;
+  }
+
+  .phone-notch {
+    top: 0.5rem;
+    width: 2.75rem;
+    height: 0.7rem;
+  }
+
+  .phone-kovi {
+    top: 2.9rem;
+    width: 3.4rem;
+  }
+
+  .phone-name {
+    font-size: 0.875rem;
+  }
+
+  .phone-status {
+    font-size: 0.6875rem;
+  }
+
+  .phone-money {
+    font-size: 1.55rem;
+  }
+
+  .phone-count {
+    font-size: 0.75rem;
+  }
+
+  .phone-api {
+    padding: 1.1rem 1rem;
+  }
+
+  .phone-api-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  /* The tape on a phone: Kovi a size down, the latest six sales. */
+  .tape {
+    margin-top: 1.75rem;
+  }
+
+  .tape-top {
+    height: 4.5rem;
+  }
+
+  .tape-kovi {
+    width: 7.75rem;
+  }
+
+  .tape-slot {
+    height: 1.75rem;
+    font-size: 0.6875rem;
+  }
+
+  .tape-mouth {
+    left: 5.4rem;
+  }
+
+  .tape-head {
+    padding: 1.15rem 1rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .tape-line a {
+    grid-template-columns: 3.4rem minmax(0, 1fr) auto;
+    column-gap: 0.6rem;
+    padding: 0.7rem 1rem;
+  }
+
+  .tape-time {
+    font-size: 0.75rem;
+  }
+
+  .tape-title {
+    font-size: 0.875rem;
+  }
+
+  .tape-from {
+    font-size: 0.6875rem;
+  }
+
+  .tape-amount {
+    font-size: 0.9375rem;
+  }
+
+  .tape-line:nth-child(6 of .tape-line) ~ li {
+    display: none;
   }
 }
 
@@ -1310,6 +1760,104 @@
   padding: 3rem 1.5rem;
 }
 
+@media (max-width: 640px) {
+  .toolbar {
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+  }
+
+  /* The filters run edge to edge as a strip of chips, fading where there are more. */
+  .filters {
+    flex: 1 1 100%;
+    gap: 0.4rem;
+    max-width: none;
+    margin-inline: -1.25rem;
+    padding: 0.1rem 1.25rem;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    mask-image: linear-gradient(to right, transparent, #000 1rem, #000 calc(100% - 2rem), transparent);
+  }
+
+  .filter {
+    display: inline-flex;
+    align-items: center;
+    height: 2.25rem;
+    padding: 0 0.95rem;
+    background: var(--sunken);
+    font-size: 0.8125rem;
+  }
+
+  .search {
+    flex: 1 1 100%;
+    min-width: 0;
+    max-width: none;
+    height: 2.75rem;
+  }
+
+  .rows {
+    padding: 0 0.35rem 0.35rem;
+  }
+
+  .row,
+  .row-item .row {
+    grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    padding: 0.65rem 0.65rem;
+  }
+
+  .row-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .row-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .row-sub {
+    font-size: 0.75rem;
+  }
+
+  .row-amount {
+    font-size: 0.9375rem;
+  }
+
+  /* The whole row opens the charge; on a phone the chevron is one thing too many. */
+  .row-go {
+    display: none;
+  }
+
+  .dayhead {
+    padding: 0.85rem 1.1rem 0.35rem;
+    border-radius: 1.5rem 1.5rem 0 0;
+    font-size: 0.75rem;
+  }
+
+  .foot {
+    padding: 0.8rem 1.1rem 0.95rem;
+    font-size: 0.75rem;
+  }
+
+  .big-empty {
+    padding: 2rem 1.25rem;
+  }
+
+  .big-empty > img {
+    width: 112px;
+    height: 112px;
+  }
+
+  .empty h3 {
+    font-size: 1.125rem;
+  }
+
+  .empty p {
+    font-size: 0.875rem;
+  }
+}
+
 /* --- Payment detail ------------------------------------------------------------------------ */
 
 .detail {
@@ -1322,6 +1870,29 @@
 @media (max-width: 960px) {
   .detail {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* One column: a charge still waiting shows its code straight under the amount, ready to turn
+     round to the customer; the rest follows. */
+  .detail > .stack,
+  .detail > .dash-side {
+    display: contents;
+  }
+
+  .detail .payqr {
+    order: 1;
+  }
+
+  .detail > .stack > :not(.detail-hero) {
+    order: 2;
+  }
+
+  .detail > .dash-side > :not(.payqr) {
+    order: 3;
+  }
+
+  .detail .paid-card {
+    margin-bottom: 0;
   }
 }
 
@@ -1525,6 +2096,18 @@
   margin: 0.75rem 1.5rem 0;
 }
 
+.payqr-cancel {
+  margin-top: 1rem;
+}
+
+.memo-note {
+  padding: 0 1.5rem;
+}
+
+.memo-field {
+  padding: 0 1.25rem 1.25rem;
+}
+
 .inline-confirm {
   display: flex;
   flex-wrap: wrap;
@@ -1534,6 +2117,434 @@
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .backlink {
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .shop-main .card-head {
+    padding: 1rem 1rem 0.6rem 1.25rem;
+  }
+
+  .shop-main .card-head h2 {
+    font-size: 1.0625rem;
+  }
+
+  .shop-main .card-head p {
+    font-size: 0.8125rem;
+  }
+
+  .card-body {
+    padding: 0 1.25rem 1.25rem;
+  }
+
+  .card-pad {
+    padding: 1.25rem;
+  }
+
+  .detail,
+  .stack {
+    gap: 1rem;
+  }
+
+  .detail-hero {
+    padding: 1.25rem;
+  }
+
+  .status-chip {
+    height: 1.75rem;
+    padding: 0 0.7rem;
+    font-size: 0.75rem;
+  }
+
+  .detail-amount {
+    margin-top: 0.85rem;
+    font-size: 2.75rem;
+  }
+
+  .detail-for {
+    margin-top: 0.3rem;
+    font-size: 1rem;
+  }
+
+  .detail-took {
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .timeline {
+    gap: 1rem;
+    padding: 0.25rem 1.25rem 1.2rem;
+  }
+
+  .timeline strong {
+    font-size: 0.9375rem;
+  }
+
+  .timeline span > span {
+    font-size: 0.8125rem;
+  }
+
+  .facts {
+    padding: 0 1.25rem 1.1rem;
+  }
+
+  .facts-flat {
+    padding: 0;
+  }
+
+  .facts > div {
+    padding: 0.6rem 0;
+  }
+
+  .facts dt {
+    font-size: 0.8125rem;
+  }
+
+  .paid-card {
+    gap: 0.5rem;
+    padding: 2.75rem 1.25rem 1.25rem;
+  }
+
+  .paid-card .receipt {
+    width: 11rem;
+  }
+
+  .paid-card .kovi-cheer-sm {
+    width: 3.5rem;
+    top: calc(4.53% - 3.5rem * 0.912 + 0.6rem);
+  }
+
+  .paid-card p {
+    font-size: 0.875rem;
+  }
+
+  .payqr {
+    padding-bottom: 1.25rem;
+  }
+
+  .payqr .qr-big {
+    width: min(14rem, 64vw);
+  }
+
+  .payqr .field {
+    margin: 0.85rem 1rem 0;
+  }
+
+  .payqr .code-meta {
+    margin: 0.6rem 1.25rem 0;
+  }
+
+  .memo-note {
+    padding: 0 1.25rem;
+  }
+
+  .memo-field {
+    padding: 0 1rem 1rem;
+  }
+}
+
+/* --- Catalogue (its tiles are in stalls.css; these are the shop's own) --------------------------- */
+
+.item-face-letter {
+  width: var(--face, 56px);
+  height: var(--face, 56px);
+}
+
+.big-empty .row-actions {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* On a phone each item is a row: photo, name and price, and its switch at the end. A sold-out
+   item says so beside its switch; one in stock needs no words. */
+@media (max-width: 640px) {
+  .shop-mode .toolbar .field-help {
+    font-size: 0.75rem;
+  }
+
+  .shop-mode .cat-grid {
+    gap: 0.5rem;
+  }
+
+  .shop-mode .cat-item {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.9rem 0.5rem 0.5rem;
+    border-radius: 1.25rem;
+  }
+
+  .shop-mode .cat-main {
+    flex: 1;
+    min-width: 0;
+    gap: 0.75rem;
+  }
+
+  .shop-mode .cat-main .item-face {
+    width: 52px;
+    height: 52px;
+    border-radius: 0.9rem;
+  }
+
+  .shop-mode .cat-name {
+    font-size: 0.9375rem;
+  }
+
+  .shop-mode .cat-price {
+    font-size: 0.875rem;
+  }
+
+  .shop-mode .cat-item .switch {
+    flex-direction: row-reverse;
+    align-self: center;
+    font-size: 0.75rem;
+  }
+
+  .shop-mode .cat-item:not([data-soldout]) .switch-text {
+    display: none;
+  }
+
+  .shop-mode .cat-main .item-face-letter {
+    font-size: 1.2rem;
+  }
+}
+
+/* --- Stalls home (stalls.css draws the stalls; these fit them to a phone) ----------------------- */
+
+@media (max-width: 640px) {
+  .shop-mode .stall-cards {
+    gap: 0.75rem;
+  }
+
+  .shop-mode .stall-card {
+    border-radius: 1.5rem;
+  }
+
+  .shop-mode .stall-card-body {
+    padding: 0.5rem 1rem 1.1rem;
+  }
+
+  .shop-mode .stall-card-top h3 {
+    font-size: 1.125rem;
+  }
+
+  .shop-mode .stall-card-line {
+    font-size: 0.875rem;
+  }
+
+  .shop-mode .stall-card-meta {
+    font-size: 0.75rem;
+  }
+
+  .shop-mode .stall-card-actions {
+    margin-top: 0.5rem;
+  }
+
+  .shop-mode .orders-tabs {
+    margin: 0 1rem 0.5rem;
+    gap: 0.2rem;
+  }
+
+  .shop-mode .orders-tabs button {
+    height: 2.125rem;
+    padding: 0 0.6rem;
+  }
+
+  .shop-mode .orders-empty {
+    padding: 1rem 1.25rem 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  .shop-mode .order-list {
+    padding: 0 0.5rem 0.5rem;
+  }
+
+  .shop-mode .order {
+    padding: 0.8rem 0.9rem 0.85rem;
+  }
+
+  /* Where it's from on its own line, then Ready and Collected as two even buttons. */
+  .shop-mode .order-foot {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .shop-mode .order-acts {
+    flex: 1 1 100%;
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 0.4rem;
+  }
+
+  .shop-mode .order-acts .mini {
+    justify-content: center;
+    height: 2.5rem;
+  }
+
+  .shop-mode .stall-first-body {
+    gap: 0.75rem;
+    padding: 1.25rem 1.25rem 1.75rem;
+  }
+
+  .shop-mode .stall-first-kovi {
+    width: 112px;
+    height: 112px;
+  }
+
+  .shop-mode .stall-first-body h2 {
+    font-size: 1.625rem;
+  }
+
+  .shop-mode .stall-first-body > p {
+    font-size: 0.9375rem;
+  }
+
+  .shop-mode .stall-steps li {
+    font-size: 0.9375rem;
+  }
+}
+
+/* --- Stall editor and a new stall ------------------------------------------------------------ */
+
+/* Out of the side column there's no room for the buyer's preview; "Open the stall" shows it. */
+@media (max-width: 1150px) {
+  .shop-mode .editor-preview {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .shop-mode .editor-main {
+    gap: 1rem;
+  }
+
+  .shop-mode .editor-head {
+    gap: 0.75rem;
+  }
+
+  .shop-mode .editor-head h1 {
+    font-size: 1.75rem;
+    letter-spacing: -0.035em;
+  }
+
+  .shop-mode .editor-head p {
+    font-size: 0.8125rem;
+  }
+
+  .shop-mode .switch-big {
+    padding: 0.4rem 0.8rem 0.4rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .shop-mode .editor-section h2 {
+    font-size: 1.0625rem;
+  }
+
+  .shop-mode .editor-fields input {
+    height: 2.75rem;
+  }
+
+  .shop-mode .stall-items {
+    padding: 0 0.5rem 0.4rem;
+  }
+
+  .shop-mode .stall-items li {
+    gap: 0.65rem;
+    padding: 0.55rem 0.4rem;
+  }
+
+  .shop-mode .stall-items .item-face {
+    width: 42px;
+    height: 42px;
+    border-radius: 0.8rem;
+  }
+
+  .shop-mode .stall-items .item-face-letter {
+    font-size: 1rem;
+  }
+
+  .shop-mode .stall-item-text {
+    font-size: 0.875rem;
+  }
+
+  .shop-mode .stall-item-text span {
+    font-size: 0.8125rem;
+  }
+
+  .shop-mode .stall-item-moves .round {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .shop-mode .stall-item-moves .round svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .shop-mode .chip-add {
+    height: 2.125rem;
+    font-size: 0.8125rem;
+  }
+
+  .shop-mode .share-qr {
+    width: 8rem;
+  }
+
+  .shop-mode .share-actions {
+    justify-items: stretch;
+    width: 100%;
+  }
+
+  .shop-mode .share-actions .mini {
+    justify-content: center;
+    height: 2.5rem;
+  }
+
+  .shop-mode .editor-danger {
+    padding: 0.25rem 0 0.5rem;
+  }
+
+  /* A new stall: the form first, its sign going up underneath. */
+  .shop-mode .new-stall-grid {
+    gap: 1.75rem;
+    margin-top: 0.25rem;
+  }
+
+  .shop-mode .stall-sign {
+    order: 0;
+  }
+
+  .shop-mode .new-stall-form h1 {
+    font-size: 1.75rem;
+    letter-spacing: -0.035em;
+  }
+
+  .shop-mode .stall-sign-board {
+    padding: 1.1rem 1rem 1.25rem;
+  }
+
+  .shop-mode .stall-sign-board strong {
+    font-size: 1.5rem;
+  }
+
+  .shop-mode .stall-sign-board span {
+    font-size: 0.875rem;
+  }
+
+  .shop-mode .stall-sign-legs {
+    max-width: 85%;
+  }
+
+  .shop-mode .stall-sign-legs span {
+    width: 0.75rem;
+    height: 2.25rem;
+  }
 }
 
 /* --- Terminals ------------------------------------------------------------------------------ */
@@ -1671,6 +2682,116 @@
   }
 }
 
+/* On a phone a terminal is a row: its phone, its name and when it was used, and Remove. */
+@media (max-width: 640px) {
+  .tgrid {
+    gap: 0.6rem;
+  }
+
+  .tcard {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.1rem 0.85rem;
+    min-height: 0;
+    padding: 0.9rem 1rem;
+    border-radius: 1.4rem;
+  }
+
+  .tcard-top {
+    display: contents;
+  }
+
+  .tcard-phone {
+    grid-area: 1 / 1 / 3 / 2;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.9rem;
+  }
+
+  .tcard-phone svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .tcard .chip {
+    grid-area: 1 / 3;
+    height: 1.6rem;
+    padding: 0 0.6rem;
+    font-size: 0.6875rem;
+  }
+
+  .tcard h3 {
+    grid-area: 1 / 2;
+    margin-top: 0;
+    overflow: hidden;
+    font-size: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tcard p {
+    grid-area: 2 / 2;
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  .tcard-remove {
+    grid-area: 2 / 3;
+    justify-self: end;
+    align-self: end;
+    margin-top: 0;
+    font-size: 0.8125rem;
+  }
+
+  .tcard-confirm {
+    grid-column: 1 / -1;
+    margin-top: 0.6rem;
+  }
+
+  .tcard-confirm p {
+    grid-area: auto;
+  }
+
+  .tcard-add {
+    display: flex;
+    justify-content: flex-start;
+    gap: 0.85rem;
+    padding: 0.75rem 1rem 0.75rem 0.75rem;
+  }
+
+  .tcard-add img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .howto {
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+  }
+
+  .howto > div {
+    display: grid;
+    grid-template-columns: 1.25rem minmax(0, 1fr);
+    column-gap: 0.75rem;
+    padding: 1rem 1.1rem;
+    border-radius: 1.25rem;
+  }
+
+  .howto svg {
+    grid-row: 1 / 3;
+    margin-top: 0.1rem;
+  }
+
+  .howto h3 {
+    margin: 0 0 0.15rem;
+    font-size: 0.9375rem;
+  }
+
+  .howto p {
+    font-size: 0.8125rem;
+  }
+}
+
 /* --- Developers ------------------------------------------------------------------------------ */
 
 .dev {
@@ -1750,6 +2871,103 @@
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 0.8125rem;
   line-height: 1.7;
+}
+
+/* On a phone Copy is a round button, so the three examples fit; if they don't, they fade off. */
+@media (max-width: 640px) {
+  .dev {
+    gap: 1rem;
+  }
+
+  .codecard {
+    border-radius: 1.5rem;
+  }
+
+  .codecard-head {
+    padding: 0.6rem 0.6rem 0;
+  }
+
+  .codetabs {
+    flex: 1;
+    min-width: 0;
+    mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+  }
+
+  .codetabs button {
+    height: 2.125rem;
+    padding: 0 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .codecopy {
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+  }
+
+  .codecopy-label {
+    display: none;
+  }
+
+  .codecard pre {
+    padding: 1rem 1.1rem 1.2rem;
+    font-size: 0.75rem;
+  }
+
+  .keylist {
+    padding: 0 0.5rem 0.4rem;
+  }
+
+  .keylist li {
+    gap: 0.7rem;
+    padding: 0.75rem 0.6rem;
+  }
+
+  .key-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .key-text {
+    min-width: 0;
+    flex-basis: calc(100% - 3rem);
+  }
+
+  .key-text strong {
+    font-size: 0.9375rem;
+  }
+
+  .key-text strong.url {
+    font-size: 0.8125rem;
+  }
+
+  .key-actions,
+  .keylist li > .mini,
+  .keylist li > .inline-confirm {
+    margin-left: 2.95rem;
+  }
+
+  .events {
+    padding: 0 0.4rem 0.5rem;
+  }
+
+  .event {
+    gap: 0.5rem;
+    padding: 0.7rem 0.6rem;
+  }
+
+  .event code {
+    font-size: 0.75rem;
+  }
+
+  .event-state {
+    font-size: 0.6875rem;
+  }
+
+  .event-time {
+    font-size: 0.6875rem;
+  }
 }
 
 .keylist {
@@ -1906,6 +3124,7 @@ input:not([type="checkbox"]):not([type="hidden"]):not(.amount-ref),
 
 .row-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.25rem;
 }
@@ -2043,6 +3262,29 @@ input:not([type="checkbox"]):not([type="hidden"]):not(.amount-ref),
   white-space: nowrap;
 }
 
+.dev-empty {
+  padding-top: 0;
+}
+
+.events-empty {
+  padding: 0 1.5rem 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .dev-empty {
+    padding: 0 1.25rem 1.25rem;
+  }
+
+  .dev-empty > img {
+    width: 64px;
+    height: 64px;
+  }
+
+  .events-empty {
+    padding: 0 1.25rem 1.25rem;
+  }
+}
+
 .event-body {
   margin: 0 0.75rem 0.75rem;
   border-radius: 1rem;
@@ -2103,6 +3345,61 @@ input:not([type="checkbox"]):not([type="hidden"]):not(.amount-ref),
 
 .address .mini {
   background: var(--surface);
+}
+
+.field-help a {
+  color: var(--ink);
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .settings {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .setting-art img {
+    width: 56px;
+    height: 56px;
+  }
+
+  .setting-form {
+    padding: 0.9rem 0;
+  }
+
+  .setting-title {
+    font-size: 1.0625rem;
+  }
+
+  .shop-main .field-help {
+    font-size: 0.8125rem;
+  }
+
+  .address {
+    padding: 0.55rem 0.55rem 0.55rem 0.9rem;
+    border-radius: 1.1rem;
+  }
+
+  .address code {
+    min-width: 100%;
+    font-size: 0.75rem;
+  }
+
+  .shop-mode .inline-form input,
+  .shop-mode .stack-form input:not([type="checkbox"]),
+  .shop-mode .setting-form input:not([type="checkbox"]) {
+    height: 2.75rem;
+  }
+
+  .owner-card {
+    gap: 0.75rem;
+  }
+
+  .owner-icon {
+    width: 2.375rem;
+    height: 2.375rem;
+  }
 }
 
 .paid-card {

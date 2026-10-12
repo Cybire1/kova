@@ -82,22 +82,27 @@ export function PaymentsBrowser({ initial, status, q }: { initial: IntentList; s
     return `/dashboard/payments${s ? `?${s}` : ''}`
   }
 
+  // Nothing to filter or search until the first charge.
+  const untouched = rows.length === 0 && !q && !status
+
   return (
     <>
-      <div className="toolbar">
-        <nav className="filters" aria-label="Filter by status">
-          {FILTERS.map((f) => (
-            <Link key={f.label} href={href({ status: f.status, q })} className="filter" aria-current={(f.status ?? '') === (status ?? '') ? 'true' : undefined}>
-              {f.label}
-            </Link>
-          ))}
-        </nav>
-        <form className="search" action="/dashboard/payments" role="search">
-          {status ? <input type="hidden" name="status" value={status} /> : null}
-          <Icon name="search" size={18} />
-          <input name="q" defaultValue={q} placeholder="Search what it was for" aria-label="Search payments" />
-        </form>
-      </div>
+      {untouched ? null : (
+        <div className="toolbar">
+          <nav className="filters" aria-label="Filter by status">
+            {FILTERS.map((f) => (
+              <Link key={f.label} href={href({ status: f.status, q })} className="filter" aria-current={(f.status ?? '') === (status ?? '') ? 'true' : undefined}>
+                {f.label}
+              </Link>
+            ))}
+          </nav>
+          <form className="search" action="/dashboard/payments" role="search">
+            {status ? <input type="hidden" name="status" value={status} /> : null}
+            <Icon name="search" size={18} />
+            <input name="q" defaultValue={q} placeholder="Search what it was for" aria-label="Search payments" />
+          </form>
+        </div>
+      )}
 
       {rows.length === 0 ? (
         <section className="card empty big-empty">

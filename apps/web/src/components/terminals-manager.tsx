@@ -27,10 +27,13 @@ export function TerminalsManager({ initial }: { initial: Terminal[] }) {
 
   return (
     <>
+      {/* The first phone is paired from the empty card below; after that, from here. */}
       <PageHead title="Terminals" sub={`${terminals.length} ${terminals.length === 1 ? 'phone takes' : 'phones take'} payments for your shop`}>
-        <Pill icon="plus" onClick={() => setPairing(true)}>
-          Add a terminal
-        </Pill>
+        {terminals.length ? (
+          <Pill icon="plus" onClick={() => setPairing(true)}>
+            Add a terminal
+          </Pill>
+        ) : null}
       </PageHead>
 
       {terminals.length === 0 ? (
@@ -101,7 +104,7 @@ export function TerminalsManager({ initial }: { initial: Terminal[] }) {
         <div>
           <Icon name="shield" size={20} />
           <h3>Money never stops there</h3>
-          <p>Payments settle straight to your shop’s address on Monad. The phone only shows the code.</p>
+          <p>Payments settle to your shop on Monad, never to the phone. The phone only shows the code.</p>
         </div>
       </section>
 

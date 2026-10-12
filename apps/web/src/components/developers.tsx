@@ -51,12 +51,14 @@ export function verify(body: string, header: string, secret: string) {
         <button
           type="button"
           className="codecopy"
+          aria-label={copied ? 'Copied' : `Copy the ${tab} example`}
           onClick={async () => {
             await navigator.clipboard.writeText(samples[tab])
             setCopied(true)
           }}
         >
-          <Icon name={copied ? 'check' : 'copy'} size={14} /> {copied ? 'Copied' : 'Copy'}
+          <Icon name={copied ? 'check' : 'copy'} size={14} />
+          <span className="codecopy-label">{copied ? 'Copied' : 'Copy'}</span>
         </button>
       </div>
       <pre>
@@ -207,7 +209,7 @@ export function WebhooksCard({ endpoints }: { endpoints: WebhookEndpoint[] }) {
           ))}
         </ul>
       ) : (
-        <div className="empty" style={{ paddingTop: 0 }}>
+        <div className="empty dev-empty">
           <Art name="plane" size={84} />
           <p>No endpoints yet. Add one to hear about payments in your own systems the moment they settle.</p>
         </div>
@@ -271,7 +273,7 @@ export function EventsCard({ initial }: { initial: KovaEvent[] }) {
         </div>
       </div>
       {events.length === 0 ? (
-        <p className="code-meta" style={{ padding: '0 1.5rem 1.5rem' }}>
+        <p className="code-meta events-empty">
           Nothing yet. Events appear when a charge is paid, or when you send a test.
         </p>
       ) : (

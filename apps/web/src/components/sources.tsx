@@ -21,6 +21,24 @@ function status(t: Terminal): { word: string; state: 'live' | 'recent' | 'idle' 
  */
 export function Sources({ terminals, byTerminal, byStall, onAdd }: { terminals: Terminal[]; byTerminal: Summary['by_terminal']; byStall: Summary['by_stall']; onAdd: () => void }) {
   const online = byTerminal.find((b) => b.terminal === null)
+  // Nothing to show yet: one line that starts the first phone, not an empty shelf.
+  if (terminals.length === 0 && byStall.length === 0 && !online)
+    return (
+      <section className="src" aria-label="Where today’s money came from">
+        <div className="src-head">
+          <h2>Where it came from</h2>
+          <Link href="/dashboard/terminals">Manage terminals</Link>
+        </div>
+        <button type="button" className="src-first" onClick={onAdd}>
+          <Art name="badge-add" size={44} />
+          <span className="src-first-text">
+            <strong>Pair your first phone</strong>
+            <small>Any phone with Kova becomes a till, with its own takings here.</small>
+          </span>
+          <Icon name="chevron" size={18} />
+        </button>
+      </section>
+    )
   return (
     <section className="src" aria-label="Where today’s money came from">
       <div className="src-head">

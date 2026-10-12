@@ -136,17 +136,18 @@ export function StallsHome({ stalls, initialOrders, catalogueSize }: { stalls: S
             <h2>Orders</h2>
             <p>{toHand.length ? `${toHand.length} to hand over` : 'All handed over'}</p>
           </div>
+          {/* The app's three: a count where there's something to do, none on what's done. */}
           <div className="orders-tabs" role="tablist">
             {(
               [
                 ['hand', 'To hand over'],
-                ['waiting', 'Waiting to pay'],
-                ['done', 'Collected'],
+                ['waiting', 'Waiting'],
+                ['done', 'Done'],
               ] as [Filter, string][]
             ).map(([key, label]) => (
               <button key={key} type="button" role="tab" aria-selected={filter === key} onClick={() => setFilter(key)}>
                 {label}
-                <span>{lists[key].length}</span>
+                {key !== 'done' && lists[key].length ? <span>{lists[key].length}</span> : null}
               </button>
             ))}
           </div>

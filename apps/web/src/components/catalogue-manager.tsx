@@ -18,8 +18,9 @@ export function ItemFace({ item, size = 56 }: { item: Pick<CatalogItem, 'name' |
     )
   const tones = ['#a9c9c9', '#ebb3aa', '#dedcd8', '#f3d6d0']
   const tone = tones[[...item.name].reduce((n, c) => n + c.charCodeAt(0), 0) % tones.length]
+  // Sized through a variable, so a phone layout can draw it smaller, as it does the photos.
   return (
-    <span className="item-face item-face-letter" style={{ width: size, height: size, background: tone }} aria-hidden="true">
+    <span className="item-face item-face-letter" style={{ '--face': `${size}px`, background: tone } as React.CSSProperties} aria-hidden="true">
       {item.name.trim().charAt(0).toUpperCase()}
     </span>
   )
@@ -50,13 +51,18 @@ export function CatalogueManager({ initial }: { initial: CatalogItem[] }) {
 
   return (
     <>
+      {/* With nothing for sale yet, the empty card below offers both ways to start. */}
       <PageHead title="Catalogue" sub={`${items.length} ${items.length === 1 ? 'item' : 'items'}, shared by your stalls and your till`}>
-        <Pill icon="camera" tone="light" onClick={() => setImporting(true)}>
-          Snap your menu
-        </Pill>
-        <Pill icon="plus" onClick={() => setEditing('new')}>
-          Add an item
-        </Pill>
+        {items.length ? (
+          <>
+            <Pill icon="camera" tone="light" onClick={() => setImporting(true)}>
+              Snap<span className="pill-more"> your</span> menu
+            </Pill>
+            <Pill icon="plus" onClick={() => setEditing('new')}>
+              Add<span className="pill-more"> an</span> item
+            </Pill>
+          </>
+        ) : null}
       </PageHead>
 
       {items.length === 0 ? (

@@ -151,7 +151,7 @@ export default async function PaymentPage(props: { params: Promise<{ id: string 
               <div className="qr qr-big" dangerouslySetInnerHTML={{ __html: qr }} />
               <p className="code-meta">Scan with Kova Pay or any Monad wallet. Code expires {clock(p.expires_at)}.</p>
               <CopyField label="Pay link" value={payLink} />
-              <div style={{ marginTop: '1rem' }}>
+              <div className="payqr-cancel">
                 <CancelCharge id={p.id} />
               </div>
               <WatchPaid id={p.id} />
@@ -175,10 +175,10 @@ export default async function PaymentPage(props: { params: Promise<{ id: string 
               <div className="card-head">
                 <h2>On-chain memo</h2>
               </div>
-              <p className="code-meta" style={{ padding: '0 1.5rem' }}>
+              <p className="code-meta memo-note">
                 The payment carries this memo, so it’s matched to this charge without trusting anyone’s word.
               </p>
-              <div style={{ padding: '0 1.25rem 1.25rem' }}>
+              <div className="memo-field">
                 <CopyField label="Memo" value={p.memo} />
               </div>
             </section>

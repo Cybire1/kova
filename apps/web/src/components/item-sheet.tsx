@@ -131,20 +131,20 @@ export function ItemSheet({
           <label className="field-label" htmlFor="item-name">
             Name
           </label>
-          <input id="item-name" ref={first} value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required placeholder="Jollof and chicken" />
+          <input id="item-name" ref={first} value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required placeholder="Iced latte" />
 
           <label className="field-label" htmlFor="item-price">
             Price in dollars
           </label>
           <div className="money-input">
             <span>$</span>
-            <input id="item-price" value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" required placeholder="6.50" pattern="\$?\d+(\.\d{1,2})?" />
+            <input id="item-price" value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" required placeholder="4.75" pattern="\$?\d+(\.\d{1,2})?" />
           </div>
 
           <label className="field-label" htmlFor="item-desc">
             Description <span className="optional">optional</span>
           </label>
-          <input id="item-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} placeholder="Smoky, with plantain" />
+          <input id="item-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} placeholder="Oat milk on request" />
 
           <label className="field-label" htmlFor="item-barcode">
             Barcode <span className="optional">optional, for the till</span>

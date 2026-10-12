@@ -94,7 +94,7 @@ export function OverviewLive({
             <p>{new Date().toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           </div>
         </div>
-        <Pill href="/charge" icon="tap" tone="coral" className="ov-charge">
+        <Pill href="/charge" icon="tap" tone="coral" className="desk-charge">
           New charge
         </Pill>
       </header>

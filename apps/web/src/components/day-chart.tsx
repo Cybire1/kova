@@ -85,7 +85,7 @@ export function DayChart({ hourly, daily }: { hourly: Summary['hourly']; daily: 
           </button>
         </fieldset>
       </div>
-      <ol className="dc-bars" data-range={range} style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))` }}>
+      <ol className="dc-bars" data-range={range} data-empty={empty ? 'true' : undefined} style={{ gridTemplateColumns: `repeat(${bars.length}, minmax(0, 1fr))` }}>
         {bars.map((b, i) => {
           const height = b.state === 'future' || max === 0 ? 0 : Math.max((b.value / max) * 100, b.value > 0 ? 7 : 0)
           return (

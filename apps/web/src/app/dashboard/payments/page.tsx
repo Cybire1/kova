@@ -21,7 +21,7 @@ export default async function PaymentsPage(props: { searchParams: Promise<{ stat
   return (
     <>
       <PageHead title="Payments" sub={`${summary.all_time.count} paid, ${usd(summary.all_time.total)} all time`}>
-        <Pill href="/charge" icon="tap" tone="coral">
+        <Pill href="/charge" icon="tap" tone="coral" className="desk-charge">
           New charge
         </Pill>
       </PageHead>
