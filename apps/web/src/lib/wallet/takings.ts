@@ -68,15 +68,22 @@ export async function takingsKeys(owner: WebWallet, shop: string): Promise<Steal
   }
 }
 
+/** What a move needs from a private payment: the one-time address, and the key that opens it. */
+type Openable = Pick<PrivateSale, 'stealth_address' | 'ephemeral_public_key'>
+
 /** A move ready for Kova to submit: everything one sale's address holds, signed by that address. */
-export interface SignedMove {
-  sale: PrivateSale
+export interface SignedMove<T extends Openable = PrivateSale> {
+  sale: T
   amount: bigint
   authorization: SignedAuthorization
 }
 
 /** Runs `task` over `items`, a few at a time, so a long list doesn't flood Monad's public RPC. */
-async function inTurns<T, R>(items: T[], task: (item: T) => Promise<R>, width = 6): Promise<R[]> {
+export async function inTurns<T, R>(
+  items: T[],
+  task: (item: T) => Promise<R>,
+  width = 6,
+): Promise<R[]> {
   const out: R[] = new Array(items.length)
   let next = 0
   const worker = async () => {
@@ -93,19 +100,20 @@ async function inTurns<T, R>(items: T[], task: (item: T) => Promise<R>, width = 
  * Signs, for each sale, a transfer of everything its one-time address holds to `to`, with that
  * address's own key: the spending key plus the sale's shared secret. Kova only takes a move of all
  * of it, and the approval lasts ten minutes. Addresses Monad says are empty already are left out.
+ * A person's private payments (lib/wallet/private.ts) move into their wallet the same way.
  */
-export async function signMoves(
+export async function signMoves<T extends Openable>(
   keys: StealthKeys,
-  sales: PrivateSale[],
+  sales: T[],
   to: string,
   network: NetworkId,
-): Promise<{ moves: SignedMove[]; empty: PrivateSale[] }> {
+): Promise<{ moves: SignedMove<T>[]; empty: T[] }> {
   const token = getToken(network, 'AUSD')
   const { chainId } = getNetwork(network)
   const validBefore = BigInt(Math.floor(Date.now() / 1000) + 600)
   const held = await inTurns(sales, (sale) => balanceOf(network, getAddress(sale.stealth_address)))
-  const moves: SignedMove[] = []
-  const empty: PrivateSale[] = []
+  const moves: SignedMove<T>[] = []
+  const empty: T[] = []
   for (const [i, sale] of sales.entries()) {
     const account = privateKeyToAccount(stealthPrivateKey(keys, sale.ephemeral_public_key as Hex))
     if (!isAddressEqual(account.address, getAddress(sale.stealth_address)))

@@ -46,7 +46,34 @@ export function Avatar({ name, id, size = 56 }: { name: string; id?: string; siz
   )
 }
 
+/** A face with a small lock on it: the person in a private payment. */
+export function LockedFace({ name, id, size = 40 }: { name: string; id?: string; size?: number }) {
+  return (
+    <span className="w-face-locked" style={{ width: size, height: size }}>
+      {id ? (
+        <Avatar name={name} id={id} size={size} />
+      ) : (
+        <span className="w-face w-face-unknown" style={{ width: size, height: size }}>
+          <Icon name="user" size={Math.round(size * 0.45)} />
+        </span>
+      )}
+      <span className="w-face-lock" aria-hidden="true">
+        <Icon name="lock" size={Math.max(10, Math.round(size * 0.25))} />
+      </span>
+    </span>
+  )
+}
+
+/** What a payment's row is called: who, and for a private one, which way it went. */
+export function entryTitle(entry: Entry): string {
+  if (!entry.oneTime) return entry.name
+  if (entry.kind === 'received')
+    return entry.name ? `Private · from ${entry.name}` : 'Private payment'
+  return entry.name ? `Private · to ${entry.name}` : 'Sent privately'
+}
+
 export function EntryBadge({ entry, size = 40 }: { entry: Entry; size?: number }) {
+  if (entry.oneTime) return <LockedFace name={entry.name} id={entry.address} size={size} />
   if (entry.kind === 'paid') return <Art name="badge-shop" size={size} className="w-face" />
   if (entry.kind === 'added') return <Art name="badge-add" size={size} className="w-face" />
   if (entry.link)
@@ -82,11 +109,11 @@ export function EntryRow({ entry }: { entry: Entry }) {
     <Link
       href={`/wallet/activity/${encodeURIComponent(entry.id)}`}
       className="w-entry"
-      aria-label={`${verbs[entry.kind]} ${formatUsd(BigInt(entry.amount))}, ${entry.name}`}
+      aria-label={`${verbs[entry.kind]} ${formatUsd(BigInt(entry.amount))}, ${entryTitle(entry)}`}
     >
       <EntryBadge entry={entry} />
       <span className="w-entry-text">
-        <span className="w-entry-name">{entry.name}</span>
+        <span className="w-entry-name">{entryTitle(entry)}</span>
         <span className="w-entry-sub">
           {entry.private || entry.locked ? <Icon name="lock" size={12} /> : null}
           {entry.detail}, {when(entry.at)}
@@ -102,7 +129,15 @@ export function EntryRow({ entry }: { entry: Entry }) {
  * raised like a price tag, the local amount as a chip, and one tap to hide it all.
  */
 export function BalanceCard() {
-  const { balance: actual, profile, rates, hideBalance, setHideBalance } = useWallet()
+  const {
+    balance: actual,
+    profile,
+    rates,
+    hideBalance,
+    setHideBalance,
+    privateBalance,
+    privateUnchecked,
+  } = useWallet()
   const balance = useCounted(actual)
   const usd = balance === null ? null : formatUsd(balance)
   const [whole, cents] =
@@ -158,8 +193,62 @@ export function BalanceCard() {
             {hideBalance ? '≈ ••••' : `≈ ${formatLocal(baseToNumber(balance), currency, rates)}`}
           </span>
         ) : null}
+        {/* Dollars sent to you privately: yours, at one-time addresses, a tap from the balance. */}
+        {privateBalance > 0n ? (
+          <span
+            className="w-chip w-chip-private"
+            role="note"
+            aria-label={
+              hideBalance
+                ? 'Private dollars waiting to move in'
+                : `${formatUsd(privateBalance)} sent to you privately, waiting to move in`
+            }
+          >
+            <Icon name="lock" size={13} />
+            {hideBalance ? '+•••• private' : `+${formatUsd(privateBalance)} private`}
+          </span>
+        ) : privateUnchecked ? (
+          <CheckPrivateChip />
+        ) : null}
       </div>
     </section>
+  )
+}
+
+/**
+ * Private payments only show once this wallet's keys have looked for them, and on the web the keys
+ * live in memory: after a reload, while Kova has new ones to look through, the passkey checks.
+ */
+function CheckPrivateChip() {
+  const { checkPrivate } = useWallet()
+  const [state, setState] = useState<'idle' | 'checking' | 'failed'>('idle')
+  return (
+    <button
+      type="button"
+      className="w-chip w-chip-private"
+      disabled={state === 'checking'}
+      onClick={async () => {
+        setState('checking')
+        try {
+          await checkPrivate()
+          setState('idle')
+        } catch (error) {
+          const message = error instanceof Error ? error.message : ''
+          setState(/cancel|not allowed|abort/i.test(message) ? 'idle' : 'failed')
+        }
+      }}
+    >
+      {state === 'checking' ? (
+        <span className="spinner w-chip-spinner" aria-hidden="true" />
+      ) : (
+        <Icon name="lock" size={13} />
+      )}
+      {state === 'checking'
+        ? 'Checking…'
+        : state === 'failed'
+          ? 'Couldn’t check. Try again'
+          : 'Check for private dollars'}
+    </button>
   )
 }
 

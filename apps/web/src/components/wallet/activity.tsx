@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { Icon } from '@/components/brand'
 import { baseToNumber, formatLocal, formatUsd } from '@/lib/wallet/money'
-import { type Entry, isUnnamed, useWallet } from './provider'
-import { Avatar, EntryBadge, EntryRow, incoming, signed } from './ui'
+import { CheckPrivate } from './private'
+import { type Entry, isUnnamed, short, useWallet } from './provider'
+import { Avatar, EntryBadge, EntryRow, incoming, LockedFace, signed } from './ui'
 
 /** A screen's title, with the way back. */
 export function ScreenHead({
@@ -43,7 +44,7 @@ const dayLabel = (at: number) => {
  * history on every device.
  */
 export function Activity() {
-  const { activity, profile, rates } = useWallet()
+  const { activity, profile, rates, privateUnchecked } = useWallet()
   const locked = activity.some((e) => e.locked)
   const [filter, setFilter] = useState<Filter>('all')
 
@@ -160,7 +161,8 @@ export function Activity() {
         </div>
       </section>
 
-      {locked ? <ReadNotes /> : null}
+      {/* The passkey that opens notes also looks for private payments: one ask, not two. */}
+      {locked ? <ReadNotes /> : privateUnchecked ? <CheckPrivate /> : null}
 
       <div className="w-filters" role="tablist" aria-label="Show">
         {(
@@ -218,7 +220,7 @@ const direction = { paid: 'to', sent: 'to', received: 'from', added: 'from' } as
 
 /** One payment, as a receipt: who, what for, when, how long it took, what it cost, and proof on Monadscan. */
 export function Receipt({ id }: { id: string }) {
-  const { activity, renameContact } = useWallet()
+  const { activity, renameContact, moveIn, movingIn } = useWallet()
   const entry = activity.find((e) => e.id === id || e.txHash.toLowerCase() === id.toLowerCase())
   const [naming, setNaming] = useState(false)
   const [name, setName] = useState('')
@@ -236,25 +238,38 @@ export function Receipt({ id }: { id: string }) {
       </div>
     )
 
-  const person = entry.kind === 'sent' || entry.kind === 'received'
+  const privately = Boolean(entry.oneTime)
+  /** Someone to name and send to: a private payment's person is known only once Kova has it. */
+  const person = (entry.kind === 'sent' || entry.kind === 'received') && Boolean(entry.address)
   const fee =
     entry.kind === 'paid'
       ? '$0.00, covered by Kova'
       : entry.kind === 'sent'
         ? '$0.00, covered by Kova'
         : '$0.00'
+  const first = entry.name ? (isUnnamed(entry.name) ? entry.name : entry.name.split(' ')[0]) : ''
   return (
     <div className="w-screen">
       <ScreenHead title="Receipt" back="/wallet/activity" />
       <article className="w-receipt">
         <div className="w-receipt-top">
-          {person ? (
+          {privately ? (
+            <LockedFace name={entry.name} id={entry.address} size={56} />
+          ) : person ? (
             <Avatar name={entry.name} id={entry.address} size={56} />
           ) : (
             <EntryBadge entry={entry} size={56} />
           )}
           <span className="w-receipt-verb">
-            {verb[entry.kind]} {direction[entry.kind]}
+            {privately
+              ? entry.kind === 'received'
+                ? entry.name
+                  ? 'Sent to you privately by'
+                  : 'Sent to you privately'
+                : entry.name
+                  ? 'Sent privately to'
+                  : 'Sent privately'
+              : `${verb[entry.kind]} ${direction[entry.kind]}`}
           </span>
           {person && naming ? (
             <form
@@ -276,7 +291,7 @@ export function Receipt({ id }: { id: string }) {
                 Save
               </button>
             </form>
-          ) : (
+          ) : entry.name ? (
             <strong className="w-receipt-name">
               {entry.name}
               {person ? (
@@ -293,7 +308,7 @@ export function Receipt({ id }: { id: string }) {
                 </button>
               ) : null}
             </strong>
-          )}
+          ) : null}
           <span className={`w-receipt-amount${incoming(entry) ? ' w-in' : ''}`}>
             {signed(entry)}
           </span>
@@ -326,12 +341,46 @@ export function Receipt({ id }: { id: string }) {
                 </small>
               </dd>
             </div>
-          ) : (
+          ) : entry.oneTime ? null : (
             <div>
               <dt>For</dt>
               <dd>{entry.detail}</dd>
             </div>
           )}
+          {entry.oneTime ? (
+            <div className="w-receipt-note">
+              <dt>
+                <Icon name="lock" size={14} /> Paid to
+              </dt>
+              <dd>
+                Its own address
+                <small>
+                  {short(entry.oneTime)},{' '}
+                  {entry.kind === 'received'
+                    ? 'only you can tell it’s yours'
+                    : first
+                      ? `only ${first} can tell it’s theirs`
+                      : 'only they can tell it’s theirs'}
+                </small>
+              </dd>
+            </div>
+          ) : null}
+          {entry.oneTime && entry.kind === 'received' ? (
+            <div>
+              <dt>Now</dt>
+              <dd>
+                {entry.waiting ? (
+                  'Waiting to move in'
+                ) : entry.movedIn ? (
+                  <a href={entry.movedIn.explorer} target="_blank" rel="noreferrer">
+                    In your balance
+                  </a>
+                ) : (
+                  'In your balance'
+                )}
+              </dd>
+            </div>
+          ) : null}
           {entry.ms ? (
             <div>
               <dt>Took</dt>
@@ -353,16 +402,17 @@ export function Receipt({ id }: { id: string }) {
           </a>
         ) : null}
       </article>
+      {entry.oneTime && entry.kind === 'received' && entry.waiting ? (
+        <MoveInHere busy={movingIn !== null} onMove={moveIn} />
+      ) : null}
       {person && entry.address ? (
         <Link
-          href={`/wallet/send/${entry.address}?name=${encodeURIComponent(entry.name)}`}
+          href={`/wallet/send/${entry.address}${isUnnamed(entry.name) ? '' : `?name=${encodeURIComponent(entry.name)}`}`}
           className="pill pill-block w-receipt-again"
-          data-tone="coral"
+          data-tone={entry.oneTime && entry.waiting ? 'light' : 'coral'}
         >
           <span className="pill-label">
-            {entry.kind === 'received'
-              ? `Send some back to ${entry.name.split(' ')[0]}`
-              : `Send ${entry.name.split(' ')[0]} more`}
+            {entry.kind === 'received' ? `Send some back to ${first}` : `Send ${first} more`}
           </span>
           <span className="pill-cap">
             <Icon name="send" size={18} />
@@ -370,6 +420,36 @@ export function Receipt({ id }: { id: string }) {
         </Link>
       ) : null}
     </div>
+  )
+}
+
+/** On a private payment's receipt: bring it, and anything else waiting, into the wallet. */
+function MoveInHere({ busy, onMove }: { busy: boolean; onMove: () => Promise<unknown> }) {
+  const [problem, setProblem] = useState<string | null>(null)
+  return (
+    <>
+      <button
+        type="button"
+        className="pill pill-block w-receipt-again"
+        data-tone="coral"
+        disabled={busy}
+        onClick={async () => {
+          setProblem(null)
+          try {
+            await onMove()
+          } catch (error) {
+            const message = error instanceof Error ? error.message : 'Kova couldn’t move it in.'
+            if (!/cancel|not allowed|abort/i.test(message)) setProblem(message)
+          }
+        }}
+      >
+        <span className="pill-label">{busy ? 'Moving in…' : 'Move into my balance'}</span>
+        <span className="pill-cap">
+          {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="down" size={18} />}
+        </span>
+      </button>
+      {problem ? <p className="form-error">{problem}</p> : null}
+    </>
   )
 }
 

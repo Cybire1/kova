@@ -14,6 +14,7 @@ import {
 } from '@/lib/wallet/money'
 import { SESSION_LIMIT, TAP_LIMIT, useSessionState } from '@/lib/wallet/session'
 import { ScreenHead } from './activity'
+import { PrivateReceiving } from './private'
 import { short, useWallet } from './provider'
 import { CopyButton, QR } from './ui'
 
@@ -157,6 +158,8 @@ export function Profile() {
           read them.
         </p>
       </section>
+
+      <PrivateReceiving />
 
       {forgetting ? (
         <div className="w-forget">

@@ -14,6 +14,7 @@ import { parseScanned } from '@/lib/wallet/links'
 import { baseToNumber, formatLocal, formatUsd } from '@/lib/wallet/money'
 import { sessionCovers } from '@/lib/wallet/session'
 import { ScreenHead } from './activity'
+import { MoveInFirst, privateCovers } from './private'
 import { useWallet } from './provider'
 
 interface Detector {
@@ -184,7 +185,7 @@ type Charge = Omit<ChargeToPay, 'order'> & { status: string; order?: Checkout['o
 
 /** Paying a shop's charge from this wallet: what it's for, then paid in about a second. */
 export function PayCharge({ id }: { id: string }) {
-  const { balance, payCheckout, profile, rates } = useWallet()
+  const { balance, payCheckout, profile, rates, privateBalance } = useWallet()
   const [charge, setCharge] = useState<Charge | null>(null)
   const [stage, setStage] = useState<Stage>({ at: 'loading' })
 
@@ -239,6 +240,8 @@ export function PayCharge({ id }: { id: string }) {
   const amount = BigInt(charge.amount_base)
   const place = charge.order?.stall?.name ?? charge.merchant_name
   const short_ = balance !== null && amount > balance
+  /** Short, but private dollars waiting to move in would cover it. */
+  const coverable = privateCovers(balance, privateBalance, amount)
   const order = charge.order
 
   if (stage.at === 'paid')
@@ -345,7 +348,16 @@ export function PayCharge({ id }: { id: string }) {
               {/went through/i.test(stage.message) ? '' : ' Nothing was paid.'}
             </p>
           ) : null}
-          {short_ ? (
+          {coverable ? (
+            <>
+              <p className="w-fine w-center">
+                You need {formatUsd(amount - (balance ?? 0n))} more, and you have{' '}
+                {formatUsd(privateBalance)} sent to you privately. Moving it in takes about a
+                second.
+              </p>
+              <MoveInFirst tone="coral" />
+            </>
+          ) : short_ ? (
             <>
               <p className="form-error">
                 You need {formatUsd(amount - (balance ?? 0n))} more. Add money first.

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect } from 'react'
 import { Brand, NavIcon, type NavIconName } from '@/components/brand'
 import { useWallet } from './provider'
 import { Avatar } from './ui'
@@ -16,10 +17,26 @@ import { Welcome } from './welcome'
  * own title, as in the app. Send is a sheet over Home, so the dock steps aside while it's open.
  */
 export function WalletShell({ children }: { children: React.ReactNode }) {
-  const { status } = useWallet()
+  const { status, tickPrivate } = useWallet()
   const path = usePathname()
   const sheet = path.startsWith('/wallet/send')
   const inner = status === 'ready' && path !== '/wallet' && !sheet
+
+  // Private payments to you are looked for while the wallet is open: new ones found by your keys,
+  // who sent them, and what their one-time addresses still hold.
+  useEffect(() => {
+    if (status !== 'ready') return
+    const tick = () => {
+      if (document.visibilityState === 'visible') void tickPrivate()
+    }
+    tick()
+    const timer = setInterval(tick, 8_000)
+    document.addEventListener('visibilitychange', tick)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', tick)
+    }
+  }, [status, tickPrivate])
 
   return (
     <div className={`w-app${inner ? ' w-app-inner' : ''}`}>

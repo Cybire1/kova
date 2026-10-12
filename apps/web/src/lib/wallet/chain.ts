@@ -21,6 +21,15 @@ export interface NoteToSeal {
 }
 
 /**
+ * A private send's announcement (ERC-5564 scheme 1): what its recipient's viewing key needs to
+ * find the one-time address it went to. Kova publishes it with no recipient named.
+ */
+export interface StealthAnnouncement {
+  ephemeral_public_key: Hex
+  view_tag: Hex
+}
+
+/**
  * Money on Monad, from the browser, as the app moves it (apps/mobile src/lib/chain.ts). Balances
  * are read straight from Monad's public RPCs, which answer browsers; everything that moves money is
  * an EIP-3009 authorization this wallet signs and Kova's relayer submits, through this site's
@@ -76,13 +85,17 @@ export interface Moved {
   explorer: string
 }
 
-/** Sends dollars to a person. The approval lasts ten minutes; a random nonce keeps it a plain send. */
+/**
+ * Sends dollars to a person. The approval lasts ten minutes; a random nonce keeps it a plain send.
+ * A private send goes to a one-time address made for them, with its announcement alongside.
+ */
 export async function sendMoney(
   network: NetworkId,
   account: LocalAccount,
   to: Address,
   amount: bigint,
   note?: NoteToSeal,
+  stealth?: StealthAnnouncement,
 ): Promise<Moved> {
   const token = getToken(network, 'AUSD')
   const authorization: TransferAuthorization = {
@@ -101,6 +114,7 @@ export async function sendMoney(
   const sent = await post<{ tx_hash: Hex; explorer_url: string }>('/api/wallet/send', {
     ...toSignedAuthorization(token.address, authorization, signature),
     ...(sealed ? { note: sealed } : {}),
+    ...(stealth ? { stealth } : {}),
   })
   return {
     hash: sent.tx_hash,

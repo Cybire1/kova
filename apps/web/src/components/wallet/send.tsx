@@ -21,6 +21,7 @@ import {
 } from '@/lib/wallet/money'
 import { sessionCovers } from '@/lib/wallet/session'
 import { Home } from './home'
+import { MoveInFirst, PrivateSwitch, privateCovers } from './private'
 import { type Contact, isUnnamed, short, useWallet } from './provider'
 import { ArcRoute, type Leg } from './arc'
 import { Avatar, Keypad } from './ui'
@@ -46,6 +47,9 @@ type Step = 'who' | 'amount' | 'review' | 'sent'
 const order: Step[] = ['who', 'amount', 'review', 'sent']
 type Payee = { address: string; name?: string; currency?: DisplayCurrency }
 
+/** Whether the last send was private: the switch starts where you left it. */
+const PRIVATELY = 'kova.web.sendPrivately.v1'
+
 /**
  * Sending, in one sheet over Home, as in the app: who, how much, a look at the route, slide to
  * send, and the same sheet becomes the receipt. It resizes to each step, so it settles low once
@@ -54,7 +58,17 @@ type Payee = { address: string; name?: string; currency?: DisplayCurrency }
 export function SendSheet({ to }: { to?: string }) {
   const router = useRouter()
   const params = useSearchParams()
-  const { contacts, balance, send, rates, liveRates, profile, noteReaches } = useWallet()
+  const {
+    contacts,
+    balance,
+    send,
+    rates,
+    liveRates,
+    profile,
+    noteReaches,
+    privateReaches,
+    privateBalance,
+  } = useWallet()
 
   const asked = params.get('amount')
   const start: Payee | null =
@@ -77,20 +91,46 @@ export function SendSheet({ to }: { to?: string }) {
   const [leg, setLeg] = useState<Leg>('waiting')
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
-  const [sent, setSent] = useState<{ ms: number; hash: string } | null>(null)
+  const [sent, setSent] = useState<{
+    ms: number
+    hash: string
+    explorer: string
+    privately: boolean
+  } | null>(null)
   const [closing, setClosing] = useState(false)
   /** Whether they can read a private note: null while asking Kova for their note key. */
   const [reaches, setReaches] = useState<boolean | null>(null)
+  /** Whether they can be sent to privately: null while asking Kova for their private key. */
+  const [canPrivate, setCanPrivate] = useState<boolean | null>(null)
+  const [privately, setPrivately] = useState(false)
   const address = payee?.address
+  const yourself = Boolean(
+    address && profile && address.toLowerCase() === profile.address.toLowerCase(),
+  )
   useEffect(() => {
     if (!address) return
     let live = true
     setReaches(null)
+    setCanPrivate(null)
     void noteReaches(address).then((yes) => live && setReaches(yes))
+    void privateReaches(address).then((yes) => live && setCanPrivate(yes))
     return () => {
       live = false
     }
-  }, [address, noteReaches])
+  }, [address, noteReaches, privateReaches])
+  useEffect(() => {
+    try {
+      setPrivately(localStorage.getItem(PRIVATELY) === '1')
+    } catch {}
+  }, [])
+  const choosePrivately = (on: boolean) => {
+    setPrivately(on)
+    try {
+      localStorage.setItem(PRIVATELY, on ? '1' : '0')
+    } catch {}
+  }
+  /** Private only when they've a key to send to, and never to yourself. */
+  const goPrivately = privately && canPrivate === true && !yourself
 
   const moveTo = (next: Step) => {
     setBack(order.indexOf(next) < order.indexOf(step))
@@ -118,6 +158,8 @@ export function SendSheet({ to }: { to?: string }) {
   }, [typed])
   const dollars = baseToNumber(amount)
   const over = balance !== null && amount > balance
+  /** Short, but the dollars sent to you privately make up the difference once they're moved in. */
+  const coverable = privateCovers(balance, privateBalance, amount)
   const theirLocal = local ? formatLocal(dollars, local, rates) : null
 
   const close = useCallback(() => {
@@ -157,12 +199,12 @@ export function SendSheet({ to }: { to?: string }) {
     setLeg('flying')
     const started = Date.now()
     try {
-      const moved = await send(contact, amount, note)
+      const moved = await send(contact, amount, note, { privately: goPrivately })
       // Let Kovi finish the leg he is on: the flight is timed to about what the chain takes.
       await wait(Math.max(0, 1360 - (Date.now() - started)))
       setLeg('landed')
       await wait(620)
-      setSent({ ms: moved.ms, hash: moved.hash })
+      setSent({ ms: moved.ms, hash: moved.hash, explorer: moved.explorer, privately: goPrivately })
       setBusy(false)
       moveTo('sent')
     } catch (e) {
@@ -232,6 +274,11 @@ export function SendSheet({ to }: { to?: string }) {
                       {over ? `You have ${formatUsd(balance)}` : `${formatUsd(balance)} available`}
                     </span>
                   ) : null}
+                  {over && privateBalance > 0n ? (
+                    <span className="w-sheet-pill w-sheet-pill-private">
+                      <Icon name="lock" size={12} />+{formatUsd(privateBalance)} private
+                    </span>
+                  ) : null}
                 </div>
                 <label className="w-note w-note-private">
                   <Icon name="lock" size={14} />
@@ -244,18 +291,22 @@ export function SendSheet({ to }: { to?: string }) {
                   />
                 </label>
                 <Keypad onKey={onKey} />
-                <button
-                  type="button"
-                  className="pill pill-block"
-                  data-tone="ink"
-                  disabled={amount === 0n || over}
-                  onClick={() => moveTo('review')}
-                >
-                  <span className="pill-label">{over ? 'More than you have' : 'Review'}</span>
-                  <span className="pill-cap">
-                    <Icon name="arrow" size={18} />
-                  </span>
-                </button>
+                {coverable ? (
+                  <MoveInFirst />
+                ) : (
+                  <button
+                    type="button"
+                    className="pill pill-block"
+                    data-tone="ink"
+                    disabled={amount === 0n || over}
+                    onClick={() => moveTo('review')}
+                  >
+                    <span className="pill-label">{over ? 'More than you have' : 'Review'}</span>
+                    <span className="pill-cap">
+                      <Icon name="arrow" size={18} />
+                    </span>
+                  </button>
+                )}
               </div>
             ) : null}
 
@@ -279,6 +330,7 @@ export function SendSheet({ to }: { to?: string }) {
                   you={{ name: profile.name || 'You', id: profile.address }}
                   them={{ name, id: payee.address }}
                   leg={leg}
+                  privately={goPrivately}
                 />
                 <div className="w-sheet-sum">
                   <strong>{formatUsd(amount)}</strong>
@@ -315,6 +367,15 @@ export function SendSheet({ to }: { to?: string }) {
                     />
                   ) : null}
                 </dl>
+                {canPrivate && !yourself ? (
+                  <PrivateSwitch
+                    on={privately}
+                    onChange={choosePrivately}
+                    name={name}
+                    amount={amount}
+                    disabled={busy}
+                  />
+                ) : null}
                 {problem ? (
                   <p className="w-sheet-problem" role="alert">
                     <Icon name="info" size={16} />
@@ -322,17 +383,25 @@ export function SendSheet({ to }: { to?: string }) {
                     {/went through/i.test(problem) ? '' : ' Your money hasn’t moved.'}
                   </p>
                 ) : null}
-                {over ? (
+                {over && !coverable ? (
                   <p className="form-error">
                     You have {formatUsd(balance ?? 0n)}. Add money first, or send less.
                   </p>
                 ) : null}
-                <SlideToSend
-                  label={problem ? 'Slide to try again' : `Slide to send ${formatUsd(amount)}`}
-                  busy={busy}
-                  disabled={over || amount === 0n}
-                  onSend={() => void go()}
-                />
+                {coverable ? (
+                  <MoveInFirst />
+                ) : (
+                  <SlideToSend
+                    label={
+                      problem
+                        ? 'Slide to try again'
+                        : `Slide to send ${formatUsd(amount)}${goPrivately ? ' privately' : ''}`
+                    }
+                    busy={busy}
+                    disabled={over || amount === 0n}
+                    onSend={() => void go()}
+                  />
+                )}
                 <p className="w-fine w-center">
                   {quick
                     ? 'Your wallet is open, so this one needs no passkey.'
@@ -349,13 +418,19 @@ export function SendSheet({ to }: { to?: string }) {
                   <Art name="sparkle-8" size={26} className="w-spark w-spark-2" />
                   <Art name="sparkle-11" size={18} className="w-spark w-spark-3" />
                 </div>
-                <h2>Sent</h2>
-                <p>
-                  {formatUsd(amount)} landed with {first(name)}
-                  {theirLocal ? `, about ${theirLocal}` : ''}
-                </p>
+                <h2>{sent.privately ? 'Sent privately' : 'Sent'}</h2>
+                {sent.privately ? (
+                  <p>
+                    {formatUsd(amount)} to {first(name)}. Only {first(name)} can tell it’s theirs.
+                  </p>
+                ) : (
+                  <p>
+                    {formatUsd(amount)} landed with {first(name)}
+                    {theirLocal ? `, about ${theirLocal}` : ''}
+                  </p>
+                )}
                 <span className="w-sheet-time">
-                  <Icon name="bolt" size={14} />
+                  <Icon name={sent.privately ? 'lock' : 'bolt'} size={14} />
                   Arrived in {(sent.ms / 1000).toFixed(2)} s on Monad
                 </span>
                 <button type="button" className="pill pill-block" data-tone="ink" onClick={close}>
@@ -364,9 +439,16 @@ export function SendSheet({ to }: { to?: string }) {
                     <Icon name="check" size={18} />
                   </span>
                 </button>
-                <Link href={`/wallet/activity/${sent.hash}`} className="textlink">
-                  See receipt
-                </Link>
+                <span className="w-sheet-links">
+                  <Link href={`/wallet/activity/${sent.hash}`} className="textlink">
+                    See receipt
+                  </Link>
+                  {sent.privately ? (
+                    <a href={sent.explorer} target="_blank" rel="noreferrer" className="textlink">
+                      See it on Monad
+                    </a>
+                  ) : null}
+                </span>
               </div>
             ) : null}
 

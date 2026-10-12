@@ -27,6 +27,7 @@ import {
 } from '@/lib/wallet/money'
 import { sessionCovers } from '@/lib/wallet/session'
 import { Home } from './home'
+import { MoveInFirst, privateCovers } from './private'
 import { short, useWallet } from './provider'
 import { Fact, Fit, SlideToSend, wait } from './send'
 import { CopyButton, Keypad } from './ui'
@@ -45,7 +46,7 @@ type Phase = 'idle' | 'funding' | 'recording'
  */
 export function LinkSheet() {
   const router = useRouter()
-  const { balance, fundLink, profile, rates, network } = useWallet()
+  const { balance, fundLink, profile, rates, network, privateBalance } = useWallet()
   const [step, setStep] = useState<Step>('amount')
   const [back, setBack] = useState(false)
   const [typed, setTyped] = useState('')
@@ -74,6 +75,8 @@ export function LinkSheet() {
     }
   }, [typed])
   const over = balance !== null && amount > balance
+  /** Short, but private dollars waiting to move in would cover it. */
+  const coverable = privateCovers(balance, privateBalance, amount)
   const local =
     profile && profile.currency !== 'USD'
       ? formatLocal(baseToNumber(amount), profile.currency, rates)
@@ -208,6 +211,11 @@ export function LinkSheet() {
                       {over ? `You have ${formatUsd(balance)}` : `${formatUsd(balance)} available`}
                     </span>
                   ) : null}
+                  {over && privateBalance > 0n ? (
+                    <span className="w-sheet-pill w-sheet-pill-private">
+                      <Icon name="lock" size={12} />+{formatUsd(privateBalance)} private
+                    </span>
+                  ) : null}
                 </div>
                 <input
                   className="w-note"
@@ -218,18 +226,22 @@ export function LinkSheet() {
                   aria-label="A note, shown with the link"
                 />
                 <Keypad onKey={onKey} />
-                <button
-                  type="button"
-                  className="pill pill-block"
-                  data-tone="ink"
-                  disabled={amount === 0n || over}
-                  onClick={() => moveTo('review')}
-                >
-                  <span className="pill-label">{over ? 'More than you have' : 'Review'}</span>
-                  <span className="pill-cap">
-                    <Icon name="arrow" size={18} />
-                  </span>
-                </button>
+                {coverable ? (
+                  <MoveInFirst />
+                ) : (
+                  <button
+                    type="button"
+                    className="pill pill-block"
+                    data-tone="ink"
+                    disabled={amount === 0n || over}
+                    onClick={() => moveTo('review')}
+                  >
+                    <span className="pill-label">{over ? 'More than you have' : 'Review'}</span>
+                    <span className="pill-cap">
+                      <Icon name="arrow" size={18} />
+                    </span>
+                  </button>
+                )}
               </div>
             ) : null}
 

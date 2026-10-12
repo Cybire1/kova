@@ -27,11 +27,14 @@ export function ArcRoute({
   you,
   them,
   leg,
+  privately,
 }: {
   /** Where the money starts: you, or (claiming a link) whoever sent it, labelled `you.label`. */
   you: { name: string; id: string; label?: string }
   them: { name: string; id: string }
   leg: Leg
+  /** Sent privately: their face wears a lock, since only they can tell it's theirs. */
+  privately?: boolean
 }) {
   const box = useRef<HTMLDivElement>(null)
   const kovi = useRef<HTMLDivElement>(null)
@@ -109,7 +112,7 @@ export function ArcRoute({
     <div
       ref={box}
       className={`w-arc w-arc-${leg}`}
-      aria-label={`From ${you.label ?? 'you'} to ${them.name}`}
+      aria-label={`From ${you.label ?? 'you'} to ${them.name}${privately ? ', privately' : ''}`}
       role="img"
     >
       {width ? (
@@ -131,6 +134,11 @@ export function ArcRoute({
       <span className="w-arc-face w-arc-them">
         <span className="w-arc-them-face">
           <Avatar name={them.name} id={them.id} size={FACE} />
+          {privately ? (
+            <span className="w-arc-lock">
+              <Icon name="lock" size={13} />
+            </span>
+          ) : null}
           <span className="w-arc-tick">
             <Icon name="check" size={14} />
           </span>

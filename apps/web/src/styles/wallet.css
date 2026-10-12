@@ -4483,3 +4483,388 @@ button.w-add-chain {
     animation: none;
   }
 }
+
+/*
+ * Private sends: dollars sent to a one-time address only the recipient can tell is theirs. Sealed
+ * things are cream across the wallet (private notes too); a lock marks the person in a private
+ * payment; the dollars waiting show on the balance as the app's ink chip.
+ */
+
+.w-chip-private {
+  gap: 0.3rem;
+  padding: 0 0.7rem 0 0.6rem;
+  border: 0;
+  background: var(--ink);
+  color: #fff;
+}
+
+button.w-chip-private {
+  position: relative;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.3s var(--spring);
+}
+
+/* The chip's tap area reaches 44 px without the chip growing. */
+button.w-chip-private::after {
+  content: "";
+  position: absolute;
+  inset: -0.5rem -0.25rem;
+}
+
+button.w-chip-private:active {
+  transform: scale(0.96);
+}
+
+button.w-chip-private:disabled {
+  cursor: progress;
+}
+
+.w-chip-spinner {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+}
+
+/* A face wearing a lock: the person in a private payment, or a plain one when not known yet. */
+.w-face-locked {
+  position: relative;
+  display: block;
+  flex: none;
+}
+
+.w-face-unknown {
+  display: grid;
+  place-items: center;
+  background: var(--sunken);
+  color: var(--muted);
+}
+
+.w-face-lock {
+  position: absolute;
+  right: -0.1875rem;
+  bottom: -0.1875rem;
+  display: grid;
+  place-items: center;
+  width: 45%;
+  height: 45%;
+  min-width: 1.125rem;
+  min-height: 1.125rem;
+  border: 2px solid var(--ring, var(--paper));
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+}
+
+.w-day-card {
+  --ring: var(--surface);
+}
+
+.w-receipt {
+  --ring: #fbfaf7;
+}
+
+/* Dollars sent to you privately, on Home under Pay: how much on one line, who from beside Move in. */
+.w-private {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "icon title title"
+    "icon sub cta";
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.75rem 0.75rem 0.875rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.375rem;
+  background: #f6e7c8;
+  line-height: 1.3;
+  animation: rise 0.5s var(--spring);
+}
+
+.w-private-icon {
+  display: grid;
+  grid-area: icon;
+  place-items: center;
+  width: 2.375rem;
+  height: 2.375rem;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+}
+
+.w-private-title {
+  grid-area: title;
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-wrap: balance;
+}
+
+.w-private-sub {
+  grid-area: sub;
+  min-width: 0;
+  color: var(--on-tint);
+  font-size: 0.8125rem;
+  text-wrap: pretty;
+}
+
+.w-private-sub a {
+  color: var(--ink);
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+/* Moved in: no action left, the line under the amount has the room. */
+.w-private-done {
+  grid-template-areas:
+    "icon title title"
+    "icon sub sub";
+  background: var(--surface);
+}
+
+.w-private-cta {
+  position: relative;
+  display: inline-flex;
+  grid-area: cta;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2.25rem;
+  padding: 0 1rem 0 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.3s var(--spring);
+}
+
+.w-private-cta::after {
+  content: "";
+  position: absolute;
+  inset: -0.25rem;
+}
+
+.w-private-cta:active {
+  transform: scale(0.96);
+}
+
+.w-private-cta:disabled {
+  cursor: progress;
+}
+
+.w-private-cta .spinner {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-width: 2px;
+}
+
+.w-private-done .w-private-icon {
+  background: var(--positive);
+}
+
+.w-private-problem {
+  margin: 0.5rem 0 0;
+}
+
+.w-sheet-pill-private {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #f6e7c8;
+  color: var(--ink);
+}
+
+/* Send privately, on the review: a lock, what it means, and the switch. */
+.w-private-switch {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 0.875rem;
+  padding: 0.625rem 0.875rem 0.625rem 0.625rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  cursor: pointer;
+  transition: background-color 0.3s var(--spring);
+}
+
+.w-private-switch-on {
+  background: #f6e7c8;
+}
+
+.w-private-switch-icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  transition:
+    background-color 0.3s var(--spring),
+    color 0.3s var(--spring);
+}
+
+.w-private-switch-on .w-private-switch-icon {
+  background: var(--ink);
+  color: #fff;
+}
+
+.w-private-switch-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.w-private-switch-text strong {
+  font-size: 0.9375rem;
+  font-weight: 750;
+}
+
+.w-private-switch-text small {
+  color: var(--on-tint);
+  font-size: 0.8125rem;
+  text-wrap: pretty;
+}
+
+.w-private-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.w-private-switch-track {
+  position: relative;
+  width: 2.75rem;
+  height: 1.625rem;
+  border-radius: 999px;
+  background: #9aa3a2;
+  transition: background-color 0.25s;
+}
+
+.w-private-switch-track::after {
+  content: "";
+  position: absolute;
+  left: 0.1875rem;
+  top: 0.1875rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(11, 26, 29, 0.2);
+  transition: transform 0.35s var(--spring);
+}
+
+.w-private-switch input:checked + .w-private-switch-track {
+  background: var(--ink);
+}
+
+.w-private-switch input:checked + .w-private-switch-track::after {
+  transform: translateX(1.125rem);
+}
+
+.w-private-switch input:focus-visible + .w-private-switch-track {
+  outline: 3px solid var(--coral);
+  outline-offset: 2px;
+}
+
+.w-private-switch:has(input:disabled) {
+  cursor: default;
+  opacity: 0.7;
+}
+
+/* Their face on the route, wearing the lock while the send is private. */
+.w-arc-lock {
+  position: absolute;
+  right: -0.25rem;
+  top: -0.25rem;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid var(--paper);
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  animation: w-pop 0.4s cubic-bezier(0.34, 1.8, 0.5, 1) both;
+}
+
+.w-sheet-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.w-sheet-sent .w-sheet-links .textlink {
+  margin-top: 0;
+}
+
+/* In Profile: whether anyone can send to you privately. */
+.w-receiving {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.375rem;
+  background: var(--surface);
+}
+
+.w-receiving[data-on] {
+  background: #f6e7c8;
+}
+
+.w-receiving-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+}
+
+.w-receiving-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.w-receiving-text strong {
+  font-size: 0.9375rem;
+}
+
+.w-receiving-text small {
+  color: var(--on-tint);
+  font-size: 0.8125rem;
+  text-wrap: pretty;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .w-private,
+  .w-arc-lock {
+    animation: none;
+  }
+  .w-private-switch-track::after {
+    transition: none;
+  }
+}
