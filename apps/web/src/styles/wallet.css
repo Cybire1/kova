@@ -3429,11 +3429,6 @@ button.w-add-chain {
     width: 2.68rem;
     height: 1.0625rem;
   }
-  /* A second way (email, I already have Kova, send it on) sits a step below the first. */
-  .lk-page .pill[data-tone="light"] {
-    --pill-h: 2.75rem;
-    --pill-cap-size: 2.125rem;
-  }
 }
 
 .lk-grid {

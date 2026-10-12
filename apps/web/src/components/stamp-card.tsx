@@ -61,7 +61,7 @@ export function StampCard({
   return (
     <section className="stamps" data-ready={ready ? 'true' : undefined} aria-label={`Stamp card at ${shop}`}>
       <span className="stamps-kovi" aria-hidden="true">
-        <Art name="kovi-peek" size={92} />
+        <Art name="kovi-peek" size={80} />
       </span>
       <div className="stamps-head">
         <p className="stamps-kicker">Stamp card</p>
@@ -96,12 +96,12 @@ export function StampCard({
               data-fresh={on && fresh && i === filled - 1 ? 'true' : undefined}
               aria-label={on ? `Stamp ${i + 1}` : `Stamp ${i + 1}, empty`}
             >
-              {on ? <LogoMark size={22} stem="#fff" wave="var(--ink)" /> : <span>{i + 1}</span>}
+              {on ? <LogoMark size={20} stem="#fff" wave="var(--ink)" /> : <span>{i + 1}</span>}
             </li>
           )
         })}
         <li className="stamp stamp-free" data-on={ready && !justUsed ? 'true' : undefined} aria-label="Then one free">
-          <Icon name="bag" size={16} />
+          <Icon name="bag" size={14} />
           <span>Free</span>
         </li>
       </ol>

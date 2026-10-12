@@ -5,8 +5,9 @@ import { OrderReady } from './order-ready'
 import { StampsAfterPay } from './stamp-card'
 
 /**
- * A paid charge, as the payer sees it: the terminal's receipt and Kovi cheering. A stall order
- * then shows where it is at the counter, and the stamp the payment earned.
+ * A paid charge, as the payer sees it: the terminal's receipt and Kovi cheering, at a size that
+ * leaves the words in view. A stall order then shows where it is at the counter, and the stamp
+ * the payment earned.
  */
 export function PaidReceipt({
   checkout: c,
@@ -19,23 +20,21 @@ export function PaidReceipt({
   // Someone paying for a friend's order isn't the one waiting for it.
   const waiting = order?.stall && order.status && !order.pay_for_me ? order : null
   return (
-    <section className="paid" aria-live="polite">
-      <div className="receipt" style={{ marginTop: '3.5rem' }}>
-        <Art name="scene-paid-terminal" size={304} priority />
+    <section className="paid paid-payer" aria-live="polite">
+      <div className="receipt">
+        <Art name="scene-paid-terminal" size={176} priority />
         <div className="receipt-text">
           <small>PAID</small>
           <strong>{usd(c.amount)}</strong>
         </div>
-        <Art name="kovi-cheer" size={88} className="kovi-cheer" priority />
+        <Art name="kovi-cheer" size={52} className="kovi-cheer" priority />
       </div>
       <h1>Paid to {c.merchant_name}</h1>
-      {/* A stall order's card below says the rest. */}
-      {waiting ? null : (
-        <p>
-          {usd(c.amount)}
-          {c.reference ? ` for ${c.reference}` : ''}. {after}
-        </p>
-      )}
+      {/* A stall order's card below says where it is; the amount is always said here. */}
+      <p>
+        {usd(c.amount)}
+        {c.reference ? ` for ${c.reference}` : ''}.{waiting || !after ? '' : ` ${after}`}
+      </p>
       {order?.reward ? (
         <p className="paid-reward">
           <strong>Free with your stamp card</strong> One {order.reward.name}, {usd(order.reward.amount)} off

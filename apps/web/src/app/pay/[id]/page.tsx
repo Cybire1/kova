@@ -30,7 +30,7 @@ export default async function PayPage(context: { params: Promise<{ id: string }>
 
   if (c.status === 'paid')
     return (
-      <main className="page page-narrow">
+      <main className="page page-narrow pay-page">
         <header className="topbar">
           <Brand />
         </header>
@@ -46,7 +46,7 @@ export default async function PayPage(context: { params: Promise<{ id: string }>
     )
 
   return (
-    <main className="page page-narrow">
+    <main className="page page-narrow pay-page">
       <header className="topbar">
         <Brand />
       </header>
@@ -57,7 +57,7 @@ export default async function PayPage(context: { params: Promise<{ id: string }>
         privyAppId={process.env.PRIVY_APP_ID ?? null}
       >
         <section className="card payee">
-          <Art name="badge-shop" size={84} priority />
+          <Art name="badge-shop" size={64} priority />
           <p className="await-label" style={{ marginTop: '0.5rem' }}>
             {c.order?.pay_for_me && c.order.customer_name
               ? `${c.order.customer_name} asked you to pay for their order at ${c.order.stall?.name ?? c.merchant_name}`

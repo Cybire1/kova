@@ -125,6 +125,10 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
         <div className="store-bar-end">
           <label className="store-currency">
             <span className="sr-only">Show prices in</span>
+            <span aria-hidden="true">
+              {RATES[currency].symbol.trim()} {currency}
+            </span>
+            <Icon name="chevronDown" size={14} />
             <select value={currency} onChange={(e) => setCurrency(e.target.value as Currency)}>
               {(Object.keys(RATES) as Currency[]).map((c) => (
                 <option key={c} value={c}>
@@ -206,7 +210,7 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
 
       {stall.items.length === 0 ? (
         <div className="store-empty">
-          <Art name="kovi-sleep" size={140} />
+          <Art name="kovi-sleep" size={112} />
           <p>Nothing on the menu yet. Check back soon.</p>
         </div>
       ) : (
@@ -353,7 +357,7 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
               <AskedToPay stall={stall} placed={asked} />
             ) : lines.length === 0 ? (
               <div className="store-drawer-empty">
-                <Art name="kovi-sleep" size={120} />
+                <Art name="kovi-sleep" size={104} />
                 <h2 id="bag-title">Your bag is empty</h2>
                 <p className="sheet-lead">Tap + on anything you like.</p>
               </div>
@@ -465,7 +469,7 @@ function AskedToPay({ stall, placed }: { stall: PublicStall; placed: Placed }) {
   if (paid !== false)
     return (
       <div className="asked">
-        <Art name="kovi-cheer" size={140} />
+        <Art name="kovi-cheer" size={104} />
         <h2>It’s paid</h2>
         <p className="sheet-lead">Someone paid {usd(placed.checkout.amount)} for your order. {stall.name} has it.</p>
         {/* The one who ordered is the one waiting for it: they see it get ready here. */}
@@ -477,7 +481,7 @@ function AskedToPay({ stall, placed }: { stall: PublicStall; placed: Placed }) {
   const canShare = typeof navigator !== 'undefined' && 'share' in navigator
   return (
     <div className="asked">
-      <Art name="kovi-ride" size={130} />
+      <Art name="kovi-ride" size={104} />
       <h2>Send it to whoever’s paying</h2>
       <p className="sheet-lead">They can pay from anywhere, with Kova Pay or any Monad wallet. The link stays open for 24 hours, and this page updates when it’s paid.</p>
       <div className="field-value">

@@ -99,7 +99,7 @@ export function OrderReady({ checkoutId, order: initial, shop }: { checkoutId: s
   if (status === 'cancelled')
     return (
       <section className="ready ready-cancelled" aria-live="polite">
-        <Art name="kovi-oops" size={96} />
+        <Art name="kovi-oops" size={84} />
         <h2>{shop} cancelled this order</h2>
         <p>Ask at the counter. They can refund you from their Kova.</p>
       </section>
@@ -116,12 +116,12 @@ export function OrderReady({ checkoutId, order: initial, shop }: { checkoutId: s
       {ready ? (
         <div className="ready-moment">
           <span className="ready-spark ready-spark-a" aria-hidden="true">
-            <Art name="sparkle-8" size={34} />
+            <Art name="sparkle-8" size={28} />
           </span>
           <span className="ready-spark ready-spark-b" aria-hidden="true">
-            <Art name="sparkle-4" size={26} />
+            <Art name="sparkle-4" size={22} />
           </span>
-          <Art name="kovi-cheer" size={132} className="ready-kovi" />
+          <Art name="kovi-cheer" size={96} className="ready-kovi" />
           <p className="ready-kicker">{shop}</p>
           <h2>Your order is ready</h2>
           <p className="ready-where">{order.table ? `We’re bringing it to table ${order.table}.` : 'Collect it at the counter.'}</p>

@@ -1288,11 +1288,12 @@
 .pay-lines {
   list-style: none;
   width: 100%;
-  margin: 0.9rem 0 0;
+  margin: 0.875rem 0 0;
   padding: 0.75rem 0 0;
   border-top: 2px dashed #a3abaa;
   display: grid;
   gap: 0.35rem;
+  font-size: 0.9375rem;
   text-align: left;
 }
 
@@ -1349,6 +1350,31 @@
   color: var(--muted);
 }
 
+.poster-tools .textlink {
+  white-space: nowrap;
+}
+
+/* On a phone: the button and the other sheet on one line, the hint under them. */
+@media (max-width: 640px) {
+  .poster-page {
+    gap: 0.875rem;
+    padding: 1rem 1rem 2.5rem;
+  }
+  .poster-tools {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    width: 100%;
+  }
+  .poster-tools > span {
+    order: 1;
+    flex-basis: 100%;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+  }
+}
+
+/* Every size on the page is a share of its width (cqi), as it prints at 210 mm. */
 .poster {
   width: min(210mm, 100%);
   aspect-ratio: 210 / 297;
@@ -1357,6 +1383,7 @@
   border: 2px solid var(--ink);
   background: #f8f7f3;
   overflow: hidden;
+  container-type: inline-size;
 }
 
 .poster > svg {
@@ -1374,7 +1401,7 @@
 }
 
 .poster h1 {
-  font-size: clamp(2rem, 7.5vw, 4.4rem);
+  font-size: 7.5cqi;
   font-weight: 800;
   letter-spacing: -0.045em;
   line-height: 1;
@@ -1383,7 +1410,7 @@
 
 .poster-line {
   margin-top: 0.6em;
-  font-size: clamp(0.95rem, 2.2vw, 1.3rem);
+  font-size: 2.2cqi;
   font-weight: 600;
   color: #2a3a3d;
 }
@@ -1394,7 +1421,7 @@
   border-radius: 999px;
   background: var(--ink);
   color: #fff;
-  font-size: clamp(1.1rem, 3vw, 1.7rem);
+  font-size: 3cqi;
   font-weight: 800;
 }
 
@@ -1403,8 +1430,8 @@
   width: 58%;
   margin-top: 5%;
   padding: 5%;
-  border: 3px solid var(--ink);
-  border-radius: 1.6rem;
+  border: 0.4cqi solid var(--ink);
+  border-radius: 3.2cqi;
   background: #fff;
 }
 
@@ -1428,6 +1455,10 @@
   transform: translate(-50%, -50%);
 }
 
+.poster .poster-coin {
+  border-width: 0.4cqi;
+}
+
 .poster-coin svg {
   width: 72%;
   height: auto;
@@ -1436,7 +1467,7 @@
 .poster-small {
   max-width: 28em;
   margin-top: 4%;
-  font-size: clamp(0.85rem, 2vw, 1.1rem);
+  font-size: 2cqi;
   font-weight: 600;
   color: #2a3a3d;
 }
@@ -1444,14 +1475,24 @@
 .poster-foot {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 2cqi;
   margin-top: auto;
   text-align: left;
 }
 
+.poster-foot > img {
+  width: 13cqi;
+  height: auto;
+}
+
+.poster-foot svg {
+  width: 8.3cqi;
+  height: 3.3cqi;
+}
+
 .poster-foot p {
-  margin-top: 0.3rem;
-  font-size: 0.875rem;
+  margin-top: 0.4cqi;
+  font-size: 1.75cqi;
   font-weight: 700;
   color: var(--muted);
 }
@@ -1541,16 +1582,35 @@
   gap: 0.5rem;
 }
 
-.store-currency select {
+/* The chip shows the currency; the select over it is unseen, and 16 px so iOS doesn't zoom. */
+.store-currency {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
   height: 2.5rem;
-  padding: 0 0.85rem;
+  padding: 0 0.65rem 0 0.85rem;
   border: 2px solid var(--ink);
   border-radius: 999px;
   background: var(--surface);
   color: var(--ink);
-  font: inherit;
   font-size: 0.875rem;
-  font-weight: 650;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.store-currency:focus-within {
+  outline: 3px solid var(--coral);
+  outline-offset: 2px;
+}
+
+.store-currency select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  font-size: 1rem;
   cursor: pointer;
   appearance: none;
 }
@@ -2183,6 +2243,243 @@
   background: var(--surface);
 }
 
+/* Fields stay at 16 px, or iOS zooms into the page on focus. */
+.store .stack-form input:not([type="checkbox"]) {
+  font-size: 1rem;
+}
+
+/* --- The storefront on a phone: the app's density ---------------------------------------- */
+
+@media (max-width: 640px) {
+  .store {
+    --round-size: 2.25rem;
+    padding-bottom: 6rem;
+  }
+  .store-bar {
+    padding: calc(0.5rem + env(safe-area-inset-top, 0px)) 1rem 0.5rem;
+  }
+  .store-mark {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.875rem;
+  }
+  .store-brand-name {
+    font-size: 0.9375rem;
+  }
+  .store-bar-end {
+    gap: 0.375rem;
+  }
+  .store-currency {
+    height: 2.25rem;
+    padding: 0 0.55rem 0 0.75rem;
+    font-size: 0.8125rem;
+  }
+  .store-bag-button {
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    font-size: 0.875rem;
+  }
+  .store-hero {
+    padding: 1rem 1rem 0;
+  }
+  .store-window,
+  .store-sign {
+    border-radius: 0 0 1.5rem 1.5rem;
+  }
+  .store-sign {
+    min-height: 10.5rem;
+    padding: 2.75rem 1.125rem 1.125rem;
+  }
+  .store-sign h1,
+  .store-intro h1 {
+    font-size: clamp(2rem, 9.5vw, 2.5rem);
+  }
+  .store-sign-kovi {
+    top: 2rem;
+    right: 0.5rem;
+    transform: scale(0.6);
+  }
+  .store-intro {
+    padding: 1.125rem 0.125rem 0;
+  }
+  .store-intro-more {
+    padding-top: 0.875rem;
+  }
+  .store-tagline {
+    margin-top: 0.4rem;
+    font-size: 0.9375rem;
+  }
+  .store-facts {
+    gap: 0.375rem;
+    margin-top: 0;
+  }
+  .store-facts .chip {
+    height: 1.75rem;
+    padding: 0 0.7rem;
+    font-size: 0.75rem;
+  }
+  .store-actions {
+    margin-top: 0.75rem;
+  }
+  .store-action {
+    height: 2.25rem;
+    padding: 0 0.875rem;
+    font-size: 0.875rem;
+  }
+  .store-stamps {
+    margin-top: 2.75rem;
+  }
+  .store-shelf {
+    margin-top: 2rem;
+  }
+  .store-shelf-head {
+    padding-top: 0.875rem;
+  }
+  .store-shelf-head h2 {
+    font-size: 1.25rem;
+  }
+  .store-shelf-head p {
+    font-size: 0.8125rem;
+  }
+  .store-grid {
+    gap: 1rem 0.75rem;
+    margin-top: 0.875rem;
+  }
+  .product-open {
+    gap: 0.25rem;
+  }
+  .product-photo {
+    border-radius: 1.125rem;
+  }
+  .product-name {
+    font-size: 0.9375rem;
+  }
+  .product-desc {
+    font-size: 0.8125rem;
+  }
+  .product-price {
+    font-size: 0.9375rem;
+  }
+  .product-type {
+    inset: auto 0.7rem 0.65rem;
+    font-size: clamp(1rem, 4.6vw, 1.25rem);
+  }
+  .product-sold {
+    top: 0.5rem;
+    left: 0.5rem;
+    font-size: 0.6875rem;
+  }
+  .product-add,
+  .product-qty {
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+  .product-add {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  .store-foot {
+    margin-top: 3rem;
+    padding: 1.25rem 1rem 0;
+    font-size: 0.875rem;
+  }
+  .store-powered {
+    font-size: 0.8125rem;
+  }
+  .store-bagbar {
+    width: min(calc(100% - 2.5rem), 24rem);
+    height: 3.25rem;
+    padding: 0 1.125rem 0 0.5rem;
+    font-size: 0.9375rem;
+  }
+  .stepper {
+    height: 2.5rem;
+  }
+  .stepper button {
+    width: 2.375rem;
+    font-size: 1.125rem;
+  }
+  .stepper-sm {
+    height: 2.125rem;
+  }
+  .stepper-sm button {
+    width: 2.125rem;
+  }
+
+  /* The bag and the product view, with the app's proportions. */
+  .store .sheet {
+    padding: 1.25rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  }
+  .store .sheet h2 {
+    font-size: 1.5rem;
+  }
+  .store .sheet-close {
+    top: 0.875rem;
+    right: 0.875rem;
+  }
+  .store .sheet-lead {
+    font-size: 0.875rem;
+  }
+  .product-sheet-photo {
+    aspect-ratio: 16 / 11;
+    margin-bottom: 0.875rem;
+    border-radius: 1.25rem;
+  }
+  .product-type-big {
+    font-size: clamp(1.75rem, 8vw, 2.25rem);
+  }
+  .product-sheet-price {
+    font-size: 1.125rem;
+  }
+  .product-sheet-buy {
+    margin-top: 1rem;
+  }
+  .bag-lines {
+    gap: 0.625rem;
+    margin-top: 1rem;
+  }
+  .bag-thumb {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.8rem;
+  }
+  .bag-line-text strong {
+    font-size: 0.9375rem;
+  }
+  .bag-line-text span {
+    font-size: 0.8125rem;
+  }
+  .basket-total {
+    font-size: 0.9375rem;
+  }
+  .basket-total strong {
+    font-size: 1.625rem;
+  }
+  .basket-table {
+    margin: 0.375rem 0 0.875rem;
+    font-size: 0.8125rem;
+  }
+  .store .stack-form {
+    gap: 0.5rem;
+  }
+  .store .stack-form input:not([type="checkbox"]) {
+    height: 2.75rem;
+  }
+  .basket-pay {
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  .asked {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .store .sheet {
+    border-radius: 1.5rem 1.5rem 0 0;
+  }
+}
+
 /* --- Tables and the stamp card ------------------------------------------------------------ */
 
 .chip-table {
@@ -2195,10 +2492,10 @@
 .stamps {
   position: relative;
   display: grid;
-  gap: 1rem;
-  padding: 1.25rem 1.25rem 1.35rem;
+  gap: 0.875rem;
+  padding: 1.125rem 1.125rem 1.25rem;
   border: 2px solid var(--ink);
-  border-radius: 1.6rem;
+  border-radius: 1.5rem;
   background: #f8f7f3;
   text-align: left;
 }
@@ -2207,9 +2504,10 @@
   background: var(--coral-soft);
 }
 
+/* Kovi's hands rest on the card's top edge, as on the link envelope. */
 .stamps-kovi {
   position: absolute;
-  top: -37px;
+  top: -32px;
   right: 1.25rem;
   pointer-events: none;
 }
@@ -2221,11 +2519,11 @@
 .stamps .stamps-head {
   display: grid;
   gap: 0.25rem;
-  padding-right: 4.5rem;
+  padding-right: 4rem;
 }
 
 .stamps .stamps-kicker {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2237,23 +2535,26 @@
 }
 
 .stamps h2 {
-  font-size: 1.35rem;
+  font-size: 1.1875rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1.15;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
 .stamps .stamps-line {
   max-width: 34rem;
   color: #2a3a3d;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 500;
+  line-height: 1.45;
+  text-wrap: pretty;
 }
 
 .stamps-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.4rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -2263,8 +2564,8 @@
   display: grid;
   place-items: center;
   flex: none;
-  width: 2.6rem;
-  height: 2.6rem;
+  width: 2.375rem;
+  height: 2.375rem;
   border: 2px dashed rgba(11, 26, 29, 0.35);
   border-radius: 50%;
   color: var(--muted);
@@ -2303,7 +2604,7 @@
 .stamp-free {
   gap: 0;
   border: 2px solid var(--ink);
-  border-radius: 1rem;
+  border-radius: 0.875rem;
   background: var(--surface);
   color: var(--ink);
   font-size: 0.625rem;
@@ -2417,17 +2718,19 @@
 
 .pay-reward-help {
   margin-top: 0.75rem;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--muted);
+  text-wrap: balance;
 }
 
 .paid-reward {
   display: grid;
   margin-top: 1rem;
-  padding: 0.7rem 1.1rem;
+  padding: 0.625rem 1rem;
   border: 2px solid var(--ink);
-  border-radius: 1.1rem;
+  border-radius: 1.125rem;
   background: var(--coral-soft);
+  font-size: 0.875rem;
 }
 
 .paid .paid-reward {
@@ -2436,19 +2739,19 @@
 
 .paid-order {
   display: grid;
-  gap: 3rem;
+  gap: 2.75rem;
   width: 100%;
-  margin-top: 1.75rem;
+  margin-top: 1.5rem;
 }
 
 /* After paying: where the order is, and the moment it's ready. */
 .ready {
   display: grid;
-  gap: 1.1rem;
+  gap: 1rem;
   width: 100%;
-  padding: 1.25rem;
+  padding: 1.125rem;
   border: 2px solid var(--ink);
-  border-radius: 1.75rem;
+  border-radius: 1.5rem;
   background: var(--surface);
   text-align: left;
 }
@@ -2459,7 +2762,7 @@
 }
 
 .ready .ready-kicker {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2467,15 +2770,18 @@
 }
 
 .ready h2 {
-  font-size: 1.4rem;
+  font-size: 1.1875rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1.15;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
 .ready p {
   color: var(--muted);
+  font-size: 0.875rem;
   font-weight: 500;
+  line-height: 1.45;
 }
 
 .ready[data-ready] {
@@ -2505,9 +2811,9 @@
 }
 
 .ready-moment h2 {
-  font-size: clamp(1.9rem, 8vw, 2.5rem);
+  font-size: clamp(1.625rem, 7vw, 2.125rem);
   letter-spacing: -0.045em;
-  line-height: 1;
+  line-height: 1.05;
 }
 
 .ready-moment .ready-kicker {
@@ -2517,7 +2823,7 @@
 .ready .ready-where {
   margin-top: 0.35rem;
   color: var(--ink);
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -2564,7 +2870,7 @@
 }
 
 .ready-spark-b {
-  top: 3.5rem;
+  top: 2.75rem;
   right: 18%;
   animation-delay: 0.6s;
 }
@@ -2593,8 +2899,8 @@
   position: relative;
   display: grid;
   justify-items: center;
-  gap: 0.4rem;
-  font-size: 0.75rem;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: var(--muted);
   text-align: center;
@@ -2604,9 +2910,9 @@
 .ready-track li + li::before {
   content: "";
   position: absolute;
-  top: calc(0.75rem - 1px);
-  right: calc(50% + 0.85rem);
-  width: calc(100% - 1.7rem);
+  top: calc(0.6875rem - 1px);
+  right: calc(50% + 0.8rem);
+  width: calc(100% - 1.6rem);
   height: 2px;
   background: rgba(11, 26, 29, 0.18);
 }
@@ -2620,8 +2926,8 @@
   z-index: 1;
   display: grid;
   place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.375rem;
+  height: 1.375rem;
   border: 2px solid rgba(11, 26, 29, 0.25);
   border-radius: 50%;
   background: var(--surface);
@@ -2665,8 +2971,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.6rem;
-  padding-top: 0.9rem;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
   border-top: 1px dashed var(--hairline);
 }
 

@@ -14,6 +14,9 @@ export const metadata: Metadata = { title: 'Table poster' }
  * An A4 poster for the stall's table: scan, order, pay. Prints edge to edge in colour. With
  * tables set up, ?tables=1 prints a card per table instead, four to a page: each one's code
  * opens the stall with its table number, so the order says where to bring it.
+ *
+ * On screen it is a preview of the printed page: everything is sized to the page's width, so on
+ * a phone it is the same poster, smaller.
  */
 export default async function PosterPage(props: { params: Promise<{ slug: string }>; searchParams: Promise<{ tables?: string }> }) {
   const [{ slug }, { tables }] = await Promise.all([props.params, props.searchParams])
@@ -53,7 +56,7 @@ export default async function PosterPage(props: { params: Promise<{ slug: string
           {codes.map((code, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: one card per table number
             <article key={i} className="table-card">
-              <Awning height={40} stripe={22} />
+              <Awning height={40} stripe={22} fit={397} />
               <div className="table-card-body">
                 <p className="table-card-shop">{stall.name}</p>
                 <p className="table-card-number">
@@ -92,7 +95,7 @@ export default async function PosterPage(props: { params: Promise<{ slug: string
         ) : null}
       </div>
       <article className="poster">
-        <Awning height={110} stripe={44} />
+        <Awning height={110} stripe={44} fit={794} />
         <div className="poster-body">
           <h1>{stall.name}</h1>
           {stall.tagline ? <p className="poster-line">{stall.tagline}</p> : null}

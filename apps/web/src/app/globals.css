@@ -42,6 +42,11 @@
     --pill-fs: 0.9375rem;
     --pill-pl: 1.25rem;
   }
+  /* On the wallet and the pages anyone opens, the second way (light) sits a step below the first. */
+  :is(.w-app, .lk-page, .to-page, .pay-page, .store) .pill[data-tone="light"] {
+    --pill-h: 2.75rem;
+    --pill-cap-size: 2.125rem;
+  }
 }
 
 /* The wallet and the pages anyone opens (a link, a request, a checkout, a shop, the books): a
@@ -977,6 +982,76 @@ p {
   color: var(--muted);
 }
 
+/*
+ * The customer pay page (/pay/<id>) on a phone: the app's density. The shop, the amount and the
+ * two ways to pay fit the first screen; paying from a browser wallet follows.
+ */
+.pay-page {
+  --round-size: 2.25rem;
+}
+
+@media (max-width: 640px) {
+  .pay-page {
+    padding: 1rem 1.25rem 3rem;
+    font-size: 0.9375rem;
+  }
+  .pay-page .topbar {
+    margin-bottom: 1rem;
+  }
+  .pay-page .payee {
+    padding: 1.25rem 1.125rem 1.125rem;
+    border-radius: 1.5rem;
+  }
+  .pay-page .await-label {
+    font-size: 0.9375rem;
+  }
+  .pay-page .payee .await-amount {
+    margin-top: 0.375rem;
+    font-size: clamp(2.25rem, 11vw, 2.75rem);
+  }
+  .pay-page .payee .pill {
+    margin-top: 1.25rem;
+  }
+  .pay-page .payee .pay-kova-web {
+    margin-top: 0.5rem;
+  }
+  .pay-page .manual {
+    margin-top: 1rem;
+    padding: 1rem 1.125rem 1.125rem;
+    border-radius: 1.5rem;
+  }
+  .pay-page .manual h2 {
+    font-size: 0.9375rem;
+  }
+  .pay-page .manual > p,
+  .pay-page .wallet-none,
+  .pay-page .wallet-short > p {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+  .pay-page .wallet-list button,
+  .pay-page .wallet-list a {
+    gap: 0.75rem;
+    min-height: 3.25rem;
+    padding: 0.5rem 0.875rem 0.5rem 0.5rem;
+    border-radius: 1.125rem;
+    font-size: 0.9375rem;
+  }
+  .pay-page .wallet-list img,
+  .pay-page .wallet-glyph {
+    width: 2.125rem;
+    height: 2.125rem;
+  }
+  .pay-page .wallet-sub {
+    font-size: 0.75rem;
+  }
+  .pay-page .fineprint {
+    margin-top: 1.25rem;
+    font-size: 0.75rem;
+  }
+}
+
+
 /* Paying from a browser wallet */
 
 .wallet-pay > p {
@@ -1425,4 +1500,47 @@ p {
   .keep-done .keep-kovi {
     animation: none;
   }
+}
+
+/* The payer's copy of a paid charge (/pay/<id>): the art a size that leaves the words in view. */
+.paid-payer {
+  padding-top: 0.25rem;
+}
+
+.paid-payer .receipt {
+  width: min(11rem, 44vw);
+  margin-top: 2.25rem;
+  container-type: inline-size;
+}
+
+/* The slip's words keep their place on the paper as it scales. */
+.paid-payer .receipt-text {
+  top: 24.1%;
+}
+
+.paid-payer .receipt-text small {
+  font-size: 3.8cqi;
+}
+
+.paid-payer .receipt-text strong {
+  font-size: 5.4cqi;
+}
+
+/* Kovi stands on the receipt: his size, and so his place, follow the art's. */
+.paid-payer .kovi-cheer {
+  top: calc(4.53% - 30cqi * 0.912 + 4.7cqi);
+  width: 30cqi;
+}
+
+.paid-payer h1 {
+  margin-top: 1rem;
+  font-size: clamp(1.5rem, 6.5vw, 1.875rem);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.paid-payer > p {
+  margin-top: 0.25rem;
+  font-size: 0.9375rem;
+  text-wrap: balance;
 }
