@@ -24,6 +24,7 @@ export const prefixes = {
   cardTap: 'tap',
   paymentLink: 'lnk',
   stealthPayment: 'spa',
+  stealthAnnouncement: 'san',
 } as const
 
 export type ObjectKind = keyof typeof prefixes

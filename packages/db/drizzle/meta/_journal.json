@@ -127,6 +127,13 @@
       "when": 1791819840575,
       "tag": "0017_referral_counts",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791825611089,
+      "tag": "0018_private_sends",
+      "breakpoints": true
     }
   ]
 }

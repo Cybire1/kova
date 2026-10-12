@@ -34,6 +34,20 @@ export function stealthKeysMessage(shop: string): string {
   return `Kova private takings\nShop ${shop}\n\nSign to open this shop’s private takings keys. This only reads keys; it moves no money.`
 }
 
+/**
+ * What a person's wallet signs to make its own private-receiving keys: anyone can send it dollars
+ * privately, to a fresh address only it can open. Deterministic like the shop's, and separate from
+ * any shop the wallet owns.
+ */
+export function personalStealthKeysMessage(wallet: string): string {
+  return `Kova private receiving\nWallet ${wallet.toLowerCase()}\n\nSign to open your private receiving keys. This only reads keys; it moves no money.`
+}
+
+/** What a wallet signs to publish its meta-address, so a sender can check Kova never swapped it. */
+export function stealthRegistrationMessage(wallet: string, meta: string): string {
+  return `Kova private receiving\nWallet ${wallet.toLowerCase()}\nKey ${meta}`
+}
+
 export interface StealthKeys {
   spendingPrivateKey: Hex
   viewingPrivateKey: Hex

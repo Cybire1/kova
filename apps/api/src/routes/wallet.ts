@@ -1,4 +1,4 @@
-import { schema } from '@kova/db'
+import { schema, uuidv7 } from '@kova/db'
 import {
   AUSD_TESTNET_FAUCET,
   decodeMemo,
@@ -7,6 +7,8 @@ import {
   noteKeyMessage,
   parseSealedNote,
   parseSignedAuthorization,
+  parseStealthMetaAddress,
+  stealthRegistrationMessage,
   tokenByAddress,
   vaultMessage,
 } from '@kova/monad'
@@ -50,6 +52,12 @@ import { indexedThrough } from '../workers/watcher.js'
 
 /** An approval to send is used within seconds; one that lives longer is only a risk to its signer. */
 const MAX_SEND_VALIDITY = 3_600n
+
+/** What a private send carries for its recipient: ERC-5564 scheme 1's ephemeral key and view tag. */
+const stealthBody = z.object({
+  ephemeral_public_key: z.string().regex(/^0x0[23][0-9a-fA-F]{64}$/),
+  view_tag: z.string().regex(/^0x[0-9a-fA-F]{2}$/),
+})
 
 type TransferRow = typeof schema.transfers.$inferSelect
 
@@ -164,6 +172,11 @@ export const walletRoutes = new Hono()
     const note = body?.note === undefined || body.note === null ? null : parseSealedNote(body.note)
     if (body?.note && !note)
       throw new KovaError('invalid_request', 'That note isn’t sealed the way Kova expects.')
+    // A private send: the dollars go to a one-time address made for the recipient, and this is
+    // what they need to find it. Kova publishes it with no recipient (GET /public/stealth/announcements).
+    const stealth = body?.stealth === undefined || body.stealth === null ? null : stealthBody.safeParse(body.stealth)
+    if (stealth && !stealth.success)
+      throw new KovaError('invalid_request', 'A private send needs { ephemeral_public_key, view_tag }.')
     const { authorization, signature } = signed
     const token = tokenByAddress(config.KOVA_NETWORK, signed.token)
     if (!token) throw new KovaError('invalid_request', 'Kova only sends the dollars it settles in.')
@@ -200,6 +213,24 @@ export const walletRoutes = new Hono()
           console.error('[notes] not saved', error instanceof Error ? error.message : error),
         )
     }
+    if (stealth?.success)
+      await db
+        .insert(schema.stealthAnnouncements)
+        .values({
+          id: uuidv7(),
+          network: config.KOVA_NETWORK,
+          stealthAddress: authorization.to.toLowerCase(),
+          ephemeralPublicKey: stealth.data.ephemeral_public_key.toLowerCase(),
+          viewTag: stealth.data.view_tag.toLowerCase(),
+          fromAddress: authorization.from.toLowerCase(),
+          amount: authorization.value,
+          tokenAddress: token.address.toLowerCase(),
+          txHash: receipt.transactionHash,
+        })
+        .onConflictDoNothing()
+        .catch((error) =>
+          console.error('[stealth] not announced', error instanceof Error ? error.message : error),
+        )
     return c.json({
       object: 'transfer',
       tx_hash: receipt.transactionHash,
@@ -250,6 +281,43 @@ export const walletRoutes = new Hono()
       indexed_through: cursor.toString(),
       has_more: rows.length === page,
     })
+  })
+  /** A wallet's private-receiving meta-address, with the wallet's own signature over it. */
+  .get('/wallets/:address/stealth', async (c) => {
+    const address = walletAddress(c)
+    const key = await db.query.walletStealthKeys.findFirst({
+      where: eq(schema.walletStealthKeys.address, address.toLowerCase()),
+    })
+    if (!key) throw notFound('private receiving key', address)
+    return c.json({ object: 'stealth_key', address, meta_address: key.metaAddress, signature: key.signature })
+  })
+  .put('/wallets/:address/stealth', async (c) => {
+    const address = walletAddress(c)
+    const parsed = z
+      .object({ meta_address: z.string().max(200), signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/) })
+      .safeParse(await c.req.json().catch(() => ({})))
+    if (!parsed.success) throw new KovaError('invalid_request', 'Expected { meta_address, signature }.')
+    const { meta_address, signature } = parsed.data
+    try {
+      parseStealthMetaAddress(meta_address)
+    } catch {
+      throw new KovaError('invalid_request', 'That isn’t a stealth meta-address (st:eth:0x…).')
+    }
+    const signer = await recoverMessageAddress({
+      message: stealthRegistrationMessage(address, meta_address),
+      signature: signature as Hex,
+    }).catch(() => null)
+    if (!signer || !isAddressEqual(signer, address))
+      throw new KovaError('forbidden', 'Only the wallet itself can publish its private receiving key.')
+    limit(`stealth-key:${address.toLowerCase()}`, 20, 3_600_000, 'That’s a lot of new keys in an hour. Try again later.')
+    await db
+      .insert(schema.walletStealthKeys)
+      .values({ address: address.toLowerCase(), metaAddress: meta_address, signature })
+      .onConflictDoUpdate({
+        target: schema.walletStealthKeys.address,
+        set: { metaAddress: meta_address, signature, updatedAt: new Date() },
+      })
+    return c.json({ object: 'stealth_key', address, meta_address })
   })
   .get('/wallets/:address/note-key', async (c) => {
     const address = walletAddress(c)

@@ -134,15 +134,43 @@ export const takingsRoutes = new Hono()
    * Only the holder of a shop's viewing key can tell which are its own (checkStealthAddress).
    */
   .get('/public/stealth/announcements', async (c) => {
+    // One feed for every private payment on this network: shops' sales and people's private
+    // sends, in the order they happened (both tables use time-ordered ids). The cursor is the last
+    // item's id, of either kind.
     const afterId = c.req.query('after')
-    const after = afterId ? decodeId('stealthPayment', afterId) : undefined
+    const after = afterId ? (decodeId('stealthPayment', afterId) ?? decodeId('stealthAnnouncement', afterId)) : undefined
     if (afterId && !after) throw new KovaError('invalid_request', 'Unknown cursor')
     const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 500) || 500, 1), 1000)
-    const data = await receipts(and(after ? gt(schema.stealthPayments.id, after) : undefined), 'asc', limit)
+    const sales = await receipts(and(after ? gt(schema.stealthPayments.id, after) : undefined), 'asc', limit)
+    const sends = await db
+      .select()
+      .from(schema.stealthAnnouncements)
+      .where(and(eq(schema.stealthAnnouncements.network, config.KOVA_NETWORK), after ? gt(schema.stealthAnnouncements.id, after) : undefined))
+      .orderBy(asc(schema.stealthAnnouncements.id))
+      .limit(limit)
+    const items = [
+      ...sales.map(({ payment_intent: _pi, swept_tx: _s, swept_at: _sa, ...r }) => ({ ...r, uuid: decodeId('stealthPayment', r.id) ?? '' })),
+      ...sends.map((a) => ({
+        id: encodeId('stealthAnnouncement', a.id),
+        uuid: a.id,
+        scheme_id: STEALTH_SCHEME_ID,
+        stealth_address: getAddress(a.stealthAddress),
+        ephemeral_public_key: a.ephemeralPublicKey,
+        view_tag: a.viewTag,
+        amount: formatAmount(a.amount),
+        currency: settlementToken.symbol,
+        token: a.tokenAddress,
+        tx_hash: a.txHash,
+        explorer_url: explorerTxUrl(network, a.txHash as `0x${string}`),
+        paid_at: a.createdAt.toISOString(),
+      })),
+    ]
+      .sort((x, y) => (x.uuid < y.uuid ? -1 : x.uuid > y.uuid ? 1 : 0))
+      .slice(0, limit)
     return c.json({
       object: 'list',
       scheme_id: STEALTH_SCHEME_ID,
-      data: data.map(({ payment_intent: _pi, swept_tx: _s, swept_at: _sa, ...r }) => r),
-      next: data.length === limit ? data[data.length - 1]?.id : null,
+      data: items.map(({ uuid: _u, ...r }) => r),
+      next: items.length === limit ? items[items.length - 1]?.id : null,
     })
   })

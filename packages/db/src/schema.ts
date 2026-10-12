@@ -715,6 +715,41 @@ export const stealthPayments = pgTable(
   ],
 )
 
+// --- Private sends between people -------------------------------------------------------------
+
+/**
+ * A wallet's private-receiving meta-address (ERC-5564 scheme 1), signed by the wallet, so a sender
+ * can check it before sending privately. Public: it only lets people make addresses for it.
+ */
+export const walletStealthKeys = pgTable('wallet_stealth_keys', {
+  address: address('address').primaryKey(),
+  metaAddress: text('meta_address').notNull(),
+  signature: text('signature').notNull(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+})
+
+/**
+ * The announcement of a private send: the one-time address it went to and the ephemeral key its
+ * recipient needs to find and open it. Published with no recipient; only their viewing key knows.
+ */
+export const stealthAnnouncements = pgTable(
+  'stealth_announcements',
+  {
+    id: id(),
+    network: network('network').notNull(),
+    stealthAddress: address('stealth_address').notNull(),
+    ephemeralPublicKey: text('ephemeral_public_key').notNull(),
+    viewTag: text('view_tag').notNull(),
+    fromAddress: address('from_address').notNull(),
+    amount: amount('amount').notNull(),
+    tokenAddress: address('token_address').notNull(),
+    txHash: text('tx_hash').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('stealth_announcements_address_idx').on(t.stealthAddress)],
+)
+
 // --- Where new people come from ------------------------------------------------------------------
 
 /**
