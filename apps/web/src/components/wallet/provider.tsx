@@ -11,6 +11,7 @@ import {
   passkeyProblem,
 } from '@/lib/passkey'
 import { openVault, sealAndUpload, type VaultContents } from '@/lib/vault'
+import { countNewWallet } from '@/lib/try-count'
 import {
   balanceOf,
   type ChargeToPay,
@@ -373,6 +374,8 @@ export function WalletProvider({
       const { profile: next, account, vaultSecret: secret } = await makeWallet(name, currency)
       if (secret) takeVault(secret, account)
       keepProfile(next)
+      // Came by /try? Kova's public numbers count one more new wallet for where they came from.
+      countNewWallet(next.address)
       setSaved([])
       setNotes({})
       setStatus('ready')

@@ -70,7 +70,10 @@ export default async function Landing() {
               </Pill>
             </form>
           </div>
-          <p className="lp-fine">{mainnet ? 'Live on Monad mainnet. Dollars that settle in about a second.' : 'Live on Monad’s test network. Test dollars, real speed.'}</p>
+          <p className="lp-fine">
+            {mainnet ? 'Live on Monad mainnet. Dollars that settle in about a second.' : 'Live on Monad’s test network. Test dollars, real speed.'}{' '}
+            <Link href="/try?ref=site">Try it in a minute</Link>
+          </p>
         </div>
 
         <div className="lp-hero-stage">
@@ -220,9 +223,11 @@ export default async function Landing() {
 
       <footer className="lp-foot">
         <Brand />
-        <p>Tap. Paid. Anywhere. Built on Monad.{mainnet ? '' : ' A test network preview: no real money moves.'}</p>
+        <p>Tap. Paid. Anywhere. Built on Monad.{mainnet ? '' : ' A test network preview: test dollars only.'}</p>
         <nav aria-label="Footer">
           <Link href="/wallet">Open Kova</Link>
+          <Link href="/try?ref=site">Try Kova in a minute</Link>
+          <Link href="/stats">Kova, live</Link>
           <Link href="/wallet/shop?go=open">Open a shop</Link>
           <Link href="/signin">Shop sign-in with email or a key</Link>
           <a href="#developers">Developers</a>

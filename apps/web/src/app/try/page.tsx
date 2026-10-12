@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
 import { Brand } from '@/components/brand'
 import { type Bakery, TryChecklist, TryMainnet } from '@/components/try-checklist'
-import { ApiError, kovaPublic, type PublicStall } from '@/lib/api'
+import { type PublicStall } from '@/lib/api'
 import { cleanRef, TESTNET_SITE, TRY_STALL } from '@/lib/growth'
 import '@/styles/growth.css'
+import { countTryStep } from './actions'
 
 // The network is this server's (KOVA_NETWORK), read when someone asks, not when the site was built.
 export const dynamic = 'force-dynamic'
@@ -17,26 +18,6 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   openGraph: { title: TITLE, description: DESCRIPTION },
   twitter: { title: TITLE, description: DESCRIPTION },
-}
-
-/**
- * One step of the way in from a source, for Kova's public numbers: the visit, or a new wallet.
- * Counts only; the API keeps no address, and limits each visitor (passed on with the proxy
- * secret) to a few an hour. True when there's nothing left to send: counted, or refused for good.
- */
-async function countStep(ref: string, step: 'visit' | 'wallet'): Promise<boolean> {
-  'use server'
-  const source = cleanRef(ref)
-  if (!source || (step !== 'visit' && step !== 'wallet')) return true
-  try {
-    await kovaPublic('/v1/public/visits', {
-      method: 'POST',
-      body: JSON.stringify({ ref: source, step }),
-    })
-    return true
-  } catch (error) {
-    return error instanceof ApiError && (error.status === 400 || error.status === 429)
-  }
 }
 
 const SLUG = /^[a-z0-9-]{1,64}$/
@@ -87,13 +68,13 @@ export default async function TryPage(props: {
       {mainnet ? (
         <TryMainnet
           initialRef={ref}
-          count={countStep}
+          count={countTryStep}
           testnet={`${TESTNET_SITE}/try?ref=mainnet`}
         />
       ) : (
         <TryChecklist
           initialRef={ref}
-          count={countStep}
+          count={countTryStep}
           bakery={await bakery(bakerySlug(params.stall))}
         />
       )}
