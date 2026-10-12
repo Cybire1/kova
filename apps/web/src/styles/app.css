@@ -2666,6 +2666,15 @@
   gap: 0.4rem;
 }
 
+/* Keep, on the dark card, reads as any small button does: ink on paper. */
+.tcard .mini {
+  color: var(--ink);
+}
+
+.tcard .mini-danger {
+  color: #fff;
+}
+
 .tcard-add {
   display: grid;
   place-items: center;
@@ -3229,6 +3238,13 @@ input:not([type="checkbox"]):not([type="hidden"]):not(.amount-ref),
 .secret p {
   font-size: 0.8125rem;
   color: var(--on-ink);
+}
+
+/* On the dark card Copy is the one bright thing, as on the code examples. */
+.secret .mini {
+  flex: none;
+  background: var(--coral);
+  color: var(--ink);
 }
 
 .events {
