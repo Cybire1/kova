@@ -96,7 +96,7 @@ export function SignInForm({
         </Pill>
       </form>
       <p className="auth-switch">
-        New to Kova? <Link href="/wallet">Open the app</Link>
+        New to Kova? <Link href="/signup">Open a shop</Link>
       </p>
     </div>
   )

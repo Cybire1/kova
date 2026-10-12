@@ -16,6 +16,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="auth-mobile-brand">
           <Brand />
         </div>
+        {/* On a phone the painted world comes along too, small, above the form. */}
+        <div className="auth-mobile-art" aria-hidden="true">
+          <Art name="scene-welcome" size={260} />
+        </div>
         {children}
       </main>
     </div>
