@@ -22,6 +22,7 @@ import { TerminalShowcase } from './terminal/TerminalShowcase'
 import { KovaPointFilm, POINT_DURATION } from './atm/KovaPointFilm'
 import { IPhoneTest } from './IPhoneTest'
 import { RigTest } from './RigTest'
+import { StatsFlyer } from './flyer/StatsFlyer'
 import { SHOP_DURATION, ShopLink } from './ShopLink'
 import './theme'
 
@@ -68,6 +69,8 @@ export const RemotionRoot = () => (
     <Composition id="LinkFilm" component={LinkFilm} durationInFrames={LINK_DURATION * FPS} fps={FPS} width={1920} height={1080} />
     <Composition id="TableFilm" component={TableFilm} durationInFrames={TABLE_DURATION * FPS} fps={FPS} width={1920} height={1080} />
     <Composition id="QueueFilm" component={QueueFilm} durationInFrames={QUEUE_DURATION * FPS} fps={FPS} width={1920} height={1080} />
+    {/* Kova's numbers on Monad, for X: read the live stats and pass them as props. */}
+    <Still id="StatsFlyer" component={StatsFlyer} width={1080} height={1350} defaultProps={{ payments: 230, volume: '1651.70', shops: 18, asOf: '12 Oct 2026' }} />
     <Still id="QueueArt" component={QueueArt} width={1000} height={1000} defaultProps={{ kind: 'wait' as const, n: 3 }} />
   </>
 )
