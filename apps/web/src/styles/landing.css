@@ -637,6 +637,7 @@
   .lp-hero {
     grid-template-columns: minmax(0, 1fr);
     padding-top: 1rem;
+    padding-bottom: 2.5rem;
   }
 
   .rh {
@@ -722,12 +723,20 @@
   padding: 6rem 0 1rem;
 }
 
+/* One column: the sections a little closer, so the page reads as one story. */
+@media (max-width: 900px) {
+  .lp-section {
+    padding-top: 4.5rem;
+  }
+}
+
 .lp-h2 {
   max-width: 52rem;
   font-size: clamp(2.4rem, 5.5vw, 4.25rem);
   font-weight: 800;
   letter-spacing: -0.05em;
   line-height: 0.98;
+  text-wrap: balance;
 }
 
 /* --- Three moves: the payment at the speed it happens ------------------------------ */
@@ -1163,6 +1172,7 @@
   font-weight: 800;
   letter-spacing: -0.045em;
   line-height: 1;
+  text-wrap: balance;
 }
 
 .lp-panel ul {
@@ -1239,6 +1249,7 @@
 @media (max-width: 860px) {
   .lp-duo {
     grid-template-columns: minmax(0, 1fr);
+    padding-top: 4.5rem;
   }
   .lp-panel {
     min-height: 0;
@@ -1308,6 +1319,12 @@
   gap: 1rem;
   padding: 5rem 0 1rem;
   text-align: center;
+}
+
+@media (max-width: 900px) {
+  .lp-fx {
+    padding-top: 3.75rem;
+  }
 }
 
 .lp-fx > p {
@@ -1397,6 +1414,7 @@
   letter-spacing: -0.045em;
   line-height: 1.02;
   color: #fff;
+  text-wrap: balance;
 }
 
 .lp-dev .lp-panel-kicker {
@@ -1447,6 +1465,7 @@
 @media (max-width: 960px) {
   .lp-dev {
     grid-template-columns: minmax(0, 1fr);
+    margin-top: 4.5rem;
     padding: 1.75rem;
   }
 }
@@ -1563,6 +1582,12 @@
   text-align: center;
 }
 
+@media (max-width: 900px) {
+  .lp-close {
+    margin-top: 7rem;
+  }
+}
+
 .lp-close-peek {
   position: absolute;
   left: 50%;
@@ -1580,6 +1605,7 @@
   font-weight: 800;
   letter-spacing: -0.05em;
   line-height: 0.98;
+  text-wrap: balance;
 }
 
 .lp-close > p {
