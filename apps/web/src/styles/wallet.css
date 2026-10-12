@@ -524,6 +524,7 @@
   color: var(--on-ink);
   font-size: 0.75rem;
   line-height: 1.3;
+  text-wrap: balance;
 }
 
 .w-hero-side {
@@ -914,6 +915,7 @@
 
 .w-welcome {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
   padding-top: 0.25rem;
   animation: rise 0.6s var(--spring);
@@ -1004,6 +1006,7 @@
 
 .w-namecard {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
   padding: 0.875rem 1.125rem 1.125rem;
   border: 2px solid var(--ink);
@@ -1073,6 +1076,11 @@
   .w-hero {
     height: 10.5rem;
   }
+  /* A narrower card is a shorter one: the coins stay clear of Add. */
+  .w-balance-coins {
+    transform: scale(0.86);
+    transform-origin: bottom right;
+  }
   .w-pay-label {
     font-size: 1.625rem;
   }
@@ -1123,12 +1131,13 @@
   text-align: center;
 }
 
-.w-empty strong {
+.w-empty > strong {
   font-size: 1rem;
   font-weight: 700;
 }
 
-.w-empty span {
+/* Its line of text: a direct child, so a pill inside keeps its own colours. */
+.w-empty > span {
   max-width: 20rem;
   color: var(--muted);
   font-size: 0.875rem;
@@ -1281,6 +1290,11 @@
   height: 4px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.14);
+}
+
+/* A week with nothing in it is a row of stubs, not an empty chart. */
+.w-week-quiet .w-week-bar {
+  height: 0.75rem;
 }
 
 .w-week-day small {
@@ -1703,6 +1717,11 @@ button.w-person {
 
 .w-note:focus {
   box-shadow: 0 0 0 4px rgba(212, 101, 88, 0.25);
+}
+
+.w-amount-screen .w-note {
+  justify-self: center;
+  width: min(100%, 18rem);
 }
 
 .w-keypad {

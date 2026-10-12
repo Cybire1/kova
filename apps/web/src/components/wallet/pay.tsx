@@ -384,11 +384,13 @@ export function PayCharge({ id }: { id: string }) {
               </span>
             </button>
           )}
-          <p className="w-fine w-center">
-            {sessionCovers(amount)
-              ? 'Your wallet is open, so this one needs no passkey.'
-              : 'Your passkey approves it. The shop gets it in about a second.'}
-          </p>
+          {short_ ? null : (
+            <p className="w-fine w-center">
+              {sessionCovers(amount)
+                ? 'Your wallet is open, so this one needs no passkey.'
+                : 'Your passkey approves it. The shop gets it in about a second.'}
+            </p>
+          )}
         </div>
       )}
     </div>

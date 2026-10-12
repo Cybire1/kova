@@ -134,7 +134,7 @@ export function Activity() {
           </span>
         </div>
         <span className="w-week-caption">Last 7 days</span>
-        <div className="w-week" aria-hidden="true">
+        <div className={`w-week${month.peak === 0n ? ' w-week-quiet' : ''}`} aria-hidden="true">
           {month.days.map((d, i) => {
             const height = (v: bigint) =>
               month.peak === 0n

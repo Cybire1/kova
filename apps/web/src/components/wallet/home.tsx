@@ -77,9 +77,7 @@ export function Home() {
             <Icon name="plus" size={18} />
           </span>
           <span className="w-notice-text">
-            <strong>
-              {network === 'testnet' ? 'Add test dollars to start' : 'Add money to start paying'}
-            </strong>
+            <strong>{network === 'testnet' ? 'Add test dollars' : 'Add money'}</strong>
             <span>
               {network === 'testnet'
                 ? 'Free on Monad testnet, $5 a day'
