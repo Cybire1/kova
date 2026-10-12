@@ -715,6 +715,24 @@ export const stealthPayments = pgTable(
   ],
 )
 
+// --- Where new people come from ------------------------------------------------------------------
+
+/**
+ * Visits and new wallets per source (the `ref` of a link like /try?ref=x), per day. Counts only:
+ * nothing about a person is kept.
+ */
+export const referralCounts = pgTable(
+  'referral_counts',
+  {
+    ref: text('ref').notNull(),
+    /** YYYY-MM-DD, UTC. */
+    day: text('day').notNull(),
+    visits: integer('visits').notNull().default(0),
+    wallets: integer('wallets').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.ref, t.day] })],
+)
+
 // --- Links: dollars sent to anyone, by a link -------------------------------------------------
 
 /**
