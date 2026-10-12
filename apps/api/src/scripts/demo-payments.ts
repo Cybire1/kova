@@ -15,10 +15,10 @@ import { createIntent } from '../services/intents.js'
 import { fund, getCheckout, newCustomer, pay } from './customer.js'
 
 const basket = [
-  ['Jollof + drink', '4.50'],
-  ['Suya plate', '7.25'],
-  ['Zobo, 2', '2.00'],
-  ['Puff-puff', '1.25'],
+  ['Flat white and a croissant', '7.75'],
+  ['Sourdough loaf', '6.50'],
+  ['Iced latte, 2', '9.50'],
+  ['Chocolate cookie', '2.50'],
   ['Fried rice + chicken', '9.00'],
   ['Bottled water', '0.75'],
 ] as const

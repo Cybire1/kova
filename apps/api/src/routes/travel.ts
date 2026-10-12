@@ -134,7 +134,7 @@ export const travelRoutes = new Hono()
   .post('/travel/understand', async (c) => {
     limit(`understand:${ip(c)}`, 30, 600_000)
     const body = z.object({ text: z.string().trim().min(3).max(500), today: date.optional() }).safeParse(await c.req.json().catch(() => ({})))
-    if (!body.success) throw new KovaError('invalid_request', 'Say where and when, like "Lagos to London next Friday"')
+    if (!body.success) throw new KovaError('invalid_request', 'Say where and when, like "Lisbon to London next Friday"')
     const trip = await understandTrip(body.data.text, body.data.today ?? new Date().toISOString().slice(0, 10))
     // Pin each place to a real airport or city.
     const [from, to, city] = await Promise.all([
