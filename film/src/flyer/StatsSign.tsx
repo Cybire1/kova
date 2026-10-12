@@ -40,7 +40,7 @@ function Chip({ value, label, color = INK }: { value: string; label: string; col
   )
 }
 
-export function StatsSign({ payments = 230, wallets = 108, shops = 18, volume = '1651.70', ground = '#A9C9C9', swing = 2 }: Partial<SignProps>) {
+export function StatsSign({ payments = 230, wallets = 108, shops = 18, volume = '1651.70', ground = '#E4E4DE', swing = 2 }: Partial<SignProps>) {
   const [handle] = useState(() => delayRender('fonts'))
   useEffect(() => {
     fontsReady.then(() => continueRender(handle))
@@ -50,7 +50,7 @@ export function StatsSign({ payments = 230, wallets = 108, shops = 18, volume = 
   return (
     <AbsoluteFill style={{ background: ground, fontFamily: 'Manrope', color: INK, overflow: 'hidden' }}>
       <Img src={staticFile('art/kova-logo.png')} style={{ position: 'absolute', left: 96, top: 92, height: 56 }} />
-      <h1 style={{ position: 'absolute', left: 98, top: 196, width: 640, margin: 0, fontSize: 92, lineHeight: 0.95, letterSpacing: -4, fontWeight: 800 }}>
+      <h1 style={{ position: 'absolute', left: 98, top: 196, width: 640, margin: 0, fontSize: 92, lineHeight: 0.95, letterSpacing: -4, fontWeight: 700 }}>
         {wallets} wallets.
         <br />
         {shops} shops.
