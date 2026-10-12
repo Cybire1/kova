@@ -74,7 +74,7 @@ export function StatsSign({ payments = 230, wallets = 108, shops = 18, volume = 
           <circle cx={380} cy={60} r={15} fill={GOLD} stroke={INK} strokeWidth={6} />
         </svg>
         <Img src={staticFile('art/kovi-peek-sign.png')} style={{ position: 'absolute', left: 380, top: 86, width: 300 }} />
-        <div style={{ position: 'absolute', left: 60, top: 278, width: 640, height: 480, boxSizing: 'border-box', padding: '44px 48px 40px', borderRadius: 34, background: CARD, border: `7px solid ${INK}`, boxShadow: `16px 16px 0 ${INK}`, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+        <div style={{ position: 'absolute', left: 60, top: 278, width: 640, height: 480, boxSizing: 'border-box', padding: '44px 48px 40px', borderRadius: 34, background: CARD, border: `7px solid ${INK}`, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
           <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: 10, paddingLeft: 10 }}>KOVA GOT PAID</div>
           <div style={{ fontSize: 200, lineHeight: 0.86, fontWeight: 800, letterSpacing: -10, color: CORAL, marginTop: 14 }}>{payments}</div>
           <div style={{ width: '100%', borderTop: `5px dashed ${INK}`, margin: '28px 0 24px', opacity: 0.85 }} />
