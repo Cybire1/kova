@@ -92,7 +92,7 @@ function Title({ t, lines, x, y, width, out, align = 'left' }: { t: number; line
         )
         // Anton's capitals sit from about 0.12 to 0.86 of the size: stack them a hair apart.
         const next = lines[l + 1] ? fitSize(lines[l + 1]!.text, width) : 0
-        top += fontSize * 1.0 - next * 0.1
+        top += fontSize * 1.1 - next * 0.12
         return row
       })}
     </div>
