@@ -2313,6 +2313,39 @@
   }
 }
 
+/* --- Private takings (takings.css draws them; on a phone they match the other pages' cards) ------ */
+
+@media (max-width: 640px) {
+  .shop-mode .pt,
+  .shop-mode .pt-main,
+  .shop-mode .pt-side {
+    gap: 1rem;
+  }
+
+  .shop-mode .pt-hero {
+    border-radius: 1.5rem;
+  }
+
+  .shop-mode .pt-label {
+    font-size: 0.875rem;
+  }
+
+  .shop-mode .pt-amount {
+    font-size: 3rem;
+  }
+
+  .shop-mode .pt-chips {
+    gap: 0.4rem;
+    margin-top: 0.9rem;
+  }
+
+  .shop-mode .pt-hero-on .chip {
+    height: 1.75rem;
+    padding: 0 0.7rem;
+    font-size: 0.75rem;
+  }
+}
+
 /* --- Stalls home (stalls.css draws the stalls; these fit them to a phone) ----------------------- */
 
 @media (max-width: 640px) {
