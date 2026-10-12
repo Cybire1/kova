@@ -662,6 +662,188 @@
   }
 }
 
+/* A phone: the app's density, the total and the ledger a thumb's reach apart. */
+@media (max-width: 640px) {
+  .bk-page {
+    padding: 0.875rem 1.25rem 2.5rem;
+    font-size: 0.9375rem;
+  }
+
+  .bk-top {
+    margin-bottom: 1.25rem;
+  }
+
+  .bk-top .brand > svg:first-child {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .bk-top .brand > svg:nth-child(2) {
+    width: 2.68rem;
+    height: 1.0625rem;
+  }
+
+  .bk-badge {
+    gap: 0.35rem;
+    height: 2rem;
+    padding: 0 0.8rem 0 0.7rem;
+    font-size: 0.75rem;
+  }
+
+  .bk-eyebrow {
+    height: 1.625rem;
+    padding: 0 0.7rem 0 0.6rem;
+    font-size: 0.6875rem;
+  }
+
+  .bk-hero h1 {
+    margin-top: 0.75rem;
+    font-size: clamp(1.75rem, 8vw, 2.125rem);
+  }
+
+  .bk-lead {
+    margin-top: 0.625rem;
+    font-size: 0.9375rem;
+  }
+
+  .bk-total {
+    margin-top: 3.5rem;
+    padding: 1.125rem;
+    border-radius: 1.5rem;
+  }
+
+  .bk-kovi {
+    right: 0.875rem;
+    bottom: calc(100% - 1.2rem);
+    width: 5.5rem;
+  }
+
+  .bk-label {
+    font-size: 0.875rem;
+  }
+
+  .bk-amount {
+    font-size: clamp(2.75rem, 13vw, 3.5rem);
+  }
+
+  .bk-chips {
+    gap: 0.375rem;
+    margin-top: 0.875rem;
+  }
+
+  .bk-chips .chip {
+    height: 1.75rem;
+    padding: 0 0.7rem;
+    font-size: 0.75rem;
+  }
+
+  .bk-csv {
+    margin-top: 1rem;
+  }
+
+  .bk-find {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 1.5rem;
+  }
+
+  .bk-find-head h2,
+  .bk-chart-head h2,
+  .bk-how h2,
+  .bk-ledger-head h2 {
+    font-size: 1.0625rem;
+  }
+
+  .bk-find-head p,
+  .bk-chart-head p,
+  .bk-ledger-head p {
+    font-size: 0.8125rem;
+  }
+
+  .bk-key {
+    font-size: 0.75rem;
+  }
+
+  .bk-ledger {
+    margin-top: 1rem;
+    border-radius: 1.5rem;
+  }
+
+  .bk-ledger-head {
+    padding: 1rem 0.875rem 0.75rem 1rem;
+  }
+
+  .bk-day h3,
+  .bk-sale {
+    padding-inline: 1rem;
+  }
+
+  .bk-day h3 {
+    font-size: 0.75rem;
+  }
+
+  .bk-sale {
+    grid-template-columns: 3.4rem minmax(0, 1fr) auto;
+    padding-block: 0.625rem;
+  }
+
+  .bk-sale-time {
+    font-size: 0.75rem;
+  }
+
+  .bk-sale-amount {
+    font-size: 0.9375rem;
+  }
+
+  .bk-all {
+    height: 2.5rem;
+    font-size: 0.875rem;
+  }
+
+  .bk-chart,
+  .bk-how {
+    margin-top: 2rem;
+  }
+
+  .bk-how ol {
+    gap: 0.625rem;
+  }
+
+  .bk-how li {
+    padding: 1rem;
+    border-radius: 1.375rem;
+  }
+
+  .bk-how-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .bk-how strong {
+    font-size: 0.9375rem;
+  }
+
+  .bk-how p {
+    font-size: 0.8125rem;
+  }
+
+  .bk-foot {
+    margin-top: 1.5rem;
+    font-size: 0.75rem;
+  }
+
+  .bk-panel {
+    margin-top: 2rem;
+    padding: 1.5rem 1.25rem;
+    border-radius: 1.5rem;
+  }
+
+  .bk-closed-h {
+    font-size: 1.375rem;
+  }
+}
+
 /* --- The shop's own page --------------------------------------------------------------------- */
 
 .pt {

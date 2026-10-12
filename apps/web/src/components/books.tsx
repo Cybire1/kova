@@ -202,7 +202,7 @@ export function Books({ network }: { network: NetworkId }) {
   if (stage.at === 'invalid')
     return (
       <div className="bk-panel bk-closed" role="alert">
-        <Art name="kovi-oops" size={130} priority />
+        <Art name="kovi-oops" size={104} priority />
         <h1 className="bk-closed-h">
           {stage.missing ? 'This view opens with its link' : 'This view doesn’t open'}
         </h1>
@@ -217,7 +217,7 @@ export function Books({ network }: { network: NetworkId }) {
   if (stage.at === 'failed')
     return (
       <div className="bk-panel bk-closed" role="alert">
-        <Art name="kovi-oops" size={130} priority />
+        <Art name="kovi-oops" size={104} priority />
         <h1 className="bk-closed-h">Kova didn’t answer</h1>
         <p className="w-lead">
           The sales couldn’t load just now. Check your connection, then try again.
@@ -304,7 +304,7 @@ export function Books({ network }: { network: NetworkId }) {
         <ol>
           <li>
             <span className="bk-how-icon">
-              <Icon name="shield" size={20} />
+              <Icon name="shield" size={18} />
             </span>
             <strong>Every sale has its own address</strong>
             <p>
@@ -314,7 +314,7 @@ export function Books({ network }: { network: NetworkId }) {
           </li>
           <li>
             <span className="bk-how-icon">
-              <Icon name="key" size={20} />
+              <Icon name="key" size={18} />
             </span>
             <strong>This link’s key finds them</strong>
             <p>
@@ -324,7 +324,7 @@ export function Books({ network }: { network: NetworkId }) {
           </li>
           <li>
             <span className="bk-how-icon">
-              <Icon name="eye" size={20} />
+              <Icon name="eye" size={18} />
             </span>
             <strong>It can look, not move</strong>
             <p>
