@@ -24,6 +24,7 @@ import { IPhoneTest } from './IPhoneTest'
 import { RigTest } from './RigTest'
 import { StatsFlyer } from './flyer/StatsFlyer'
 import { StatsLandscape } from './flyer/StatsLandscape'
+import { StatsBillboard } from './flyer/StatsBillboard'
 import { SHOP_DURATION, ShopLink } from './ShopLink'
 import './theme'
 
@@ -73,6 +74,7 @@ export const RemotionRoot = () => (
     {/* Kova's numbers on Monad, for X: read the live stats and pass them as props. */}
     <Still id="StatsFlyer" component={StatsFlyer} width={1080} height={1350} defaultProps={{ payments: 230, volume: '1651.70', shops: 18, asOf: '12 Oct 2026' }} />
     <Still id="StatsLandscape" component={StatsLandscape} width={1600} height={900} defaultProps={{ payments: 230, wallets: 108, walletsThisWeek: 40, shops: 18, volume: '1651.70', asOf: '12 Oct 2026' }} />
+    <Still id="StatsBillboard" component={StatsBillboard} width={1600} height={900} defaultProps={{ payments: 230, wallets: 108, shops: 18, volume: '1651.70', asOf: '12 Oct 2026' }} />
     <Still id="QueueArt" component={QueueArt} width={1000} height={1000} defaultProps={{ kind: 'wait' as const, n: 3 }} />
   </>
 )
