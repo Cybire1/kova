@@ -17,6 +17,7 @@ import { forgetLink, linkArrival, linkKey, markClaiming, newLinkKey, setLinkId }
 import { load, remove, save } from './storage'
 import { forgetVaultSecret, keepVaultSecret, openVault, saveVault } from './vault'
 import { ensureNoteKey, myNoteKeys, readNote, theirNoteKey } from './notes'
+import { forgetTakingsKeys, isTakingsAddress } from './takings-store'
 
 /**
  * The wallet is a passkey (Mera). Creating it takes one Face ID: the passkey, which iCloud
@@ -71,6 +72,8 @@ export interface Entry {
   private?: 'both' | 'you'
   /** Money into or out of a link: its address is a one-time key, never a person to pay again. */
   link?: boolean
+  /** The shop's private takings coming home from the one-time address a sale was paid to. */
+  takings?: boolean
 }
 
 export interface Contact {
@@ -250,7 +253,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     // Tokens are minted from the zero address (the testnet faucet): that is not a person.
     const zero = '0x0000000000000000000000000000000000000000'
     for (const e of activity) {
-      if (e.address?.toLowerCase() === zero || e.link) continue
+      if (e.address?.toLowerCase() === zero || e.link || e.takings) continue
       if ((e.kind === 'sent' || e.kind === 'received') && e.address && !seen.has(e.address.toLowerCase()))
         seen.set(e.address.toLowerCase(), { address: e.address, name: e.name })
     }
@@ -313,26 +316,34 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           const refund = t.kind === 'refund'
           // Money out of a link: your own coming back, or one claimed here a moment ago.
           const fromLink = linkArrival(t.from)
+          // The shop's own takings, moved home from a sale's one-time address: no stranger, and no surprise.
+          const fromTakings = !fromLink && (await isTakingsAddress(t.from))
           const name = t.faucet
             ? 'Test dollars'
             : refund
               ? 'Refund'
-              : (fromLink?.name ?? nameFor(t.from) ?? `${t.from.slice(0, 6)}…${t.from.slice(-4)}`)
+              : fromTakings
+                ? 'Private takings'
+                : (fromLink?.name ?? nameFor(t.from) ?? `${t.from.slice(0, 6)}…${t.from.slice(-4)}`)
           await record({
             id: newId(),
             kind: t.faucet ? 'added' : 'received',
             amount: t.amount.toString(),
             name,
-            detail: note ?? (t.faucet ? 'AUSD test faucet' : refund ? 'Money back from a booking' : (fromLink?.detail ?? 'Arrived')),
+            detail:
+              note ??
+              (t.faucet ? 'AUSD test faucet' : refund ? 'Money back from a booking' : fromTakings ? 'From a private sale' : (fromLink?.detail ?? 'Arrived')),
             address: t.from,
             txHash: t.hash,
             at: Date.now(),
             ...(note ? { private: 'both' as const } : {}),
             ...(fromLink ? { link: true } : {}),
+            ...(fromTakings ? { takings: true } : {}),
           })
           // Already in your activity (claimed here, say): it had its celebration.
           const seen = shownRef.current.some((e) => e.txHash?.toLowerCase() === t.hash.toLowerCase() && e.kind === 'received')
-          if (!t.faucet && !fromLink?.quiet && !seen) setArrival({ amount: t.amount, name, address: t.from, hash: t.hash, ...(note ? { note } : {}) })
+          if (!t.faucet && !fromLink?.quiet && !fromTakings && !seen)
+            setArrival({ amount: t.amount, name, address: t.from, hash: t.hash, ...(note ? { note } : {}) })
         }
         if (transfers.length) void refresh()
       } catch (error) {
@@ -681,6 +692,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     await SecureStore.deleteItemAsync(DEV_PRF).catch(() => {})
     await SecureStore.deleteItemAsync(DEMO_PRF).catch(() => {})
     await forgetVaultSecret()
+    // The shop's private takings keys come from this wallet: the next one makes its own.
+    await forgetTakingsKeys()
     await remove(PROFILE, ACTIVITY, CONTACTS, CURSOR, BALANCE)
     setProfile(null)
     setBalance(null)

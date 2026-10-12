@@ -32,7 +32,7 @@ export function EntryRow({ entry }: { entry: Entry }) {
     >
       {entry.link ? (
         <EnvelopeBadge size={38} tone={incoming ? 'teal' : 'coral'} />
-      ) : entry.kind === 'paid' ? (
+      ) : entry.kind === 'paid' || entry.takings ? (
         <ShopBadge size={38} />
       ) : entry.kind === 'added' ? (
         <AddBadge size={38} />

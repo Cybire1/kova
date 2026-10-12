@@ -15,6 +15,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { PrefsProvider, usePrefs } from '@/lib/prefs'
 import { useLiveRates } from '@/lib/rates'
 import { StallProvider } from '@/lib/stall'
+import { TakingsProvider } from '@/lib/takings'
 import { TravelProvider } from '@/lib/travel'
 import { TerminalProvider } from '@/lib/terminal'
 import { colors } from '@/lib/theme'
@@ -83,6 +84,7 @@ export default function RootLayout() {
           <TerminalProvider>
             <WalletProvider>
               <StallProvider>
+                <TakingsProvider>
                 <TravelProvider>
                 <StatusBar style="dark" />
                 <ArrivalWatcher />
@@ -106,6 +108,7 @@ export default function RootLayout() {
                   <Stack.Screen name="c/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
                 </Stack>
                 </TravelProvider>
+                </TakingsProvider>
               </StallProvider>
             </WalletProvider>
           </TerminalProvider>

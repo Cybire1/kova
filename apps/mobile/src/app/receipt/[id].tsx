@@ -31,7 +31,8 @@ export default function Receipt() {
     )
 
   const incoming = entry.kind === 'received' || entry.kind === 'added'
-  const person = (entry.kind === 'sent' || entry.kind === 'received') && entry.address ? entry.address : null
+  // A one-time address (a link's, or a private sale's) is never a person to name.
+  const person = (entry.kind === 'sent' || entry.kind === 'received') && entry.address && !entry.takings ? entry.address : null
   const zigzag = Array.from({ length: 18 }, (_, i) => `L${i * 20 + 10} 10 L${i * 20 + 20} 0`).join(' ')
 
   return (
@@ -40,7 +41,7 @@ export default function Receipt() {
       <View style={styles.wrap}>
         <View style={styles.paper}>
           <View style={styles.top}>
-            {entry.kind === 'paid' ? <ShopBadge size={64} /> : <Avatar name={entry.name} id={entry.address} size={64} />}
+            {entry.kind === 'paid' || entry.takings ? <ShopBadge size={64} /> : <Avatar name={entry.name} id={entry.address} size={64} />}
             <Txt size={15} color={colors.muted} style={{ marginTop: 12 }}>
               {titles[entry.kind]} {incoming ? 'from' : 'to'}
             </Txt>
@@ -68,7 +69,7 @@ export default function Receipt() {
           <Row label="When" value={`${new Date(entry.at).toLocaleDateString([], { day: 'numeric', month: 'long' })}, ${when(entry.at)}`} />
           {entry.private ? (
             <Row label="Private note" icon="lock" value={entry.detail} />
-          ) : ['Sent', 'Arrived', 'Scan to pay', 'AUSD test faucet'].includes(entry.detail) ? null : (
+          ) : ['Sent', 'Arrived', 'Scan to pay', 'AUSD test faucet'].includes(entry.detail) || entry.takings ? null : (
             <Row label="For" value={entry.detail} />
           )}
           {entry.private ? (

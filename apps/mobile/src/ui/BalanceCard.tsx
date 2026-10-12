@@ -21,9 +21,15 @@ const onTeal = '#DCEBEA'
 export function BalanceCard({
   balance,
   currency,
+  takings,
 }: {
   balance: bigint | null
   currency: DisplayCurrency
+  /**
+   * The shop's private takings, still at their sales' one-time addresses: money the balance can't
+   * see, so it's shown beside it, a tap from moving it home.
+   */
+  takings?: { amount: bigint; onPress: () => void } | null
 }) {
   const { hideBalance, setHideBalance } = usePrefs()
   const shown = useCounted(balance)
@@ -103,6 +109,20 @@ export function BalanceCard({
               {hideBalance ? '≈ ••••' : `≈ ${formatLocal(baseToNumber(balance), currency)}`}
             </Txt>
           </View>
+        ) : null}
+        {takings ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={hideBalance ? 'Private takings waiting. Open them' : `${formatUsd(takings.amount)} in private takings, waiting to move to your wallet`}
+            hitSlop={6}
+            onPress={takings.onPress}
+            style={({ pressed }) => [styles.chip, styles.takings, pressed && { transform: [{ scale: 0.96 }] }]}
+          >
+            <Icon name="lock" size={13} color={colors.ink} strokeWidth={2.4} />
+            <Txt weight="semi" size={13}>
+              {hideBalance ? '+•••• private takings' : `+${formatUsd(takings.amount)} private takings`}
+            </Txt>
+          </Pressable>
         ) : null}
       </View>
     </View>
@@ -186,4 +206,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
   },
+  takings: { backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.ink, paddingHorizontal: 10 },
 })

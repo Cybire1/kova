@@ -20,6 +20,7 @@ export default function TerminalLayout() {
           <Stack.Screen name="setup" />
           <Stack.Screen name="item" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.paper } }} />
           <Stack.Screen name="share" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.paper } }} />
+          <Stack.Screen name="takings" options={{ contentStyle: { backgroundColor: colors.paper } }} />
           <Stack.Screen name="snap" options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: colors.paper } }} />
         </Stack>
         <NewOrderBanner />

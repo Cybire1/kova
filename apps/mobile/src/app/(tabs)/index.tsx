@@ -7,6 +7,7 @@ import { getSummary } from '@/lib/api'
 import { isTestnet } from '@/lib/config'
 import { usePrefs } from '@/lib/prefs'
 import { useStall } from '@/lib/stall'
+import { useTakings } from '@/lib/takings'
 import { useTerminal } from '@/lib/terminal'
 import { colors } from '@/lib/theme'
 import { isUnnamed, useWallet } from '@/lib/wallet'
@@ -29,12 +30,15 @@ export default function Home() {
   const { profile, balance, activity, contacts, refresh } = useWallet()
   const insets = useSafeAreaInsets()
   const [refreshing, setRefreshing] = useState(false)
+  const takings = useTakings()
+  const { setMode } = usePrefs()
+  const { refresh: refreshTakings } = takings
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
-    await refresh()
+    await Promise.all([refresh(), refreshTakings()])
     setRefreshing(false)
-  }, [refresh])
+  }, [refresh, refreshTakings])
 
   if (!profile) return null
   const empty = balance === 0n
@@ -60,7 +64,21 @@ export default function Home() {
         <RoundButton icon="bell" label="Activity" size={36} onPress={() => router.push('/(tabs)/activity')} />
       </View>
 
-      <BalanceCard balance={balance} currency={profile.currency} />
+      <BalanceCard
+        balance={balance}
+        currency={profile.currency}
+        takings={
+          takings.owner && takings.waiting > 0n
+            ? {
+                amount: takings.waiting,
+                onPress: () => {
+                  setMode('terminal')
+                  router.replace('/terminal/today')
+                },
+              }
+            : null
+        }
+      />
 
       <View style={styles.hero}>
         <Pressable

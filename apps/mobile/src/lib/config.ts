@@ -10,7 +10,7 @@ export const apiUrl = process.env.EXPO_PUBLIC_KOVA_MONAD_API_URL ?? 'https://api
 export const webUrl = process.env.EXPO_PUBLIC_KOVA_MONAD_WEB_URL ?? 'https://mykova.app'
 
 /**
- * Monad mainnet, with real dollars. EXPO_PUBLIC_KOVA_NETWORK=testnet runs the app on testnet (free
+ * Monad mainnet, with mainnet AUSD. EXPO_PUBLIC_KOVA_NETWORK=testnet runs the app on testnet (free
  * test dollars), with EXPO_PUBLIC_KOVA_MONAD_API_URL=https://api-monad.up.railway.app.
  */
 export const networkId: NetworkId =

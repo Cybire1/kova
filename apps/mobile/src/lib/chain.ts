@@ -56,6 +56,28 @@ export async function getBalance(address: Address): Promise<bigint> {
   })
 }
 
+/**
+ * The dollars at many addresses, read in one call per hundred (Multicall3). An address whose read
+ * failed is left out, so the caller can fall back on what it expected there.
+ */
+export async function balancesOf(addresses: Address[]): Promise<Map<string, bigint>> {
+  const held = new Map<string, bigint>()
+  for (let i = 0; i < addresses.length; i += 100) {
+    const chunk = addresses.slice(i, i + 100)
+    const results = await publicClient
+      .multicall({
+        contracts: chunk.map((account) => ({ address: settlementToken.address, abi: eip3009Abi, functionName: 'balanceOf' as const, args: [account] as const })),
+        allowFailure: true,
+      })
+      .catch(() => null)
+    results?.forEach((r, j) => {
+      const account = chunk[j]
+      if (account && r.status === 'success') held.set(account.toLowerCase(), r.result as bigint)
+    })
+  }
+  return held
+}
+
 /** Testnet only: asks Kova for today's test dollars ($5 a day, gas paid by Kova), and waits until they land. */
 export async function fundFromFaucet(address: Address): Promise<void> {
   if (!isTestnet) throw new Error('Adding money needs a card or bank on mainnet.')

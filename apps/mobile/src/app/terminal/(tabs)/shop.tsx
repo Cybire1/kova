@@ -3,13 +3,14 @@ import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { type ReactNode, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Switch, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { webUrl } from '@/lib/config'
-import { currencyInfo, type DisplayCurrency } from '@/lib/money'
+import { currencyInfo, type DisplayCurrency, formatUsd } from '@/lib/money'
 import { usePrefs } from '@/lib/prefs'
 import { useShop } from '@/lib/shop'
 import { useStall } from '@/lib/stall'
+import { useTakings } from '@/lib/takings'
 import { useTerminal } from '@/lib/terminal'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
@@ -17,6 +18,7 @@ import { ShopBadge } from '@/ui/art'
 import { Icon, type IconName } from '@/ui/Icon'
 import { Txt } from '@/ui/primitives'
 import { shopDockClearance } from '@/ui/ShopDock'
+import { booksMessage, useHome } from '@/ui/Takings'
 import { WalletBack } from '@/ui/WalletBack'
 
 const priceCurrencies: DisplayCurrency[] = ['USD', 'EUR', 'GBP', 'NGN', 'KES', 'MXN']
@@ -78,6 +80,8 @@ export default function ShopTab() {
           <Fact label="Card fees" value="None" last />
         </View>
       </View>
+
+      {owned ? <TakingsGroup /> : null}
 
       <Group title="Prices">
         <View style={styles.pad}>
@@ -198,6 +202,116 @@ export default function ShopTab() {
   )
 }
 
+/**
+ * Private takings: the switch, said plainly, and what comes with it once it's on: every private
+ * sale, and the accountant's read-only view. Turning it off asks first, and keeps the keys, since
+ * sales already private stay the shop's to move.
+ */
+function TakingsGroup() {
+  const t = useTakings()
+  const shop = useShop()
+  const home = useHome()
+  const [confirmOff, setConfirmOff] = useState(false)
+  const switching = t.working === 'on' || t.working === 'off'
+  const link = t.booksLink(shop.name)
+  const problem = t.problem && (t.problem.during === 'on' || t.problem.during === 'off') ? t.problem.text : null
+
+  return (
+    <Group title="Takings">
+      <View style={[styles.private, (confirmOff || problem || t.enabled || t.sales.length > 0) && styles.rowRule]}>
+        <View style={[styles.rowIcon, { backgroundColor: t.enabled ? colors.coral : colors.sunken }]}>
+          <Icon name="lock" size={19} color={t.enabled ? colors.white : colors.ink} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Txt weight="semi" size={16}>
+            Private takings
+          </Txt>
+          <Txt size={13} color={colors.muted} style={{ lineHeight: 18, marginTop: 2 }}>
+            Every sale goes to its own address that only your shop can open. Nobody on Monad can add up your takings.
+          </Txt>
+        </View>
+        {switching ? (
+          <ActivityIndicator color={colors.ink} style={{ width: 51 }} />
+        ) : (
+          <Switch
+            value={t.enabled}
+            disabled={!t.ready || t.working !== null}
+            onValueChange={(on) => {
+              void Haptics.selectionAsync()
+              if (on) {
+                setConfirmOff(false)
+                void t.turnOn()
+              } else setConfirmOff(true)
+            }}
+            trackColor={{ true: colors.teal, false: colors.sunken }}
+            accessibilityLabel={t.enabled ? 'Private takings are on' : 'Private takings are off'}
+          />
+        )}
+      </View>
+      {confirmOff ? (
+        <View style={[styles.pad, styles.rowRule]}>
+          <Txt weight="semi" size={16}>
+            Turn private takings off?
+          </Txt>
+          <Txt size={14} color={colors.muted} style={{ marginTop: 4, lineHeight: 20 }}>
+            New sales will go straight to {home.long} again, where anyone on Monad can see them. Private sales you already have stay yours to move.
+          </Txt>
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+            <Pressable accessibilityRole="button" onPress={() => setConfirmOff(false)} style={[styles.small, { backgroundColor: colors.tealSoft }]}>
+              <Txt weight="semi" size={15}>
+                Keep it private
+              </Txt>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setConfirmOff(false)
+                void t.turnOff()
+              }}
+              style={[styles.small, { backgroundColor: colors.surface }]}
+            >
+              <Txt weight="semi" size={15}>
+                Turn off
+              </Txt>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+      {problem ? (
+        <View style={[styles.pad, (t.enabled || t.sales.length > 0) && styles.rowRule]}>
+          <Txt weight="medium" size={14} color={colors.danger}>
+            {problem}
+          </Txt>
+        </View>
+      ) : null}
+      {t.enabled || t.sales.length > 0 ? (
+        <Row
+          icon="list"
+          label="See private takings"
+          value={
+            t.waitingCount
+              ? `${formatUsd(t.waiting)} waiting at ${t.waitingCount} ${t.waitingCount === 1 ? 'address' : 'addresses'}`
+              : t.sales.length
+                ? `${t.sales.length} private ${t.sales.length === 1 ? 'sale' : 'sales'}, all moved to ${home.long}`
+                : 'Each sale, at its own address'
+          }
+          onPress={() => router.push('/terminal/takings')}
+          last={!link}
+        />
+      ) : null}
+      {(t.enabled || t.sales.length > 0) && link ? (
+        <Row
+          icon="eye"
+          label="Share an accountant view"
+          value="Shows every sale. Can’t move money. Share it only with your accountant."
+          onPress={() => void Share.share({ message: booksMessage(shop.name, link) })}
+          last
+        />
+      ) : null}
+    </Group>
+  )
+}
+
 function Fact({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
     <View style={[styles.fact, !last && styles.factRule]}>
@@ -258,5 +372,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
   rowRule: { borderBottomWidth: 1, borderColor: colors.sunken },
   rowIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  private: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
   small: { flex: 1, height: 44, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
 })

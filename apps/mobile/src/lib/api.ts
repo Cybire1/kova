@@ -368,8 +368,9 @@ export const signInToShop = (message: string, signature: string) =>
     body: JSON.stringify({ message, signature, newest: true }),
   })
 
-/** Who signs in to the shop this phone owns: its owner's wallet, or nobody's yet. */
-export const getOwnedShop = () => request<{ id: string; name: string; owner_address: string | null }>('/v1/account', { auth: 'owner' })
+/** Who signs in to the shop this phone owns (its owner's wallet, or nobody's yet), and where its payments settle. */
+export const getOwnedShop = () =>
+  request<{ id: string; name: string; owner_address: string | null; settlement_address: `0x${string}` }>('/v1/account', { auth: 'owner' })
 
 /** Makes a wallet the shop's owner with its signed message, so its passkey signs in on the web. */
 export const linkShopOwner = (message: string, signature: string) =>
@@ -437,6 +438,57 @@ export interface MenuImport {
 /** Snap your menu: a photo of a menu board or price list in, suggested items out. Nothing is saved. */
 export const readMenuPhoto = (base64: string, mediaType: 'image/jpeg' | 'image/png' | 'image/webp' = 'image/jpeg') =>
   request<MenuImport>('/v1/catalog/import', { method: 'POST', auth: 'owner', body: JSON.stringify({ image: base64, media_type: mediaType }) })
+
+// --- shop: private takings (owner key) -----------------------------------------------------
+
+/**
+ * A sale paid to one of the shop's one-time addresses (ERC-5564), with what the shop's viewing
+ * key needs to find it and its spending key to open it. Kova lists them; the phone checks each.
+ */
+export interface StealthReceipt {
+  scheme_id: number
+  stealth_address: `0x${string}`
+  /** Compressed, 33 bytes. */
+  ephemeral_public_key: `0x${string}`
+  view_tag: `0x${string}`
+  /** Dollars, e.g. "8.00". */
+  amount: string
+  currency: string
+  token: `0x${string}`
+  tx_hash: `0x${string}`
+  explorer_url: string
+  paid_at: string | null
+  payment_intent: string
+  /** The move into the shop's wallet, once it's happened. */
+  swept_tx: `0x${string}` | null
+  swept_at: string | null
+}
+
+export interface PrivateTakings {
+  enabled: boolean
+  /** `st:eth:0x…`, the two public keys new charges are paid through. Null when off. */
+  meta_address: string | null
+  /** Paid sales at one-time addresses, newest first, including ones made while it was on before. */
+  receipts: StealthReceipt[]
+}
+
+/** One move from a one-time address into the shop's wallet: done, or why not. */
+export type TakingsMove =
+  | { from: `0x${string}`; to: `0x${string}`; amount: string; tx_hash: `0x${string}`; explorer_url: string; ms: number }
+  | { from: `0x${string}`; error: string }
+
+export const getPrivateTakings = () => request<PrivateTakings>('/v1/private_takings', { auth: 'owner' })
+
+/** From now on every charge pays a fresh one-time address made from this meta-address. */
+export const turnOnPrivateTakings = (metaAddress: string) =>
+  request<{ enabled: true; meta_address: string }>('/v1/private_takings', { method: 'PUT', auth: 'owner', body: JSON.stringify({ meta_address: metaAddress }) })
+
+/** New charges pay the shop's wallet again. Sales already at one-time addresses stay the shop's to move. */
+export const turnOffPrivateTakings = () => request<{ enabled: false }>('/v1/private_takings', { method: 'DELETE', auth: 'owner' })
+
+/** Moves sales into the shop's wallet: transfer authorizations signed with each address's own key, 50 at most. Kova pays the gas. */
+export const moveTakings = (authorizations: unknown[]) =>
+  request<{ data: TakingsMove[] }>('/v1/private_takings/sweep', { method: 'POST', auth: 'owner', body: JSON.stringify({ authorizations }) }).then((r) => r.data)
 
 // --- travel --------------------------------------------------------------------------------
 

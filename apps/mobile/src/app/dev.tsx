@@ -1,16 +1,22 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { Image, View } from 'react-native'
-import { createItem, getCatalog, getCheckout, listOrders, lookupBarcode, ringUp, setOrderStatus, updateStall, uploadImage } from '@/lib/api'
+import { Image, Share, View } from 'react-native'
+import { checkStealthAddress } from '@kova/monad'
+import { createCharge, createItem, getCatalog, getCheckout, listOrders, lookupBarcode, ringUp, setOrderStatus, type StealthReceipt, updateStall, uploadImage } from '@/lib/api'
+import { apiUrl } from '@/lib/config'
 import { finishTap, forgetDevCard, linkCard, readTap } from '@/lib/card'
 import type { DisplayCurrency } from '@/lib/money'
 import { type Mode, usePrefs } from '@/lib/prefs'
 import { useStall } from '@/lib/stall'
 import { save } from '@/lib/storage'
+import { useTakings } from '@/lib/takings'
+import { viewFrom } from '@/lib/takings-core'
+import { forgetTakingsKeys } from '@/lib/takings-store'
 import { useTerminal } from '@/lib/terminal'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Txt } from '@/ui/primitives'
+import { booksMessage } from '@/ui/Takings'
 
 /**
  * Development only: `kova://dev?name=Maya&cur=EUR&fund=1&mode=pay&to=/send` sets up a wallet
@@ -22,6 +28,10 @@ import { Txt } from '@/ui/primitives'
  * that stall with a small menu (and a barcoded drink for the till), `seed=bakery` with a bakery's, `till=keypad|items|scan` picks
  * the till's mode, `tables=6&stamps=5` gives the stall table codes and a stamp card (0 turns either off), and `sell=<item name>*<qty>;<item name>*<qty>` rings a sale up at the till and shows the customer display.
  * `card=link&limit=100&pin=4827` links the software Kova Card (`newcard=1` makes a fresh one first); `tapcard=<charge>` taps it at this till.
+ * `takings=on|off|open` turns this shop's private takings on or off (or opens its keys on this phone) through the real flow,
+ * `takings=forget` drops this phone's copy of the keys (relaunch to see the phone without them),
+ * `charge=8.00,3.25` makes a charge for each amount (with private takings on, each pays its own address), `move=1` moves
+ * every private sale into the wallet, and `books=1` opens the share sheet with the accountant's view.
  * Release builds redirect home.
  */
 /** A small Lagos kitchen menu for trying the stall screens. */
@@ -165,11 +175,19 @@ export default function Dev() {
     pin?: string
     tapcard?: string
     demo?: string
+    takings?: string
+    charge?: string
+    move?: string
+    books?: string
   }>()
   const wallet = useWallet()
   const prefs = usePrefs()
   const terminal = useTerminal()
   const stall = useStall()
+  // The takings callbacks read their latest state themselves; `ready` is read through this ref.
+  const takings = useTakings()
+  const takingsRef = useRef(takings)
+  takingsRef.current = takings
   const [step, showStep] = useState('starting')
   const setStep = (next: string) => {
     console.log(`[dev] ${next}`)
@@ -337,6 +355,27 @@ export default function Dev() {
           else if (params.pin) await finishTap(tap.id, signature, params.pin)
           return router.replace({ pathname: '/terminal/[id]', params: { id: params.tapcard } })
         }
+        if (params.takings === 'forget') {
+          await forgetTakingsKeys()
+          console.log('[dev] private takings keys forgotten on this phone')
+        } else if (params.takings || params.move || params.books) {
+          setStep('opening private takings')
+          for (let i = 0; i < 100 && !takingsRef.current.ready; i++) await new Promise((r) => setTimeout(r, 200))
+          await takingsRef.current.refresh()
+        }
+        if (params.takings && params.takings !== 'forget') {
+          setStep(`private takings ${params.takings}`)
+          const t = takingsRef.current
+          const ok = await (params.takings === 'off' ? t.turnOff() : params.takings === 'open' ? t.openHere() : t.turnOn())
+          console.log(`[dev] private takings ${params.takings}: ${ok ? 'done' : 'failed'}`)
+        }
+        if (params.charge) {
+          setStep('making charges')
+          for (const amount of params.charge.split(',')) {
+            const charge = await createCharge(amount, { reference: 'Dev sale' })
+            console.log(`[dev] charge ${charge.id} for $${charge.amount} pays ${charge.pay_to}`)
+          }
+        }
         if (params.rename) {
           const [address, ...name] = params.rename.split(':')
           await wallet.renameContact(address as `0x${string}`, name.join(':'))
@@ -357,6 +396,31 @@ export default function Dev() {
         router.replace((params.to as never) || '/')
         // A screen to open over that one, e.g. `then=/send` for the send sheet over Home.
         if (params.then) setTimeout(() => router.push(params.then as never), 600)
+        // On the screen it was asked from, so the card shows the move as it happens.
+        if (params.move)
+          setTimeout(() => {
+            void takingsRef.current.move().then((outcome) =>
+              console.log(
+                `[dev] moved ${outcome ? `${outcome.count} for ${outcome.amount} base units in ${outcome.ms}ms, ${outcome.failed} failed${outcome.reason ? ` (${outcome.reason})` : ''}, ${outcome.empty} empty` : 'nothing'}`,
+              ),
+            )
+          }, 1500)
+        if (params.books) {
+          const name = stall.owned?.name ?? 'My shop'
+          const link = takingsRef.current.booksLink(name)
+          if (link) {
+            // What the accountant's page does with it: read the key after the #, and find the shop's
+            // sales among everyone's. Logged without the key.
+            const [fragment = ''] = link.split('#')[1]?.split('&') ?? []
+            const view = viewFrom(decodeURIComponent(fragment))
+            const all = await fetch(`${apiUrl}/v1/public/stealth/announcements?limit=1000`).then((r) => r.json() as Promise<{ data: StealthReceipt[] }>)
+            const opens = all.data.filter(
+              (a) => checkStealthAddress(view, { ephemeralPublicKey: a.ephemeral_public_key, viewTag: a.view_tag, stealthAddress: a.stealth_address }) !== null,
+            )
+            console.log(`[dev] accountant view ${link.split('#')[0]}#kova-view:… opens ${opens.length} of ${all.data.length} sales on Kova`)
+            setTimeout(() => void Share.share({ message: booksMessage(name, link) }), 1200)
+          }
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         console.warn(`[dev] failed: ${message}`)
