@@ -30,6 +30,11 @@ see dollars, their own currency beside them, and Face ID. Nothing else.
 - **Send, in one sheet.** Who, how much (with what they'll see in their own currency), a look at
   the route, slide to send, and the same sheet becomes the receipt with the measured time, while
   the balance behind it counts down. The same on the web. $20 arrives as ≈ €18.40.
+- **Send by link, to anyone.** Pick an amount, share a link on WhatsApp. The friend abroad needs no
+  wallet and no app: the link shows "Ada sent you $20.00, about €18.40", and they claim it with
+  Face ID or with their email or Google (Privy), in under a second. The dollars wait at a one-time
+  address whose key lives only in the link (after the `#`, so it never reaches a server); an
+  unclaimed link can be taken back.
 - **Private notes.** "For dinner" travels with the payment, sealed on the sender's device for the
   receiver and the sender (X25519, XChaCha20-Poly1305, keys derived from each passkey and signed
   by each wallet). Kova stores ciphertext it can't read.
@@ -41,6 +46,15 @@ see dollars, their own currency beside them, and Face ID. Nothing else.
 - **Your shop, inside the wallet.** Open a shop from your wallet; its sales land in the same wallet.
   A stall page to share, a catalogue, a till (the phone becomes a terminal: keypad, items or
   barcode scanner, then a QR code for the customer), orders, and the day's takings, live.
+- **Order from the table, and a stamp card.** Each table has its own code; the order arrives as
+  "Table 3", and when the shop taps Ready the customer's phone says so: no queue, no buzzer. A
+  shop can turn on a stamp card with no sign-up (the wallet that pays is the card): after five
+  paid orders the cheapest item on the next is free, and even that $0.00 order has a receipt on
+  Monad.
+- **Private takings.** On a public chain anyone can add up a shop's sales. With private takings on,
+  each sale is paid to a fresh one-time address that only the shop can find and open (ERC-5564
+  stealth addresses), so nobody can. The shop moves its takings to its wallet in one tap, gas-free,
+  and can give its accountant a view link that sees every sale and can move none.
 - **One account.** Shop owners sign in on the web with the same wallet (Sign-In with Ethereum,
   EIP-4361): no passwords, no API keys. Customers without Kova can pay a checkout with email or
   Google (Privy).
@@ -69,6 +83,14 @@ see dollars, their own currency beside them, and Face ID. Nothing else.
   ago". Reports are published with the CRE CLI (`cre workflow simulate --broadcast`) until the
   workflow is deployed to a DON.
 
+- **Privacy on a public chain, by permission.** Private takings follow the idea of Monad's Private
+  Settlement design (private by default, visible only to whom you allow) with what Monad runs
+  today: ERC-5564 stealth addresses, scheme 1 ([packages/monad/src/stealth.ts](packages/monad/src/stealth.ts)), whose
+  announcer and registry contracts are deployed on Monad mainnet. Kova derives each sale's address
+  from the shop's public meta-address and never holds a key that can move it. Monad's fees are what
+  make a fresh address per sale, and moving each one later, affordable by default. When Private
+  Settlement ships, a shop's books can move into its own encrypted domain.
+
 ### On-chain (Monad testnet, chain 10143)
 
 | What | Address or transaction |
@@ -83,6 +105,18 @@ see dollars, their own currency beside them, and Face ID. Nothing else.
 | A send from the one-sheet flow at mykova.app, $2.50 | [`0x3306403e…e6a28ad792`](https://testnet.monadscan.com/tx/0x3306403ec1917c92f39300ab65e85f820101751fc581cc716f04e1e6a28ad792) |
 | $1.00 with a private note ("Puff-puff for the road"), web to phone | [`0xc3645812…e4fd0e05810`](https://testnet.monadscan.com/tx/0xc3645812e47ed594be7ae0d5a8f9f2913688ce3940890ed638045e4fd0e05810) |
 | $0.50 with a private note back ("Thanks Ada!"), phone to web | [`0x3d43cd4d…b33f5c11`](https://testnet.monadscan.com/tx/0x3d43cd4d445795446a3ab3468cdef0d63711478b95f3afc06146283ab33f5c11) |
+| Ordered and paid from table 3, $7.75 in 0.76 s | [`0x61749899…e5a16f2`](https://testnet.monadscan.com/tx/0x617498997c9c5d23163ded2e4d522c6e48918b3f491ebd919469a9515e5a16f2) |
+| The sixth croissant, free with the stamp card: a $0.00 payment with its receipt | [`0x73001c6d…6dcdec0`](https://testnet.monadscan.com/tx/0x73001c6d1dd2d91ec4fd7be01d3c014658b64200a3979f1e206dd8e5ae5cdec0) |
+| $20 sent by link and claimed by a brand-new wallet in 0.7 s | [`0x7feaee54…2534574`](https://testnet.monadscan.com/tx/0x7feaee5485ac02397b29cf04be0735dee24b10514179fe01d7a463ecb2534574) |
+
+### On-chain (Monad mainnet, chain 143)
+
+| What | Address |
+|---|---|
+| AUSD (Agora) | [`0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a`](https://monadscan.com/address/0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a) |
+| Kova's relayer | [`0x67d185427d896aaf1d8781E094f1Bad16f7fa967`](https://monadscan.com/address/0x67d185427d896aaf1d8781E094f1Bad16f7fa967) |
+| KovaCard, the Kova Card's contract | [`0x9bee9F2D59d9675F2723B274e1276F5931Ef325E`](https://monadscan.com/address/0x9bee9F2D59d9675F2723B274e1276F5931Ef325E) |
+| ERC-5564 announcer and ERC-6538 registry (standard, used by private takings' scheme) | [`0x55649E01…5564`](https://monadscan.com/address/0x55649E01B5Df198D18D95b5cc5051630cfD45564), [`0x6538E6bf…6538`](https://monadscan.com/address/0x6538E6bf4B0eBd30A8Ea093027Ac2422ce5d6538) |
 
 ## Architecture
 
