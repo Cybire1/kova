@@ -1,12 +1,12 @@
 /**
  * "Send by link": a 20-second announcement. Ada sends Lucía $20 as a link, the envelope flies from
  * her phone to Lucía's, and Lucía, with no app and no wallet, claims it with Face ID: it's hers in
- * 0.5 s on Monad.
+ * 0.6 s on Monad.
  *
  * Every screen is real, from one run on Monad testnet on 12 October 2026: Ada's from the Kova app
  * (public/link/ada), Lucía's from the claim page (public/link/lucia, with an iOS status bar drawn
- * over the browser capture). Link lnk_06gk10p2ahtg915kjdqqy2z374, claimed in 0.5 s by a new wallet,
- * transaction 0x2097fca57faf356271b7eed908b099b0e5c7ac1b34a19ea6d2381e3417215bc0.
+ * over the browser capture). Link lnk_06gk1mw7y1ypvd3ft3e3s0g524, claimed in 0.6 s by a new wallet,
+ * transaction 0x88a132159c2284f7ff2a658aeed4309980b9d279cc601360013c3387cb081622.
  *
  * One idea held all film: the envelope travels. Words pop on whole (no fades), phones move on one
  * ease, the flight is the one signature move. Cues: src/link/link-cues.json (the sound reads them).
@@ -302,7 +302,7 @@ function Flight({ t }: { t: number }) {
 
 // ——— The film ——————————————————————————————————————————————————————————————————————————
 
-export function LinkFilm({ sound = true }: { sound?: boolean }) {
+export function LinkFilm({ sound = true, score = 'd' }: { sound?: boolean; score?: string }) {
   const frame = useCurrentFrame()
   const t = frame / FPS
   const [handle] = useState(() => delayRender('Manrope'))
@@ -343,11 +343,11 @@ export function LinkFilm({ sound = true }: { sound?: boolean }) {
             </div>
           ) : null}
           <Tap t={t} at={cues.bannerTap} x={590} y={980} />
-          <Ring t={t} at={cues.euro} box={[264, 1023, 666, 1119]} out={cues.s3bOut} />
-          <Tap t={t} at={cues.faceTap} x={870} y={1925} />
-          <Tap t={t} at={cues.makeTap} x={900} y={2250} />
+          <Ring t={t} at={cues.euro} box={[314, 780, 865, 864]} out={cues.s3bOut} />
+          <Tap t={t} at={cues.faceTap} x={860} y={1533} />
+          <Tap t={t} at={cues.makeTap} x={860} y={1832} />
           <FaceId t={t} />
-          <Ring t={t} at={cues.ring} box={[261, 1752, 915, 1854]} out={cues.s5Out} />
+          <Ring t={t} at={cues.ring} box={[287, 1839, 892, 1934]} out={cues.s5Out} />
         </IPhone>
       ) : null}
 
@@ -371,7 +371,7 @@ export function LinkFilm({ sound = true }: { sound?: boolean }) {
       {/* 4. Face ID. */}
       <Caption t={t} x={150} y={360} out={cues.s4Out} lines={[{ text: 'Face ID makes', at: cues.s4Words.slice(0, 3) }, { text: 'her a wallet.', at: cues.s4Words.slice(3), color: CORAL }]} />
       {/* 5. The moment. */}
-      <Caption t={t} x={150} y={330} out={cues.s5Out} lines={[{ text: 'Hers in', at: cues.s5Words.slice(0, 2) }, { text: '0.5 s.', at: cues.s5Words.slice(2), color: CORAL, size: 150 }]} />
+      <Caption t={t} x={150} y={330} out={cues.s5Out} lines={[{ text: 'Hers in', at: cues.s5Words.slice(0, 2) }, { text: '0.6 s.', at: cues.s5Words.slice(2), color: CORAL, size: 150 }]} />
       <Sub t={t} at={cues.s5Sub} out={cues.s5Out} x={154} y={640} text="On Monad. Kova paid the fee." />
 
       {/* 6. The line, and Kova. */}
@@ -382,11 +382,11 @@ export function LinkFilm({ sound = true }: { sound?: boolean }) {
           <span style={{ ...ui, fontWeight: 800, fontSize: 40, color: INK, padding: '10px 30px', borderRadius: 999, border: `4px solid ${INK}`, background: CREAM }}>mykova.app</span>
         </div>
       ) : null}
-      <Sub t={t} at={cues.proof} x={960} y={760} align="center" text="A real run on Monad testnet · claim 0x2097fca5…7215bc0" />
+      <Sub t={t} at={cues.proof} x={960} y={760} align="center" text="A real run on Monad testnet · claim 0x88a13215…cb081622" />
 
       <Grain frame={frame} />
       <AbsoluteFill style={{ background: '#000', opacity: span(t, cues.fadeOut, cues.duration), pointerEvents: 'none' }} />
-      {sound ? <Html5Audio src={staticFile('link/sound.wav')} /> : null}
+      {sound ? <Html5Audio src={staticFile(`link/sound-${score}.wav`)} /> : null}
     </AbsoluteFill>
   )
 }
