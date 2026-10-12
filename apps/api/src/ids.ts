@@ -23,6 +23,7 @@ export const prefixes = {
   trip: 'trp',
   cardTap: 'tap',
   paymentLink: 'lnk',
+  stealthPayment: 'spa',
 } as const
 
 export type ObjectKind = keyof typeof prefixes

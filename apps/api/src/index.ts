@@ -23,6 +23,7 @@ import { ussdRoutes } from './routes/ussd.js'
 import { startDemo } from './services/demo.js'
 import { walletRoutes } from './routes/wallet.js'
 import { linkRoutes } from './routes/links.js'
+import { takingsRoutes } from './routes/takings.js'
 import { webhookRoutes } from './routes/webhooks.js'
 import { expireStaleIntents } from './services/intents.js'
 import { rateBook } from './services/rates.js'
@@ -50,6 +51,7 @@ app.route('/v1', insightRoutes)
 // middleware covers all of /v1 (reports asks for an API key).
 app.route('/v1', walletRoutes)
 app.route('/v1', linkRoutes)
+app.route('/v1', takingsRoutes)
 app.route('/v1', ussdRoutes)
 app.route('/v1', cardRoutes)
 app.route('/v1', demoRoutes)

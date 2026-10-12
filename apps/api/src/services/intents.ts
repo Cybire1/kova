@@ -1,5 +1,5 @@
 import { schema, uuidv7 } from '@kova/db'
-import { type Currency, encodeMemo, formatAmount, parseAmount } from '@kova/monad'
+import { type Currency, encodeMemo, formatAmount, generateStealthAddress, parseAmount } from '@kova/monad'
 import { and, eq, lt } from 'drizzle-orm'
 import { tokenFor } from '../chain.js'
 import { config } from '../config.js'
@@ -41,26 +41,44 @@ export async function createIntent(input: CreateIntentInput): Promise<PaymentInt
     if (!terminal) throw notFound('terminal', input.terminalId)
   }
 
-  const [intent] = await db
-    .insert(schema.paymentIntents)
-    .values({
-      id,
-      merchantId: input.merchant.id,
-      terminalId: input.terminalId ?? null,
-      amount,
-      currency: input.currency,
-      tokenAddress: token.address,
-      network: input.merchant.network,
-      // Until merchants register a virtual-address master, the payer pays the merchant
-      // directly and the memo does the attribution.
-      payTo: input.merchant.settlementAddress,
-      memo: encodeMemo({ kind: 'payment', id }),
-      reference: input.reference ?? null,
-      metadata: input.metadata ?? null,
-      isTest: input.merchant.isTest,
-      expiresAt: new Date(Date.now() + ttl * 1000),
-    })
-    .returning()
+  // Private takings: the customer pays a fresh one-time address only the shop can open, and the
+  // announcement that lets the shop find it is written in the same transaction, so a sale can never
+  // land somewhere its shop can't see.
+  const sale = input.merchant.stealthMetaAddress ? generateStealthAddress(input.merchant.stealthMetaAddress) : null
+
+  const intent = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(schema.paymentIntents)
+      .values({
+        id,
+        merchantId: input.merchant.id,
+        terminalId: input.terminalId ?? null,
+        amount,
+        currency: input.currency,
+        tokenAddress: token.address,
+        network: input.merchant.network,
+        // The merchant's settlement address, or with private takings, this sale's own address.
+        // The memo does the attribution either way.
+        payTo: sale ? sale.stealthAddress : input.merchant.settlementAddress,
+        memo: encodeMemo({ kind: 'payment', id }),
+        reference: input.reference ?? null,
+        metadata: input.metadata ?? null,
+        isTest: input.merchant.isTest,
+        expiresAt: new Date(Date.now() + ttl * 1000),
+      })
+      .returning()
+    if (row && sale)
+      await tx.insert(schema.stealthPayments).values({
+        id: uuidv7(),
+        network: input.merchant.network,
+        merchantId: input.merchant.id,
+        intentId: row.id,
+        stealthAddress: sale.stealthAddress.toLowerCase(),
+        ephemeralPublicKey: sale.ephemeralPublicKey,
+        viewTag: sale.viewTag,
+      })
+    return row
+  })
 
   if (!intent) throw new KovaError('internal', 'Failed to create payment intent')
   return intent

@@ -58,6 +58,12 @@ export const merchants = pgTable(
     slug: text('slug').notNull(),
     /** Where payments settle. Kova never custodies: funds land here directly. */
     settlementAddress: address('settlement_address').notNull(),
+    /**
+     * Private takings: an ERC-5564 stealth meta-address (`st:eth:0x…`). When set, every new charge
+     * is paid to a fresh one-time address derived from it, so nobody on Monad can add up the shop's
+     * sales. Null: charges pay the settlement address.
+     */
+    stealthMetaAddress: text('stealth_meta_address'),
     network: network('network').notNull(),
     /** Registered virtual-address master id, when the merchant supports per-intent addresses. */
     virtualMasterId: integer('virtual_master_id'),
@@ -673,6 +679,39 @@ export const orders = pgTable(
     uniqueIndex('orders_intent_idx').on(t.intentId),
     index('orders_merchant_created_idx').on(t.merchantId, t.createdAt),
     index('orders_stall_idx').on(t.stallId),
+  ],
+)
+
+// --- Private takings: one-time addresses for a shop's sales -------------------------------------
+
+/**
+ * The announcement for a sale paid to a stealth address: the one-time address and the ephemeral key
+ * its shop needs to find and open it (ERC-5564 scheme 1). Published without the shop: anyone can
+ * read them, only the shop's viewing key recognises its own. `sweptTx` is set once the shop has
+ * moved the dollars to its wallet.
+ */
+export const stealthPayments = pgTable(
+  'stealth_payments',
+  {
+    id: id(),
+    network: network('network').notNull(),
+    merchantId: uuid('merchant_id')
+      .notNull()
+      .references(() => merchants.id),
+    intentId: uuid('intent_id')
+      .notNull()
+      .references(() => paymentIntents.id),
+    stealthAddress: address('stealth_address').notNull(),
+    ephemeralPublicKey: text('ephemeral_public_key').notNull(),
+    viewTag: text('view_tag').notNull(),
+    sweptTx: text('swept_tx'),
+    sweptAt: timestamp('swept_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('stealth_payments_intent_idx').on(t.intentId),
+    uniqueIndex('stealth_payments_address_idx').on(t.stealthAddress),
+    index('stealth_payments_merchant_idx').on(t.merchantId),
   ],
 )
 
