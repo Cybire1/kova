@@ -20,6 +20,12 @@ const ROWS: { href: string; icon: IconName; title: string; sub: string }[] = [
     sub: 'Phones that take payments for this shop',
   },
   {
+    href: '/dashboard/private',
+    icon: 'lock',
+    title: 'Private takings',
+    sub: 'Sales only you can add up, and a view for your accountant',
+  },
+  {
     href: '/dashboard/settings',
     icon: 'settings',
     title: 'Settings',

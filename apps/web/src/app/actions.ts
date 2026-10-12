@@ -13,6 +13,7 @@ import {
   type Merchant,
   type OrderStatus,
   type Stall,
+  type TakingsMove,
   type WebhookEndpoint,
 } from '@/lib/api'
 import { endSession, getSession, startSession } from '@/lib/session'
@@ -206,6 +207,55 @@ export async function settleToWallet(address: string): Promise<FormState> {
   }
   revalidatePath('/dashboard', 'layout')
   return { ok: true }
+}
+
+// --- Private takings -----------------------------------------------------------------------
+
+/**
+ * Turns private takings on with the meta-address the owner's passkey made in the browser. Only
+ * its two public keys come here; the private keys never leave the owner's device.
+ */
+export async function turnOnPrivateTakings(metaAddress: string): Promise<FormState> {
+  try {
+    await kova('/v1/private_takings', {
+      method: 'PUT',
+      body: JSON.stringify({ meta_address: metaAddress }),
+    })
+  } catch (error) {
+    return { error: message(error) }
+  }
+  revalidatePath('/dashboard/private')
+  return { ok: true }
+}
+
+/** New charges pay the shop's address again. Sales already private stay the shop's to move. */
+export async function turnOffPrivateTakings(): Promise<FormState> {
+  try {
+    await kova('/v1/private_takings', { method: 'DELETE' })
+  } catch (error) {
+    return { error: message(error) }
+  }
+  revalidatePath('/dashboard/private')
+  return { ok: true }
+}
+
+/**
+ * Moves private sales to the shop's wallet: one transfer out of each one-time address, signed in
+ * the browser with a key only the owner's passkey can make. Kova submits them and pays the gas.
+ */
+export async function movePrivateTakings(
+  authorizations: unknown[],
+): Promise<{ moves?: TakingsMove[]; error?: string }> {
+  try {
+    const result = await kova<{ data: TakingsMove[] }>('/v1/private_takings/sweep', {
+      method: 'POST',
+      body: JSON.stringify({ authorizations }),
+    })
+    revalidatePath('/dashboard/private')
+    return { moves: result.data }
+  } catch (error) {
+    return { error: message(error) }
+  }
 }
 
 // --- Keys -------------------------------------------------------------------------------

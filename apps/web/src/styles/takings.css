@@ -1,0 +1,1195 @@
+/*
+ * Private takings: the accountant's view (/books) and the shop's own page (/dashboard/private).
+ * Each sale goes to its own address; the shop's colour is teal wherever its sales are picked out.
+ */
+
+/* --- The accountant's view ---------------------------------------------------------------- */
+
+.bk-page {
+  min-height: 100dvh;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 1.25rem 2.25rem 3rem;
+}
+
+.bk-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2.25rem;
+}
+
+.bk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.3rem;
+  padding: 0 0.95rem 0 0.8rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.bk {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 27rem;
+  grid-template-rows: auto auto auto auto auto 1fr;
+  grid-template-areas:
+    "hero ledger"
+    "total ledger"
+    "find ledger"
+    "chart ledger"
+    "how ledger"
+    "foot ledger";
+  column-gap: 3rem;
+  align-items: start;
+}
+
+.bk-hero {
+  grid-area: hero;
+  animation: rise 0.5s var(--spring) both;
+}
+
+.bk-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 1.9rem;
+  padding: 0 0.85rem 0 0.7rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.bk-hero h1 {
+  margin-top: 0.9rem;
+  max-width: 15ch;
+  font-size: clamp(2.3rem, 4.8vw, 3.75rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.bk-lead {
+  margin-top: 0.9rem;
+  max-width: 31rem;
+  color: var(--muted);
+  font-size: 1.125rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* The total: the shop's colour, with Kovi holding the key that opened it. */
+.bk-total {
+  grid-area: total;
+  position: relative;
+  margin-top: 1.75rem;
+  padding: 1.6rem 1.6rem 1.5rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.9rem;
+  background: var(--teal);
+  color: #fff;
+  animation: rise 0.55s var(--spring) 0.06s both;
+}
+
+/* Beside the total on a desk; on a phone he stands on the card's edge. */
+.bk-kovi {
+  position: absolute;
+  top: 1.4rem;
+  right: 1.9rem;
+  width: 8rem;
+  height: auto;
+  pointer-events: none;
+}
+
+.bk-label {
+  color: #dcebea;
+  font-weight: 700;
+}
+
+.bk-amount {
+  display: flex;
+  align-items: flex-end;
+  margin-top: 0.3rem;
+  font-size: clamp(3.4rem, 8vw, 6.4rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.bk-cents {
+  font-size: 0.45em;
+  letter-spacing: -0.03em;
+  color: #dcebea;
+}
+
+.bk-cents .odo {
+  margin-bottom: 0.143em;
+}
+
+.bk-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.2rem;
+}
+
+.bk-chips .chip {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.bk-csv {
+  margin-top: 1.4rem;
+  box-shadow: none;
+}
+
+.bk-csv:disabled {
+  --bg: rgba(255, 255, 255, 0.2);
+  --fg: rgba(255, 255, 255, 0.75);
+  --cap: rgba(255, 255, 255, 0.25);
+  --cap-fg: #fff;
+}
+
+/* Everyone's sales, the shop's lit up. */
+.bk-find {
+  grid-area: find;
+  margin-top: 1.25rem;
+  padding: 1.4rem 1.5rem 1.3rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.75rem;
+  background: var(--surface);
+  animation: rise 0.55s var(--spring) 0.12s both;
+}
+
+.bk-find-head h2,
+.bk-chart-head h2,
+.bk-how h2,
+.bk-ledger-head h2 {
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.bk-find-head p,
+.bk-chart-head p,
+.bk-ledger-head p {
+  margin-top: 0.2rem;
+  max-width: 40rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.bk-squares {
+  --sq: 0.72rem;
+  --gap: 0.22rem;
+  --round: 0.2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--sq));
+  gap: var(--gap);
+  margin: 1.1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bk-squares[data-size="m"] {
+  --sq: 1.05rem;
+  --gap: 0.3rem;
+  --round: 0.3rem;
+}
+
+.bk-squares[data-size="l"] {
+  --sq: 1.6rem;
+  --gap: 0.4rem;
+  --round: 0.45rem;
+}
+
+.bk-squares li,
+.bk-key span {
+  display: block;
+  width: var(--sq);
+  height: var(--sq);
+  box-sizing: border-box;
+  border-radius: var(--round);
+}
+
+.bk-squares li[data-state="waiting"] {
+  border: 1.5px dashed #b4bab9;
+}
+
+.bk-squares li[data-state="other"],
+.bk-key span[data-state="other"] {
+  background: #cfccc6;
+}
+
+.bk-squares li[data-state="mine"],
+.bk-key span[data-state="mine"] {
+  background: var(--teal);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.bk-squares li[data-state="mine"] {
+  animation: bk-pop 0.5s var(--spring) both;
+}
+
+@keyframes bk-pop {
+  from {
+    transform: scale(0.4);
+  }
+}
+
+.bk-squares-empty {
+  height: 3rem;
+  margin-top: 1.1rem;
+  border: 1.5px dashed #b4bab9;
+  border-radius: 1rem;
+}
+
+.bk-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.bk-key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.bk-key span {
+  --sq: 0.85rem;
+  --round: 0.25rem;
+}
+
+.bk-key-note {
+  color: var(--muted);
+}
+
+/* The ledger: every sale, by day, like a till roll beside the books. */
+.bk-ledger {
+  grid-area: ledger;
+  position: sticky;
+  top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2.5rem);
+  border: 2px solid var(--ink);
+  border-radius: 1.75rem;
+  background: #f8f7f3;
+  overflow: hidden;
+  animation: rise 0.55s var(--spring) 0.1s both;
+}
+
+.bk-ledger-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.3rem 1.25rem 1rem 1.5rem;
+}
+
+.bk-ledger-head .mini {
+  flex: none;
+  background: var(--ink);
+  color: #fff;
+}
+
+.bk-days-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 1.25rem;
+  /* The roll goes on below: let its edge fade rather than cut. */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5rem), transparent);
+}
+
+.bk-day h3 {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 1.5rem;
+  background: var(--sunken);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.bk-day ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bk-sale {
+  display: grid;
+  grid-template-columns: 4.1rem minmax(0, 1fr) auto;
+  column-gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+}
+
+.bk-sale + .bk-sale {
+  border-top: 2px dashed #d3d6d4;
+}
+
+.bk-sale[data-new="true"] {
+  animation: bk-land 2.4s ease-out;
+}
+
+@keyframes bk-land {
+  0% {
+    background: var(--teal-soft);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.bk-sale-time {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bk-sale-to {
+  display: grid;
+  min-width: 0;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.bk-sale-address {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.bk-sale-to:hover .bk-sale-address {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bk-sale-amount {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bk-all {
+  display: block;
+  width: calc(100% - 2.3rem);
+  height: 2.75rem;
+  margin: 0.4rem auto 0.6rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bk-ledger-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  padding: 1.5rem 1.75rem 2.25rem;
+  color: var(--muted);
+  font-weight: 500;
+  text-align: center;
+}
+
+/* The last two weeks. */
+.bk-chart {
+  grid-area: chart;
+  margin-top: 2.5rem;
+}
+
+.bk-bars {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 0.45rem;
+  height: 10rem;
+  margin: 1.2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bk-bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-width: 0;
+  min-height: 0;
+}
+
+.bk-bar-fill {
+  display: block;
+  box-sizing: border-box;
+  border: 2px solid var(--ink);
+  border-radius: 0.7rem;
+  background: var(--teal-soft);
+  transform-origin: bottom;
+  animation: grow 0.9s var(--spring) both;
+}
+
+.bk-bar[data-today] .bk-bar-fill {
+  background: var(--teal);
+}
+
+.bk-bar-stub {
+  display: block;
+  height: 0.6rem;
+  box-sizing: border-box;
+  border: 2px dashed #9aa3a2;
+  border-radius: 0.4rem;
+}
+
+.bk-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.bk-axis span:last-child {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+/* How it works, in three. */
+.bk-how {
+  grid-area: how;
+  margin-top: 2.5rem;
+}
+
+.bk-how ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bk-how li {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  padding: 1.15rem 1.15rem 1.25rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.5rem;
+  background: var(--surface);
+}
+
+.bk-how-icon {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: 0.35rem;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+}
+
+.bk-how strong {
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.bk-how p {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.bk-foot {
+  grid-area: foot;
+  margin-top: 1.75rem;
+  max-width: 40rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* Missing key, cut-short key, Kova unreachable. */
+.bk-panel {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  max-width: 28rem;
+  margin: 3rem auto 0;
+  padding: 1.75rem 1.5rem 2rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.9rem;
+  background: var(--surface);
+  text-align: center;
+  animation: rise 0.5s var(--spring) both;
+}
+
+.bk-panel-quiet {
+  place-items: center;
+  min-height: 12rem;
+  border-style: dashed;
+  background: none;
+}
+
+.bk-closed-h {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.bk-panel .pill {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 1100px) {
+  .bk {
+    grid-template-columns: minmax(0, 1fr) 23.5rem;
+    column-gap: 2rem;
+  }
+
+  .bk-how ol {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .bk-page {
+    padding: 1rem 1.25rem 2.5rem;
+  }
+
+  .bk-top {
+    margin-bottom: 1.5rem;
+  }
+
+  .bk {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      "hero"
+      "total"
+      "find"
+      "ledger"
+      "chart"
+      "how"
+      "foot";
+  }
+
+  .bk-lead {
+    font-size: 1.0625rem;
+  }
+
+  .bk-total {
+    margin-top: 4.25rem;
+    padding: 1.35rem 1.25rem 1.25rem;
+  }
+
+  .bk-kovi {
+    top: auto;
+    right: 1rem;
+    bottom: calc(100% - 1.45rem);
+    width: 6.75rem;
+  }
+
+  .bk-days-list {
+    padding-bottom: 0.5rem;
+    mask-image: none;
+  }
+
+  .bk-find {
+    padding: 1.2rem 1.15rem 1.1rem;
+  }
+
+  .bk-ledger {
+    position: static;
+    max-height: none;
+    margin-top: 1.25rem;
+  }
+
+  .bk-ledger-head {
+    padding: 1.15rem 1rem 0.85rem 1.15rem;
+  }
+
+  .bk-day h3,
+  .bk-sale {
+    padding-inline: 1.15rem;
+  }
+
+  .bk-sale {
+    grid-template-columns: 3.6rem minmax(0, 1fr) auto;
+  }
+
+  .bk-bars {
+    gap: 0.3rem;
+    height: 8rem;
+  }
+
+  .bk-bar-fill {
+    border-radius: 0.5rem;
+  }
+}
+
+/* --- The shop's own page --------------------------------------------------------------------- */
+
+.pt {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.pt-main,
+.pt-side {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.pt-hero {
+  position: relative;
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.6rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.9rem;
+  background: var(--surface);
+  animation: rise 0.5s var(--spring) both;
+}
+
+/* On: the waiting total in the shop's colour, as the accountant's view shows its takings. */
+.pt-hero-on {
+  gap: 0;
+  background: var(--teal);
+  color: #fff;
+}
+
+/* Kovi holds the key beside the total; on a phone he stands on the card's edge instead. */
+.pt-kovi {
+  position: absolute;
+  top: 1.5rem;
+  right: 2rem;
+  width: 8.5rem;
+  height: auto;
+  pointer-events: none;
+}
+
+.pt-label {
+  color: #dcebea;
+  font-weight: 700;
+}
+
+.pt-amount {
+  display: flex;
+  align-items: flex-end;
+  margin-top: 0.3rem;
+  font-size: clamp(3.2rem, 7vw, 5.6rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.pt-cents {
+  font-size: 0.45em;
+  letter-spacing: -0.03em;
+  color: #dcebea;
+}
+
+.pt-cents .odo {
+  margin-bottom: 0.143em;
+}
+
+.pt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.15rem;
+}
+
+.pt-hero-on .chip {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.pt-actions {
+  display: grid;
+  justify-items: start;
+  gap: 0.7rem;
+}
+
+.pt-hero-on .pt-actions {
+  margin-top: 1.4rem;
+}
+
+.pt-hero-on .pill:disabled {
+  --bg: rgba(255, 255, 255, 0.2);
+  --fg: rgba(255, 255, 255, 0.8);
+  --cap: rgba(255, 255, 255, 0.25);
+  --cap-fg: #fff;
+  box-shadow: none;
+}
+
+.pt-hero-on .pill .spinner {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+}
+
+.pt-fine {
+  max-width: 30rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.pt-hero-on .pt-fine {
+  color: #dcebea;
+}
+
+.pt-moved {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-top: 1.25rem;
+  padding: 0.8rem 1rem;
+  border-radius: 1.1rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--positive);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  animation: rise 0.45s var(--spring) both;
+}
+
+.pt-moved svg {
+  flex: none;
+  margin-top: 0.15rem;
+}
+
+.pt-moved a {
+  color: var(--ink);
+  text-underline-offset: 3px;
+}
+
+.pt-warn {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.6rem 0.55rem;
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 1.1rem;
+  background: var(--coral-soft);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.pt-warn svg {
+  margin-top: 0.1rem;
+}
+
+.pt-warn .mini {
+  grid-column: 2;
+  justify-self: start;
+}
+
+/* Off: what anyone can see now, and what changes. */
+.pt-pitch {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "art title"
+    "art text";
+  align-items: end;
+  column-gap: 1.1rem;
+  row-gap: 0.4rem;
+}
+
+.pt-pitch-art {
+  grid-area: art;
+  align-self: center;
+  width: 6.25rem;
+  height: auto;
+}
+
+.pt-pitch h2 {
+  grid-area: title;
+  font-size: clamp(1.45rem, 2.6vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.pt-pitch p {
+  grid-area: text;
+  align-self: start;
+  color: var(--muted);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.pt-pitch-plain {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "title"
+    "text";
+}
+
+.pt-nowrap {
+  white-space: nowrap;
+}
+
+.pt-pitch a {
+  color: var(--ink);
+  font-weight: 700;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.pt-steps {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.pt-steps li {
+  counter-increment: step;
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 1.1rem;
+  background: var(--paper);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.pt-steps li::before {
+  content: counter(step);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  transform: translateY(0.1rem);
+}
+
+/* When this browser can't use the passkey for this shop: say why, and where to go. */
+.pt-blocked {
+  display: grid;
+  justify-items: start;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1.1rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.pt-blocked[data-tone="on"] {
+  margin-top: 1.4rem;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.pt-problem {
+  margin: 0;
+}
+
+/* The sales. */
+.pt-sales .card-head {
+  padding-bottom: 0.5rem;
+}
+
+.pt-list {
+  margin: 0;
+  padding: 0 0.6rem;
+  list-style: none;
+}
+
+.pt-sale {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.7rem 0.75rem;
+}
+
+.pt-sale + .pt-sale {
+  border-top: 1px solid var(--hairline);
+}
+
+.pt-sale-icon {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--teal-soft);
+  color: var(--ink);
+}
+
+.pt-sale[data-state="moved"] .pt-sale-icon {
+  background: var(--sunken);
+}
+
+.pt-sale[data-state="other"] .pt-sale-icon {
+  background: var(--coral-soft);
+}
+
+.pt-sale-to {
+  display: grid;
+  min-width: 0;
+  color: var(--ink);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.pt-sale-address {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pt-sale-to:hover .pt-sale-address {
+  color: var(--ink);
+}
+
+.pt-sale-money {
+  display: grid;
+  justify-items: end;
+}
+
+.pt-sale-amount {
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.pt-sale-state {
+  color: var(--coral-deep);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.pt-sale[data-state="moved"] .pt-sale-state {
+  color: var(--positive);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.pt-sale[data-state="moved"] .pt-sale-amount,
+.pt-sale[data-state="other"] .pt-sale-amount,
+.pt-sale[data-state="empty"] .pt-sale-amount {
+  color: var(--muted);
+}
+
+.pt-sale[data-state="other"] .pt-sale-state,
+.pt-sale[data-state="empty"] .pt-sale-state {
+  color: var(--muted);
+}
+
+.pt-sale[data-state="empty"] .pt-sale-icon {
+  background: var(--sunken);
+}
+
+.pt-more {
+  display: block;
+  margin: 0.25rem auto 0;
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.pt-checked {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.6rem 1.25rem 1.25rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 1rem;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.pt-checked svg {
+  flex: none;
+  margin-top: 0.05rem;
+  color: var(--teal-deep);
+}
+
+.pt-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.5rem 1.75rem;
+  color: var(--muted);
+  font-weight: 500;
+  text-align: center;
+}
+
+/* The accountant's view link. */
+.pt-books {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.pt-books-icon {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin-bottom: 0.2rem;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+}
+
+.pt-link {
+  width: 100%;
+  min-width: 0;
+  height: 2.75rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 1rem;
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.pt-link:focus-visible {
+  outline: 3px solid var(--coral);
+  outline-offset: 2px;
+}
+
+.pt-books .row-actions {
+  flex-wrap: wrap;
+}
+
+.pt-books-get {
+  justify-self: start;
+  height: 2.5rem;
+  padding: 0 1.1rem;
+  font-size: 0.875rem;
+}
+
+.pt-books-off {
+  padding: 0.7rem 0.9rem;
+  border-radius: 1rem;
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.pt-fine-dark {
+  margin-top: 0.15rem;
+}
+
+.pt-off {
+  display: grid;
+  gap: 0.45rem;
+}
+
+@media (max-width: 900px) {
+  .pt {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pt-hero {
+    padding: 1.35rem 1.25rem 1.3rem;
+  }
+
+  .pt-hero-on {
+    margin-top: 3.1rem;
+  }
+
+  .pt-kovi {
+    top: auto;
+    right: 1rem;
+    bottom: calc(100% - 1.3rem);
+    width: 6.25rem;
+  }
+
+  .pt-pitch {
+    grid-template-areas:
+      "art title"
+      "text text";
+    align-items: center;
+    row-gap: 0.75rem;
+  }
+
+  .pt-pitch-plain {
+    grid-template-areas:
+      "title"
+      "text";
+  }
+
+  .pt-pitch-art {
+    width: 4.25rem;
+  }
+}
+
+/* A phone: the main actions take the full width, as the wallet's do. */
+@media (max-width: 560px) {
+  .bk-csv,
+  .pt-actions .pill {
+    display: flex;
+    width: 100%;
+  }
+}

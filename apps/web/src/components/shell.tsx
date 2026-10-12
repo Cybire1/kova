@@ -18,6 +18,7 @@ const TABS_AFTER: { href: string; label: string; icon: IconName; also?: string[]
     also: [
       '/dashboard/catalogue',
       '/dashboard/terminals',
+      '/dashboard/private',
       '/dashboard/developers',
       '/dashboard/settings',
     ],

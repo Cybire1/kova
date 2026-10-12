@@ -330,6 +330,53 @@ export interface BarcodeLookup {
   suggestion: { name: string; brand: string | null; image_url: string | null; source: string } | null
 }
 
+/**
+ * A sale paid to a one-time address (private takings), as Kova announces it to everyone, with no
+ * shop: GET /v1/public/stealth/announcements. Only the shop's viewing key can tell it's theirs.
+ */
+export interface Announcement {
+  id: string
+  scheme_id: number
+  stealth_address: string
+  /** Compressed secp256k1 public key, 33 bytes. */
+  ephemeral_public_key: string
+  view_tag: string
+  /** Dollars, e.g. "4.50". */
+  amount: string
+  currency: string
+  token: string
+  tx_hash: string
+  explorer_url: string
+  paid_at: string | null
+}
+
+/** One of the shop's own private sales, and whether it has been moved to its wallet. */
+export interface PrivateSale extends Omit<Announcement, 'id'> {
+  payment_intent: string
+  swept_tx: string | null
+  swept_at: string | null
+}
+
+/** GET /v1/private_takings. */
+export interface PrivateTakings {
+  enabled: boolean
+  /** `st:eth:0x…`, the shop's stealth meta-address; null when off. */
+  meta_address: string | null
+  /** Newest first. */
+  receipts: PrivateSale[]
+}
+
+/** One move from a one-time address to the shop's wallet: POST /v1/private_takings/sweep. */
+export interface TakingsMove {
+  from: string
+  to?: string
+  amount?: string
+  tx_hash?: string
+  explorer_url?: string
+  ms?: number
+  error?: string
+}
+
 /** Upload image bytes as the signed-in shop (route handlers only). */
 export async function kovaUpload(bytes: ArrayBuffer, contentType: string) {
   const session = await getSession()
