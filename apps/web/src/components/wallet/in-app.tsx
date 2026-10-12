@@ -30,20 +30,21 @@ function detect(): Where | null {
  * say so before the passkey sheet fails, and offer the way out. It never blocks: some of these
  * browsers do support passkeys.
  */
-export function InAppNote() {
+export function InAppNote({ href }: { href?: string } = {}) {
   const [where, setWhere] = useState<Where | null>(null)
   const [copied, setCopied] = useState(false)
   const [dismissed, setDismissed] = useState(false)
   useEffect(() => setWhere(detect()), [])
   if (!where || dismissed) return null
 
-  const url = `${window.location.origin}/wallet`
+  const url = href ?? `${window.location.origin}/wallet`
   const browser = where.os === 'ios' ? 'Safari' : where.os === 'android' ? 'Chrome' : 'your browser'
+  // An Android intent can't carry a link's #, so a link with one is copied instead.
   const open =
     where.os === 'ios'
       ? `x-safari-${url}`
-      : where.os === 'android'
-        ? `intent://${window.location.host}/wallet#Intent;scheme=https;end`
+      : where.os === 'android' && !url.includes('#')
+        ? `intent://${url.replace(/^https?:\/\//, '')}#Intent;scheme=https;end`
         : null
 
   return (

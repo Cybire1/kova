@@ -31,6 +31,7 @@ function useRoute() {
     else if (s.kind === 'stall') router.push(`/s/${s.slug}`)
     else if (s.kind === 'pair')
       return 'That code pairs a phone with a shop. Open it in the Kova app.'
+    else if (s.kind === 'claim') router.push(`/c/${s.id}${s.key ? `#${s.key}` : ''}`)
     else {
       const params = new URLSearchParams()
       if (s.name) params.set('name', s.name)

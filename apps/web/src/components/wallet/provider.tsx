@@ -21,6 +21,7 @@ import {
   sendMoney,
   transfersAfter,
 } from '@/lib/wallet/chain'
+import { type KeptLink, keptLinks, linksFrom } from '@/lib/wallet/dollar-links'
 import {
   type DisplayCurrency,
   guessCurrency,
@@ -70,6 +71,8 @@ export interface Entry {
   private?: 'both' | 'you'
   /** A private note this browser can't open until the passkey is used (the key lives in memory). */
   locked?: boolean
+  /** Money into or out of one of your links (Send as a link), not a person. */
+  link?: boolean
 }
 
 export interface ShopToday {
@@ -142,6 +145,8 @@ interface WalletValue {
   /** The wallet an existing passkey holds: the app's, or one made here before. */
   open: () => Promise<{ named: boolean }>
   send: (to: Contact, amount: bigint, note?: string) => Promise<Moved>
+  /** Sends a link's dollars to its one-time address (Send as a link). */
+  fundLink: (link: KeptLink) => Promise<Moved>
   /** Whether a private note to them can be read by them (they've published a note key). */
   noteReaches: (address: string) => Promise<boolean>
   /** Opens private notes after a reload: the note key lives in memory, so it takes the passkey. */
@@ -230,6 +235,8 @@ export function WalletProvider({
   const vaultSecret = useRef<Uint8Array | null>(null)
   const vaultDirty = useRef(false)
   const [noteSecret, setNoteSecret] = useState<Uint8Array | null>(null)
+  /** The one-time addresses of links this wallet sent: money to and from them is a link, not a person. */
+  const [linkAddresses, setLinkAddresses] = useState<Set<string>>(() => new Set())
 
   /** The passkey handed over the vault secret: keep it (in memory), open notes, publish the note key. */
   const takeVault = useCallback((secret: Uint8Array, account: LocalAccount) => {
@@ -307,6 +314,26 @@ export function WalletProvider({
       clearInterval(timer)
       document.removeEventListener('visibilitychange', tick)
     }
+  }, [profile?.address])
+
+  // Links made here and in the app: this browser's keys, and Kova's list of the wallet's links.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a different wallet reloads them
+  useEffect(() => {
+    if (!profile) return
+    const load = () => {
+      const here = Object.values(keptLinks()).map((l) => l.address.toLowerCase())
+      setLinkAddresses((current) => new Set([...current, ...here]))
+    }
+    load()
+    void linksFrom(profile.address)
+      .then((links) =>
+        setLinkAddresses(
+          (current) => new Set([...current, ...links.map((l) => l.link_address.toLowerCase())]),
+        ),
+      )
+      .catch(() => {})
+    window.addEventListener('kova-links', load)
+    return () => window.removeEventListener('kova-links', load)
   }, [profile?.address])
 
   const keepProfile = useCallback((next: Profile) => {
@@ -495,6 +522,29 @@ export function WalletProvider({
     [network, profile, refresh, remember, rememberContact, unlock],
   )
 
+  const fundLink = useCallback(
+    async (link: KeptLink) => {
+      if (!profile) throw new Error('Open your wallet first.')
+      const amount = BigInt(link.amount)
+      const account = await unlock(amount)
+      const moved = await sendMoney(network, account, link.address, amount)
+      spend(amount)
+      remember(moved.hash, {
+        name: 'Link',
+        detail: link.note || 'Sent as a link',
+        ms: moved.ms,
+        kind: 'sent',
+        to: link.address,
+        amount: amount.toString(),
+        at: Date.now(),
+        explorer: moved.explorer,
+      })
+      void refresh()
+      return moved
+    },
+    [network, profile, refresh, remember, unlock],
+  )
+
   const payCheckout = useCallback(
     async (charge: ChargeToPay) => {
       if (!profile) throw new Error('Open your wallet first.')
@@ -648,18 +698,23 @@ export function WalletProvider({
           : locked
             ? { locked: true }
             : {}
+      const link = linkAddresses.has((out ? t.to : t.from).toLowerCase())
       if (out) {
         const paid = t.kind === 'payment'
         entries.push({
           id: t.id,
           kind: paid ? 'paid' : 'sent',
           amount: t.amount_base,
-          name: note?.name ?? t.shop?.name ?? nameFor(t.to) ?? short(t.to),
+          name:
+            note?.name ?? t.shop?.name ?? (link ? 'Link' : null) ?? nameFor(t.to) ?? short(t.to),
           detail:
             note?.detail ??
             sealed ??
-            (locked ? 'Private note' : (t.shop?.reference ?? (paid ? 'Scan to pay' : 'Sent'))),
+            (locked
+              ? 'Private note'
+              : (t.shop?.reference ?? (paid ? 'Scan to pay' : link ? 'Sent as a link' : 'Sent'))),
           ...secret,
+          ...(link ? { link: true } : {}),
           address: t.to,
           txHash: t.tx_hash,
           explorer: t.explorer_url,
@@ -675,7 +730,9 @@ export function WalletProvider({
             ? 'Test dollars'
             : t.kind === 'refund'
               ? 'Refund'
-              : (nameFor(t.from) ?? short(t.from)),
+              : link
+                ? 'Your link'
+                : (nameFor(t.from) ?? short(t.from)),
           detail:
             sealed ??
             (locked
@@ -684,8 +741,11 @@ export function WalletProvider({
                 ? 'AUSD test faucet'
                 : t.kind === 'refund'
                   ? 'Money back'
-                  : 'Arrived'),
+                  : link
+                    ? 'Taken back'
+                    : 'Arrived'),
           ...(sealed !== null ? { private: 'both' as const } : locked ? { locked: true } : {}),
+          ...(link ? { link: true } : {}),
           address: t.from,
           txHash: t.tx_hash,
           explorer: t.explorer_url,
@@ -708,10 +768,11 @@ export function WalletProvider({
         ms: note.ms,
         at: note.at,
         ...(note.private ? { private: note.private } : {}),
+        ...(linkAddresses.has(note.to.toLowerCase()) ? { link: true } : {}),
       })
     }
     return entries.sort((a, b) => b.at - a.at)
-  }, [nameFor, noteSecret, notes, openFor, profile, transfers])
+  }, [linkAddresses, nameFor, noteSecret, notes, openFor, profile, transfers])
 
   /** Everyone you've paid or been paid by, plus the people you've named, most recent first. */
   const contacts = useMemo<Contact[]>(() => {
@@ -720,7 +781,8 @@ export function WalletProvider({
       if (
         (entry.kind !== 'sent' && entry.kind !== 'received') ||
         !entry.address ||
-        entry.address.toLowerCase() === ZERO
+        entry.address.toLowerCase() === ZERO ||
+        linkAddresses.has(entry.address.toLowerCase())
       )
         continue
       const key = entry.address.toLowerCase()
@@ -735,7 +797,7 @@ export function WalletProvider({
       people.set(key, { ...people.get(key), ...c, address: getAddress(c.address) })
     }
     return [...people.values()]
-  }, [activity, nameFor, saved])
+  }, [activity, linkAddresses, nameFor, saved])
 
   const value = useMemo<WalletValue>(
     () => ({
@@ -755,6 +817,7 @@ export function WalletProvider({
       create,
       open,
       send,
+      fundLink,
       noteReaches,
       readNotes,
       payCheckout,
@@ -784,6 +847,7 @@ export function WalletProvider({
       create,
       open,
       send,
+      fundLink,
       noteReaches,
       readNotes,
       payCheckout,

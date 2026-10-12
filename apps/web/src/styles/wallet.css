@@ -2994,3 +2994,979 @@ button.w-add-chain {
 .w-review-reward > :last-child {
   color: var(--coral-deep);
 }
+
+/* A link with dollars in it: the envelope, and the page anyone opens it on. */
+
+.lk-page {
+  --on-teal: #dcebea;
+  --on-tint: #1f3438;
+  min-height: 100dvh;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 2.5rem;
+  background: var(--paper);
+}
+
+.lk-top {
+  margin-bottom: 0.5rem;
+}
+
+.lk-grid {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 26.5rem;
+  margin: 0 auto;
+}
+
+.lk-hero {
+  position: relative;
+  padding-top: 3.25rem;
+}
+
+.lk-rain {
+  display: none;
+}
+
+.lk-env {
+  position: relative;
+  animation: lk-in 0.7s var(--spring) both;
+}
+
+@keyframes lk-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem) rotate(-2deg) scale(0.97);
+  }
+}
+
+/* Kovi's hands rest on the envelope's top edge: the line in the art sits on the outline. */
+.lk-env-peek {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.lk-env-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  padding: 2.4rem 1.25rem 2.25rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.9rem;
+  background: var(--teal);
+  color: #fff;
+  text-align: center;
+  overflow: hidden;
+}
+
+.lk-env-flap {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+  height: 3.4rem;
+}
+
+.lk-env-flap path {
+  stroke: var(--teal-deep);
+  stroke-width: 2;
+}
+
+.lk-env-head {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: inherit;
+}
+
+.lk-env-from {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.85rem 0.2rem 0.2rem;
+  border-radius: 999px;
+  background: var(--teal-deep);
+  color: var(--on-teal);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.lk-env-from .w-face {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.lk-env-amount {
+  display: block;
+  color: #fff;
+  font-size: clamp(3rem, 16vw, 4.4rem);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.lk-env-closed .lk-env-amount,
+.lk-env-closed .lk-local {
+  opacity: 0.5;
+}
+
+.lk-env-stamp {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  padding: 0.2rem 1.1rem 0.3rem;
+  border: 3px solid #fff;
+  border-radius: 0.8rem;
+  background: var(--coral);
+  color: var(--ink);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  transform: translate(-50%, -50%) rotate(-9deg);
+  box-shadow: 0 0 0 2px var(--ink);
+  animation: lk-stamp 0.5s cubic-bezier(0.34, 1.6, 0.5, 1) 0.3s both;
+}
+
+@keyframes lk-stamp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-9deg) scale(1.6);
+  }
+}
+
+.lk-local {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.lk-local-amount {
+  display: inline-flex;
+  align-items: center;
+  height: 2.1rem;
+  padding: 0 0.9rem;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 750;
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+.lk-cur {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 2.1rem;
+  padding: 0 0.7rem 0 0.85rem;
+  border: 2px solid var(--on-teal);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.lk-cur:focus-within {
+  outline: 3px solid var(--coral);
+  outline-offset: 2px;
+}
+
+/* The select is the whole chip, unseen: the chip shows the code, the list shows the names. */
+.lk-cur select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.lk-cur select option {
+  color: var(--ink);
+}
+
+.lk-rate {
+  max-width: 19rem;
+  margin-top: 0.6rem;
+  color: var(--on-teal);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+/* The note, tucked in front of the envelope, written by hand. */
+.lk-env-note {
+  position: relative;
+  z-index: 1;
+  margin: -1.1rem 1.1rem 0;
+  padding: 0.85rem 1.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.1rem;
+  background: #fff;
+  font-size: 1.05rem;
+  font-weight: 650;
+  line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+  transform: rotate(-1.4deg);
+}
+
+.lk-env-note::before {
+  content: "“";
+}
+
+.lk-env-note::after {
+  content: "”";
+}
+
+.lk-side {
+  scroll-margin-top: 1rem;
+  display: grid;
+  gap: 0.9rem;
+  align-content: start;
+}
+
+.lk-panel {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1.35rem 1.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.9rem;
+  background: var(--surface);
+  animation: rise 0.5s var(--spring) 0.12s both;
+}
+
+.lk-panel-quiet {
+  place-items: center;
+  min-height: 12rem;
+  border-style: dashed;
+  background: none;
+}
+
+.lk-h {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.lk-sub {
+  margin-top: -0.4rem;
+  color: var(--muted);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.lk-ways {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+}
+
+.lk-ways .shop-wallet {
+  margin-top: 0;
+}
+
+.lk-ways .pill {
+  gap: 0.5rem;
+  padding-left: 1.3rem;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.lk-ways .pill .spinner {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+}
+
+.lk-who {
+  margin: -0.25rem 0 0.1rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.lk-fine {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.lk-paste-open {
+  justify-self: center;
+  margin-top: 0.1rem;
+  padding: 0.3rem 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.lk-paste {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.3rem;
+  padding-top: 0.9rem;
+  border-top: 2px dashed var(--hairline);
+  animation: w-fade 0.3s ease both;
+}
+
+.lk-paste label {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.lk-paste small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.lk-paste-row {
+  display: flex;
+  gap: 0.25rem;
+  height: 3rem;
+  padding: 3px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+}
+
+.lk-paste-row:focus-within {
+  box-shadow: 0 0 0 4px rgba(212, 101, 88, 0.25);
+}
+
+.lk-paste-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 0.85rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  outline: none;
+}
+
+.lk-paste-row button {
+  flex: none;
+  padding: 0 1.15rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lk-paste-row button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.lk-problem {
+  margin: 0;
+}
+
+.lk-foot {
+  justify-self: center;
+  max-width: 22rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.lk-closed {
+  justify-items: center;
+  text-align: center;
+}
+
+.lk-closed .w-lead {
+  max-width: 22rem;
+}
+
+.lk-closed .pill {
+  width: 100%;
+  margin-top: 0.4rem;
+}
+
+.lk-missing {
+  max-width: 26rem;
+  margin: 3rem auto 0;
+}
+
+.lk-explorer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+.lk-flying .lk-h {
+  text-align: center;
+}
+
+.lk-flying .w-arc {
+  margin-top: 0.25rem;
+}
+
+.lk-faceid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.lk-faceid-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.lk-faceid .w-inapp,
+.lk-faceid .form-note {
+  margin: 0;
+}
+
+.lk-faceid .shop-wallet {
+  margin-top: 0;
+}
+
+.lk-faceid .pill .spinner {
+  border-color: rgba(11, 26, 29, 0.2);
+  border-top-color: var(--ink);
+}
+
+.lk-name {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.lk-name input {
+  height: 3.25rem;
+  padding: 0 1.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  outline: none;
+}
+
+.lk-name input:focus {
+  box-shadow: 0 0 0 4px rgba(212, 101, 88, 0.25);
+}
+
+/* The sender, back on their own link. */
+.lk-mine {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  padding: 0.95rem 1rem;
+  border-radius: 1.4rem;
+  background: var(--ink);
+  color: #fff;
+}
+
+.lk-mine-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--coral);
+  color: var(--ink);
+}
+
+.lk-mine-text {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.lk-mine-text > span {
+  color: var(--on-ink);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.lk-mine-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+}
+
+.lk-mine-back {
+  height: 2.4rem;
+  padding: 0 0.95rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--coral);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* It's yours. */
+.lk-done {
+  justify-items: center;
+  gap: 0.35rem;
+  text-align: center;
+}
+
+.lk-cheer {
+  margin-top: -0.25rem;
+}
+
+.lk-done-h {
+  margin-top: 0.25rem;
+  font-size: 2.75rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1.05;
+}
+
+.lk-done-p {
+  max-width: 22rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.lk-done .w-sheet-time {
+  margin: 0.5rem 0 0.35rem;
+}
+
+.lk-done-ways {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+  margin-top: 0.85rem;
+}
+
+.lk-done-note {
+  max-width: 22rem;
+  margin-top: 0.6rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.lk-done .keep {
+  width: 100%;
+  margin-top: 0.5rem;
+  text-align: left;
+  animation-delay: 0.6s;
+}
+
+.lk-done .keep-done {
+  text-align: center;
+}
+
+.lk-env-card:last-child {
+  padding-bottom: 1.6rem;
+}
+
+/* Send as a link: the way in from Send, the preview, and the link to share. */
+
+.w-entry-link {
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--ink);
+  background: var(--teal);
+  color: #fff;
+}
+
+.w-linkrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+  padding: 0.7rem 1rem 0.7rem 0.7rem;
+  border: 2px dashed var(--ink);
+  border-radius: 1.5rem;
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    transform 0.3s var(--spring),
+    background-color 0.25s;
+}
+
+.w-linkrow:hover {
+  background: #fff;
+}
+
+.w-linkrow:active {
+  transform: scale(0.98);
+}
+
+.w-linkrow-disc {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+}
+
+.w-match .w-linkrow-disc {
+  border-color: var(--on-ink);
+  background: var(--coral);
+  color: var(--ink);
+}
+
+.w-linkrow-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.w-linkrow-text strong {
+  font-weight: 750;
+}
+
+.w-linkrow-text small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.w-linkrow-mine {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  margin: 0.45rem 0.4rem 0 0;
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.lk-preview {
+  margin: 3.6rem 0.35rem 0;
+  transition: opacity 0.3s;
+}
+
+.lk-preview .lk-env-amount {
+  font-size: 3.2rem;
+}
+
+.lk-preview-busy .lk-env {
+  animation: lk-float 1.4s ease-in-out infinite;
+}
+
+@keyframes lk-float {
+  50% {
+    transform: translateY(-5px) rotate(-0.6deg);
+  }
+}
+
+.lk-made {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.lk-made h2 {
+  margin-top: 0.25rem;
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+.lk-made > p {
+  max-width: 22rem;
+  font-weight: 550;
+  line-height: 1.45;
+}
+
+.lk-made-link {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.45rem 0.45rem 0.45rem 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  text-align: left;
+}
+
+.lk-made-link > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lk-made-ways {
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+  margin: 0.6rem 0 0.4rem;
+}
+
+.lk-whatsapp .pill-cap {
+  background: #25d366;
+  color: var(--ink);
+}
+
+.lk-made-end {
+  display: flex;
+  justify-content: center;
+  gap: 1.75rem;
+  margin-top: 0.4rem;
+}
+
+.lk-made-end .textlink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Your links. */
+
+.lk-list-lead {
+  margin: -0.25rem 0 0.5rem;
+}
+
+.lk-list-loading {
+  height: 40vh;
+}
+
+.lk-list-new {
+  margin-top: 1rem;
+}
+
+.lk-list-back {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 1rem;
+  border-radius: 1.2rem;
+  background: var(--positive);
+  color: #fff;
+  font-weight: 700;
+  animation: rise 0.4s var(--spring);
+}
+
+.lk-rows {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.lk-row {
+  padding: 0.8rem 0.9rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.5rem;
+  background: var(--surface);
+}
+
+.lk-row-claimed,
+.lk-row-returned {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.lk-row-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.lk-row-disc {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+}
+
+.lk-row-disc-back {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.lk-row-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.lk-row-text strong {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lk-row-text small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.lk-row-amount {
+  display: grid;
+  justify-items: end;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.lk-row-amount small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.lk-row-open .lk-row-amount small {
+  color: var(--teal-deep);
+}
+
+.lk-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+  padding-top: 0.7rem;
+  border-top: 2px dashed var(--hairline);
+}
+
+.lk-row-actions a.w-copy {
+  text-decoration: none;
+}
+
+.lk-row-ask {
+  flex-basis: 100%;
+  font-weight: 700;
+}
+
+.lk-row-back {
+  height: 2.4rem;
+  margin-left: auto;
+  padding: 0 0.95rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--coral);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lk-row-ask + .lk-row-back {
+  margin-left: 0;
+}
+
+.lk-row-back:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.lk-row-elsewhere {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+@media (min-width: 960px) {
+  .lk-page {
+    padding: 1.5rem 2.5rem 2.5rem;
+  }
+  .lk-grid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 4.5rem;
+    max-width: 62rem;
+    min-height: calc(100dvh - 9rem);
+  }
+  .lk-hero {
+    padding-top: 2rem;
+  }
+  .lk-rain {
+    position: absolute;
+    inset: -7.5rem -1rem auto;
+    z-index: 0;
+    display: block;
+    width: calc(100% + 2rem);
+    max-width: none;
+    height: auto;
+    opacity: 0.9;
+    pointer-events: none;
+  }
+  .lk-env {
+    z-index: 1;
+  }
+  .lk-env-card {
+    padding: 2.9rem 2rem 2.6rem;
+  }
+  .lk-env-amount {
+    font-size: 5.25rem;
+  }
+  .lk-env-note {
+    margin: -1.2rem 2rem 0;
+    font-size: 1.15rem;
+  }
+  .lk-panel {
+    padding: 1.75rem 1.6rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lk-env,
+  .lk-env-stamp,
+  .lk-panel,
+  .lk-preview-busy .lk-env,
+  .lk-list-back {
+    animation: none;
+  }
+}

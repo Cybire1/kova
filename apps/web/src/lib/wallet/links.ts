@@ -1,16 +1,19 @@
-import { isAddress } from 'viem'
+import { type Hex, isAddress } from 'viem'
+import { linkKeyFrom } from './dollar-links'
 import { type DisplayCurrency, isDisplayCurrency } from './money'
 
 /**
  * What a Kova code or link means, read the way the app reads it (apps/mobile src/lib/links.ts):
  * a charge to pay, a stall, a phone pairing, or a person. A person's link is now an https link
  * too (mykova.app/to/…), so it opens anywhere: in the app when it's installed, on the web when
- * it isn't. The app's kova:// links still read the same.
+ * it isn't. The app's kova:// links still read the same. A link with dollars in it
+ * (mykova.app/c/<id>#<key>) is claimed on its own page; the key after the # is what claims it.
  */
 export type Scanned =
   | { kind: 'charge'; id: string }
   | { kind: 'stall'; slug: string }
   | { kind: 'pair'; code: string }
+  | { kind: 'claim'; id: string; key: Hex | null }
   | {
       kind: 'person'
       address: string
@@ -24,6 +27,10 @@ export function parseScanned(raw: string): Scanned | null {
   const value = raw.trim()
   const pairing = /^kova:\/\/pair\/([0-9A-Za-z-]{4,12})$/.exec(value)
   if (pairing?.[1]) return { kind: 'pair', code: pairing[1] }
+  const claim =
+    /^(?:https?:\/\/[^/]+|kova:\/)\/c\/(lnk_[0-9a-z]{26})\/?(?:\?[^#]*)?(?:#(.*))?$/i.exec(value)
+  if (claim?.[1])
+    return { kind: 'claim', id: claim[1].toLowerCase(), key: linkKeyFrom(claim[2]) }
   const charge =
     /\/pay\/([A-Za-z0-9_]+)/.exec(value) ?? /^kova:\/\/pay\/([A-Za-z0-9_]+)/.exec(value)
   if (charge?.[1]) return { kind: 'charge', id: charge[1] }

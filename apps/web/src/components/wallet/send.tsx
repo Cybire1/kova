@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { getAddress, isAddress } from 'viem'
 import { Art, Icon, type IconName } from '@/components/brand'
+import { keptLinks } from '@/lib/wallet/dollar-links'
 import { parseScanned } from '@/lib/wallet/links'
 import {
   applyKey,
@@ -21,6 +22,7 @@ import {
 import { sessionCovers } from '@/lib/wallet/session'
 import { Home } from './home'
 import { type Contact, isUnnamed, short, useWallet } from './provider'
+import { ArcRoute, type Leg } from './arc'
 import { Avatar, Keypad } from './ui'
 
 const first = (name: string) => (isUnnamed(name) ? short(name) : (name.split(' ')[0] ?? name))
@@ -43,7 +45,6 @@ function story(activity: ReturnType<typeof useWallet>['activity'], address: stri
 type Step = 'who' | 'amount' | 'review' | 'sent'
 const order: Step[] = ['who', 'amount', 'review', 'sent']
 type Payee = { address: string; name?: string; currency?: DisplayCurrency }
-type Leg = 'waiting' | 'flying' | 'landed'
 
 /**
  * Sending, in one sheet over Home, as in the app: who, how much, a look at the route, slide to
@@ -382,10 +383,10 @@ export function SendSheet({ to }: { to?: string }) {
   )
 }
 
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+export const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 /** Holds the sheet at its content's height and animates between heights as the steps change. */
-function Fit({ children }: { children: React.ReactNode }) {
+export function Fit({ children }: { children: React.ReactNode }) {
   const inner = useRef<HTMLDivElement>(null)
   const [height, setHeight] = useState<number | null>(null)
   useLayoutEffect(() => {
@@ -410,6 +411,8 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
   const { contacts, activity } = useWallet()
   const [text, setText] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [hasLinks, setHasLinks] = useState(false)
+  useEffect(() => setHasLinks(Object.keys(keptLinks()).length > 0), [])
   const scanned = text.trim() ? parseScanned(text) : null
   const query = text.trim().toLowerCase()
   const matches =
@@ -426,6 +429,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
     if (s.kind === 'stall') return router.push(`/s/${s.slug}`)
     if (s.kind === 'pair')
       return setError('That code pairs a phone with a shop. Open it in the Kova app.')
+    if (s.kind === 'claim') return router.push(`/c/${s.id}${s.key ? `#${s.key}` : ''}`)
     onPick({
       address: getAddress(s.address),
       name: s.name ?? undefined,
@@ -487,6 +491,39 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
         </Link>
       </form>
       {error ? <p className="form-error">{error}</p> : null}
+
+      {scanned?.kind === 'claim' ? (
+        <button type="button" className="w-match" onClick={() => go(text)}>
+          <span className="w-linkrow-disc">
+            <Icon name="gift" size={22} />
+          </span>
+          <span>
+            <strong>Open this link</strong>
+            <small>Dollars someone sent you, ready to claim</small>
+          </span>
+          <Icon name="arrow" size={20} />
+        </button>
+      ) : null}
+
+      {query ? null : (
+        <>
+          <Link href="/wallet/send/link" className="w-linkrow">
+            <span className="w-linkrow-disc">
+              <Icon name="link" size={22} />
+            </span>
+            <span className="w-linkrow-text">
+              <strong>Send as a link</strong>
+              <small>To anyone, even without Kova. They claim it in a tap.</small>
+            </span>
+            <Icon name="arrow" size={20} />
+          </Link>
+          {hasLinks ? (
+            <Link href="/wallet/links" className="w-linkrow-mine">
+              Your links <Icon name="chevron" size={14} />
+            </Link>
+          ) : null}
+        </>
+      )}
 
       {scanned?.kind === 'person' ? (
         <button type="button" className="w-match" onClick={() => go(text)}>
@@ -556,7 +593,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
   )
 }
 
-function Fact({
+export function Fact({
   label,
   value,
   hint,
@@ -585,140 +622,6 @@ function Fact({
   )
 }
 
-const FACE = 60
-const KOVI = 70
-const BASE = 104
-
-/** The curve from your face to theirs, rising over the middle. */
-function arc(width: number) {
-  const from = { x: FACE / 2 + 4, y: BASE - FACE / 2 - 6 }
-  return { from, via: { x: width / 2, y: -10 }, to: { x: width - FACE / 2 - 4, y: from.y } }
-}
-
-/**
- * You, Kovi's dotted arc, and them. Kovi hovers at the top while you check; on send he flies the
- * arc, the dots marching under him, and lands on their face, which gets a tick.
- */
-function ArcRoute({
-  you,
-  them,
-  leg,
-}: {
-  you: { name: string; id: string }
-  them: { name: string; id: string }
-  leg: Leg
-}) {
-  const box = useRef<HTMLDivElement>(null)
-  const kovi = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(0)
-  const t = useRef(0.5)
-
-  useLayoutEffect(() => {
-    const el = box.current
-    if (!el) return
-    const observer = new ResizeObserver(() => setWidth(el.clientWidth))
-    observer.observe(el)
-    setWidth(el.clientWidth)
-    return () => observer.disconnect()
-  }, [])
-
-  const { from, via, to } = arc(width)
-
-  // Places Kovi at `u` along the curve, turned the way he flies.
-  const place = useCallback(
-    (u: number) => {
-      const el = kovi.current
-      if (!el || !width) return
-      const { from, via, to } = arc(width)
-      const a = 1 - u
-      const x = a * a * from.x + 2 * a * u * via.x + u * u * to.x
-      const y = a * a * from.y + 2 * a * u * via.y + u * u * to.y
-      const dx = 2 * a * (via.x - from.x) + 2 * u * (to.x - via.x)
-      const dy = 2 * a * (via.y - from.y) + 2 * u * (to.y - via.y)
-      const land = Math.max(0, (u - 0.9) / 0.1)
-      el.style.opacity = String(1 - land)
-      el.style.transform = `translate(${x - KOVI / 2}px, ${y - KOVI / 2}px) rotate(${Math.atan2(dy, dx) * 0.8}rad) scale(${1 - land * 0.6})`
-    },
-    [width],
-  )
-
-  useEffect(() => {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const legs: [number, number, (p: number) => number][] =
-      leg === 'flying'
-        ? [
-            [0.04, 260, (p) => 1 - (1 - p) ** 2],
-            [0.82, 1100, (p) => (p < 0.5 ? 4 * p ** 3 : 1 - (-2 * p + 2) ** 3 / 2)],
-          ]
-        : leg === 'landed'
-          ? [[1, 260, (p) => 1 - (1 - p) ** 3]]
-          : [[0.5, 500, (p) => 1 - (1 - p) ** 3]]
-    if (reduced) {
-      t.current = legs[legs.length - 1]?.[0] ?? 0.5
-      place(t.current)
-      return
-    }
-    let frame = 0
-    let i = 0
-    let began = performance.now()
-    let start = t.current
-    const step = (now: number) => {
-      const current = legs[i]
-      if (!current) return
-      const [target, duration, ease] = current
-      const p = Math.min(1, (now - began) / duration)
-      t.current = start + (target - start) * ease(p)
-      place(t.current)
-      if (p < 1) frame = requestAnimationFrame(step)
-      else if (++i < legs.length) {
-        began = now
-        start = t.current
-        frame = requestAnimationFrame(step)
-      }
-    }
-    frame = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(frame)
-  }, [leg, place])
-
-  return (
-    <div
-      ref={box}
-      className={`w-arc w-arc-${leg}`}
-      aria-label={`From you to ${them.name}`}
-      role="img"
-    >
-      {width ? (
-        <svg width={width} height={BASE} className="w-arc-line" aria-hidden="true">
-          <path
-            d={`M${from.x} ${from.y} Q${via.x} ${via.y} ${to.x} ${to.y}`}
-            fill="none"
-            stroke="var(--ink)"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeDasharray="0.1 14"
-          />
-        </svg>
-      ) : null}
-      <span className="w-arc-face w-arc-you">
-        <Avatar name={you.name} id={you.id} size={FACE} />
-        <small>You</small>
-      </span>
-      <span className="w-arc-face w-arc-them">
-        <span className="w-arc-them-face">
-          <Avatar name={them.name} id={them.id} size={FACE} />
-          <span className="w-arc-tick">
-            <Icon name="check" size={14} />
-          </span>
-        </span>
-        <small>{first(them.name)}</small>
-      </span>
-      <div ref={kovi} className="w-arc-kovi">
-        <Art name="kovi-ride" size={KOVI} className="w-arc-kovi-art" />
-      </div>
-    </div>
-  )
-}
-
 const KNOB = 56
 const PAD = 6
 
@@ -727,7 +630,7 @@ const PAD = 6
  * coral behind the knob; letting go short of the end springs it home. With a keyboard, the knob
  * is a button: Enter or Space sends.
  */
-function SlideToSend({
+export function SlideToSend({
   label,
   busy,
   disabled,

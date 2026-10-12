@@ -32,7 +32,16 @@ function nameFrom(who: string): string {
  * and the email wallet signs one gas-free transfer of everything left into it. Kova's relayer
  * pays the gas, so the guest never needs MON. The email wallet is signed out after.
  */
-export function KeepInKova({ checkout, guest }: { checkout: Checkout; guest: PaidGuest }) {
+export function KeepInKova({
+  checkout,
+  guest,
+  label = 'Left on your email wallet',
+}: {
+  /** The dollar to move, and the chain: a charge, or a link someone claimed. */
+  checkout: Pick<Checkout, 'token' | 'token_domain' | 'chain_id'>
+  guest: PaidGuest
+  label?: string
+}) {
   const router = useRouter()
   const [left, setLeft] = useState<bigint | null>(null)
   const [name, setName] = useState(() => nameFrom(guest.who))
@@ -174,7 +183,7 @@ export function KeepInKova({ checkout, guest }: { checkout: Checkout; guest: Pai
           <Art name="coin-eur" size={36} className="keep-coin-back" />
         </span>
         <div>
-          <small>Left on your email wallet</small>
+          <small>{label}</small>
           <strong>{dollars(left)}</strong>
         </div>
       </div>
