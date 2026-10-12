@@ -61,6 +61,8 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
       const done = await makeLink(amount, note.trim() || undefined)
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
       setMade({ link: done.link, key: done.key })
+      // Development only: the full link, for scripted captures that open it in a browser.
+      if (__DEV__) console.log('[dev] link', linkUrl(done.link.id, done.key))
       setBusy(false)
       moveTo('made')
     } catch (error) {
