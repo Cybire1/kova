@@ -5,11 +5,13 @@ import { Pressable, Share, StyleSheet, View } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
 import { explorerTx } from '@/lib/chain'
 import { formatUsd } from '@/lib/money'
+import { usePrivate } from '@/lib/private'
+import { shortAddress } from '@/lib/takings-core'
 import { colors } from '@/lib/theme'
 import { Icon, type IconName } from '@/ui/Icon'
-import { isUnnamed, useWallet } from '@/lib/wallet'
+import { type Entry, isUnnamed, useWallet } from '@/lib/wallet'
 import { Avatar, ShopBadge } from '@/ui/art'
-import { signed, when } from '@/ui/EntryRow'
+import { PrivateAvatar, signed, when } from '@/ui/EntryRow'
 import { NameSheet } from '@/ui/NameSheet'
 import { Header, PillButton, Screen, TextLink, Txt } from '@/ui/primitives'
 
@@ -19,6 +21,7 @@ const titles = { paid: 'Paid', sent: 'Sent', received: 'Received', added: 'Added
 export default function Receipt() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { activity } = useWallet()
+  const privately = usePrivate()
   const entry = activity.find((e) => e.id === id)
   const [naming, setNaming] = useState(false)
 
@@ -34,6 +37,10 @@ export default function Receipt() {
   // A one-time address (a link's, or a private sale's) is never a person to name.
   const person = (entry.kind === 'sent' || entry.kind === 'received') && entry.address && !entry.takings ? entry.address : null
   const zigzag = Array.from({ length: 18 }, (_, i) => `L${i * 20 + 10} 10 L${i * 20 + 20} 0`).join(' ')
+  // Received privately: still at its one-time address, or in the balance.
+  const receipt = entry.privately && incoming ? privately.receiptAt(entry.oneTime) : undefined
+  const waiting = receipt ? BigInt(receipt.held) > 0n : false
+  const first = isUnnamed(entry.name) ? 'they' : entry.name.split(' ')[0]
 
   return (
     <Screen bg={colors.sunken}>
@@ -41,7 +48,13 @@ export default function Receipt() {
       <View style={styles.wrap}>
         <View style={styles.paper}>
           <View style={styles.top}>
-            {entry.kind === 'paid' || entry.takings ? <ShopBadge size={64} /> : <Avatar name={entry.name} id={entry.address} size={64} />}
+            {entry.kind === 'paid' || entry.takings ? (
+              <ShopBadge size={64} />
+            ) : entry.privately ? (
+              <PrivateAvatar name={entry.name} id={entry.address} size={64} />
+            ) : (
+              <Avatar name={entry.name} id={entry.address} size={64} />
+            )}
             <Txt size={15} color={colors.muted} style={{ marginTop: 12 }}>
               {titles[entry.kind]} {incoming ? 'from' : 'to'}
             </Txt>
@@ -69,13 +82,25 @@ export default function Receipt() {
           <Row label="When" value={`${new Date(entry.at).toLocaleDateString([], { day: 'numeric', month: 'long' })}, ${when(entry.at)}`} />
           {entry.private ? (
             <Row label="Private note" icon="lock" value={entry.detail} />
-          ) : ['Sent', 'Arrived', 'Scan to pay', 'AUSD test faucet'].includes(entry.detail) || entry.takings ? null : (
+          ) : ['Sent', 'Arrived', 'Scan to pay', 'AUSD test faucet'].includes(entry.detail) || entry.takings || entry.privately ? null : (
             <Row label="For" value={entry.detail} />
           )}
           {entry.private ? (
             <Txt size={12} color={colors.muted} style={{ textAlign: 'right', marginTop: -2 }}>
               {entry.private === 'both' ? 'Sealed: only the two of you can read it' : 'Sealed: only you can read it'}
             </Txt>
+          ) : null}
+          {entry.privately ? (
+            <>
+              <Row label="Privacy" icon="lock" value={incoming ? 'Received privately' : 'Sent privately'} />
+              {entry.oneTime ? <Row label="Paid to" value={`${shortAddress(entry.oneTime)}, one-time`} /> : null}
+              <Txt size={12} color={colors.muted} style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}>
+                {incoming
+                  ? 'Made for this payment. Only you can tell it’s yours.'
+                  : `Monad shows that address, not ${isUnnamed(entry.name) ? 'them' : first}. Only ${first} can open it.`}
+              </Txt>
+              {receipt ? <Row label="Now" value={waiting ? 'Waiting to move in' : 'In your balance'} /> : null}
+            </>
           ) : null}
           {entry.ms ? <Row label="Took" value={`${(entry.ms / 1000).toFixed(1)} seconds`} /> : null}
           <Row label="Fee" value={entry.kind === 'paid' || entry.kind === 'sent' ? '$0.00, covered by Kova' : '$0.00'} />
@@ -90,20 +115,37 @@ export default function Receipt() {
           <Path d={`M0 0 ${zigzag} L360 0 Z`} fill={colors.surface} />
         </Svg>
       </View>
-      <View style={styles.footer}>
-        <PillButton
-          label="Share receipt"
-          icon="share"
-          onPress={() =>
-            void Share.share({
-              message: `${titles[entry.kind]} ${formatUsd(BigInt(entry.amount))} ${incoming ? 'from' : 'to'} ${entry.name} on Kova.${entry.txHash ? ` ${explorerTx(entry.txHash)}` : ''}`,
-            })
-          }
-        />
+      <View style={[styles.footer, { gap: 14 }]}>
+        {waiting ? (
+          <>
+            <PillButton
+              label={privately.progress ? 'Moving it in…' : 'Move into my balance'}
+              icon="receive"
+              loading={Boolean(privately.progress)}
+              onPress={() => void privately.moveIn()}
+            />
+            {privately.problem?.during === 'move' ? (
+              <Txt weight="medium" size={13} color={colors.danger} style={{ textAlign: 'center', marginTop: -6 }}>
+                {privately.problem.text}
+              </Txt>
+            ) : null}
+          </>
+        ) : null}
+        {waiting ? (
+          <View style={{ alignItems: 'center' }}>
+            <TextLink label="Share receipt" onPress={() => void Share.share({ message: shareText(entry, incoming) })} />
+          </View>
+        ) : (
+          <PillButton label="Share receipt" icon="share" onPress={() => void Share.share({ message: shareText(entry, incoming) })} />
+        )}
       </View>
       <NameSheet person={naming && person ? { address: person, name: entry.name } : null} onClose={() => setNaming(false)} />
     </Screen>
   )
+}
+
+function shareText(entry: Entry, incoming: boolean) {
+  return `${titles[entry.kind]} ${formatUsd(BigInt(entry.amount))} ${incoming ? 'from' : 'to'} ${entry.name}${entry.privately ? ', privately,' : ''} on Kova.${entry.txHash ? ` ${explorerTx(entry.txHash)}` : ''}`
 }
 
 function Row({ label, value, icon }: { label: string; value: string; icon?: IconName }) {

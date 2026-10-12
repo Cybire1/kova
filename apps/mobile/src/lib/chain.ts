@@ -139,7 +139,20 @@ export interface NoteToSeal {
   theirs: string | null
 }
 
-export async function sendMoney(account: LocalAccount, to: Address, amount: bigint, note?: NoteToSeal): Promise<Sent> {
+/**
+ * What a private send carries for its recipient (ERC-5564 scheme 1): the ephemeral public key and
+ * view tag that let their viewing key, and only theirs, find the one-time address it went to.
+ */
+export interface StealthTag {
+  ephemeralPublicKey: Hex
+  viewTag: Hex
+}
+
+/**
+ * `to` is their wallet, or for a private send the one-time address made for them, with `stealth`
+ * saying how they find it: Kova announces it in its public feed with no recipient.
+ */
+export async function sendMoney(account: LocalAccount, to: Address, amount: bigint, note?: NoteToSeal, stealth?: StealthTag): Promise<Sent> {
   const started = Date.now()
   const authorization = {
     from: account.address,
@@ -154,6 +167,7 @@ export async function sendMoney(account: LocalAccount, to: Address, amount: bigi
   const sent = await kova<{ tx_hash: Hash }>('/v1/transfers', {
     ...toSignedAuthorization(settlementToken.address, authorization, signature),
     ...(sealed ? { note: sealed } : {}),
+    ...(stealth ? { stealth: { ephemeral_public_key: stealth.ephemeralPublicKey, view_tag: stealth.viewTag } } : {}),
   })
   return { hash: sent.tx_hash, ms: Date.now() - started }
 }

@@ -1,13 +1,16 @@
 import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native'
 import Animated, { FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimated'
 import { type Address, getAddress, isAddressEqual } from 'viem'
 import { parseScanned } from '@/lib/links'
 import { applyKey, currencyInfo, type DisplayCurrency, displayCurrencies, formatLocal, formatUsd, groupTyped, toBase } from '@/lib/money'
+import { usePrivate } from '@/lib/private'
+import { fetchReceivingKey, UntrustedKey } from '@/lib/private-core'
 import { rateLabel } from '@/lib/rates'
+import { load, save } from '@/lib/storage'
 import { colors, fonts } from '@/lib/theme'
 import { type Contact, type Entry, isUnnamed, useWallet } from '@/lib/wallet'
 import { Avatar, Flyer } from '../art'
@@ -17,12 +20,19 @@ import { EnvelopeBadge } from '../LinkParts'
 import { Bob, Burst } from '../motion'
 import { NameSheet } from '../NameSheet'
 import { PillButton, TextLink, Txt } from '../primitives'
+import { MoveInOffer, SendPrivately, SentPrivately } from '../Private'
 import { Stage as KoviStage } from '../Stage'
 import { ArcRoute, type Leg } from './ArcRoute'
 import { SlideToSend } from './SlideToSend'
 
 /** Development only: dev-link sends already made this run. */
 const autoSent = new Set<string>()
+
+/** Whether the last send was private: the switch starts there next time, for anyone who can receive privately. */
+const PRIVATELY = 'kova.send.privately.v1'
+
+/** Whether they can receive privately: their published key, checked against their signature. */
+type Reach = 'checking' | 'yes' | 'no' | 'untrusted'
 
 type Step = 'who' | 'amount' | 'review' | 'sent'
 const order: Step[] = ['who', 'amount', 'review', 'sent']
@@ -36,6 +46,8 @@ export type Payee = {
   rename?: boolean
   /** Development only: slide to send by itself, so every state can be screenshotted on a simulator. */
   autoSend?: boolean
+  /** Development only: start with Send privately on. */
+  privately?: boolean
 }
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
@@ -49,6 +61,7 @@ const SIDE = 20
  */
 export function SendSheet({ payee }: { payee?: Payee }) {
   const { profile, balance, send, contacts, noteReaches } = useWallet()
+  const dollars = usePrivate()
   const { width } = useWindowDimensions()
   const inner = width - SIDE * 2
 
@@ -64,6 +77,8 @@ export function SendSheet({ payee }: { payee?: Payee }) {
   const [naming, setNaming] = useState(!!payee?.rename)
   /** Whether they can read a private note: null while asking Kova for their note key. */
   const [reaches, setReaches] = useState<boolean | null>(null)
+  const [reach, setReach] = useState<Reach>('checking')
+  const [privately, setPrivately] = useState(Boolean(payee?.privately))
 
   const moveTo = (next: Step) => {
     setBack(order.indexOf(next) < order.indexOf(step))
@@ -75,9 +90,15 @@ export function SendSheet({ payee }: { payee?: Payee }) {
   const first = name.split(' ')[0]
   const theirs = to && (displayCurrencies as readonly string[]).includes(to.currency ?? '') ? (to.currency as DisplayCurrency) : null
   const local = theirs && theirs !== 'USD' ? theirs : null
-  const dollars = typed === '' ? 0 : Number(typed)
-  const amount = dollars > 0 ? toBase(dollars.toFixed(2)) : 0n
+  const typedDollars = typed === '' ? 0 : Number(typed)
+  const amount = typedDollars > 0 ? toBase(typedDollars.toFixed(2)) : 0n
   const over = balance !== null && amount > balance
+  // Short, but private dollars would cover it: they can be moved in first, in one tap.
+  const shortBy = over && balance !== null ? amount - balance : 0n
+  const covered = shortBy > 0n && dollars.waiting >= shortBy
+  const sendPrivately = privately && reach === 'yes'
+  // With Send privately on, wait for their key's check: a private send never quietly goes out in the open.
+  const checking = privately && reach === 'checking'
 
   const pick = (p: Payee) => {
     void Haptics.selectionAsync()
@@ -96,7 +117,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
     setLeg('flying')
     const started = Date.now()
     try {
-      const done = await send({ address: to.address, name, currency: theirs ?? undefined }, amount, note.trim() || undefined)
+      const done = await send({ address: to.address, name, currency: theirs ?? undefined }, amount, note.trim() || undefined, { privately: sendPrivately })
       // Let Kovi finish the leg he is on: the flight is timed to about what the chain takes.
       await new Promise((r) => setTimeout(r, Math.max(0, 1360 - (Date.now() - started))))
       setLeg('landed')
@@ -121,13 +142,36 @@ export function SendSheet({ payee }: { payee?: Payee }) {
     if (!address) return
     let live = true
     setReaches(null)
+    setReach('checking')
     void noteReaches(address).then((yes) => live && setReaches(yes))
+    // Only someone who has published a private key, signed by their own wallet, is offered a private send.
+    void fetchReceivingKey(address)
+      .then((meta) => live && setReach(meta ? 'yes' : 'no'))
+      .catch((error) => live && setReach(error instanceof UntrustedKey ? 'untrusted' : 'no'))
     return () => {
       live = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address])
 
+  // The switch starts where it was left last time.
+  useEffect(() => {
+    if (payee?.privately) return
+    let live = true
+    void load<boolean>(PRIVATELY, false).then((on) => live && setPrivately(on))
+    return () => {
+      live = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const choosePrivately = (on: boolean) => {
+    setPrivately(on)
+    void save(PRIVATELY, on)
+  }
+
+  // The send as of the latest render: whether they can receive privately is only known a moment in.
+  const latestGo = useRef(go)
+  latestGo.current = go
   useEffect(() => {
     if (!__DEV__ || !payee?.autoSend || step !== 'review') return
     // Once per app run, however many times the dev link mounts this sheet.
@@ -136,7 +180,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
     const timer = setTimeout(() => {
       if (autoSent.has(once)) return
       autoSent.add(once)
-      void go()
+      void latestGo.current()
     }, 2500)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -185,10 +229,10 @@ export function SendSheet({ payee }: { payee?: Payee }) {
               ${groupTyped(typed)}
             </Txt>
             <View style={styles.subRow}>
-              {local && dollars > 0 ? (
+              {local && typedDollars > 0 ? (
                 <View style={[styles.pill, { backgroundColor: colors.tealSoft }]}>
                   <Txt weight="semi" size={14}>
-                    {first} sees ≈ {formatLocal(dollars, local)}
+                    {first} sees ≈ {formatLocal(typedDollars, local)}
                   </Txt>
                 </View>
               ) : null}
@@ -215,7 +259,11 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           </View>
           <Keypad onKey={(key) => setTyped((v) => applyKey(v, key))} size={56} />
           <View style={{ marginTop: 14 }}>
-            <PillButton label={over ? 'More than you have' : 'Review'} disabled={amount === 0n || over} onPress={() => moveTo('review')} />
+            {covered ? (
+              <MoveInOffer short={shortBy} compact />
+            ) : (
+              <PillButton label={over ? 'More than you have' : 'Review'} disabled={amount === 0n || over} onPress={() => moveTo('review')} />
+            )}
           </View>
           <NameSheet person={naming ? { address: to.address, name } : null} onClose={() => setNaming(false)} />
         </Animated.View>
@@ -231,7 +279,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           </View>
 
           <View style={{ marginTop: 18 }}>
-            <ArcRoute width={inner} you={{ name: profile.name, id: profile.address }} them={{ name, id: to.address }} leg={leg} />
+            <ArcRoute width={inner} you={{ name: profile.name, id: profile.address }} them={{ name, id: to.address }} leg={leg} privately={sendPrivately} />
           </View>
 
           <View style={styles.sums}>
@@ -239,7 +287,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
               {formatUsd(amount)}
             </Txt>
             <Txt size={15} color={colors.onTint}>
-              {local ? `${first} gets ${formatUsd(amount)}, about ${formatLocal(dollars, local)}` : isUnnamed(name) ? 'They get all of it' : `${first} gets all of it`}
+              {local ? `${first} gets ${formatUsd(amount)}, about ${formatLocal(typedDollars, local)}` : isUnnamed(name) ? 'They get all of it' : `${first} gets all of it`}
             </Txt>
           </View>
 
@@ -263,6 +311,27 @@ export function SendSheet({ payee }: { payee?: Payee }) {
             ) : null}
           </View>
 
+          {reach === 'yes' ? (
+            <View style={{ marginBottom: 14 }}>
+              <SendPrivately on={privately} onChange={choosePrivately} amount={amount} first={isUnnamed(name) ? 'they' : first} disabled={busy} />
+            </View>
+          ) : reach === 'untrusted' ? (
+            <View style={styles.untrusted}>
+              <Icon name="info" size={16} color={colors.muted} />
+              <Txt size={13} color={colors.muted} style={{ flex: 1, lineHeight: 18 }}>
+                Kova gave a private key for {isUnnamed(name) ? 'them' : first} that they didn’t sign, so this send can’t be private.
+              </Txt>
+            </View>
+          ) : reach === 'no' && privately ? (
+            // You send privately by habit, but they can't receive that way yet: say so, rather than send in the open quietly.
+            <View style={styles.untrusted}>
+              <Icon name="lock" size={16} color={colors.muted} />
+              <Txt size={13} color={colors.muted} style={{ flex: 1, lineHeight: 18 }}>
+                {isUnnamed(name) ? 'They' : first} can’t receive privately yet, so Monad will show who gets this one.
+              </Txt>
+            </View>
+          ) : null}
+
           {problem ? (
             <Animated.View entering={FadeIn} style={styles.problem}>
               <Icon name="info" size={18} color={colors.danger} />
@@ -272,13 +341,22 @@ export function SendSheet({ payee }: { payee?: Payee }) {
               </Txt>
             </Animated.View>
           ) : null}
-          {over ? (
+          {covered ? (
+            <View style={{ marginBottom: 12 }}>
+              <MoveInOffer short={shortBy} />
+            </View>
+          ) : over ? (
             <Txt weight="medium" size={14} color={colors.danger} style={{ textAlign: 'center', marginBottom: 10 }}>
               You have {formatUsd(balance ?? 0n)}. Add money or send less.
             </Txt>
           ) : null}
 
-          <SlideToSend label={problem ? 'Slide to try again' : `Slide to send ${formatUsd(amount)}`} busy={busy} disabled={over || amount === 0n} onSend={go} />
+          <SlideToSend
+            label={problem ? 'Slide to try again' : `Slide to send ${formatUsd(amount)}${sendPrivately ? ' privately' : ''}`}
+            busy={busy}
+            disabled={over || amount === 0n || checking}
+            onSend={go}
+          />
           <Txt size={12} color={colors.muted} style={{ textAlign: 'center', marginTop: 10 }}>
             Face ID confirms it. Payments on Monad can’t be undone.
           </Txt>
@@ -301,7 +379,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           </Txt>
           <Txt weight="medium" size={18} style={{ textAlign: 'center', marginTop: 2 }}>
             {formatUsd(amount)} landed with {first}
-            {local ? `, about ${formatLocal(dollars, local)}` : ''}
+            {local ? `, about ${formatLocal(typedDollars, local)}` : ''}
           </Txt>
           <View style={styles.time}>
             <Icon name="bolt" size={16} color={colors.white} />
@@ -309,7 +387,12 @@ export function SendSheet({ payee }: { payee?: Payee }) {
               {entry.ms ? `Arrived in ${(entry.ms / 1000).toFixed(2)} s on Monad` : 'Arrived on Monad'}
             </Txt>
           </View>
-          <View style={{ alignSelf: 'stretch', marginTop: 22, gap: 12 }}>
+          {entry.privately && entry.oneTime ? (
+            <View style={{ alignSelf: 'stretch', marginTop: 18 }}>
+              <SentPrivately amount={amount} oneTime={entry.oneTime} first={isUnnamed(name) ? 'they' : first} txHash={entry.txHash} />
+            </View>
+          ) : null}
+          <View style={{ alignSelf: 'stretch', marginTop: entry.privately ? 16 : 22, gap: 12 }}>
             <PillButton label="Done" icon="check" onPress={close} />
             <View style={{ alignItems: 'center' }}>
               <TextLink
@@ -645,6 +728,7 @@ const styles = StyleSheet.create({
   facts: { marginTop: 18, marginBottom: 16, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, paddingHorizontal: 16, paddingVertical: 6 },
   fact: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingVertical: 9 },
   problem: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12, padding: 12, borderRadius: 16, backgroundColor: colors.coralSoft },
+  untrusted: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12, paddingHorizontal: 4 },
   time: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: colors.ink },
   field: {
     marginTop: 14,

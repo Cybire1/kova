@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Animated, {
   Easing,
+  ZoomIn,
+  ZoomOut,
   useAnimatedProps,
   useAnimatedStyle,
   useReducedMotion,
@@ -30,9 +32,21 @@ export type Leg = 'waiting' | 'flying' | 'landed'
 /**
  * You, Kovi's dotted arc, and them: the route the money takes, drawn the way Kova draws every
  * send. While waiting Kovi hovers at the top of the arc; on send he flies it, the dots marching
- * under him, and lands on their face, which gets a tick.
+ * under him, and lands on their face, which gets a tick. Sent privately, their face wears a padlock.
  */
-export function ArcRoute({ width, you, them, leg }: { width: number; you: { name: string; id: string }; them: { name: string; id: string }; leg: Leg }) {
+export function ArcRoute({
+  width,
+  you,
+  them,
+  leg,
+  privately,
+}: {
+  width: number
+  you: { name: string; id: string }
+  them: { name: string; id: string }
+  leg: Leg
+  privately?: boolean
+}) {
   const reduced = useReducedMotion()
   const from = { x: FACE / 2 + 4, y: BASE - FACE / 2 - 6 }
   const to = { x: width - FACE / 2 - 4, y: BASE - FACE / 2 - 6 }
@@ -85,7 +99,7 @@ export function ArcRoute({ width, you, them, leg }: { width: number; you: { name
   const theirFace = useAnimatedStyle(() => ({ transform: [{ scale: 1 + Math.sin(Math.min(1, tick.value) * Math.PI) * 0.12 }] }))
 
   return (
-    <View style={{ width, height: HEIGHT }} accessibilityLabel={`From you to ${them.name}`}>
+    <View style={{ width, height: HEIGHT }} accessibilityLabel={`From you to ${them.name}${privately ? ', privately' : ''}`}>
       <Svg width={width} height={BASE} style={StyleSheet.absoluteFill}>
         <AnimatedPath d={d} stroke={colors.ink} strokeWidth={3} strokeLinecap="round" strokeDasharray="0.1 14" fill="none" animatedProps={dots} />
       </Svg>
@@ -98,6 +112,11 @@ export function ArcRoute({ width, you, them, leg }: { width: number; you: { name
       <View style={[styles.person, { right: 0 }]}>
         <Animated.View style={theirFace}>
           <Avatar name={them.name} id={them.id} size={FACE} />
+          {privately ? (
+            <Animated.View entering={ZoomIn.springify().damping(14)} exiting={ZoomOut.duration(160)} style={styles.lock}>
+              <Icon name="lock" size={13} color={colors.white} strokeWidth={2.6} />
+            </Animated.View>
+          ) : null}
           <Animated.View style={[styles.tick, badge]}>
             <Icon name="check" size={14} color={colors.white} strokeWidth={3} />
           </Animated.View>
@@ -129,4 +148,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   kovi: { position: 'absolute', left: 0, top: 0, width: KOVI, height: KOVI },
+  lock: {
+    position: 'absolute',
+    right: -5,
+    top: -4,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: colors.paper,
+    backgroundColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })

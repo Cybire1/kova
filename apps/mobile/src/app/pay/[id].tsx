@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
 import { type Checkout, getCheckout, type OrderStatus } from '@/lib/api'
 import { baseToNumber, formatLocal, formatUsd } from '@/lib/money'
+import { usePrivate } from '@/lib/private'
 import { useSessionCovers } from '@/lib/session'
 import { colors } from '@/lib/theme'
 import { type Entry, useWallet } from '@/lib/wallet'
@@ -14,6 +15,7 @@ import { Icon } from '@/ui/Icon'
 import { Bob } from '@/ui/motion'
 import { OrderProgress, progressCopy } from '@/ui/OrderProgress'
 import { PaidScene } from '@/ui/PaidScene'
+import { MoveInOffer } from '@/ui/Private'
 import { Stage as KoviStage } from '@/ui/Stage'
 import { Chip, Header, PillButton, Rise, RoundButton, Screen, Sticker, TextLink, Txt } from '@/ui/primitives'
 
@@ -27,6 +29,7 @@ export default function PayCharge() {
   // autopay is development-only: it presses Pay by itself, so a film can capture the real flow.
   const { id, autopay } = useLocalSearchParams<{ id: string; autopay?: string }>()
   const { profile, balance, payCheckout } = useWallet()
+  const dollars = usePrivate()
   const [stage, setStage] = useState<Stage>('loading')
   const [checkout, setCheckout] = useState<Checkout | null>(null)
   const [entry, setEntry] = useState<Entry | null>(null)
@@ -118,6 +121,9 @@ export default function PayCharge() {
 
   const amount = BigInt(checkout.amount_base)
   const short = balance !== null && balance < amount
+  // Short, but private dollars cover it: they move in first, in one tap, and then it's paid as usual.
+  const shortBy = short && balance !== null ? amount - balance : 0n
+  const privateCovers = shortBy > 0n && dollars.waiting >= shortBy
   const reward = checkout.order?.reward ?? null
   // A full stamp card can make the whole order free: it's still approved, for $0, so it has a receipt.
   const free = amount === 0n && reward !== null
@@ -307,14 +313,20 @@ export default function PayCharge() {
             <Line label="Fee" value="$0.00, Kova covers it" />
           </View>
         </Sticker>
-        {short ? (
+        {privateCovers ? (
+          <Txt weight="medium" size={15} style={{ marginTop: 12, textAlign: 'center' }}>
+            You’re {formatUsd(shortBy)} short, but {formatUsd(dollars.waiting)} waits in your private dollars.
+          </Txt>
+        ) : short ? (
           <Txt weight="medium" size={15} color={colors.danger} style={{ marginTop: 12, textAlign: 'center' }}>
             You need {formatUsd(amount - (balance ?? 0n))} more. Add money first.
           </Txt>
         ) : null}
       </View>
       <View style={styles.footer}>
-        {short ? (
+        {privateCovers ? (
+          <MoveInOffer short={shortBy} compact />
+        ) : short ? (
           <PillButton label="Add money" icon="plus" onPress={() => router.push('/add-money')} />
         ) : (
           <>

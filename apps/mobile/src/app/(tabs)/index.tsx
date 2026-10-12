@@ -6,6 +6,7 @@ import Svg, { Circle } from 'react-native-svg'
 import { getSummary } from '@/lib/api'
 import { isTestnet } from '@/lib/config'
 import { usePrefs } from '@/lib/prefs'
+import { usePrivate } from '@/lib/private'
 import { useStall } from '@/lib/stall'
 import { useTakings } from '@/lib/takings'
 import { useTerminal } from '@/lib/terminal'
@@ -31,14 +32,16 @@ export default function Home() {
   const insets = useSafeAreaInsets()
   const [refreshing, setRefreshing] = useState(false)
   const takings = useTakings()
+  const privately = usePrivate()
   const { setMode } = usePrefs()
   const { refresh: refreshTakings } = takings
+  const { refresh: refreshPrivate } = privately
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
-    await Promise.all([refresh(), refreshTakings()])
+    await Promise.all([refresh(), refreshTakings(), refreshPrivate()])
     setRefreshing(false)
-  }, [refresh, refreshTakings])
+  }, [refresh, refreshTakings, refreshPrivate])
 
   if (!profile) return null
   const empty = balance === 0n
@@ -78,6 +81,7 @@ export default function Home() {
               }
             : null
         }
+        privately={privately.waiting > 0n ? { amount: privately.waiting, onPress: () => router.push('/private') } : null}
       />
 
       <View style={styles.hero}>

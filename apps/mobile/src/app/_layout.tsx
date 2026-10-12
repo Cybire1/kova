@@ -13,6 +13,7 @@ import { Platform, Settings } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { PrefsProvider, usePrefs } from '@/lib/prefs'
+import { PrivateProvider } from '@/lib/private'
 import { useLiveRates } from '@/lib/rates'
 import { StallProvider } from '@/lib/stall'
 import { TakingsProvider } from '@/lib/takings'
@@ -47,10 +48,17 @@ function ArrivalWatcher() {
   const { arrival, clearArrival } = useWallet()
   const { mode } = usePrefs()
   useEffect(() => {
-    if (!arrival || mode !== 'pay') return
+    if (!arrival || mode === 'terminal') return
     router.push({
       pathname: '/received',
-      params: { amount: arrival.amount.toString(), name: arrival.name, hash: arrival.hash, ...(arrival.note ? { note: arrival.note } : {}) },
+      params: {
+        amount: arrival.amount.toString(),
+        name: arrival.name,
+        hash: arrival.hash,
+        ...(arrival.note ? { note: arrival.note } : {}),
+        // Arrived privately: the arrival screen says so, and offers to move it in.
+        ...(arrival.privately ? { private: '1', ...(arrival.oneTime ? { oneTime: arrival.oneTime } : {}) } : {}),
+      },
     })
     clearArrival()
   }, [arrival, clearArrival, mode])
@@ -85,6 +93,7 @@ export default function RootLayout() {
             <WalletProvider>
               <StallProvider>
                 <TakingsProvider>
+                <PrivateProvider>
                 <TravelProvider>
                 <StatusBar style="dark" />
                 <ArrivalWatcher />
@@ -108,6 +117,7 @@ export default function RootLayout() {
                   <Stack.Screen name="c/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
                 </Stack>
                 </TravelProvider>
+                </PrivateProvider>
                 </TakingsProvider>
               </StallProvider>
             </WalletProvider>

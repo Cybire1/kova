@@ -9,6 +9,7 @@ import * as WebBrowser from 'expo-web-browser'
 import { isTestnet, network, webUrl } from '@/lib/config'
 import { personLink } from '@/lib/links'
 import { currencyInfo, type DisplayCurrency, formatUsd } from '@/lib/money'
+import { usePrivate } from '@/lib/private'
 import { rateLabel, ratesLive } from '@/lib/rates'
 import { endSession, SESSION_IDLE_MS, SESSION_LIMIT, TAP_LIMIT, useSessionState } from '@/lib/session'
 import { useStall } from '@/lib/stall'
@@ -150,6 +151,9 @@ export default function Profile() {
         </View>
       </Sticker>
       )}
+
+      {/* Dollars people sent privately, waiting at one-time addresses only this wallet can open. */}
+      <PrivateRow />
 
       {/* Paying from a phone with no data: a small pocket spent by dialling Kova's USSD code. */}
       <Sticker radius={24} accessibilityLabel="Pay by USSD, from any phone" onPress={() => router.push('/ussd')} style={{ height: 62, marginTop: 14 }}>
@@ -392,6 +396,35 @@ function KeysCard() {
         </Txt>
       </View>
     </View>
+  )
+}
+
+/** Private dollars, one tap away: what's waiting, or whether people can send to you privately. */
+function PrivateRow() {
+  const p = usePrivate()
+  const line =
+    p.waiting > 0n
+      ? `${formatUsd(p.waiting)} waiting to move in`
+      : p.keysHere && p.published
+        ? 'Anyone can send to you privately'
+        : p.keysHere
+          ? 'Almost ready to receive privately'
+          : 'Let people send to you privately'
+  return (
+    <Sticker radius={24} accessibilityLabel={`Private dollars. ${line}`} onPress={() => router.push('/private')} style={{ height: 62, marginTop: 14 }}>
+      <View style={[styles.cashOut, { gap: 14 }]}>
+        <Icon name="lock" size={22} />
+        <View style={{ flex: 1 }}>
+          <Txt weight="semi" size={16}>
+            Private dollars
+          </Txt>
+          <Txt size={13} color={p.waiting > 0n ? colors.coralDeep : colors.muted} numberOfLines={1}>
+            {line}
+          </Txt>
+        </View>
+        <Icon name="arrow" size={20} />
+      </View>
+    </Sticker>
   )
 }
 

@@ -14,7 +14,8 @@
     "prebuild": "expo prebuild --clean",
     "e2e:wallet": "node --env-file-if-exists=.env --env-file-if-exists=.env.monad ../../node_modules/.pnpm/tsx@4.23.13/node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/wallet-e2e.ts",
     "check:mera": "node ../../node_modules/.pnpm/tsx@4.23.13/node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/mera-keys.ts",
-    "check:vault": "node --env-file-if-exists=.env --env-file-if-exists=.env.monad ../../node_modules/.pnpm/tsx@4.23.13/node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/vault-check.ts"
+    "check:vault": "node --env-file-if-exists=.env --env-file-if-exists=.env.monad ../../node_modules/.pnpm/tsx@4.23.13/node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/vault-check.ts",
+    "check:private": "node --env-file-if-exists=.env --env-file-if-exists=.env.monad ../../node_modules/.pnpm/tsx@4.23.13/node_modules/tsx/dist/cli.mjs --tsconfig tsconfig.json scripts/private-check.ts"
   },
   "dependencies": {
     "@category-labs/mera": "^0.2.0",

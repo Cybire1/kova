@@ -21,7 +21,8 @@ export async function myNoteKeys() {
 export async function ensureNoteKey(account: LocalAccount): Promise<void> {
   const secret = await readVaultSecret()
   if (!secret) return
-  const mark = `${account.address}:${noteKeys(secret).publicKey}`
+  // Per API too: a wallet pointed at another Kova (a new database, a local one) publishes there as well.
+  const mark = `${apiUrl}|${account.address}:${noteKeys(secret).publicKey}`
   if ((await load<string | null>(PUBLISHED, null)) === mark) return
   await publishNoteKey(apiUrl, account, secret)
   await save(PUBLISHED, mark)

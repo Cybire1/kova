@@ -7,6 +7,7 @@ import { apiUrl } from '@/lib/config'
 import { finishTap, forgetDevCard, linkCard, readTap } from '@/lib/card'
 import type { DisplayCurrency } from '@/lib/money'
 import { type Mode, usePrefs } from '@/lib/prefs'
+import { usePrivate } from '@/lib/private'
 import { useStall } from '@/lib/stall'
 import { save } from '@/lib/storage'
 import { useTakings } from '@/lib/takings'
@@ -32,6 +33,10 @@ import { booksMessage } from '@/ui/Takings'
  * `takings=forget` drops this phone's copy of the keys (relaunch to see the phone without them),
  * `charge=8.00,3.25` makes a charge for each amount (with private takings on, each pays its own address), `move=1` moves
  * every private sale into the wallet, and `books=1` opens the share sheet with the accountant's view.
+ * Private sends between people: `private=setup` makes this wallet's private-receiving keys and gives Kova
+ * the public half (as opening the wallet does), `private=look` looks through Kova's feed now, `send=…&private=1`
+ * sends privately through the real code, and `movein=1` moves every private payment into the balance
+ * on the screen it opens (`to=/private`, say). `/send/<address>?amount=…&private=1&autosend=1` films the sheet.
  * Release builds redirect home.
  */
 /** A small Lagos kitchen menu for trying the stall screens. */
@@ -179,6 +184,8 @@ export default function Dev() {
     charge?: string
     move?: string
     books?: string
+    private?: string
+    movein?: string
   }>()
   const wallet = useWallet()
   const prefs = usePrefs()
@@ -188,6 +195,9 @@ export default function Dev() {
   const takings = useTakings()
   const takingsRef = useRef(takings)
   takingsRef.current = takings
+  const privately = usePrivate()
+  const privateRef = useRef(privately)
+  privateRef.current = privately
   const [step, showStep] = useState('starting')
   const setStep = (next: string) => {
     console.log(`[dev] ${next}`)
@@ -385,17 +395,42 @@ export default function Dev() {
           const entry = await wallet.payCheckout(await getCheckout(params.pay))
           return router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })
         }
+        if (params.private === 'setup') {
+          setStep('making private-receiving keys')
+          const ok = await privateRef.current.setUp()
+          console.log(`[dev] private receiving: ${ok ? 'keys on this phone, Kova has the public half' : `not set up (${privateRef.current.problem?.text ?? 'unknown'})`}`)
+        }
+        if (params.private === 'look' || params.movein) {
+          setStep('looking for private payments')
+          for (let i = 0; i < 50 && !privateRef.current.ready; i++) await new Promise((r) => setTimeout(r, 100))
+          await privateRef.current.refresh()
+          await new Promise((r) => setTimeout(r, 300))
+          const p = privateRef.current
+          console.log(`[dev] private payments: ${p.receipts.length} found, ${p.waiting} base units waiting at ${p.waitingCount}`)
+        }
         if (params.send && params.amount) {
-          setStep('sending')
+          setStep(params.private === '1' ? 'sending privately' : 'sending')
           const entry = await wallet.send(
             { address: params.send as `0x${string}`, name: params.payee || 'Tunde' },
             BigInt(params.amount),
+            undefined,
+            { privately: params.private === '1' },
           )
+          console.log(`[dev] sent ${entry.amount} base units ${entry.privately ? `privately to ${entry.oneTime}` : `to ${entry.address}`}: ${entry.txHash}`)
           return router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })
         }
         router.replace((params.to as never) || '/')
         // A screen to open over that one, e.g. `then=/send` for the send sheet over Home.
         if (params.then) setTimeout(() => router.push(params.then as never), 600)
+        // On the screen it was asked from, so it shows the move as it happens.
+        if (params.movein)
+          setTimeout(() => {
+            void privateRef.current.moveIn().then((outcome) =>
+              console.log(
+                `[dev] moved in ${outcome ? `${outcome.count} for ${outcome.amount} base units in ${outcome.ms}ms, ${outcome.failed} failed${outcome.reason ? ` (${outcome.reason})` : ''}, ${outcome.empty} empty: ${outcome.moved.map((m) => m.txHash).join(', ')}` : `nothing (${privateRef.current.problem?.text ?? 'no private dollars waiting'})`}`,
+              ),
+            )
+          }, 1500)
         // On the screen it was asked from, so the card shows the move as it happens.
         if (params.move)
           setTimeout(() => {

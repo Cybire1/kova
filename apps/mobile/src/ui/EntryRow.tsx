@@ -20,18 +20,35 @@ export function when(at: number): string {
 
 const verbs = { paid: 'Paid', sent: 'Sent', received: 'Received', added: 'Added' } as const
 
+/** A face with a small padlock on it: someone paid, or was paid, privately. */
+export function PrivateAvatar({ name, id, size = 38 }: { name: string; id?: string; size?: number }) {
+  const lock = Math.max(16, Math.round(size * 0.46))
+  return (
+    <View>
+      <Avatar name={name} id={id} size={size} />
+      <View style={[styles.lock, { width: lock, height: lock, borderRadius: lock / 2 }]}>
+        <Icon name="lock" size={Math.round(lock * 0.62)} color={colors.white} strokeWidth={2.6} />
+      </View>
+    </View>
+  )
+}
+
 /** One line of money: who, what, when, and how much, signed by direction. */
 export function EntryRow({ entry }: { entry: Entry }) {
   const incoming = entry.kind === 'received' || entry.kind === 'added'
+  // Sent or received privately: a padlock on their face, and "Private" before the note.
+  const detail = entry.privately && entry.private ? `Private · “${entry.detail}”` : entry.detail
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${verbs[entry.kind]} ${formatUsd(BigInt(entry.amount))}, ${entry.name}`}
+      accessibilityLabel={`${verbs[entry.kind]} ${formatUsd(BigInt(entry.amount))}${entry.privately ? ' privately' : ''}, ${entry.name}`}
       onPress={() => router.push({ pathname: '/receipt/[id]', params: { id: entry.id } })}
       style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
     >
       {entry.link ? (
         <EnvelopeBadge size={38} tone={incoming ? 'teal' : 'coral'} />
+      ) : entry.privately ? (
+        <PrivateAvatar name={entry.name} id={entry.address} size={38} />
       ) : entry.kind === 'paid' || entry.takings ? (
         <ShopBadge size={38} />
       ) : entry.kind === 'added' ? (
@@ -44,9 +61,9 @@ export function EntryRow({ entry }: { entry: Entry }) {
           {entry.name}
         </Txt>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          {entry.private ? <Icon name="lock" size={12} color={colors.muted} /> : null}
+          {entry.private || entry.privately ? <Icon name="lock" size={12} color={colors.muted} /> : null}
           <Txt size={13} color={colors.muted} numberOfLines={1} style={{ flexShrink: 1 }}>
-            {entry.detail}, {when(entry.at)}
+            {detail}, {when(entry.at)}
           </Txt>
         </View>
       </View>
@@ -64,4 +81,14 @@ export function signed(entry: Entry) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  lock: {
+    position: 'absolute',
+    right: -3,
+    bottom: -3,
+    backgroundColor: colors.ink,
+    borderWidth: 2,
+    borderColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })
