@@ -26,7 +26,7 @@ import { type LocalAccount, stringToBytes } from 'viem'
  */
 
 /** Where Kova's passkeys live. It must match the app's, or the web would make a second account. */
-export const passkeyDomain = process.env.NEXT_PUBLIC_KOVA_PASSKEY_DOMAIN ?? 'mykova.app'
+export const passkeyDomain = process.env.NEXT_PUBLIC_KOVA_PASSKEY_DOMAIN || 'mykova.app'
 
 /** Kova's second salt (the app's VAULT_SALT). A different salt gives an unrelated key. */
 export const VAULT_SALT = sha256(stringToBytes('kova.vault.prf.v1'))

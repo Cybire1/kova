@@ -14,6 +14,12 @@ COPY tsconfig*.json ./
 # The web signs the same payments as the app and the API, with the same Monad package.
 COPY packages/monad packages/monad
 COPY apps/web apps/web
+# Settings the browser code is built with: Railway passes service variables to a Docker build only
+# as declared build arguments. The passkey domain defaults to mykova.app (mainnet and the app);
+# the free testnet site sets its own, so wallets can be made there.
+ARG NEXT_PUBLIC_KOVA_PASSKEY_DOMAIN=mykova.app
+ARG NEXT_PUBLIC_KOVA_CHAIN_DEPOSITS=
+ENV NEXT_PUBLIC_KOVA_PASSKEY_DOMAIN=$NEXT_PUBLIC_KOVA_PASSKEY_DOMAIN NEXT_PUBLIC_KOVA_CHAIN_DEPOSITS=$NEXT_PUBLIC_KOVA_CHAIN_DEPOSITS
 RUN pnpm --filter "@kova/web..." build
 
 FROM node:22-slim
