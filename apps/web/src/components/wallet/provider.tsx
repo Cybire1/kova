@@ -272,6 +272,12 @@ export function settleNewWallet(
 
 const WalletContext = createContext<WalletValue | null>(null)
 
+/** Your people from the vault and from this page: this page's word wins for the same address. */
+function mergePeople(vault: Contact[], here: Contact[]): Contact[] {
+  const seen = new Set(here.map((c) => c.address.toLowerCase()))
+  return [...here, ...vault.filter((c) => !seen.has(c.address.toLowerCase()))].slice(0, 50)
+}
+
 export function useWallet(): WalletValue {
   const value = useContext(WalletContext)
   if (!value) throw new Error('useWallet needs a WalletProvider')
@@ -301,12 +307,21 @@ export function WalletProvider({
   const cursor = useRef('0')
   const vaultSecret = useRef<Uint8Array | null>(null)
   const vaultDirty = useRef(false)
+  /**
+   * Whether this page has read the vault. After a reload it hasn't: your people are in the vault,
+   * not here, and a backup made before reading it would replace them with only today's.
+   */
+  const vaultRead = useRef(false)
+  const savedRef = useRef(saved)
+  savedRef.current = saved
   const [noteSecret, setNoteSecret] = useState<Uint8Array | null>(null)
   /** The one-time addresses of links this wallet sent: money to and from them is a link, not a person. */
   const [linkAddresses, setLinkAddresses] = useState<Set<string>>(() => new Set())
   /** The wallet on screen, for work that finishes after it may have changed. */
   const current = useRef<string | null>(null)
   current.current = profile?.address ?? null
+  const profileRef = useRef(profile)
+  profileRef.current = profile
   /**
    * The private-receiving view key, for the wallet it was made for: it finds private payments and
    * can move none. In memory only, made again from the wallet whenever it opens.
@@ -493,7 +508,8 @@ export function WalletProvider({
   /** Seals who you are and your people, when the passkey has handed over the vault key. */
   const backUp = useCallback((next: VaultContents) => {
     const secret = vaultSecret.current
-    if (!secret) {
+    // No key yet, or the vault not read yet on this page: saved once it has been (catchUpVault).
+    if (!secret || !vaultRead.current) {
       vaultDirty.current = true
       return
     }
@@ -517,9 +533,42 @@ export function WalletProvider({
     [],
   )
 
+  /**
+   * The passkey handed over the vault key on a page that hasn't read the vault (after a reload):
+   * your people come back from it, joined with any added here since, and then anything waiting
+   * is saved, so a backup adds to them rather than replacing them.
+   */
+  const catchUpVault = useCallback(
+    async (secret: Uint8Array) => {
+      const wallet = current.current
+      if (!vaultRead.current) {
+        const backup = await openVault(secret).catch(() => undefined)
+        // Unreadable just now: nothing is saved over it, and the next opening tries again.
+        if (backup === undefined || current.current !== wallet) return
+        vaultRead.current = true
+        const people = (backup?.contacts ?? [])
+          .filter((c) => isAddress(c.address))
+          .map((c) => ({ ...c, currency: isDisplayCurrency(c.currency) ? c.currency : undefined }))
+        // Joined with whoever this page has now, even someone added while the vault was read.
+        setSaved((here) => {
+          const merged = mergePeople(people, here)
+          const p = profileRef.current
+          if (vaultDirty.current && p) backUp(vaultContents(p, merged))
+          return merged
+        })
+        return
+      }
+      const p = profileRef.current
+      if (vaultDirty.current && p) backUp(vaultContents(p, savedRef.current))
+    },
+    [backUp, vaultContents],
+  )
+
   const create = useCallback(
     async (name: string, currency: DisplayCurrency) => {
       const { profile: next, account, vaultSecret: secret } = await makeWallet(name, currency)
+      // A new wallet's vault is this page's to write: there's nothing in it to read first.
+      vaultRead.current = true
       if (secret) takeVault(secret, account)
       keepProfile(next)
       // Came by /try? Kova's public numbers count one more new wallet for where they came from.
@@ -542,8 +591,9 @@ export function WalletProvider({
     if (asserted.vaultSecret) takeVault(asserted.vaultSecret, account)
     // Who you are comes back from the vault this passkey sealed, in the app or here.
     const backup = asserted.vaultSecret
-      ? await openVault(asserted.vaultSecret).catch(() => null)
+      ? await openVault(asserted.vaultSecret).catch(() => undefined)
       : null
+    vaultRead.current = backup !== undefined
     const people = (backup?.contacts ?? [])
       .filter((c) => isAddress(c.address))
       .map((c) => ({ ...c, currency: isDisplayCurrency(c.currency) ? c.currency : undefined }))
@@ -584,11 +634,11 @@ export function WalletProvider({
       startSession(session, account)
       if (asserted.vaultSecret) {
         takeVault(asserted.vaultSecret, account)
-        if (vaultDirty.current) backUp(vaultContents(profile, saved))
+        void catchUpVault(asserted.vaultSecret)
       }
       return account
     },
-    [backUp, profile, saved, takeVault, vaultContents],
+    [catchUpVault, profile, takeVault],
   )
 
   const noteReaches = useCallback(
@@ -610,7 +660,8 @@ export function WalletProvider({
     if (!asserted.vaultSecret)
       throw new Error('This passkey can’t open private notes in this browser.')
     takeVault(asserted.vaultSecret, account)
-  }, [profile, takeVault])
+    void catchUpVault(asserted.vaultSecret)
+  }, [catchUpVault, profile, takeVault])
 
   /** The view key, if it was made for the wallet on screen. */
   const viewNow =
@@ -945,6 +996,8 @@ export function WalletProvider({
   const signOut = useCallback(() => {
     endSession()
     vaultSecret.current = null
+    vaultRead.current = false
+    vaultDirty.current = false
     making.current = null
     setPrivateView(null)
     setReceiving(null)
