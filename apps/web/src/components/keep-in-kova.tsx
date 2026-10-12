@@ -154,7 +154,7 @@ export function KeepInKova({
   if (step.at === 'done')
     return (
       <section className="keep keep-done" aria-live="polite">
-        <Art name="kovi-catch" size={132} className="keep-kovi" />
+        <Art name="kovi-catch" size={104} className="keep-kovi" />
         <h2>{dollars(step.amount)} is in Kova</h2>
         <p>
           Moved in {(step.ms / 1000).toFixed(2)} s, and Kova paid the fee. Your wallet opens with
@@ -179,8 +179,8 @@ export function KeepInKova({
     <section className="keep" aria-live="polite">
       <div className="keep-head">
         <span className="keep-coins" aria-hidden="true">
-          <Art name="coin-usd" size={46} />
-          <Art name="coin-eur" size={36} className="keep-coin-back" />
+          <Art name="coin-usd" size={40} />
+          <Art name="coin-eur" size={30} className="keep-coin-back" />
         </span>
         <div>
           <small>{label}</small>

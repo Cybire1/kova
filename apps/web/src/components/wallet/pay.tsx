@@ -106,7 +106,7 @@ export function Pay() {
         {camera !== 'on' ? (
           <div className="w-scan-idle">
             <span className="w-scan-frame" aria-hidden="true">
-              <Icon name="scan" size={44} />
+              <Icon name="scan" size={34} />
             </span>
             {camera === 'none' ? (
               <>
@@ -151,7 +151,7 @@ export function Pay() {
           setError(route(link))
         }}
       >
-        <Icon name="external" size={20} />
+        <Icon name="external" size={18} />
         <input
           value={link}
           onChange={(e) => setLink(e.target.value)}
@@ -165,7 +165,7 @@ export function Pay() {
         </button>
       </form>
       <Link href="/wallet/receive" className="w-show-code">
-        <Icon name="receive" size={18} /> Show my code instead
+        <Icon name="receive" size={16} /> Show my code instead
       </Link>
     </div>
   )
@@ -244,7 +244,7 @@ export function PayCharge({ id }: { id: string }) {
   if (stage.at === 'paid')
     return (
       <div className="w-screen w-moment">
-        <Art name="scene-paid-terminal" size={240} className="w-moment-art" />
+        <Art name="scene-paid-terminal" size={168} className="w-moment-art" />
         <h1 className="w-hero-title">Paid!</h1>
         <p className="w-moment-big">
           {formatUsd(amount)} to {place}
@@ -292,7 +292,7 @@ export function PayCharge({ id }: { id: string }) {
         </div>
       ) : (
         <div className="w-review">
-          <Art name="badge-shop" size={72} className="w-face" />
+          <Art name="badge-shop" size={60} className="w-face" />
           <p className="w-lead">Pay for your order at</p>
           <h1 className="w-title">{place}</h1>
           <p className="w-code-amount">{formatUsd(amount)}</p>

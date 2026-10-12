@@ -786,10 +786,12 @@ export function WalletProvider({
       )
         continue
       const key = entry.address.toLowerCase()
+      // The name this browser kept with the payment until the vault opens with its own.
       if (!people.has(key))
         people.set(key, {
           address: getAddress(entry.address),
-          name: nameFor(entry.address) ?? short(entry.address),
+          name:
+            nameFor(entry.address) ?? (isUnnamed(entry.name) ? short(entry.address) : entry.name),
         })
     }
     for (const c of saved) {

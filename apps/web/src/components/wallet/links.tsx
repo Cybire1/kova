@@ -82,7 +82,7 @@ export function Links() {
 
       {back ? (
         <p className="lk-list-back" role="status">
-          <Icon name="check" size={18} />
+          <Icon name="check" size={16} />
           {formatUsd(back.amount)} is back in your wallet, in {(back.ms / 1000).toFixed(1)} s
         </p>
       ) : null}
@@ -91,7 +91,7 @@ export function Links() {
         <div className="w-loading lk-list-loading" aria-busy="true" />
       ) : links.length === 0 ? (
         <div className="w-empty w-empty-art">
-          <Art name="kovi-peek" size={150} />
+          <Art name="kovi-peek" size={120} />
           <strong>No links yet</strong>
           <span>
             Send dollars to anyone as a link, even someone without Kova. They claim it in a tap.
@@ -186,10 +186,10 @@ function Row({
     <div className={`lk-row lk-row-${link.status}`}>
       <div className="lk-row-top">
         {link.status === 'claimed' && link.claimed_by ? (
-          <Avatar name={link.claimed_by} id={link.claimed_by} size={44} />
+          <Avatar name={link.claimed_by} id={link.claimed_by} size={40} />
         ) : (
           <span className={`lk-row-disc${link.status === 'returned' ? ' lk-row-disc-back' : ''}`}>
-            <Icon name={link.status === 'returned' ? 'down' : 'link'} size={20} />
+            <Icon name={link.status === 'returned' ? 'down' : 'link'} size={18} />
           </span>
         )}
         <span className="lk-row-text">
@@ -225,7 +225,7 @@ function Row({
                 target="_blank"
                 rel="noreferrer"
               >
-                <Icon name="whatsapp" size={16} /> WhatsApp
+                <Icon name="whatsapp" size={15} /> WhatsApp
               </a>
               <button
                 type="button"

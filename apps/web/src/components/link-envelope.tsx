@@ -32,7 +32,7 @@ export function LinkEnvelope({
   const Head = headline ? 'h1' : 'p'
   return (
     <div className={`lk-env${stamp ? ' lk-env-closed' : ''}`}>
-      <Art name="kovi-peek" size={132} className="lk-env-peek" priority alt="" />
+      <Art name="kovi-peek" size={88} className="lk-env-peek" priority alt="" />
       <div className="lk-env-card">
         <svg
           className="lk-env-flap"
@@ -44,7 +44,7 @@ export function LinkEnvelope({
         </svg>
         <Head className="lk-env-head">
           <span className="lk-env-from">
-            <Avatar name={from} id={fromId} size={34} />
+            <Avatar name={from} id={fromId} size={22} />
             {first} sent you
           </span>
           <strong className="lk-env-amount">{amount}</strong>

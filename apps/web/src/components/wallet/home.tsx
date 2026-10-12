@@ -22,14 +22,14 @@ export function Home() {
     <div className="w-screen">
       <div className="w-hello">
         <Link href="/wallet/profile" aria-label="Your profile">
-          <Avatar name={profile.name} id={profile.address} size={44} />
+          <Avatar name={profile.name} id={profile.address} size={38} />
         </Link>
         <div className="w-hello-text">
           <span>Hello</span>
           <strong>{profile.name ? profile.name.split(' ')[0] : 'there'}</strong>
         </div>
         <Link href="/wallet/activity" className="round" aria-label="Activity">
-          <Icon name="bell" size={20} />
+          <Icon name="bell" size={18} />
         </Link>
       </div>
 
@@ -41,10 +41,10 @@ export function Home() {
         <Link href="/wallet/pay" className="w-pay" aria-label="Pay. Scan a code or pay a link">
           <span className="w-pay-icons">
             <span className="w-pay-icon w-pay-icon-coral">
-              <Icon name="scan" size={22} />
+              <Icon name="scan" size={20} />
             </span>
             <span className="w-pay-icon">
-              <Icon name="tap" size={22} />
+              <Icon name="tap" size={20} />
             </span>
           </span>
           <svg
@@ -74,7 +74,7 @@ export function Home() {
       {empty ? (
         <Link href="/wallet/add" className="w-notice">
           <span className="w-notice-icon">
-            <Icon name="plus" size={20} />
+            <Icon name="plus" size={18} />
           </span>
           <span className="w-notice-text">
             <strong>
@@ -82,7 +82,7 @@ export function Home() {
             </strong>
             <span>
               {network === 'testnet'
-                ? '$5 a day, free on Monad testnet. Arrives in about a second.'
+                ? 'Free on Monad testnet, $5 a day'
                 : 'Send AUSD on Monad to your address.'}
             </span>
           </span>
@@ -94,7 +94,7 @@ export function Home() {
       <div className="w-people">
         <Link href="/wallet/send" className="w-person" aria-label="Pay someone new">
           <span className="w-person-new">
-            <Icon name="plus" size={22} />
+            <Icon name="plus" size={20} />
           </span>
           <span>New</span>
         </Link>
@@ -105,7 +105,7 @@ export function Home() {
             className="w-person"
             aria-label={`Send to ${c.name}`}
           >
-            <Avatar name={c.name} id={c.address} size={56} />
+            <Avatar name={c.name} id={c.address} size={48} />
             <span>{isUnnamed(c.name) ? c.address.slice(0, 6) : c.name.split(' ')[0]}</span>
           </Link>
         ))}
@@ -155,7 +155,7 @@ function ShopCard() {
     >
       <Awning height={22} stripe={16} />
       <span className="w-shopcard-body">
-        <Art name="badge-shop" size={50} className="w-face" />
+        <Art name="badge-shop" size={42} className="w-face" />
         <span className="w-shopcard-text">
           <small>{name ? 'Your shop' : 'Run a shop?'}</small>
           <strong>{name ?? 'Open a shop'}</strong>

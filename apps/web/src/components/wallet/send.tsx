@@ -208,10 +208,10 @@ export function SendSheet({ to }: { to?: string }) {
                       aria-label="Back"
                       onClick={() => moveTo('who')}
                     >
-                      <Icon name="back" size={20} />
+                      <Icon name="back" size={18} />
                     </button>
                   )}
-                  <Avatar name={name} id={payee.address} size={44} />
+                  <Avatar name={name} id={payee.address} size={40} />
                   <span className="w-sheet-who">
                     <strong>To {isUnnamed(name) ? short(payee.address) : name}</strong>
                     <small>{isUnnamed(name) ? 'A Monad address' : short(payee.address)}</small>
@@ -234,7 +234,7 @@ export function SendSheet({ to }: { to?: string }) {
                   ) : null}
                 </div>
                 <label className="w-note w-note-private">
-                  <Icon name="lock" size={15} />
+                  <Icon name="lock" size={14} />
                   <input
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
@@ -269,7 +269,7 @@ export function SendSheet({ to }: { to?: string }) {
                     disabled={busy}
                     onClick={() => moveTo('amount')}
                   >
-                    <Icon name="back" size={20} />
+                    <Icon name="back" size={18} />
                   </button>
                   <strong className="w-sheet-title">
                     {busy ? `Sending to ${first(name)}` : 'Check and send'}
@@ -317,7 +317,7 @@ export function SendSheet({ to }: { to?: string }) {
                 </dl>
                 {problem ? (
                   <p className="w-sheet-problem" role="alert">
-                    <Icon name="info" size={18} />
+                    <Icon name="info" size={16} />
                     {problem}
                     {/went through/i.test(problem) ? '' : ' Your money hasn’t moved.'}
                   </p>
@@ -344,10 +344,10 @@ export function SendSheet({ to }: { to?: string }) {
             {step === 'sent' && payee && sent ? (
               <div className="w-sheet-sent">
                 <div className="w-sheet-cheer">
-                  <Art name="kovi-cheer" size={150} />
-                  <Art name="sparkle-4" size={26} className="w-spark w-spark-1" />
-                  <Art name="sparkle-8" size={30} className="w-spark w-spark-2" />
-                  <Art name="sparkle-11" size={20} className="w-spark w-spark-3" />
+                  <Art name="kovi-cheer" size={120} />
+                  <Art name="sparkle-4" size={22} className="w-spark w-spark-1" />
+                  <Art name="sparkle-8" size={26} className="w-spark w-spark-2" />
+                  <Art name="sparkle-11" size={18} className="w-spark w-spark-3" />
                 </div>
                 <h2>Sent</h2>
                 <p>
@@ -355,7 +355,7 @@ export function SendSheet({ to }: { to?: string }) {
                   {theirLocal ? `, about ${theirLocal}` : ''}
                 </p>
                 <span className="w-sheet-time">
-                  <Icon name="bolt" size={16} />
+                  <Icon name="bolt" size={14} />
                   Arrived in {(sent.ms / 1000).toFixed(2)} s on Monad
                 </span>
                 <button type="button" className="pill pill-block" data-tone="ink" onClick={close}>
@@ -452,7 +452,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
           go(text)
         }}
       >
-        <Icon name="search" size={20} />
+        <Icon name="search" size={18} />
         <input
           value={text}
           onChange={(e) => {
@@ -471,7 +471,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
             onClick={() => setText('')}
             aria-label="Clear"
           >
-            <Icon name="close" size={18} />
+            <Icon name="close" size={16} />
           </button>
         ) : (
           <button
@@ -487,7 +487,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
           </button>
         )}
         <Link href="/wallet/pay" className="w-find-scan" aria-label="Scan their code">
-          <Icon name="scan" size={20} />
+          <Icon name="scan" size={18} />
         </Link>
       </form>
       {error ? <p className="form-error">{error}</p> : null}
@@ -495,13 +495,13 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
       {scanned?.kind === 'claim' ? (
         <button type="button" className="w-match" onClick={() => go(text)}>
           <span className="w-linkrow-disc">
-            <Icon name="gift" size={22} />
+            <Icon name="gift" size={20} />
           </span>
           <span>
             <strong>Open this link</strong>
             <small>Dollars someone sent you, ready to claim</small>
           </span>
-          <Icon name="arrow" size={20} />
+          <Icon name="arrow" size={18} />
         </button>
       ) : null}
 
@@ -509,13 +509,13 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
         <>
           <Link href="/wallet/send/link" className="w-linkrow">
             <span className="w-linkrow-disc">
-              <Icon name="link" size={22} />
+              <Icon name="link" size={20} />
             </span>
             <span className="w-linkrow-text">
               <strong>Send as a link</strong>
               <small>To anyone, even without Kova. They claim it in a tap.</small>
             </span>
-            <Icon name="arrow" size={20} />
+            <Icon name="arrow" size={18} />
           </Link>
           {hasLinks ? (
             <Link href="/wallet/links" className="w-linkrow-mine">
@@ -527,7 +527,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
 
       {scanned?.kind === 'person' ? (
         <button type="button" className="w-match" onClick={() => go(text)}>
-          <Avatar name={scanned.name ?? scanned.address} id={scanned.address} size={48} />
+          <Avatar name={scanned.name ?? scanned.address} id={scanned.address} size={44} />
           <span>
             <strong>Send to {scanned.name ?? short(scanned.address)}</strong>
             <small>
@@ -536,13 +536,13 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
                 : 'Monad address, ready to pay'}
             </small>
           </span>
-          <Icon name="arrow" size={20} />
+          <Icon name="arrow" size={18} />
         </button>
       ) : null}
 
       {contacts.length === 0 && !scanned ? (
         <div className="w-empty w-empty-art">
-          <Art name="kovi-ride" size={130} className="w-bob" />
+          <Art name="kovi-ride" size={104} className="w-bob" />
           <strong>Send your first payment</strong>
           <span>
             Paste a friend’s Kova link or their Monad address. It lands in about a second, and Kova
@@ -560,7 +560,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
               className="w-person"
               onClick={() => onPick({ address: c.address, name: c.name, currency: c.currency })}
             >
-              <Avatar name={c.name} id={c.address} size={56} />
+              <Avatar name={c.name} id={c.address} size={48} />
               <span>{isUnnamed(c.name) ? c.address.slice(0, 6) : first(c.name)}</span>
             </button>
           ))}
@@ -578,12 +578,12 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
                 className="w-list-row"
                 onClick={() => onPick({ address: c.address, name: c.name, currency: c.currency })}
               >
-                <Avatar name={c.name} id={c.address} size={44} />
+                <Avatar name={c.name} id={c.address} size={40} />
                 <span className="w-list-text">
                   <strong>{isUnnamed(c.name) ? short(c.address) : c.name}</strong>
                   <small>{story(activity, c.address)}</small>
                 </span>
-                <Icon name="arrow" size={18} />
+                <Icon name="chevron" size={16} />
               </button>
             ))}
           </div>
@@ -611,7 +611,7 @@ export function Fact({
         <span>
           {icon ? (
             <span className={icon === 'lock' ? 'w-fact-lock' : undefined}>
-              <Icon name={icon} size={15} />
+              <Icon name={icon} size={14} />
             </span>
           ) : null}
           {value}
@@ -622,8 +622,8 @@ export function Fact({
   )
 }
 
-const KNOB = 56
-const PAD = 6
+const KNOB = 50
+const PAD = 5
 
 /**
  * Slide to send: the one deliberate gesture between a review and money leaving. The track fills
@@ -671,9 +671,9 @@ export function SlideToSend({
       >
         {label}
         <span className="w-slide-chevrons" aria-hidden="true">
-          <Icon name="chevron" size={16} />
-          <Icon name="chevron" size={16} />
-          <Icon name="chevron" size={16} />
+          <Icon name="chevron" size={14} />
+          <Icon name="chevron" size={14} />
+          <Icon name="chevron" size={14} />
         </span>
       </span>
       {busy ? <span className="w-slide-words">Sending</span> : null}
@@ -721,7 +721,7 @@ export function SlideToSend({
         }}
         onClick={(e) => e.preventDefault()}
       >
-        {busy ? <span className="w-slide-spin" /> : <Icon name="arrow" size={24} />}
+        {busy ? <span className="w-slide-spin" /> : <Icon name="arrow" size={22} />}
       </button>
     </div>
   )

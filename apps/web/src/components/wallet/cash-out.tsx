@@ -65,7 +65,7 @@ export function CashOut() {
     <div className="w-screen">
       <ScreenHead title="Cash out" />
       <div className="w-add">
-        <Art name="kovi-catch" size={140} className="w-add-art" />
+        <Art name="kovi-catch" size={104} className="w-add-art" />
         <h1 className="w-title">
           {stage.at === 'sent' ? 'On its way to your bank' : 'Cash out to your bank or card'}
         </h1>

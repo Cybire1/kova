@@ -100,7 +100,7 @@ export function Shop() {
     <div className="w-screen">
       <ScreenHead title="Your shop" />
       <div className="w-shop">
-        <Art name="scene-paid-terminal" size={250} className="w-shop-art" />
+        <Art name="scene-paid-terminal" size={144} className="w-shop-art" />
         <h1 className="w-title">Take payments into this wallet</h1>
         <p className="w-lead">
           A shop, a stall page and a till, with sales landing here in about a second. You sign in to

@@ -185,10 +185,10 @@ export function LinkSheet() {
               <div className="w-sheet-amount">
                 <div className="w-sheet-top">
                   <Link href="/wallet/send" className="round" aria-label="Back">
-                    <Icon name="back" size={20} />
+                    <Icon name="back" size={18} />
                   </Link>
                   <span className="w-linkrow-disc">
-                    <Icon name="link" size={22} />
+                    <Icon name="link" size={20} />
                   </span>
                   <span className="w-sheet-who">
                     <strong>Send as a link</strong>
@@ -243,7 +243,7 @@ export function LinkSheet() {
                     disabled={busy || unrecorded !== null}
                     onClick={() => moveTo('amount')}
                   >
-                    <Icon name="back" size={20} />
+                    <Icon name="back" size={18} />
                   </button>
                   <strong className="w-sheet-title">
                     {phase === 'funding'
@@ -273,7 +273,7 @@ export function LinkSheet() {
                 </dl>
                 {problem ? (
                   <p className="w-sheet-problem" role="alert">
-                    <Icon name="info" size={18} />
+                    <Icon name="info" size={16} />
                     {problem}
                   </p>
                 ) : null}
@@ -300,9 +300,9 @@ export function LinkSheet() {
             {step === 'made' && made ? (
               <div className="lk-made">
                 <div className="w-sheet-cheer">
-                  <Art name="kovi-key" size={124} />
-                  <Art name="sparkle-4" size={24} className="w-spark w-spark-1" />
-                  <Art name="sparkle-8" size={28} className="w-spark w-spark-2" />
+                  <Art name="kovi-key" size={104} />
+                  <Art name="sparkle-4" size={22} className="w-spark w-spark-1" />
+                  <Art name="sparkle-8" size={26} className="w-spark w-spark-2" />
                 </div>
                 <h2>Your link is ready</h2>
                 <p>
@@ -310,7 +310,7 @@ export function LinkSheet() {
                   without Kova.
                 </p>
                 <div className="lk-made-link">
-                  <Icon name="link" size={18} />
+                  <Icon name="link" size={16} />
                   <span>{made.url.replace(/^https?:\/\//, '').split('#')[0]}</span>
                   <CopyButton text={made.url} />
                 </div>

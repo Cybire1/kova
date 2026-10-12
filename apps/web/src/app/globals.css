@@ -26,7 +26,39 @@
   --font: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --spring: cubic-bezier(0.32, 0.72, 0, 1);
 
+  /* The pill's size. A surface can set its own; on a phone it is the app's 48 px with a 36 px cap. */
+  --pill-h: 3.5rem;
+  --pill-cap-size: 2.75rem;
+  --pill-fs: 1.0625rem;
+  --pill-pl: 1.5rem;
+
   color-scheme: light;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --pill-h: 3rem;
+    --pill-cap-size: 2.25rem;
+    --pill-fs: 0.9375rem;
+    --pill-pl: 1.25rem;
+  }
+}
+
+/* The wallet and the pages anyone opens (a link, a request, a checkout, a shop, the books): a
+   wide screen shows them a step roomier than a phone, in the same proportions. */
+@media (min-width: 641px) {
+  .w-app,
+  .lk-page,
+  .to-page,
+  .pay-page,
+  .store,
+  .bk-page,
+  .poster-page {
+    --pill-h: 3.25rem;
+    --pill-cap-size: 2.5rem;
+    --pill-fs: 1rem;
+    --pill-pl: 1.375rem;
+  }
 }
 
 *,
@@ -132,18 +164,26 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.25rem;
-  height: 3.5rem;
-  padding: 0 0.375rem 0 1.5rem;
+  gap: 0.75rem;
+  height: var(--pill-h);
+  padding: 0 calc((var(--pill-h) - var(--pill-cap-size)) / 2) 0 var(--pill-pl);
   border: 0;
   border-radius: 999px;
   background: var(--bg);
   color: var(--fg);
-  font-size: 1.0625rem;
+  font-size: var(--pill-fs);
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
   transition: transform 0.4s var(--spring), background-color 0.3s var(--spring);
+}
+
+/* A pill says one thing on one line: a long label ends in an ellipsis rather than wrapping. */
+.pill-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pill[data-tone="coral"] {
@@ -165,9 +205,10 @@ p {
 
 .pill-cap {
   display: grid;
+  flex: none;
   place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: var(--pill-cap-size);
+  height: var(--pill-cap-size);
   border-radius: 50%;
   background: var(--cap);
   color: var(--cap-fg);
@@ -200,8 +241,8 @@ p {
 .round {
   display: grid;
   place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: var(--round-size, 2.5rem);
+  height: var(--round-size, 2.5rem);
   border: 0;
   border-radius: 50%;
   background: rgba(11, 26, 29, 0.07);
@@ -1223,10 +1264,10 @@ p {
 
 .keep {
   position: relative;
-  margin: 1.5rem 0 0;
-  padding: 1.35rem 1.25rem 1.1rem;
+  margin: 1.25rem 0 0;
+  padding: 1.125rem 1.125rem 1rem;
   border: 2px solid var(--ink);
-  border-radius: 1.75rem;
+  border-radius: 1.5rem;
   background: var(--surface);
   animation: rise 0.5s var(--spring) 0.35s both;
 }
@@ -1242,9 +1283,9 @@ p {
 .keep-head {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
-  padding: 0.8rem 1rem;
-  border-radius: 1.2rem;
+  gap: 0.875rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: 1.125rem;
   background: var(--teal);
   color: #fff;
 }
@@ -1252,11 +1293,11 @@ p {
 .keep-head small {
   display: block;
   color: #dcebea;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
 }
 
 .keep-head strong {
-  font-size: 1.9rem;
+  font-size: 1.625rem;
   font-weight: 800;
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
@@ -1266,8 +1307,8 @@ p {
   position: relative;
   display: block;
   flex: none;
-  width: 68px;
-  height: 52px;
+  width: 58px;
+  height: 44px;
 }
 
 .keep-coins > :first-child {
@@ -1285,28 +1326,30 @@ p {
 }
 
 .keep h2 {
-  margin: 1.1rem 0 0.35rem;
-  font-size: 1.5rem;
+  margin: 1rem 0 0.25rem;
+  font-size: 1.3125rem;
   font-weight: 800;
   letter-spacing: -0.035em;
+  line-height: 1.2;
 }
 
 .keep p {
   margin: 0;
   color: var(--muted);
+  font-size: 0.9375rem;
   line-height: 1.5;
 }
 
 .keep-name {
   display: grid;
   gap: 0.35rem;
-  margin: 1rem 0 0.9rem;
-  font-size: 0.875rem;
+  margin: 0.875rem 0 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 
 .keep-name input {
-  height: 3rem;
+  height: var(--pill-h);
   padding: 0 1rem;
   border: 2px solid var(--ink);
   border-radius: 999px;
@@ -1357,11 +1400,11 @@ p {
 
 .keep-done h2 {
   margin-top: 0.4rem;
-  font-size: 1.85rem;
+  font-size: 1.625rem;
 }
 
 .keep-done .pill {
-  margin-top: 1.1rem;
+  margin-top: 1rem;
 }
 
 @keyframes keep-catch {

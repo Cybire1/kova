@@ -56,7 +56,7 @@ export default async function ClaimPage(props: Props) {
           <Brand />
         </header>
         <div className="lk-panel lk-closed lk-missing" role="alert">
-          <Art name="kovi-oops" size={130} className="lk-closed-art" priority />
+          <Art name="kovi-oops" size={96} className="lk-closed-art" priority />
           <h1 className="lk-h">This link doesn’t open</h1>
           <p className="w-lead">
             Kova has no link like this one. It may be cut short: open the whole link as it was sent,

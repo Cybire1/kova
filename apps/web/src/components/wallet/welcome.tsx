@@ -71,7 +71,7 @@ export function Welcome({ forShop = false }: { forShop?: boolean }) {
           }}
         >
           <div className="w-namecard-top">
-            <Avatar name={name || '?'} size={40} />
+            <Avatar name={name || '?'} size={36} />
             <span>Asks you for money</span>
           </div>
           <label className="sr-only" htmlFor="w-name">
@@ -127,7 +127,7 @@ export function Welcome({ forShop = false }: { forShop?: boolean }) {
 
   return (
     <div className="w-welcome">
-      <Art name="scene-welcome" size={420} className="w-welcome-art" priority />
+      <Art name="scene-welcome" size={224} className="w-welcome-art" priority />
       <h1 className="w-hero-title">Tap. Paid. Anywhere.</h1>
       <p className="w-lead">
         {forShop

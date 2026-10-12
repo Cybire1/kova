@@ -54,7 +54,7 @@ export function Request() {
           <p className="w-code-amount">{formatUsd(toBase(amount))}</p>
           {note.trim() ? <p className="w-lead">for {note.trim()}</p> : null}
           <div className="w-code-card">
-            <QR value={link} size={220} label={`Code to pay ${profile.name} ${amount} dollars`} />
+            <QR value={link} size={200} label={`Code to pay ${profile.name} ${amount} dollars`} />
           </div>
           <p className="w-fine w-center">
             They can scan it with the Kova app or any phone camera. It opens on the web if they
@@ -127,7 +127,7 @@ export function Receive() {
         <h1 className="w-title">Scan to pay {firstName}</h1>
         <p className="w-lead">It lands in seconds, from anywhere.</p>
         <div className="w-code-card">
-          <QR value={link} size={220} label={`Code to pay ${profile.name}`} />
+          <QR value={link} size={200} label={`Code to pay ${profile.name}`} />
         </div>
         <div className="w-address">
           <span>

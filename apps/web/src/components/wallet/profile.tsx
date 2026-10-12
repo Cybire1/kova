@@ -65,7 +65,7 @@ export function Profile() {
               name: profile.name,
               currency: profile.currency,
             })}
-            size={104}
+            size={96}
             label="Your Kova code"
           />
         </Link>
@@ -90,7 +90,7 @@ export function Profile() {
             <strong>Cash out</strong>
             <small>To your bank or card, with Ramp Network</small>
           </span>
-          <Icon name="out" size={18} />
+          <Icon name="out" size={16} />
         </Link>
       ) : null}
 
@@ -125,7 +125,7 @@ export function Profile() {
       <section className="w-keys">
         <div className="w-keys-head">
           <span className="w-keys-icon">
-            <Icon name="face" size={20} />
+            <Icon name="face" size={18} />
           </span>
           <span>
             <strong>Your passkey</strong>

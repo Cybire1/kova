@@ -20,7 +20,7 @@ export function ScreenHead({
   return (
     <div className="w-head">
       <Link href={back} className="round" aria-label="Back">
-        <Icon name="back" size={20} />
+        <Icon name="back" size={18} />
       </Link>
       <h1>{title}</h1>
       <span className="w-head-end">{children}</span>
@@ -133,24 +133,31 @@ export function Activity() {
             <i className="w-dot-out" /> Out {formatUsd(month.out)}
           </span>
         </div>
+        <span className="w-week-caption">Last 7 days</span>
         <div className="w-week" aria-hidden="true">
-          {month.days.map((d) => {
+          {month.days.map((d, i) => {
             const height = (v: bigint) =>
               month.peak === 0n
                 ? 0
-                : Math.max(v > 0n ? 6 : 0, Math.round((Number(v) / Number(month.peak)) * 64))
+                : Math.max(v > 0n ? 4 : 0, Math.round((Number(v) / Number(month.peak)) * 64))
+            const quiet = d.dayIn === 0n && d.dayOut === 0n
             return (
-              <span key={d.at} className="w-week-day">
+              <span key={d.at} className={`w-week-day${i === 6 ? ' w-week-today' : ''}`}>
                 <span className="w-week-bar">
-                  <i className="w-week-in" style={{ height: height(d.dayIn) }} />
-                  <i className="w-week-out" style={{ height: height(d.dayOut) }} />
+                  {/* A quiet day is a small stub, not an empty column. */}
+                  {quiet ? <i className="w-week-none" /> : null}
+                  {d.dayIn > 0n ? (
+                    <i className="w-week-in" style={{ height: height(d.dayIn) }} />
+                  ) : null}
+                  {d.dayOut > 0n ? (
+                    <i className="w-week-out" style={{ height: height(d.dayOut) }} />
+                  ) : null}
                 </span>
                 <small>{d.label}</small>
               </span>
             )
           })}
         </div>
-        <span className="w-week-caption">Last 7 days</span>
       </section>
 
       {locked ? <ReadNotes /> : null}
@@ -242,9 +249,9 @@ export function Receipt({ id }: { id: string }) {
       <article className="w-receipt">
         <div className="w-receipt-top">
           {person ? (
-            <Avatar name={entry.name} id={entry.address} size={64} />
+            <Avatar name={entry.name} id={entry.address} size={56} />
           ) : (
-            <EntryBadge entry={entry} size={64} />
+            <EntryBadge entry={entry} size={56} />
           )}
           <span className="w-receipt-verb">
             {verb[entry.kind]} {direction[entry.kind]}
@@ -298,7 +305,7 @@ export function Receipt({ id }: { id: string }) {
               {new Date(entry.at).toLocaleString([], {
                 day: 'numeric',
                 month: 'long',
-                hour: '2-digit',
+                hour: 'numeric',
                 minute: '2-digit',
               })}
             </dd>
@@ -342,7 +349,7 @@ export function Receipt({ id }: { id: string }) {
         </dl>
         {entry.explorer ? (
           <a className="w-receipt-proof" href={entry.explorer} target="_blank" rel="noreferrer">
-            View on Monadscan <Icon name="external" size={16} />
+            View on Monadscan <Icon name="external" size={15} />
           </a>
         ) : null}
       </article>
@@ -391,7 +398,7 @@ function ReadNotes({ inline }: { inline?: boolean }) {
   return (
     <div className="w-notes-locked">
       <span className="w-notes-locked-icon">
-        <Icon name="lock" size={18} />
+        <Icon name="lock" size={16} />
       </span>
       <span className="w-notes-locked-text">
         <strong>Private notes are sealed</strong>

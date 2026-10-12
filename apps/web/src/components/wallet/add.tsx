@@ -23,7 +23,7 @@ export function AddMoney() {
       <div className="w-screen">
         <ScreenHead title="Add money" />
         <div className="w-empty w-empty-art">
-          <Art name="kovi-catch" size={160} />
+          <Art name="kovi-catch" size={112} />
           <strong>Send AUSD on Monad to your address</strong>
           <span>
             Pay by card or bank with Ramp Network, or send AUSD on Monad from an exchange or another
@@ -44,7 +44,7 @@ export function AddMoney() {
   if (stage.at === 'done')
     return (
       <div className="w-screen w-moment">
-        <Art name="scene-coin-rain" size={260} className="w-moment-art" />
+        <Art name="scene-coin-rain" size={220} className="w-moment-art" />
         <h1 className="w-hero-title">Money’s in.</h1>
         <p className="w-lead">
           Your balance is {formatUsd(stage.balance)}. Pay a shop, or send some to a friend.
@@ -64,7 +64,7 @@ export function AddMoney() {
     <div className="w-screen">
       <ScreenHead title="Add money" />
       <div className="w-add">
-        <Art name="kovi-catch" size={150} className="w-add-art" />
+        <Art name="kovi-catch" size={104} className="w-add-art" />
         <h1 className="w-title">Free test dollars</h1>
         <p className="w-lead">
           Kova is running on Monad’s test network. It sends you $5 of test dollars a day to try

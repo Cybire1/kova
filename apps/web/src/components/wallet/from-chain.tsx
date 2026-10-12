@@ -139,7 +139,7 @@ export function FromChain() {
 
       {sources && !live ? (
         <div className="w-empty w-empty-art w-chain-soon">
-          <Art name="kovi-ride" size={130} className="w-bob" />
+          <Art name="kovi-ride" size={104} className="w-bob" />
           <strong>Live on Monad mainnet</strong>
           <span>
             NEAR Intents moves real liquidity between chains, so this opens when Kova moves to
@@ -150,7 +150,7 @@ export function FromChain() {
 
       {live && address ? (
         <div className="w-chain-card" key={source}>
-          <QR value={address} size={188} label={`Your ${chosen?.name ?? ''} deposit address`} />
+          <QR value={address} size={176} label={`Your ${chosen?.name ?? ''} deposit address`} />
           <small>Your {source === 'evm' ? 'EVM' : chosen?.name} address</small>
           <code>{address}</code>
           <button

@@ -54,8 +54,11 @@ export default async function PayPersonPage(props: Props) {
     <main className="to-page">
       <Brand />
       <div className="to-card">
-        <Avatar name={name} id={person.address} size={88} />
-        <p className="to-ask">{person.amount ? `${name} asked you for` : `Pay ${name}`}</p>
+        <Avatar name={name} id={person.address} size={72} />
+        <h1 className="to-name">{name}</h1>
+        <p className="to-ask">
+          {person.amount ? 'asked you for' : 'Pay them in dollars, from anywhere'}
+        </p>
         {person.amount ? (
           <p className="w-code-amount">
             ${Number(person.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}

@@ -46,7 +46,7 @@ export function Avatar({ name, id, size = 56 }: { name: string; id?: string; siz
   )
 }
 
-export function EntryBadge({ entry, size = 44 }: { entry: Entry; size?: number }) {
+export function EntryBadge({ entry, size = 40 }: { entry: Entry; size?: number }) {
   if (entry.kind === 'paid') return <Art name="badge-shop" size={size} className="w-face" />
   if (entry.kind === 'added') return <Art name="badge-add" size={size} className="w-face" />
   if (entry.link)
@@ -62,7 +62,7 @@ const verbs = { paid: 'Paid', sent: 'Sent', received: 'Received', added: 'Added'
 
 export function when(at: number): string {
   const d = new Date(at)
-  const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
   if (d.toDateString() === new Date().toDateString()) return time
   if (d.toDateString() === new Date(Date.now() - 86_400_000).toDateString())
     return `Yesterday, ${time}`
@@ -125,8 +125,8 @@ export function BalanceCard() {
         ))}
       </svg>
       <span className="w-balance-coins" aria-hidden="true">
-        <Art name="coin-usd" size={50} className="w-coin w-coin-front" />
-        <Art name="coin-eur" size={40} className="w-coin w-coin-back" />
+        <Art name="coin-usd" size={44} className="w-coin w-coin-front" />
+        <Art name="coin-eur" size={34} className="w-coin w-coin-back" />
       </span>
       <div className="w-balance-top">
         <button
@@ -135,10 +135,10 @@ export function BalanceCard() {
           onClick={() => setHideBalance(!hideBalance)}
           aria-label={hideBalance ? 'Show balance' : 'Hide balance'}
         >
-          Available <Icon name={hideBalance ? 'eyeOff' : 'eye'} size={18} />
+          Available <Icon name={hideBalance ? 'eyeOff' : 'eye'} size={16} />
         </button>
         <Link href="/wallet/add" className="w-balance-add">
-          <Icon name="plus" size={16} /> Add
+          <Icon name="plus" size={14} /> Add
         </Link>
       </div>
       <p className="w-balance-amount">
@@ -221,12 +221,12 @@ export function ActionTile({ kind }: { kind: 'send' | 'request' }) {
         />
       </svg>
       {send ? (
-        <Art name="plane" size={54} className="w-tile-plane" />
+        <Art name="plane" size={46} className="w-tile-plane" />
       ) : (
-        <Art name="coin-usd" size={30} className="w-tile-coin" />
+        <Art name="coin-usd" size={26} className="w-tile-coin" />
       )}
       <span className="w-tile-disc">
-        <Icon name={send ? 'send' : 'receive'} size={18} />
+        <Icon name={send ? 'send' : 'receive'} size={16} />
       </span>
       <span className="w-tile-label">{send ? 'Send' : 'Request'}</span>
     </Link>
@@ -276,7 +276,7 @@ export function Keypad({ onKey, decimals = 2 }: { onKey: (key: Key) => void; dec
             onClick={() => onKey(key)}
             aria-label={key === 'del' ? 'Delete' : key === '.' ? 'Point' : key}
           >
-            {key === 'del' ? <Icon name="del" size={24} /> : key}
+            {key === 'del' ? <Icon name="del" size={22} /> : key}
           </button>
         ),
       )}
@@ -328,7 +328,7 @@ export function CopyButton({
         setTimeout(() => setCopied(false), 1600)
       }}
     >
-      <Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? 'Copied' : label}
+      <Icon name={copied ? 'check' : 'copy'} size={15} /> {copied ? 'Copied' : label}
     </button>
   )
 }

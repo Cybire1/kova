@@ -400,7 +400,7 @@ export function ClaimLink({
           <div className="lk-panel lk-closed">
             {link.status === 'returned' ? (
               <>
-                <Art name="kovi-wave" size={110} className="lk-closed-art" />
+                <Art name="kovi-wave" size={88} className="lk-closed-art" />
                 <h2 className="lk-h">{senderFirst} took this back</h2>
                 <p className="w-lead">
                   Nobody claimed it, so the dollars went back to {sender}. Ask them to send a new
@@ -411,7 +411,7 @@ export function ClaimLink({
               <>
                 <Art
                   name={youClaimed ? 'kovi-catch' : 'kovi-sleep'}
-                  size={110}
+                  size={88}
                   className="lk-closed-art"
                 />
                 <h2 className="lk-h">{youClaimed ? 'You claimed this' : 'Already claimed'}</h2>
@@ -443,7 +443,7 @@ export function ClaimLink({
           </div>
         ) : key === null ? (
           <div className="lk-panel lk-closed" role="alert">
-            <Art name="kovi-oops" size={110} className="lk-closed-art" />
+            <Art name="kovi-oops" size={88} className="lk-closed-art" />
             <h2 className="lk-h">This link is incomplete</h2>
             <p className="w-lead">
               The part that claims the dollars is missing, so they can’t be claimed from here. Ask{' '}
@@ -454,7 +454,7 @@ export function ClaimLink({
           <div className="lk-panel">
             {problem ? (
               <p className="w-sheet-problem lk-problem" role="alert">
-                <Icon name="info" size={18} />
+                <Icon name="info" size={16} />
                 {problem}
               </p>
             ) : null}
@@ -481,7 +481,7 @@ export function ClaimLink({
                     disabled={stage.waiting !== null}
                     onClick={() => setStage({ at: 'choose' })}
                   >
-                    <Icon name="back" size={20} />
+                    <Icon name="back" size={18} />
                   </button>
                   <h2 className="lk-h">Your Kova wallet</h2>
                 </div>
@@ -522,22 +522,21 @@ export function ClaimLink({
                 </button>
                 <button
                   type="button"
-                  className="shop-wallet shop-wallet-make"
+                  className="pill pill-block"
+                  data-tone="light"
                   disabled={stage.waiting !== null || !canPasskey}
                   onClick={() => void openWallet()}
                 >
-                  <span className="wallet-glyph">
+                  <span className="pill-label">
+                    {stage.waiting === 'open' ? 'Waiting for your passkey…' : 'I already have Kova'}
+                  </span>
+                  <span className="pill-cap">
                     {stage.waiting === 'open' ? (
                       <span className="spinner w-spinner-light" aria-hidden="true" />
                     ) : (
                       <Icon name="key" size={16} />
                     )}
                   </span>
-                  <span>
-                    {stage.waiting === 'open' ? 'Waiting for your passkey…' : 'I already have Kova'}
-                    <small className="wallet-sub">Open it with the passkey from the app</small>
-                  </span>
-                  <Icon name="arrow" size={18} />
                 </button>
                 {canPasskey ? null : (
                   <p className="form-note">
@@ -691,7 +690,7 @@ function Mine({ url, onTakeBack }: { url: string; onTakeBack: () => void }) {
   return (
     <div className="lk-mine">
       <span className="lk-mine-icon">
-        <Icon name="link" size={18} />
+        <Icon name="link" size={16} />
       </span>
       <div className="lk-mine-text">
         <strong>This is your link</strong>
@@ -737,10 +736,10 @@ function Done({
   return (
     <div className="lk-panel lk-done">
       <div className="w-sheet-cheer lk-cheer">
-        <Art name="kovi-cheer" size={150} />
-        <Art name="sparkle-4" size={26} className="w-spark w-spark-1" />
-        <Art name="sparkle-8" size={30} className="w-spark w-spark-2" />
-        <Art name="sparkle-11" size={20} className="w-spark w-spark-3" />
+        <Art name="kovi-cheer" size={104} />
+        <Art name="sparkle-4" size={22} className="w-spark w-spark-1" />
+        <Art name="sparkle-8" size={26} className="w-spark w-spark-2" />
+        <Art name="sparkle-11" size={18} className="w-spark w-spark-3" />
       </div>
       <h2 className="lk-done-h">{back ? 'Back with you' : 'It’s yours'}</h2>
       <p className="lk-done-p">
@@ -753,7 +752,7 @@ function Done({
               : `${formatUsd(amount)} went to ${short(stage.to)}.`}
       </p>
       <span className="w-sheet-time">
-        <Icon name="bolt" size={16} />
+        <Icon name="bolt" size={14} />
         Arrived in {seconds} s on Monad
       </span>
       {stage.claimed.claim_explorer_url ? (

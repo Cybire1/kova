@@ -186,6 +186,65 @@ export function Icon({ name, size = 20, color = 'currentColor' }: { name: IconNa
   )
 }
 
+export type NavIconName = 'home' | 'activity' | 'people' | 'profile' | 'pay'
+
+/**
+ * The dock's own icons, drawn as the app draws them (apps/mobile src/ui/NavIcons.tsx): home has a
+ * coin for a door, activity is a receipt, people are two of you. Inactive they are quiet outlines;
+ * active, their key part fills with colour.
+ */
+export function NavIcon({ name, active, size = 22 }: { name: NavIconName; active?: boolean; size?: number }) {
+  const line = {
+    stroke: 'currentColor',
+    strokeWidth: active ? 2 : 1.8,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  }
+  const fill = (accent: string) => (active ? accent : 'none')
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      {name === 'home' ? (
+        <>
+          <path d="M3.8 10.4 12 3.8l8.2 6.6v8.4a1.7 1.7 0 0 1-1.7 1.7h-13a1.7 1.7 0 0 1-1.7-1.7z" fill={fill('#8fb9bb')} {...line} />
+          <circle cx={12} cy={15.2} r={3} fill={fill('var(--coral-soft)')} {...line} />
+          <path d="M12 13.9v2.6" {...line} strokeWidth={1.4} />
+        </>
+      ) : null}
+      {name === 'activity' ? (
+        <>
+          <path d="M5.5 3.2h13v17.4l-2.2-1.6-2.1 1.6-2.2-1.6-2.2 1.6-2.1-1.6-2.2 1.6z" fill={fill('var(--coral-soft)')} {...line} />
+          <path d="M8.6 8h6.8M8.6 11.4h6.8M8.6 14.8h3.6" fill="none" {...line} strokeWidth={1.5} />
+        </>
+      ) : null}
+      {name === 'people' ? (
+        <>
+          <path d="M14.2 14.3c.6-.2 1.3-.3 2-.3 2.6 0 4.6 1.7 5.3 4.9" fill="none" {...line} />
+          <circle cx={16.2} cy={8.6} r={3} fill={fill('#8fb9bb')} {...line} />
+          <path d="M2.6 20.4c.8-3.7 3.4-5.8 6.5-5.8s5.7 2.1 6.5 5.8" fill={fill('var(--coral-soft)')} {...line} />
+          <circle cx={9.1} cy={9} r={3.7} fill={fill('var(--coral-soft)')} {...line} />
+        </>
+      ) : null}
+      {name === 'profile' ? (
+        <>
+          <path d="M4.6 20.4c.9-3.9 3.9-6 7.4-6s6.5 2.1 7.4 6" fill={fill('var(--coral-soft)')} {...line} />
+          <circle cx={12} cy={8.4} r={4.2} fill={fill('var(--coral-soft)')} {...line} />
+        </>
+      ) : null}
+      {name === 'pay' ? (
+        <>
+          <path
+            d="M4 8.2V6.2a2.2 2.2 0 0 1 2.2-2.2h2M15.8 4h2a2.2 2.2 0 0 1 2.2 2.2v2M20 15.8v2a2.2 2.2 0 0 1-2.2 2.2h-2M8.2 20h-2A2.2 2.2 0 0 1 4 17.8v-2"
+            fill="none"
+            {...line}
+            strokeWidth={2.1}
+          />
+          <circle cx={12} cy={12} r={3.2} fill="currentColor" />
+        </>
+      ) : null}
+    </svg>
+  )
+}
+
 /** The app's pill button: label on the left, its icon in a round cap on the right. */
 export function Pill({
   children,

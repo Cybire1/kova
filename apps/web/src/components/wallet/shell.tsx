@@ -2,21 +2,27 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Brand, Icon, type IconName } from '@/components/brand'
+import { Brand, NavIcon, type NavIconName } from '@/components/brand'
 import { useWallet } from './provider'
+import { Avatar } from './ui'
 import { Welcome } from './welcome'
 
 /**
  * The Kova app on the web: your wallet, with your shop as one of its features. The Shop card on
  * Home opens shop mode, and shop mode's "Wallet" brings you back. The dock is the app's, Pay in
  * the middle.
+ *
+ * On a phone the brand bar shows on Home and the welcome only: every other screen starts with its
+ * own title, as in the app. Send is a sheet over Home, so the dock steps aside while it's open.
  */
 export function WalletShell({ children }: { children: React.ReactNode }) {
   const { status } = useWallet()
   const path = usePathname()
+  const sheet = path.startsWith('/wallet/send')
+  const inner = status === 'ready' && path !== '/wallet' && !sheet
 
   return (
-    <div className="w-app">
+    <div className={`w-app${inner ? ' w-app-inner' : ''}`}>
       <header className="w-top">
         <Brand href="/wallet" />
       </header>
@@ -31,47 +37,70 @@ export function WalletShell({ children }: { children: React.ReactNode }) {
         )}
       </main>
 
-      {status === 'ready' ? <Dock path={path} /> : null}
+      {status === 'ready' && !sheet ? <Dock path={path} /> : null}
     </div>
   )
 }
 
-type Tab = { href: string; label: string; icon: IconName; exact?: boolean }
+type Tab = { href: string; label: string; icon: NavIconName; exact?: boolean }
 
 const before: Tab[] = [
   { href: '/wallet', label: 'Home', icon: 'home', exact: true },
-  { href: '/wallet/activity', label: 'Activity', icon: 'list' },
+  { href: '/wallet/activity', label: 'Activity', icon: 'activity' },
 ]
 const after: Tab[] = [
-  { href: '/wallet/send', label: 'People', icon: 'user' },
-  { href: '/wallet/profile', label: 'Me', icon: 'face' },
+  { href: '/wallet/send', label: 'People', icon: 'people' },
+  { href: '/wallet/profile', label: 'You', icon: 'profile' },
 ]
 
+/**
+ * A floating ink pill, as in the app: Pay is a coral capsule in the middle, the four tabs share
+ * the rest, and the one you're on sits in a light circle. You are your own face. The names are for
+ * screen readers and the pointer's tooltip, not squeezed under the icons.
+ */
 function Dock({ path }: { path: string }) {
-  const on = (t: Tab) => (t.exact ? path === t.href : path.startsWith(t.href))
-  const tab = (t: Tab) => (
-    <Link
-      key={t.href}
-      href={t.href}
-      className={`w-dock-tab${on(t) ? ' w-dock-on' : ''}`}
-      aria-current={on(t) ? 'page' : undefined}
-    >
-      <Icon name={t.icon} size={22} />
-      <span>{t.label}</span>
-    </Link>
-  )
-  return (
-    <nav className="w-dock" aria-label="Kova">
-      {before.map(tab)}
+  const { profile } = useWallet()
+  const on = (t: Tab) =>
+    t.exact ? path === t.href : path === t.href || path.startsWith(`${t.href}/`)
+  const tab = (t: Tab) => {
+    const active = on(t)
+    return (
       <Link
-        href="/wallet/pay"
-        className={`w-dock-pay${path.startsWith('/wallet/pay') ? ' w-dock-on' : ''}`}
-        aria-label="Pay. Scan a code or paste a link"
+        key={t.href}
+        href={t.href}
+        className={`w-dock-tab${active ? ' w-dock-on' : ''}`}
+        aria-label={t.label}
+        title={t.label}
+        aria-current={active ? 'page' : undefined}
       >
-        <Icon name="scan" size={22} />
-        <span>Pay</span>
+        <span className="w-dock-disc">
+          {t.icon === 'profile' && profile ? (
+            <span className="w-dock-face">
+              <Avatar name={profile.name} id={profile.address} size={26} />
+            </span>
+          ) : (
+            <NavIcon name={t.icon} active={active} size={22} />
+          )}
+        </span>
       </Link>
-      {after.map(tab)}
-    </nav>
+    )
+  }
+  return (
+    <>
+      <div className="w-dock-fade" aria-hidden="true" />
+      <nav className="w-dock" aria-label="Kova">
+        {before.map(tab)}
+        <Link
+          href="/wallet/pay"
+          className={`w-dock-pay${path.startsWith('/wallet/pay') ? ' w-dock-on' : ''}`}
+          aria-label="Pay. Scan a code or paste a link"
+          aria-current={path.startsWith('/wallet/pay') ? 'page' : undefined}
+        >
+          <NavIcon name="pay" size={20} active />
+          <span>Pay</span>
+        </Link>
+        {after.map(tab)}
+      </nav>
+    </>
   )
 }
