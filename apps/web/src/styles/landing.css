@@ -645,6 +645,77 @@
   }
 }
 
+/* On a phone: the app's proportions. 16px words, a smaller pill in the bar, and the printer a size
+   down, close under the buttons, with the next section not far behind it. */
+@media (max-width: 640px) {
+  .lp-nav {
+    padding: 0.9rem 0;
+  }
+
+  .lp-nav-actions .pill {
+    height: 2.5rem;
+    gap: 0.6rem;
+    padding: 0 0.3rem 0 1rem;
+    font-size: 0.875rem;
+  }
+
+  .lp-nav-actions .pill-cap {
+    width: 1.9rem;
+    height: 1.9rem;
+  }
+
+  .lp-nav-actions .pill-cap svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .lp-hero {
+    gap: 0;
+    padding: 0.75rem 0 1.5rem;
+  }
+
+  .lp-title {
+    font-size: clamp(2.8rem, 14vw, 3.4rem);
+  }
+
+  .lp-lead {
+    margin-top: 1.25rem;
+    font-size: 1rem;
+  }
+
+  .lp-ctas {
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+  }
+
+  .lp-fine {
+    margin-top: 0.85rem;
+    font-size: 0.8125rem;
+  }
+
+  .rh {
+    font-size: min(13px, calc((100vw - 2.5rem) / 38));
+    margin-top: 5.25em;
+  }
+
+  .rh-pause {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* Both ways in, full width and stacked, so neither label is squeezed. */
+@media (max-width: 480px) {
+  .lp-ctas {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lp-ctas .pill {
+    width: 100%;
+  }
+}
+
 /* --- Sections ------------------------------------------------------------------------------ */
 
 .lp-section {
@@ -956,6 +1027,86 @@
   }
 }
 
+@media (max-width: 640px) {
+  .lp-section {
+    padding: 3.25rem 0 0.5rem;
+  }
+
+  .lp-h2 {
+    font-size: 2.125rem;
+    line-height: 1;
+  }
+
+  .lp-moves-head {
+    gap: 0.75rem;
+  }
+
+  .lp-moves-lead {
+    font-size: 1rem;
+  }
+
+  .lp-track {
+    gap: 1.75rem;
+    margin-top: 1.75rem;
+  }
+
+  .lp-clock {
+    height: 1.85rem;
+    padding: 0 0.7rem;
+    font-size: 0.875rem;
+  }
+
+  .lp-frame {
+    height: 11.5rem;
+    margin-top: 0.75rem;
+    border-radius: 1.5rem;
+  }
+
+  .lp-frame img {
+    max-height: 78%;
+  }
+
+  .lp-price {
+    right: 1rem;
+    bottom: 1rem;
+    font-size: 1.25rem;
+  }
+
+  .lp-stamp {
+    font-size: 1rem;
+  }
+
+  .lp-stop h3 {
+    margin-top: 0.9rem;
+    font-size: 1.25rem;
+  }
+
+  .lp-stop p {
+    font-size: 0.9375rem;
+  }
+
+  .lp-tally-row {
+    gap: 0.9rem;
+    margin-top: 2rem;
+  }
+
+  .lp-tally {
+    padding: 0.4rem 1.1rem;
+    border-radius: 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  .lp-tally > div {
+    padding: 0.55rem 0;
+  }
+
+  .lp-again {
+    height: 2.5rem;
+    padding: 0 1.1rem;
+    font-size: 0.875rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lp-track::after {
     animation: none !important;
@@ -1098,6 +1249,57 @@
   }
 }
 
+@media (max-width: 640px) {
+  .lp-duo {
+    gap: 1rem;
+    padding-top: 3.25rem;
+  }
+
+  .lp-panel {
+    padding: 1.5rem 1.35rem;
+    border-radius: 1.75rem;
+  }
+
+  .lp-panel-kicker {
+    font-size: 0.8125rem;
+  }
+
+  .lp-panel h2 {
+    font-size: 1.75rem;
+  }
+
+  .lp-panel ul {
+    gap: 0.65rem;
+    margin-top: 1.1rem;
+  }
+
+  .lp-panel li {
+    gap: 0.6rem;
+    font-size: 0.9375rem;
+  }
+
+  .lp-panel li svg {
+    width: 16px;
+    height: 16px;
+    margin-top: 0.25rem;
+  }
+
+  .lp-panel-art {
+    width: 210px;
+    margin-top: 1rem;
+    margin-bottom: -2.5rem;
+  }
+
+  .lp-flight {
+    width: min(100%, 18rem);
+    padding-top: 2rem;
+  }
+
+  .lp-flight-kovi {
+    top: 2rem;
+  }
+}
+
 /* --- Currencies ---------------------------------------------------------------------------- */
 
 .lp-fx {
@@ -1141,6 +1343,36 @@
 .lp-fx small {
   color: var(--muted);
   font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .lp-fx {
+    gap: 0.8rem;
+    padding: 3rem 0 0.5rem;
+  }
+
+  .lp-fx > p {
+    font-size: 1.0625rem;
+  }
+
+  .lp-fx-row {
+    gap: 0.5rem;
+  }
+
+  .lp-fx-row span {
+    gap: 0.45rem;
+    padding: 0.35rem 0.95rem 0.35rem 0.35rem;
+    font-size: 1.125rem;
+  }
+
+  .lp-fx-row span img {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .lp-fx small {
+    font-size: 0.75rem;
+  }
 }
 
 /* --- Developers ------------------------------------------------------------------------------ */
@@ -1229,6 +1461,30 @@
   }
 }
 
+@media (max-width: 640px) {
+  .lp-dev {
+    gap: 1.5rem;
+    margin-top: 3.25rem;
+    padding: 1.5rem 1.35rem;
+    border-radius: 1.75rem;
+  }
+
+  .lp-dev h2 {
+    font-size: 1.75rem;
+  }
+
+  .lp-dev-copy > p:not(.lp-panel-kicker) {
+    margin: 0.8rem 0 1.25rem;
+    font-size: 0.9375rem;
+  }
+
+  .lp-code {
+    padding: 1rem;
+    border-radius: 1.1rem;
+    font-size: 0.6875rem;
+  }
+}
+
 /* --- Trust --------------------------------------------------------------------------------- */
 
 .lp-trust {
@@ -1261,6 +1517,38 @@
   }
   .lp-trust > div {
     padding: 1.25rem 0;
+  }
+}
+
+/* On a phone each promise is a line: its icon beside its heading and words. */
+@media (max-width: 640px) {
+  .lp-trust {
+    gap: 0;
+    margin-top: 1.25rem;
+  }
+
+  .lp-trust > div {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+    column-gap: 0.85rem;
+    padding: 1.1rem 0;
+    border-top-width: 2px;
+  }
+
+  .lp-trust svg {
+    grid-row: 1 / 3;
+    width: 20px;
+    height: 20px;
+    margin-top: 0.15rem;
+  }
+
+  .lp-trust h3 {
+    margin: 0 0 0.2rem;
+    font-size: 1.0625rem;
+  }
+
+  .lp-trust p {
+    font-size: 0.9375rem;
   }
 }
 
@@ -1302,6 +1590,32 @@
   color: #3a2622;
 }
 
+@media (max-width: 640px) {
+  .lp-close {
+    margin-top: 5.5rem;
+    padding: 3.25rem 1.25rem 1.5rem;
+    border-radius: 1.75rem;
+  }
+
+  .lp-close-peek {
+    top: calc(-170px * 0.5 * 0.777);
+    width: 170px;
+  }
+
+  .lp-close h2 {
+    font-size: 2rem;
+  }
+
+  .lp-close > p {
+    margin-top: 0.75rem;
+    font-size: 1rem;
+  }
+
+  .lp-close .lp-ctas {
+    margin-top: 1.25rem;
+  }
+}
+
 /* --- Footer ------------------------------------------------------------------------------------ */
 
 .lp-foot {
@@ -1332,6 +1646,27 @@
   font-weight: 700;
   font-size: 0.9375rem;
   text-underline-offset: 4px;
+}
+
+@media (max-width: 640px) {
+  .lp-foot {
+    gap: 0.9rem;
+    padding: 2rem 0 2.25rem;
+  }
+
+  .lp-foot p {
+    flex-basis: 100%;
+    min-width: 0;
+    font-size: 0.8125rem;
+  }
+
+  .lp-foot nav {
+    gap: 0.6rem 1.1rem;
+  }
+
+  .lp-foot nav a {
+    font-size: 0.875rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
