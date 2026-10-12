@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics'
+import { router } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
@@ -11,6 +12,7 @@ import { type Entry, useWallet } from '@/lib/wallet'
 import { Kovi } from '@/ui/art'
 import { dockClearance } from '@/ui/Dock'
 import { EntryRow } from '@/ui/EntryRow'
+import { EnvelopeBadge } from '@/ui/LinkParts'
 import { Txt } from '@/ui/primitives'
 
 const filters = [
@@ -123,9 +125,22 @@ export default function Activity() {
       style={{ flex: 1, backgroundColor: colors.paper }}
       contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: dockClearance + insets.bottom }}
     >
-      <Txt weight="bold" size={32} style={{ letterSpacing: -1 }}>
-        Activity
-      </Txt>
+      <View style={styles.titleRow}>
+        <Txt weight="bold" size={32} style={{ letterSpacing: -1 }}>
+          Activity
+        </Txt>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Your links"
+          onPress={() => router.push('/links')}
+          style={({ pressed }) => [styles.linksButton, pressed && { transform: [{ scale: 0.96 }] }]}
+        >
+          <EnvelopeBadge size={24} />
+          <Txt weight="semi" size={14}>
+            Your links
+          </Txt>
+        </Pressable>
+      </View>
 
       {/* The month */}
       <View style={styles.month}>
@@ -325,6 +340,19 @@ function FilterSwitch({ value, onChange }: { value: Filter; onChange: (f: Filter
 }
 
 const styles = StyleSheet.create({
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  linksButton: {
+    height: 36,
+    paddingLeft: 8,
+    paddingRight: 12,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   month: { marginTop: 16, borderRadius: 28, backgroundColor: colors.ink, padding: 18 },
   split: { flexDirection: 'row', height: 12, borderRadius: 6, overflow: 'hidden', gap: 3, marginTop: 14 },
   splitIn: { backgroundColor: colors.tealLight, borderRadius: 6 },

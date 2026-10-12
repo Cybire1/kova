@@ -5,6 +5,7 @@ import { colors } from '@/lib/theme'
 import { Icon } from './Icon'
 import type { Entry } from '@/lib/wallet'
 import { AddBadge, Avatar, ShopBadge } from './art'
+import { EnvelopeBadge } from './LinkParts'
 import { Txt } from './primitives'
 
 export function when(at: number): string {
@@ -29,7 +30,9 @@ export function EntryRow({ entry }: { entry: Entry }) {
       onPress={() => router.push({ pathname: '/receipt/[id]', params: { id: entry.id } })}
       style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}
     >
-      {entry.kind === 'paid' ? (
+      {entry.link ? (
+        <EnvelopeBadge size={38} tone={incoming ? 'teal' : 'coral'} />
+      ) : entry.kind === 'paid' ? (
         <ShopBadge size={38} />
       ) : entry.kind === 'added' ? (
         <AddBadge size={38} />

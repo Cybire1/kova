@@ -13,6 +13,7 @@ import { type Contact, type Entry, isUnnamed, useWallet } from '@/lib/wallet'
 import { Avatar, Flyer } from '../art'
 import { Icon, type IconName } from '../Icon'
 import { Keypad } from '../Keypad'
+import { EnvelopeBadge } from '../LinkParts'
 import { Bob, Burst } from '../motion'
 import { NameSheet } from '../NameSheet'
 import { PillButton, TextLink, Txt } from '../primitives'
@@ -347,6 +348,7 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
     if (!scanned) return setProblem('That isn’t a Kova link or a wallet address.')
     if (scanned.kind === 'charge') return router.replace({ pathname: '/pay/[id]', params: { id: scanned.id } })
     if (scanned.kind === 'pair') return router.replace({ pathname: '/terminal/setup', params: { code: scanned.code } })
+    if (scanned.kind === 'claim') return router.replace({ pathname: '/c/[id]', params: { id: scanned.id, ...(scanned.key ? { key: scanned.key } : {}) } })
     if (scanned.kind === 'stall') return router.replace({ pathname: '/s/[slug]', params: { slug: scanned.slug, ...(scanned.table ? { table: scanned.table } : {}) } })
     onPick({ address: getAddress(scanned.address), name: scanned.name, currency: scanned.currency, amount: scanned.amount, note: scanned.note })
   }
@@ -409,6 +411,49 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
           <View style={styles.directGo}>
             <Icon name="arrow" size={20} />
           </View>
+        </Pressable>
+      ) : null}
+
+      {direct && direct.kind === 'claim' ? (
+        <Pressable accessibilityRole="button" onPress={() => go(text)} style={({ pressed }) => [styles.direct, pressed && { transform: [{ scale: 0.98 }] }]}>
+          <View style={styles.directBadge}>
+            <EnvelopeBadge size={34} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Txt weight="semi" size={16} color={colors.white}>
+              Open this link
+            </Txt>
+            <Txt size={13} color={colors.onInk}>
+              Someone sent you dollars
+            </Txt>
+          </View>
+          <View style={styles.directGo}>
+            <Icon name="arrow" size={20} />
+          </View>
+        </Pressable>
+      ) : null}
+
+      {!query ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Send as a link, for anyone, even without Kova"
+          onPress={() => router.replace('/send/link')}
+          style={({ pressed }) => [styles.asLink, pressed && { transform: [{ scale: 0.98 }] }]}
+        >
+          <EnvelopeBadge size={40} />
+          <View style={{ flex: 1 }}>
+            <Txt weight="semi" size={16}>
+              Send as a link
+            </Txt>
+            <Txt size={13} color={colors.muted}>
+              For anyone, even without Kova
+            </Txt>
+          </View>
+          <Pressable accessibilityRole="button" hitSlop={6} onPress={() => router.replace('/links')} style={styles.yourLinks}>
+            <Txt weight="semi" size={13}>
+              Your links
+            </Txt>
+          </Pressable>
         </Pressable>
       ) : null}
 
@@ -617,6 +662,21 @@ const styles = StyleSheet.create({
   input: { flex: 1, height: '100%', fontFamily: fonts.medium, fontSize: 16, color: colors.ink },
   fieldButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.sunken, alignItems: 'center', justifyContent: 'center' },
   direct: { marginTop: 12, borderRadius: 24, backgroundColor: colors.ink, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  directBadge: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  asLink: {
+    marginTop: 12,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingVertical: 10,
+    paddingLeft: 12,
+    paddingRight: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  yourLinks: { height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.sunken, justifyContent: 'center' },
   directGo: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   section: { marginTop: 20, marginBottom: 8, marginLeft: 4 },
   recent: { width: 68, alignItems: 'center', gap: 6 },

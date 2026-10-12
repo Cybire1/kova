@@ -16,6 +16,7 @@ import {
   type SealedNote,
 } from '@kova/monad'
 import { type Address, createPublicClient, fallback, type Hash, type Hex, http, isAddressEqual, type LocalAccount } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
 import { monad, monadTestnet } from 'viem/chains'
 import { apiUrl, isTestnet, network, networkId, settlementToken } from './config'
 import { sealNote } from './notes-core'
@@ -216,3 +217,67 @@ export const topUpLink = (address: Address, currency: string, returnTo: string) 
   kova<{ live: boolean; url: string | null; min_eur: number }>(
     `/v1/wallets/${address}/top-up?currency=${currency}&return_to=${encodeURIComponent(returnTo)}`,
   )
+
+/**
+ * A link: dollars waiting at a one-time address whose key travels only in the link (after the #,
+ * so no server ever sees it). Whoever holds the link can move them, like cash in an envelope.
+ */
+export interface PaymentLink {
+  id: string
+  status: 'open' | 'claimed' | 'returned'
+  /** Dollars, e.g. "20.00". */
+  amount: string
+  currency: string
+  token: Address
+  chain_id: number
+  link_address: Address
+  sender_address: Address
+  sender_name: string | null
+  note: string | null
+  display_currency: string | null
+  claimed_by: Address | null
+  claim_tx: Hash | null
+  claim_explorer_url: string | null
+  claimed_at: string | null
+  created_at: string
+}
+
+/** Records a link once its dollars are at its address: Kova reads the amount from the chain. */
+export const recordLink = (body: {
+  link_address: Address
+  sender_address: Address
+  sender_name?: string
+  note?: string
+  display_currency?: string
+}) => kova<PaymentLink>('/v1/links', body)
+
+export const getLink = (id: string) => kova<PaymentLink>(`/v1/public/links/${encodeURIComponent(id)}`)
+
+export const linksFrom = (sender: Address) =>
+  kova<{ data: PaymentLink[] }>(`/v1/links?sender=${sender}`).then((r) => r.data)
+
+/**
+ * Moves everything a link holds to `to`: the claimer's wallet, or the sender's own when they take
+ * it back. Signed here with the link's key; Kova submits it and pays the gas.
+ */
+export async function claimLink(link: PaymentLink, key: Hex, to: Address): Promise<PaymentLink & { ms: number }> {
+  const signer = privateKeyToAccount(key)
+  if (!isAddressEqual(signer.address, link.link_address))
+    throw new Error('This link is missing part of its code. Ask whoever sent it to share it again.')
+  if (!isAddressEqual(link.token, settlementToken.address)) throw new Error('This link holds a token Kova doesn’t use.')
+  const value = await getBalance(link.link_address)
+  if (value === 0n) throw new Error('This link is empty. Someone has already claimed it.')
+  const authorization = {
+    from: signer.address,
+    to,
+    value,
+    validAfter: 0n,
+    validBefore: seconds(Date.now() + 30 * 60_000),
+    nonce: randomNonce(),
+  }
+  const signature = await signer.signTypedData(transferAuthorizationTypedData(settlementToken, network.chainId, authorization))
+  return kova<PaymentLink & { ms: number }>(
+    `/v1/public/links/${encodeURIComponent(link.id)}/claim`,
+    toSignedAuthorization(settlementToken.address, authorization, signature),
+  )
+}

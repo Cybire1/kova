@@ -7,12 +7,13 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 import { AppState } from 'react-native'
 import { type Address, getAddress, hexToBytes, isAddress, isAddressEqual, type LocalAccount, type TypedDataDefinition } from 'viem'
 import { type Checkout, demoSignIn } from './api'
-import { fundFromFaucet, getBalance, incomingSince, payCharge, sendMoney } from './chain'
+import { claimLink, fundFromFaucet, getBalance, incomingSince, type PaymentLink, payCharge, recordLink, sendMoney } from './chain'
 import { passkeyDomain } from './config'
 import { openSigningSession } from './keys'
 import { type DisplayCurrency, formatUsd } from './money'
 import { kovaWebAuthnClient, takeVaultOutput } from './passkey'
 import { endSession, sessionAccount, spend, startSession } from './session'
+import { forgetLink, linkArrival, linkKey, markClaiming, newLinkKey, setLinkId } from './paylinks'
 import { load, remove, save } from './storage'
 import { forgetVaultSecret, keepVaultSecret, openVault, saveVault } from './vault'
 import { ensureNoteKey, myNoteKeys, readNote, theirNoteKey } from './notes'
@@ -68,6 +69,8 @@ export interface Entry {
   at: number
   /** `detail` is a private note: readable by both of you, or (when they had no note key) by you alone. */
   private?: 'both' | 'you'
+  /** Money into or out of a link: its address is a one-time key, never a person to pay again. */
+  link?: boolean
 }
 
 export interface Contact {
@@ -119,6 +122,15 @@ interface Wallet {
   addMoney: () => Promise<void>
   payCheckout: (checkout: Checkout) => Promise<Entry>
   send: (to: Contact, amount: bigint, note?: string) => Promise<Entry>
+  /**
+   * Sends dollars as a link: a fresh one-time key, the dollars sent to its address, and the link
+   * recorded with Kova. The key comes back to be shared and stays in this phone's Keychain.
+   */
+  makeLink: (amount: bigint, note?: string) => Promise<{ link: PaymentLink; key: `0x${string}`; entry: Entry }>
+  /** Claims a link someone sent into this wallet. */
+  claimFromLink: (link: PaymentLink, key: `0x${string}`) => Promise<{ link: PaymentLink; entry: Entry }>
+  /** Takes back a link you sent that no one has claimed: everything at it comes home. */
+  takeBack: (link: PaymentLink) => Promise<PaymentLink>
   /** Whether a private note to them can be read by them (they've published a note key). */
   noteReaches: (address: Address) => Promise<boolean>
   rememberContact: (contact: Contact) => Promise<void>
@@ -206,6 +218,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     })()
   }, [])
 
+  const shownRef = useRef<Entry[]>([])
+  shownRef.current = activity
+
   const record = useCallback(async (entry: Entry) => {
     setActivity((prev) => {
       if (entry.txHash && prev.some((e) => e.txHash === entry.txHash && e.kind === entry.kind)) return prev
@@ -235,7 +250,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     // Tokens are minted from the zero address (the testnet faucet): that is not a person.
     const zero = '0x0000000000000000000000000000000000000000'
     for (const e of activity) {
-      if (e.address?.toLowerCase() === zero) continue
+      if (e.address?.toLowerCase() === zero || e.link) continue
       if ((e.kind === 'sent' || e.kind === 'received') && e.address && !seen.has(e.address.toLowerCase()))
         seen.set(e.address.toLowerCase(), { address: e.address, name: e.name })
     }
@@ -296,19 +311,28 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         for (const t of transfers) {
           const note = t.note ? await readNote(t.note, { from: t.from, to: profile.address, value: t.amount }) : null
           const refund = t.kind === 'refund'
-          const name = t.faucet ? 'Test dollars' : refund ? 'Refund' : (nameFor(t.from) ?? `${t.from.slice(0, 6)}…${t.from.slice(-4)}`)
+          // Money out of a link: your own coming back, or one claimed here a moment ago.
+          const fromLink = linkArrival(t.from)
+          const name = t.faucet
+            ? 'Test dollars'
+            : refund
+              ? 'Refund'
+              : (fromLink?.name ?? nameFor(t.from) ?? `${t.from.slice(0, 6)}…${t.from.slice(-4)}`)
           await record({
             id: newId(),
             kind: t.faucet ? 'added' : 'received',
             amount: t.amount.toString(),
             name,
-            detail: note ?? (t.faucet ? 'AUSD test faucet' : refund ? 'Money back from a booking' : 'Arrived'),
+            detail: note ?? (t.faucet ? 'AUSD test faucet' : refund ? 'Money back from a booking' : (fromLink?.detail ?? 'Arrived')),
             address: t.from,
             txHash: t.hash,
             at: Date.now(),
             ...(note ? { private: 'both' as const } : {}),
+            ...(fromLink ? { link: true } : {}),
           })
-          if (!t.faucet) setArrival({ amount: t.amount, name, address: t.from, hash: t.hash, ...(note ? { note } : {}) })
+          // Already in your activity (claimed here, say): it had its celebration.
+          const seen = shownRef.current.some((e) => e.txHash?.toLowerCase() === t.hash.toLowerCase() && e.kind === 'received')
+          if (!t.faucet && !fromLink?.quiet && !seen) setArrival({ amount: t.amount, name, address: t.from, hash: t.hash, ...(note ? { note } : {}) })
         }
         if (transfers.length) void refresh()
       } catch (error) {
@@ -548,6 +572,108 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [unlock, record, rememberContact, refresh],
   )
 
+  const makeLink = useCallback(
+    async (amount: bigint, note?: string) => {
+      if (!profile) throw new Error('No wallet on this phone')
+      const text = note?.trim() || null
+      const account = await unlock(amount)
+      // The key is in the Keychain before a cent moves, so the dollars can always be taken back.
+      const { key, address } = await newLinkKey(amount, text)
+      let sent: Awaited<ReturnType<typeof sendMoney>>
+      try {
+        sent = await sendMoney(account, address, amount)
+      } catch (error) {
+        await forgetLink(address)
+        throw error
+      }
+      spend(amount)
+      const entry: Entry = {
+        id: newId(),
+        kind: 'sent',
+        amount: amount.toString(),
+        name: 'Link',
+        detail: text ?? 'For anyone with the link',
+        address,
+        txHash: sent.hash,
+        ms: sent.ms,
+        at: Date.now(),
+        link: true,
+      }
+      await record(entry)
+      void refresh()
+      // Kova reads the amount from the chain; a moment after the send, a node may not show it yet.
+      let link: PaymentLink | null = null
+      for (let i = 0; !link; i++) {
+        try {
+          link = await recordLink({
+            link_address: address,
+            sender_address: profile.address,
+            ...(profile.name ? { sender_name: profile.name } : {}),
+            ...(text ? { note: text } : {}),
+            display_currency: profile.currency,
+          })
+        } catch (error) {
+          if (i >= 6) throw new Error('The dollars are in your link, but Kova couldn’t save it yet. Find it in Your links to share it.')
+          await new Promise((r) => setTimeout(r, 700))
+          if (__DEV__) console.log('[links] record retry', error instanceof Error ? error.message : error)
+        }
+      }
+      await setLinkId(address, link.id)
+      return { link, key, entry }
+    },
+    [profile, unlock, record, refresh],
+  )
+
+  const claimFromLink = useCallback(
+    async (link: PaymentLink, key: `0x${string}`) => {
+      if (!profile) throw new Error('Make your Kova wallet first, then claim it.')
+      const name = link.sender_name?.trim() || `${link.sender_address.slice(0, 6)}…${link.sender_address.slice(-4)}`
+      await markClaiming(link.link_address, name)
+      const claimed = await claimLink(link, key, profile.address)
+      const entry: Entry = {
+        id: newId(),
+        kind: 'received',
+        amount: BigInt(Math.round(Number(claimed.amount) * 1e6)).toString(),
+        name: isAddressEqual(link.sender_address, profile.address) ? 'Your link' : name,
+        detail: link.note ?? 'Claimed from a link',
+        address: link.link_address,
+        ...(claimed.claim_tx ? { txHash: claimed.claim_tx } : {}),
+        ms: claimed.ms,
+        at: Date.now(),
+        link: true,
+      }
+      await record(entry)
+      void refresh()
+      return { link: claimed, entry }
+    },
+    [profile, record, refresh],
+  )
+
+  const takeBack = useCallback(
+    async (link: PaymentLink) => {
+      if (!profile) throw new Error('No wallet on this phone')
+      const key = await linkKey(link.link_address)
+      if (!key) throw new Error('This phone doesn’t have the key to this link. Open the link itself to take it back.')
+      await markClaiming(link.link_address, 'Your link')
+      const back = await claimLink(link, key, profile.address)
+      await record({
+        id: newId(),
+        kind: 'received',
+        amount: BigInt(Math.round(Number(back.amount) * 1e6)).toString(),
+        name: 'Your link',
+        detail: 'Taken back',
+        address: link.link_address,
+        ...(back.claim_tx ? { txHash: back.claim_tx } : {}),
+        ms: back.ms,
+        at: Date.now(),
+        link: true,
+      })
+      void refresh()
+      return back
+    },
+    [profile, record, refresh],
+  )
+
   const signOut = useCallback(async () => {
     // The passkey itself stays in iCloud Keychain: it can bring this wallet back at any time.
     endSession()
@@ -629,6 +755,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     addMoney,
     payCheckout,
     send,
+    makeLink,
+    claimFromLink,
+    takeBack,
     noteReaches: async (address: Address) => (await theirNoteKey(address)) !== null,
     rememberContact,
     renameContact,

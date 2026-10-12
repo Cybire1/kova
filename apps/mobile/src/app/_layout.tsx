@@ -102,6 +102,8 @@ export default function RootLayout() {
                   <Stack.Screen name="travel" options={{ animation: 'slide_from_bottom' }} />
                   <Stack.Screen name="send/index" options={sendSheet} />
                   <Stack.Screen name="send/[to]" options={sendSheet} />
+                  <Stack.Screen name="send/link" options={sendSheet} />
+                  <Stack.Screen name="c/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
                 </Stack>
                 </TravelProvider>
               </StallProvider>

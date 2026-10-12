@@ -24,6 +24,8 @@ export default function Scan() {
     if (scanned.kind === 'charge') router.replace({ pathname: '/pay/[id]', params: { id: scanned.id } })
     else if (scanned.kind === 'stall') router.replace({ pathname: '/s/[slug]', params: { slug: scanned.slug, ...(scanned.table ? { table: scanned.table } : {}) } })
     else if (scanned.kind === 'pair') router.replace({ pathname: '/terminal/setup', params: { code: scanned.code } })
+    else if (scanned.kind === 'claim')
+      router.replace({ pathname: '/c/[id]', params: { id: scanned.id, ...(scanned.key ? { key: scanned.key } : {}) } })
     else
       router.replace({
         pathname: '/send/[to]',
@@ -101,7 +103,7 @@ export default function Scan() {
               Point at a Kova code
             </Txt>
             <Txt size={15} color={problem ? colors.danger : colors.muted} style={styles.sheetBody}>
-              {problem ?? "A shop's QR, a stall's table poster, or a friend's code from their Receive screen."}
+              {problem ?? "A shop's QR, a stall's table poster, a friend's code, or a link with dollars in it."}
             </Txt>
           </>
         )}

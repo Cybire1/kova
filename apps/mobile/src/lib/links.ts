@@ -1,4 +1,4 @@
-import { type Address, isAddress } from 'viem'
+import { type Address, type Hex, isAddress } from 'viem'
 import { webUrl } from './config'
 import type { DisplayCurrency } from './money'
 import { displayCurrencies } from './money'
@@ -12,11 +12,14 @@ import { displayCurrencies } from './money'
  * - A person: `https://mykova.app/to/<address>?name=Maya&cur=EUR&amount=24.00&note=Dinner`, from
  *   someone's Receive or Request screen, in the app or on the web. The older `kova://to/…` form and
  *   a bare address work too.
+ * - A link with dollars in it: `https://mykova.app/c/<id>#<key>`, or `kova://c/<id>#<key>`. The key
+ *   after the # is what claims them; a link without it can be looked at but not claimed.
  */
 export type Scanned =
   | { kind: 'charge'; id: string }
   | { kind: 'stall'; slug: string; table?: string }
   | { kind: 'pair'; code: string }
+  | { kind: 'claim'; id: string; key: Hex | null }
   | {
       kind: 'person'
       address: Address
@@ -30,6 +33,8 @@ export function parseScanned(text: string): Scanned | null {
   const value = text.trim()
   const pairing = /^kova:\/\/pair\/([0-9A-Za-z-]{4,12})$/.exec(value)
   if (pairing?.[1]) return { kind: 'pair', code: pairing[1] }
+  const claim = /^(?:https?:\/\/[^/]+|kova:\/)\/c\/(lnk_[0-9a-z]{26})\/?(?:\?[^#]*)?(?:#(.*))?$/i.exec(value)
+  if (claim?.[1]) return { kind: 'claim', id: claim[1].toLowerCase(), key: linkKeyFrom(claim[2]) }
   const charge =
     /\/pay\/([A-Za-z0-9_]+)/.exec(value) ?? /^kova:\/\/pay\/([A-Za-z0-9_]+)/.exec(value)
   if (charge?.[1]) return { kind: 'charge', id: charge[1] }
@@ -59,6 +64,13 @@ export function parseScanned(text: string): Scanned | null {
     }
   }
   return null
+}
+
+/** The key from a link's #, with or without 0x, or null if it isn't one. */
+export function linkKeyFrom(fragment: string | null | undefined): Hex | null {
+  const raw = (fragment ?? '').trim().replace(/^#/, '')
+  const hex = raw.startsWith('0x') || raw.startsWith('0X') ? raw.slice(2) : raw
+  return /^[0-9a-fA-F]{64}$/.test(hex) ? (`0x${hex.toLowerCase()}` as Hex) : null
 }
 
 /** A table from a stall's table code, as Kova accepts it ("3", "Patio 2"), or undefined. */

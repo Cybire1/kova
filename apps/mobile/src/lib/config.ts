@@ -19,6 +19,13 @@ export const network = getNetwork(networkId)
 export const isTestnet = networkId === 'testnet'
 
 /**
+ * Where links meant for other people point: Kova's web for this network, so a testnet link opens
+ * the testnet page. (webUrl stays mykova.app on both: passkey sign-in is bound to it.)
+ */
+export const shareWebUrl =
+  process.env.EXPO_PUBLIC_KOVA_MONAD_WEB_URL ?? (isTestnet ? 'https://web-monad.up.railway.app' : 'https://mykova.app')
+
+/**
  * The domain Kova Pay's passkeys belong to: iOS shows it when you make or use one, and a wallet
  * is bound to it for good. mykova.app serves the Apple association file that vouches for the app.
  */

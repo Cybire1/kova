@@ -5,13 +5,16 @@ import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Burst, CoinRain, PopIn } from '@/ui/motion'
 import { when } from '@/ui/EntryRow'
+import { NoteSlip } from '@/ui/LinkParts'
 import { PrivateNote } from '@/ui/PrivateNote'
 import { Stage } from '@/ui/Stage'
 import { Chip, Header, PillButton, Rise, Screen, Sticker, Txt } from '@/ui/primitives'
 
 /** Money arrived: coins rain, Kovi catches them, and the amount is the headline. */
 export default function Received() {
-  const params = useLocalSearchParams<{ amount: string; name: string; hash?: string; note?: string }>()
+  const params = useLocalSearchParams<{ amount: string; name: string; hash?: string; note?: string; via?: string }>()
+  // Claimed from a link: their note was written on the link, not sealed for you.
+  const byLink = params.via === 'link'
   const { profile, contacts, activity } = useWallet()
   const { width } = useWindowDimensions()
   // Opened without an arrival (a stale link, a relaunch): show the latest money in instead.
@@ -48,7 +51,7 @@ export default function Received() {
       </View>
       <Rise style={styles.copy}>
         <Txt weight="medium" size={20}>
-          {name} paid you
+          {name} {byLink ? 'sent you' : 'paid you'}
         </Txt>
         <Txt weight="bold" size={64} style={{ letterSpacing: -2.5 }} adjustsFontSizeToFit numberOfLines={1}>
           {formatUsd(base, { sign: true })}
@@ -63,7 +66,11 @@ export default function Received() {
           </Txt>
         )}
       </Rise>
-      {note ? (
+      {note && byLink ? (
+        <View style={{ marginTop: 22 }}>
+          <NoteSlip text={note} caption={`From ${name.split(' ')[0]}, with the link`} />
+        </View>
+      ) : note ? (
         <View style={{ marginTop: 22 }}>
           <PrivateNote text={note} caption={`From ${name.split(' ')[0]}. Sealed by them; only you two can read it.`} />
         </View>
@@ -75,7 +82,7 @@ export default function Received() {
               Arrived
             </Txt>
             <Txt weight="semi" size={15}>
-              On Monad, final in under a second
+              {byLink ? 'From a link, in about a second' : 'On Monad, final in under a second'}
             </Txt>
           </View>
         </Sticker>
