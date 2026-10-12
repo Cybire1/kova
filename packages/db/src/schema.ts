@@ -676,6 +676,38 @@ export const orders = pgTable(
   ],
 )
 
+// --- Links: dollars sent to anyone, by a link -------------------------------------------------
+
+/**
+ * A payment link: dollars parked at a one-time address whose key lives only in the link (after the
+ * #, so it never reaches Kova). Whoever opens the link claims them to their own wallet, gaslessly; an
+ * unclaimed link can be taken back by its sender, who kept the key. Kova records the link so the
+ * page can show who sent what, and whether it has been claimed.
+ */
+export const paymentLinks = pgTable(
+  'payment_links',
+  {
+    id: id(),
+    network: network('network').notNull(),
+    /** The one-time address holding the dollars. */
+    linkAddress: address('link_address').notNull(),
+    senderAddress: address('sender_address').notNull(),
+    senderName: text('sender_name'),
+    note: text('note'),
+    /** Base units of the settlement dollar, as funded. */
+    amount: amount('amount').notNull(),
+    /** The currency the sender thinks in, so the page can greet the recipient in theirs too. */
+    displayCurrency: text('display_currency'),
+    /** open, claimed (by someone else) or returned (to the sender). */
+    status: text('status').notNull().default('open'),
+    claimedBy: address('claimed_by'),
+    claimTx: text('claim_tx'),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('payment_links_address_idx').on(t.linkAddress), index('payment_links_sender_idx').on(t.senderAddress)],
+)
+
 // --- Kova Travel ---------------------------------------------------------------------------
 
 export const tripKind = pgEnum('trip_kind', ['flight', 'stay'])

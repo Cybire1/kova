@@ -22,6 +22,7 @@ export const prefixes = {
   image: 'img',
   trip: 'trp',
   cardTap: 'tap',
+  paymentLink: 'lnk',
 } as const
 
 export type ObjectKind = keyof typeof prefixes
