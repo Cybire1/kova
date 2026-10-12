@@ -990,6 +990,11 @@ p {
   --round-size: 2.25rem;
 }
 
+/* The second way to pay sits close under the first. */
+.pay-page .payee .pay-kova-web {
+  margin-top: 0.5rem;
+}
+
 @media (max-width: 640px) {
   .pay-page {
     padding: 1rem 1.25rem 3rem;
@@ -1009,11 +1014,8 @@ p {
     margin-top: 0.375rem;
     font-size: clamp(2.25rem, 11vw, 2.75rem);
   }
-  .pay-page .payee .pill {
+  .pay-page .payee .pill:not(.pay-kova-web) {
     margin-top: 1.25rem;
-  }
-  .pay-page .payee .pay-kova-web {
-    margin-top: 0.5rem;
   }
   .pay-page .manual {
     margin-top: 1rem;
