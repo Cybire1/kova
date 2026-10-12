@@ -29,7 +29,6 @@ const chip: React.CSSProperties = {
   borderRadius: 22,
   background: CARD,
   border: `5px solid ${INK}`,
-  boxShadow: `8px 8px 0 ${INK}`,
 }
 
 function Chip({ value, label, color = INK }: { value: string; label: string; color?: string }) {
