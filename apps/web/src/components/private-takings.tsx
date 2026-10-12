@@ -23,6 +23,8 @@ import { PageHead } from './shell'
  */
 
 interface Shop {
+  /** The shop's public id (mer_…): its keys are made for this shop alone. */
+  id: string
   name: string
   owner: string | null
   settlement: string
@@ -178,7 +180,7 @@ export function PrivateTakingsPanel({
   const openKeys = async () => {
     if (keys) return keys
     if (!wallet || !linked) throw new Error('Open the Kova wallet this shop belongs to first.')
-    const made = await takingsKeys(wallet)
+    const made = await takingsKeys(wallet, shop.id)
     setKeys(made)
     return made
   }

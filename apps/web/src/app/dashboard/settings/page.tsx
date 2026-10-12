@@ -40,7 +40,7 @@ export default async function SettingsPage() {
             </div>
             <div>
               <dt>Mode</dt>
-              <dd>{merchant.livemode ? 'Live: real dollars' : 'Test: test dollars, nothing real moves'}</dd>
+              <dd>{merchant.livemode ? 'Live: dollars on Monad mainnet' : 'Test: test dollars, nothing real moves'}</dd>
             </div>
             <div>
               <dt>Settles in</dt>

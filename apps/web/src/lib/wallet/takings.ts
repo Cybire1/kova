@@ -5,9 +5,9 @@ import {
   type NetworkId,
   randomNonce,
   type SignedAuthorization,
-  STEALTH_KEYS_MESSAGE,
   type StealthKeys,
   stealthKeysFromSignature,
+  stealthKeysMessage,
   stealthPrivateKey,
   toSignedAuthorization,
   transferAuthorizationTypedData,
@@ -22,7 +22,7 @@ import { sessionAccount } from './session'
 /**
  * A shop's private takings keys, and moving its sales home, in the owner's browser.
  *
- * The owner's Kova wallet signs STEALTH_KEYS_MESSAGE and the signature becomes the shop's two keys.
+ * The owner's Kova wallet signs stealthKeysMessage(shop) and the signature becomes that shop's two keys.
  * Signatures are deterministic, so the same wallet makes the same keys here and in the app, with
  * nothing stored: the keys live in this page's memory and nowhere else. Kova only ever sees the
  * public meta-address and the transfers the keys sign.
@@ -48,10 +48,11 @@ export function rememberedWallet(): WebWallet | null {
  * The shop's keys, from the owner's passkey. A wallet session opened a moment ago signs without
  * asking again, as it does for any message; otherwise Face ID opens the wallet for this one signature.
  */
-export async function takingsKeys(owner: WebWallet): Promise<StealthKeys> {
+export async function takingsKeys(owner: WebWallet, shop: string): Promise<StealthKeys> {
+  const message = stealthKeysMessage(shop)
   const open = sessionAccount(0n)
   if (open && isAddressEqual(open.address, getAddress(owner.address)))
-    return stealthKeysFromSignature(await open.signMessage({ message: STEALTH_KEYS_MESSAGE }))
+    return stealthKeysFromSignature(await open.signMessage({ message }))
   const asserted = await openKovaPasskey(owner.passkey).catch((error) => {
     throw new Error(passkeyProblem(error))
   })
@@ -61,7 +62,7 @@ export async function takingsKeys(owner: WebWallet): Promise<StealthKeys> {
       throw new Error(
         'That passkey opens a different Kova wallet. Choose the one this shop belongs to.',
       )
-    return stealthKeysFromSignature(await account.signMessage({ message: STEALTH_KEYS_MESSAGE }))
+    return stealthKeysFromSignature(await account.signMessage({ message }))
   } finally {
     session.end()
   }

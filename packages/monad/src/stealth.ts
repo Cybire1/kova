@@ -25,11 +25,14 @@ const META_PREFIX = 'st:eth:0x'
 const VIEW_PREFIX = 'kova-view:0x'
 
 /**
- * What a wallet signs to make its stealth keys. The signature is deterministic (RFC 6979), so the
- * same wallet always makes the same keys, on the phone and on the web, with nothing stored.
+ * What a shop's owner signs to make that shop's stealth keys. The shop is in the message, so one
+ * wallet that owns two shops gets two separate sets of keys (and two separate accountant views).
+ * The signature is deterministic (RFC 6979): the same wallet and shop always make the same keys,
+ * on the phone and on the web, with nothing stored.
  */
-export const STEALTH_KEYS_MESSAGE =
-  'Kova private takings\n\nSign to open your shop’s private takings keys. This only reads keys; it moves no money.'
+export function stealthKeysMessage(shop: string): string {
+  return `Kova private takings\nShop ${shop}\n\nSign to open this shop’s private takings keys. This only reads keys; it moves no money.`
+}
 
 export interface StealthKeys {
   spendingPrivateKey: Hex
@@ -54,7 +57,7 @@ function scalar(bytes: Hex): bigint {
 const toKey = (k: bigint): Hex => `0x${k.toString(16).padStart(64, '0')}`
 const compressed = (privateKey: Hex): Hex => bytesToHex(secp256k1.getPublicKey(hexToBytes(privateKey), true))
 
-/** The stealth keys behind a signature of STEALTH_KEYS_MESSAGE: spending from r, viewing from s. */
+/** The stealth keys behind a signature of stealthKeysMessage(shop): spending from r, viewing from s. */
 export function stealthKeysFromSignature(signature: Hex): StealthKeys {
   const sig = hexToBytes(signature)
   if (sig.length !== 65) throw new Error('Expected a 65-byte signature')

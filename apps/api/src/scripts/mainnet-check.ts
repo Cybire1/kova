@@ -1,5 +1,5 @@
 /**
- * Proves Kova works on Monad mainnet with real dollars: the test wallet sends $0.10 of AUSD to
+ * Proves Kova works on Monad mainnet, with mainnet AUSD: the test wallet sends $0.10 of AUSD to
  * the receiver through Kova's relayer, exactly as Kova Pay sends, and never holds MON.
  *   pnpm mainnet:check [api url]
  *

@@ -37,6 +37,7 @@ export default async function PrivateTakingsPage() {
   return (
     <PrivateTakingsPanel
       shop={{
+        id: merchant.id,
         name: merchant.name,
         owner: merchant.owner_address,
         settlement: merchant.settlement_address,

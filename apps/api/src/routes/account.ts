@@ -34,6 +34,8 @@ export function serializeMerchant(m: Merchant) {
     network: m.network,
     country: m.country,
     livemode: !m.isTest,
+    /** Private takings: each sale is paid to its own one-time address (routes/takings.ts). */
+    private_takings: Boolean(m.stealthMetaAddress),
     explorer_url: network.explorerUrl,
     created_at: m.createdAt.toISOString(),
   }
