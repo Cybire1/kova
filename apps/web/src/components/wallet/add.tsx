@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Art, Icon } from '@/components/brand'
 import { formatUsd } from '@/lib/wallet/money'
 import { ScreenHead } from './activity'
+import { FromAbroadRow } from './money'
 import { useWallet } from './provider'
 
 type Stage =
@@ -30,6 +31,7 @@ export function AddMoney() {
             wallet.
           </span>
         </div>
+        <FromAbroadRow />
         <CardOrBank />
         {chainDeposits ? <FromAnotherChain /> : null}
         <Link href="/wallet/receive" className="pill pill-block" data-tone="ink">
@@ -112,6 +114,7 @@ export function AddMoney() {
             <Icon name="plus" size={18} />
           </span>
         </button>
+        <FromAbroadRow />
         {chainDeposits ? <FromAnotherChain /> : null}
       </div>
     </div>

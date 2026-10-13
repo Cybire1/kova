@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Awning } from '@/components/awning'
 import { Art, Icon } from '@/components/brand'
 import { formatUsd, toBase } from '@/lib/wallet/money'
+import { MoneyRow } from './money'
 import { PrivateWaiting } from './private'
 import { isUnnamed, useWallet } from './provider'
 import { ActionTile, Avatar, BalanceCard, EntryRow } from './ui'
@@ -73,6 +74,8 @@ export function Home() {
       <PrivateWaiting />
 
       <ShopCard />
+
+      <MoneyRow />
 
       {empty ? (
         <Link href="/wallet/add" className="w-notice">

@@ -1,0 +1,489 @@
+/*
+ * Money in, the dollar card and savings: the same paper, ink outlines and pills as the wallet.
+ */
+
+.m-intro {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: stretch;
+  padding-top: 0.5rem;
+}
+
+.m-intro-art {
+  justify-self: center;
+}
+
+.m-intro > .w-title,
+.m-intro > .w-lead {
+  text-align: center;
+}
+
+.m-eyebrow {
+  margin: 0;
+  color: var(--teal-deep);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.m-quiet {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.m-listed {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.125rem;
+  background: var(--teal-soft);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.m-sandbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-self: center;
+  margin: 0;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: var(--sunken);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.m-link {
+  justify-self: center;
+  padding: 0.5rem;
+  border: 0;
+  background: none;
+  color: var(--teal-deep);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.m-field {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.m-field input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.m-money-input {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 1.75rem;
+  font-weight: 800;
+}
+
+.m-money-input input {
+  padding: 0.6rem 0;
+  border: 0;
+  background: none;
+  font-size: 1.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+/* The US account's details, each copyable. */
+.m-bank {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0.25rem 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.375rem;
+  background: var(--surface);
+}
+
+.m-bank-row {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.m-bank-row:first-child {
+  border-top: 0;
+}
+
+.m-bank-row dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.m-bank-row dd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.m-bank-hidden {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1.1rem 1rem;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.m-bank-hidden span {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.m-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.6rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+/* The dollar card itself. */
+.m-card {
+  display: grid;
+  gap: 1.5rem;
+  aspect-ratio: 1.586;
+  padding: 1.25rem 1.375rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.5rem;
+  background:
+    radial-gradient(circle at 88% 12%, rgba(212, 101, 88, 0.55), transparent 42%),
+    var(--ink);
+  color: var(--surface);
+  align-content: space-between;
+}
+
+.m-card[data-frozen="yes"] {
+  background: linear-gradient(135deg, #5c6c6f, #2b3a3d);
+}
+
+.m-card-top,
+.m-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.m-card-brand {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.m-card-kind {
+  color: var(--on-ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.m-card-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+
+.m-card-bottom {
+  color: var(--on-ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.m-chip {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.m-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.m-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.125rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.m-action[data-tone="coral"] {
+  background: var(--coral-soft);
+}
+
+.m-action[data-tone="teal"] {
+  background: var(--teal-soft);
+}
+
+.m-limits {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.m-limit {
+  padding: 0.7rem 0.25rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.m-limit[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.m-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.375rem;
+  background: var(--surface);
+  list-style: none;
+}
+
+.m-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.m-list li:first-child {
+  border-top: 0;
+}
+
+.m-list li > span:first-child {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.m-list small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.m-amount {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.m-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: end center;
+  padding: 1rem;
+  background: rgba(11, 26, 29, 0.45);
+}
+
+.m-reveal-sheet {
+  display: grid;
+  gap: 0.75rem;
+  width: min(100%, 26rem);
+  padding: 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.5rem;
+  background: var(--paper);
+}
+
+.m-reveal-frame {
+  width: 100%;
+  height: 14rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.125rem;
+  background: var(--surface);
+}
+
+/* Savings. */
+.m-big {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.m-earned {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  text-align: center;
+}
+
+.m-earned strong {
+  color: var(--positive);
+}
+
+.m-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 0.25rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.m-toggle button {
+  padding: 0.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.m-toggle button[aria-selected="true"] {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+/* Home: savings and the card, side by side. */
+.m-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.m-tile {
+  position: relative;
+  display: grid;
+  gap: 0.15rem;
+  align-content: end;
+  min-height: 6.5rem;
+  padding: 0.875rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.375rem;
+  color: var(--ink);
+  text-decoration: none;
+  transition: transform 0.3s var(--spring);
+}
+
+.m-tile:active {
+  transform: scale(0.98);
+}
+
+.m-tile[data-tone="teal"] {
+  background: var(--teal-soft);
+}
+
+.m-tile[data-tone="ink"] {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.m-tile small {
+  font-size: 0.75rem;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.m-tile strong {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.m-tile-icon {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.m-tile-note {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
