@@ -9,6 +9,7 @@ import { formatUsd } from '@/lib/money'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon } from '@/ui/Icon'
+import { FromAbroadRow } from '@/ui/Money'
 import { CoinRain } from '@/ui/motion'
 import { Stage } from '@/ui/Stage'
 import { Header, PillButton, Rise, Screen, Sticker, Txt } from '@/ui/primitives'
@@ -128,6 +129,11 @@ export default function AddMoney() {
             </View>
           </Sticker>
           ) : null}
+        </View>
+      ) : null}
+      {stage !== 'done' ? (
+        <View style={{ paddingHorizontal: 20, marginTop: !isTestnet || chainDeposits ? 0 : 20 }}>
+          <FromAbroadRow />
         </View>
       ) : null}
       <View style={styles.footer}>

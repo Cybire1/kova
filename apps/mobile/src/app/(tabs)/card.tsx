@@ -30,6 +30,7 @@ import { dockClearance } from '@/ui/Dock'
 import { Icon, type IconName } from '@/ui/Icon'
 import { Snowfall } from '@/ui/motion'
 import { PillButton, Txt } from '@/ui/primitives'
+import { DollarCardRow } from '@/ui/Money'
 
 const limits = ['50', '100', '200', '500']
 const spring = { damping: 14, stiffness: 140 }
@@ -124,10 +125,17 @@ export default function Card() {
       </View>,
     )
 
-  if (!card) return scroll(<NoCard />)
+  if (!card)
+    return scroll(
+      <>
+        <NoCard />
+        <DollarCardRow />
+      </>,
+    )
 
   return scroll(
-    <CardView
+    <>
+      <CardView
       key={card.address}
       card={card}
       holderName={profile && !isUnnamed(profile.name) ? profile.name : undefined}
@@ -142,7 +150,9 @@ export default function Card() {
         void load()
       }}
       signTypedData={signTypedData}
-    />,
+    />
+      <DollarCardRow />
+    </>,
   )
 }
 

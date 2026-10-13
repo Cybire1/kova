@@ -20,6 +20,7 @@ import { BalanceCard } from '@/ui/BalanceCard'
 import { dockClearance } from '@/ui/Dock'
 import { EntryRow } from '@/ui/EntryRow'
 import { Icon } from '@/ui/Icon'
+import { MoneyTiles } from '@/ui/Money'
 import { OfflinePill, OfflineRow } from '@/ui/Offline'
 import { RoundButton, Txt } from '@/ui/primitives'
 import { dollars } from '@/ui/StallParts'
@@ -130,6 +131,8 @@ export default function Home() {
       </View>
 
       <ShopCard />
+
+      <MoneyTiles />
 
       <Pressable
         accessibilityRole="button"
