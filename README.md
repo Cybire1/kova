@@ -55,6 +55,12 @@ see dollars, their own currency beside them, and Face ID. Nothing else.
   each sale is paid to a fresh one-time address that only the shop can find and open (ERC-5564
   stealth addresses), so nobody can. The shop moves its takings to its wallet in one tap, gas-free,
   and can give its accountant a view link that sees every sale and can move none.
+- **Private sends, and spending them privately.** Turn on "Send privately" and the dollars go to a
+  fresh one-time address only the recipient can find: Monad shows who sent how much, but not to
+  whom. The sender's name and note travel sealed inside the payment, for the recipient's viewing key
+  alone, so their phone never asks anyone who paid. Private dollars are spent straight from those
+  addresses (pay a shop, or send privately again) without ever passing through the recipient's
+  wallet; when one address doesn't cover it, several are gathered into one new address first.
 - **One account.** Shop owners sign in on the web with the same wallet (Sign-In with Ethereum,
   EIP-4361): no passwords, no API keys. Customers without Kova can pay a checkout with email or
   Google (Privy).
@@ -83,13 +89,29 @@ see dollars, their own currency beside them, and Face ID. Nothing else.
   ago". Reports are published with the CRE CLI (`cre workflow simulate --broadcast`) until the
   workflow is deployed to a DON.
 
-- **Privacy on a public chain, by permission.** Private takings follow the idea of Monad's Private
-  Settlement design (private by default, visible only to whom you allow) with what Monad runs
-  today: ERC-5564 stealth addresses, scheme 1 ([packages/monad/src/stealth.ts](packages/monad/src/stealth.ts)), whose
-  announcer and registry contracts are deployed on Monad mainnet. Kova derives each sale's address
-  from the shop's public meta-address and never holds a key that can move it. Monad's fees are what
-  make a fresh address per sale, and moving each one later, affordable by default. When Private
-  Settlement ships, a shop's books can move into its own encrypted domain.
+- **Privacy on a public chain, by permission.** Private takings and private sends follow the idea of
+  Monad's Private Settlement design (private by default, visible only to whom you allow) with what
+  Monad runs today: ERC-5564 stealth addresses, scheme 1
+  ([packages/monad/src/stealth.ts](packages/monad/src/stealth.ts)).
+  - Each wallet's private-receiving keys come from its own passkey, and its public half is signed by
+    the wallet, so a sender checks Kova never swapped it. Kova never holds a key that can move the
+    dollars.
+  - Every private payment is posted to ERC-5564's announcer on Monad
+    ([apps/api/src/workers/announcer.ts](apps/api/src/workers/announcer.ts)): it is on mainnet, and
+    Kova deployed it on testnet at the same canonical address. Any wallet can find its payments from
+    the chain alone, without Kova.
+  - The announcement's metadata carries the sender's memo (who, their name, a note), sealed
+    (XChaCha20-Poly1305) with a key from the payment's own shared secret, so only the recipient's
+    viewing key opens it. A sender spending private dollars proves it's them with their wallet's
+    signature inside the memo.
+  - Spending straight from one-time addresses means private dollars never have to pass through
+    your wallet.
+  - What stays public: the amount, and anything moved into a wallet. Gathering several addresses
+    links them to each other, not to you.
+  - Monad's fees are what make a fresh address per payment, and a transaction to spend each one,
+    affordable by default. When Private Settlement ships, a shop's books can move into its own
+    encrypted domain.
+  - `pnpm --filter @kova/api check:private` runs it all for real on testnet.
 
 ### On-chain (Monad testnet, chain 10143)
 
@@ -108,6 +130,10 @@ see dollars, their own currency beside them, and Face ID. Nothing else.
 | Ordered and paid from table 3, $7.75 in 0.76 s | [`0x61749899…e5a16f2`](https://testnet.monadscan.com/tx/0x617498997c9c5d23163ded2e4d522c6e48918b3f491ebd919469a9515e5a16f2) |
 | The sixth croissant, free with the stamp card: a $0.00 payment with its receipt | [`0x73001c6d…6dcdec0`](https://testnet.monadscan.com/tx/0x73001c6d1dd2d91ec4fd7be01d3c014658b64200a3979f1e206dd8e5ae5cdec0) |
 | $20 sent by link and claimed by a brand-new wallet in 0.7 s | [`0x7feaee54…2534574`](https://testnet.monadscan.com/tx/0x7feaee5485ac02397b29cf04be0735dee24b10514179fe01d7a463ecb2534574) |
+| ERC-5564's announcer, deployed by Kova at its canonical address (as on mainnet) | [`0x6438a00e…77be1`](https://testnet.monadscan.com/tx/0x6438a00eb136c8f7b241b15dcce2d4720131b2789a13cd571adaa779c7b77be1) |
+| A private send's Announcement on Monad, with its sealed memo in the metadata | [`0x62b66ba6…9069992`](https://testnet.monadscan.com/tx/0x62b66ba678e6373fb963a95e6acd7993c1f7a9237dcf192a22facda913069992) |
+| Paid straight from a one-time address, the change left there | [`0x969774c6…3b1e4a2`](https://testnet.monadscan.com/tx/0x969774c69680a48df7b2681087ba4af971e09394ed7fd625f5fd08cc03b1e4a2) |
+| Two private payments gathered into one new address, then spent from it | [`0x240552b3…290081d`](https://testnet.monadscan.com/tx/0x240552b39b6156883a32cb82f836be137e2d2f9223ed7e796d6fe2699290081d), [`0xcfdc9845…a06a85b`](https://testnet.monadscan.com/tx/0xcfdc9845ef1f87442a949615541c51b08dcc8473778bf6581c3125f0af06a85b) |
 
 ### On-chain (Monad mainnet, chain 143)
 
@@ -116,7 +142,7 @@ see dollars, their own currency beside them, and Face ID. Nothing else.
 | AUSD (Agora) | [`0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a`](https://monadscan.com/address/0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a) |
 | Kova's relayer | [`0x67d185427d896aaf1d8781E094f1Bad16f7fa967`](https://monadscan.com/address/0x67d185427d896aaf1d8781E094f1Bad16f7fa967) |
 | KovaCard, the Kova Card's contract | [`0x9bee9F2D59d9675F2723B274e1276F5931Ef325E`](https://monadscan.com/address/0x9bee9F2D59d9675F2723B274e1276F5931Ef325E) |
-| ERC-5564 announcer and ERC-6538 registry (standard, used by private takings' scheme) | [`0x55649E01…5564`](https://monadscan.com/address/0x55649E01B5Df198D18D95b5cc5051630cfD45564), [`0x6538E6bf…6538`](https://monadscan.com/address/0x6538E6bf4B0eBd30A8Ea093027Ac2422ce5d6538) |
+| ERC-5564 announcer and ERC-6538 registry (standard; Kova posts every private payment to the announcer) | [`0x55649E01…5564`](https://monadscan.com/address/0x55649E01B5Df198D18D95b5cc5051630cfD45564), [`0x6538E6bf…6538`](https://monadscan.com/address/0x6538E6bf4B0eBd30A8Ea093027Ac2422ce5d6538) |
 
 ## Architecture
 
