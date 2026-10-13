@@ -1,23 +1,26 @@
 /**
- * "Everyone's watching": a 21-second announcement for private sends.
+ * "Everyone's watching": a 32-second announcement for private sends.
  *
  * On a city train, three strangers lean in to read Ada's phone: that's every payment on a public
- * blockchain. She turns on "Send privately" (the real app), and when they look again there's nothing
- * to read. Only Sam can open what she sent, her note included, and he spends it straight from there,
- * so his own wallet never shows up.
+ * blockchain. The camera dives into her phone (the one signature move) and the real app fills the
+ * frame: she turns on "Send privately", it lands in 1.00 s, and when the strangers look again
+ * there's nothing to read. Only Sam can open it, her note included, and he spends it straight from
+ * there, so his own wallet never shows up.
  *
- * Filmed like the café film ("Every table is a counter"): Higgsfield Soul stills animated with
- * Seedance (public/private/hf), the real Kova screens from one run on Monad testnet
- * (public/private/ada, public/private/sam), and one typographic system held all film: Manrope, the
- * first line red and the rest cream, words popping on hard, the title behind the people
- * (Apple Vision cut-outs) when it's over them. Cues: src/private/watching-cues.json.
+ * Higgsfield shots (public/private/hf) and the real Kova screens from one run on Monad testnet
+ * (public/private/ada, sam; run.json). The screens are shown at their own resolution when the camera
+ * is close (h 2556 is one screen pixel per film pixel), so they stay crisp; three camera moves in all
+ * (pull back from the switch, push into Sam's note, push into Paid), each motivated by what's on
+ * screen. Every line holds long enough to read: about 15 characters a second after it's complete,
+ * and never under 1.5 s. Cues: src/private/watching-cues.json.
  *
- *   0.0  the train, everyone leaning in   On a blockchain, / everyone's watching.
- *   4.6  Ada's phone, the real switch     Not anymore.
- *   8.4  the train, they give up          Who got it? / Nobody knows.
- *  11.2  the café, Sam's phone            Only Sam / can open it.
- *  14.8  he pays from private dollars     He spends it, / still private.
- *  17.9  ink                              Send privately. / Spend privately.  Kova
+ *   0.0  the train, everyone leaning in      On a blockchain, / everyone's watching.
+ *   4.5  dive into her phone: the switch     Not anymore.
+ *   9.0  pull back: slide, sent in 1.00 s    Sent privately. / Landed in 1.00 s on Monad.
+ *  13.6  the train, they give up             Who got it? / Nobody knows.
+ *  17.0  Sam's phone, push into the note     Only Sam / can open it. / Even Ada's note is sealed for him.
+ *  22.4  he pays from private dollars        He spends it, / still private. / Paid from a one-time address.
+ *  28.0  ink                                 Send privately. / Spend privately.  Kova
  */
 import { loadFont } from '@remotion/fonts'
 import { useEffect, useState } from 'react'
@@ -132,6 +135,44 @@ function frameAt(list: [number, string][], t: number): string {
   return pick
 }
 
+// ——— The camera on a phone ——————————————————————————————————————————————————————————————
+
+const SCREEN_H = 2556
+
+/** Where the camera is: the phone's screen height `h`, the screen point (fx, fy) it frames, where that point sits in the film (cx, cy), and the turn. */
+interface Cam {
+  at: number
+  h: number
+  fx: number
+  fy: number
+  cx: number
+  cy: number
+  ry: number
+}
+
+/** The camera at t: held at each key, eased from one key to the next. */
+function camAt(keys: Cam[], t: number): Omit<Cam, 'at'> {
+  const first = keys[0] as Cam
+  if (t <= first.at) return first
+  for (let i = 0; i < keys.length - 1; i++) {
+    const a = keys[i] as Cam
+    const b = keys[i + 1] as Cam
+    if (t <= b.at) {
+      const p = easeInOut(span(t, a.at, b.at))
+      return { h: mix(a.h, b.h, p), fx: mix(a.fx, b.fx, p), fy: mix(a.fy, b.fy, p), cx: mix(a.cx, b.cx, p), cy: mix(a.cy, b.cy, p), ry: mix(a.ry, b.ry, p) }
+    }
+  }
+  return keys[keys.length - 1] as Cam
+}
+
+/** The phone's centre so the framed screen point lands where the camera wants it. */
+function placed(c: Omit<Cam, 'at'>) {
+  const k = c.h / SCREEN_H
+  return { h: c.h, x: c.cx - (c.fx - SCREEN_W / 2) * k, y: c.cy - (c.fy - SCREEN_H / 2) * k, ry: c.ry }
+}
+
+const FULL = { h: 1000, fx: SCREEN_W / 2, fy: SCREEN_H / 2, cx: 1250, cy: 540, ry: -6 }
+
 // ——— On a screen (screenshot pixels) ——————————————————————————————————————————————————
 
 function Tap({ t, at, x, y }: { t: number; at: number; x: number; y: number }) {
@@ -158,7 +199,7 @@ function Ring({ t, at, box, out }: { t: number; at: number; box: number[]; out: 
 /** Ada's slide: the knob travels the track and red fills behind it. */
 function Slide({ t }: { t: number }) {
   const [a, b] = cues.slide as [number, number]
-  if (t < a - 0.3 || t >= 7.0) return null
+  if (t < a - 0.3 || t >= Number((cues.ada as [number, string][])[2]?.[0] ?? b + 0.1)) return null
   const p = ease(t, a, b)
   const x = mix(147, 1030, p)
   const y = geo.slideY?.[0] ?? 2238
@@ -176,7 +217,7 @@ function Slide({ t }: { t: number }) {
 
 // ——— The film ——————————————————————————————————————————————————————————————————————————
 
-export function WatchingFilm({ sound = true, score = 'w1' }: { sound?: boolean; score?: string }) {
+export function WatchingFilm({ sound = true, score = 'w4' }: { sound?: boolean; score?: string }) {
   const frame = useCurrentFrame()
   const t = frame / FPS
   const [handle] = useState(() => delayRender('Manrope'))
@@ -184,8 +225,6 @@ export function WatchingFilm({ sound = true, score = 'w1' }: { sound?: boolean; 
     manrope.then(() => continueRender(handle))
   }, [handle])
 
-  const adaIn = rise(t, cues.phoneIn[0], cues.phoneIn[1] - cues.phoneIn[0])
-  const samIn = rise(t, cues.samIn[0], cues.samIn[1] - cues.samIn[0])
   const ada = frameAt(cues.ada as [number, string][], t)
   const sam = frameAt(cues.sam as [number, string][], t)
   const hw = cues.hookWords
@@ -193,31 +232,72 @@ export function WatchingFilm({ sound = true, score = 'w1' }: { sound?: boolean; 
   const ow = cues.onlyWords
   const sw = cues.spendWords
   const ew = cues.endWords
+  const g = geo
+
+  // The dive: the shot rushes toward her phone, then the real screen is there, close.
+  const dive = span(t, cues.dive[0], cues.dive[1])
+  const diveScale = 1 + 1.9 * dive * dive * dive
+  // Ada's phone: close on the switch (drifting in to one-to-one), then the pull back to the whole phone.
+  const adaCam = placed(
+    camAt(
+      [
+        { at: cues.turn, h: 2300, fx: SCREEN_W / 2, fy: g.switch?.[1] ?? 2001, cx: 1340, cy: 560, ry: 0 },
+        { at: cues.pullBack[0], h: SCREEN_H, fx: SCREEN_W / 2, fy: g.switch?.[1] ?? 2001, cx: 1340, cy: 560, ry: 0 },
+        { at: cues.pullBack[1], ...FULL },
+      ],
+      t,
+    ),
+  )
+  // Sam's phone: it comes up whole, then the camera pushes into Ada's sealed note.
+  const samRise = rise(t, cues.samIn[0], cues.samIn[1] - cues.samIn[0])
+  const samCam = placed(
+    camAt(
+      [
+        { at: cues.pushNote[0], ...FULL },
+        { at: cues.pushNote[1], h: SCREEN_H, fx: SCREEN_W / 2, fy: ((g.note?.[1] ?? 1743) + (g.note?.[3] ?? 2031)) / 2, cx: 1340, cy: 600, ry: 0 },
+      ],
+      t,
+    ),
+  )
+  // Paying: the whole phone, then the camera pushes into "Paid!".
+  const payCam = placed(
+    camAt(
+      [
+        { at: cues.pushPaid[0], ...FULL },
+        { at: cues.pushPaid[1], h: 1800, fx: SCREEN_W / 2, fy: ((g.paid?.[1] ?? 1329) + (g.paid?.[3] ?? 1582)) / 2, cx: 1250, cy: 560, ry: -2 },
+      ],
+      t,
+    ),
+  )
 
   return (
     <AbsoluteFill style={{ background: NIGHT }}>
-      {/* 1. The train: everyone leaning in to read her phone. The title sits behind them. */}
+      {/* 1. The train: everyone leaning in to read her phone. Then the dive into it. */}
       {t < cues.turn ? (
-        <>
+        <AbsoluteFill style={{ transform: `scale(${diveScale})`, transformOrigin: '885px 600px', filter: dive > 0 ? `blur(${9 * dive * dive}px)` : undefined }}>
           <Clip src="private/hf/v1.mp4" from={0} dur={cues.turn} />
-          <LowerShade />
-          <Title t={t} out={cues.turn} x={78} y={640} width={900} lines={[{ text: 'On a blockchain,', at: hw.slice(0, 3) }, { text: 'everyone’s watching.', at: hw.slice(3) }]} />
-        </>
+          {dive <= 0 ? (
+            <>
+              <LowerShade />
+              <Title t={t} out={cues.dive[0]} x={78} y={640} width={900} lines={[{ text: 'On a blockchain,', at: hw.slice(0, 3) }, { text: 'everyone’s watching.', at: hw.slice(3) }]} />
+            </>
+          ) : null}
+        </AbsoluteFill>
       ) : null}
 
-      {/* 2. Her phone, over the train: the real switch, the slide, sent privately. */}
+      {/* 2. In her phone: the real switch, close; then the pull back, the slide, sent in 1.00 s. */}
       {t >= cues.turn && t < cues.payoff ? (
         <AbsoluteFill>
-          <Plate src="private/hf/v1_end.jpg" />
-          <Title t={t} out={cues.payoff} x={110} y={330} width={760} size={128} lines={[{ text: 'Not anymore.', at: cues.notWords }]} />
-          <Note t={t} at={cues.adaNote} out={cues.payoff} x={116} y={500} text="Send privately: Monad sees it leave," />
-          <Note t={t} at={cues.adaNote + 0.35} out={cues.payoff} x={116} y={544} text="not who it’s for." />
-          <Note t={t} at={cues.sentRing + 0.1} out={cues.payoff} x={116} y={612} color={RED} text={`Landed in ${cues.run.sent_s} s on Monad.`} />
-          <IPhone src={`private/ada/${ada}.png`} h={880} x={mix(2300, 1380, adaIn)} y={540} rotate={mix(8, -3, adaIn)} ry={-10}>
-            <Tap t={t} at={cues.switchTap} x={geo.switch?.[0] ?? 1005} y={geo.switch?.[1] ?? 2001} />
+          <Plate src="private/hf/v1_end.jpg" dark={0.62} blur={40} />
+          <IPhone src={`private/ada/${ada}.png`} h={adaCam.h} x={adaCam.x} y={adaCam.y} ry={adaCam.ry}>
+            <Tap t={t} at={cues.switchTap} x={g.switch?.[0] ?? 1002} y={g.switch?.[1] ?? 2001} />
             <Slide t={t} />
-            <Ring t={t} at={cues.sentRing} box={geo.sent ?? [0, 0, 0, 0]} out={cues.payoff} />
+            <Ring t={t} at={cues.sentRing} box={g.sent ?? [0, 0, 0, 0]} out={cues.payoff} />
           </IPhone>
+          <AbsoluteFill style={{ background: 'linear-gradient(90deg, rgba(13,15,14,0.82) 0%, rgba(13,15,14,0.5) 34%, rgba(13,15,14,0) 48%)', pointerEvents: 'none' }} />
+          <Title t={t} out={cues.pullBack[0] - 0.05} x={84} y={430} width={560} size={96} lines={[{ text: 'Not anymore.', at: cues.notWords }]} />
+          <Title t={t} out={cues.payoff} x={84} y={380} width={560} size={100} lines={[{ text: 'Sent', at: [cues.sentWords[0] ?? 11] }, { text: 'privately.', at: [cues.sentWords[1] ?? 11.2] }]} />
+          <Note t={t} at={cues.sentNote} out={cues.payoff} x={90} y={640} color={CREAM} text={`Landed in ${cues.run.sent_s} s on Monad.`} />
         </AbsoluteFill>
       ) : null}
 
@@ -230,21 +310,31 @@ export function WatchingFilm({ sound = true, score = 'w1' }: { sound?: boolean; 
         </>
       ) : null}
 
-      {/* 4–5. The café: only Sam can open it, and he spends it from there. */}
-      {t >= cues.cafe && t < cues.end ? (
+      {/* 4. Sam's phone: Ada's money and her note, and only he can open them. */}
+      {t >= cues.cafe && t < cues.spend ? (
         <AbsoluteFill>
-          <Plate src="private/hf/k3-2.png" dark={0.45} blur={30} />
-          <Title t={t} out={cues.spend} x={110} y={300} width={720} size={118} lines={[{ text: 'Only Sam', at: ow.slice(0, 2) }, { text: 'can open it.', at: ow.slice(2) }]} />
-          <Note t={t} at={cues.onlyNote} out={cues.spend} x={116} y={600} text="Even Ada’s note is sealed for him." />
-          <Title t={t} out={cues.end} x={110} y={300} width={720} size={118} lines={[{ text: 'He spends it,', at: sw.slice(0, 3) }, { text: 'still private.', at: sw.slice(3) }]} />
-          <Note t={t} at={cues.spendNote} out={cues.end} x={116} y={600} text="Paid from a one-time address." />
-          <Note t={t} at={cues.spendNote + 0.35} out={cues.end} x={116} y={644} text="His wallet never shows." />
-          <IPhone src={`private/sam/${sam}.png`} h={880} x={mix(2300, 1380, samIn)} y={540} rotate={mix(8, -3, samIn)} ry={-10}>
-            <Ring t={t} at={cues.noteRing} box={geo.note ?? [0, 0, 0, 0]} out={cues.spend} />
-            <Ring t={t} at={cues.fromRing} box={geo.from ?? [0, 0, 0, 0]} out={cues.payTap - 0.05} />
-            <Tap t={t} at={cues.payTap} x={geo.pay?.[0] ?? 585} y={geo.pay?.[1] ?? 2349} />
-            <Ring t={t} at={cues.paidRing} box={geo.paid ?? [0, 0, 0, 0]} out={cues.end} />
+          <Plate src="private/hf/k3-2.png" dark={0.55} blur={40} />
+          <IPhone src={`private/sam/${sam}.png`} h={samCam.h} x={samCam.x} y={samCam.y + 700 * (1 - samRise)} ry={samCam.ry}>
+            <Ring t={t} at={cues.noteRing} box={g.note ?? [0, 0, 0, 0]} out={cues.spend} />
           </IPhone>
+          <AbsoluteFill style={{ background: 'linear-gradient(90deg, rgba(13,15,14,0.82) 0%, rgba(13,15,14,0.5) 34%, rgba(13,15,14,0) 48%)', pointerEvents: 'none' }} />
+          <Title t={t} out={cues.spend} x={84} y={360} width={560} size={96} lines={[{ text: 'Only Sam', at: ow.slice(0, 2) }, { text: 'can open it.', at: ow.slice(2) }]} />
+          <Note t={t} at={cues.onlyNote} out={cues.spend} x={90} y={640} text="Even Ada’s note is sealed for him." />
+        </AbsoluteFill>
+      ) : null}
+
+      {/* 5. He pays the café straight from his private dollars. */}
+      {t >= cues.spend && t < cues.end ? (
+        <AbsoluteFill>
+          <Plate src="private/hf/k3-2.png" dark={0.55} blur={40} />
+          <IPhone src={`private/sam/${sam}.png`} h={payCam.h} x={payCam.x} y={payCam.y} ry={payCam.ry}>
+            <Ring t={t} at={cues.fromRing} box={g.from ?? [0, 0, 0, 0]} out={cues.payTap - 0.05} />
+            <Tap t={t} at={cues.payTap} x={g.pay?.[0] ?? 586} y={g.pay?.[1] ?? 2349} />
+            <Ring t={t} at={cues.paidRing} box={g.paid ?? [0, 0, 0, 0]} out={cues.end} />
+          </IPhone>
+          <AbsoluteFill style={{ background: 'linear-gradient(90deg, rgba(13,15,14,0.82) 0%, rgba(13,15,14,0.5) 34%, rgba(13,15,14,0) 48%)', pointerEvents: 'none' }} />
+          <Title t={t} out={cues.end} x={84} y={360} width={560} size={104} lines={[{ text: 'He spends it,', at: sw.slice(0, 3) }, { text: 'still private.', at: sw.slice(3) }]} />
+          <Note t={t} at={cues.spendNote} out={cues.end} x={90} y={640} text="Paid from a one-time address." />
         </AbsoluteFill>
       ) : null}
 

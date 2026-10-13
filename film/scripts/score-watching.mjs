@@ -1,6 +1,7 @@
 // Score for "Everyone's watching" (WatchingFilm): ElevenLabs Music from a composition plan that follows
-// the film's turns: nosy and comic on the train, a hush and a confident click at "Not anymore", a
-// playful sting when they give up, a warm groove in the café, a lift and a held chord at the end.
+// the film's turns: nosy and comic on the train, a hush and a confident chord inside her phone, a
+// groove as it's sent, a playful sting when they give up, warmth for Sam's note, the groove again as
+// he pays, a lift and a held chord at the end.
 // Writes public/private/score-<v>.mp3.  Run: env -u ELEVENLABS_API_KEY node --env-file=.env scripts/score-watching.mjs w1 w2
 import { writeFileSync } from 'node:fs'
 
@@ -16,11 +17,13 @@ const plan = {
   ],
   negative_global_styles: ['vocals', 'lo-fi', 'distorted', 'muddy', 'cheesy', 'chiptune', 'video game', 'horror', 'silence', 'harsh', 'noisy', 'corporate stock music cliché'],
   sections: [
-    { section_name: 'Nosy', positive_local_styles: ['sly sneaking pizzicato strings and muted plucks', 'upright bass walking softly', 'finger snaps', 'comic tension, everyone leaning in'], negative_local_styles: ['loud drums'], duration_ms: 4600, lines: [] },
-    { section_name: 'Not anymore', positive_local_styles: ['a brief hush, then a confident felt piano chord and a soft kick', 'the tension released with a smile', 'cool and assured'], negative_local_styles: ['silence', 'abrupt stop'], duration_ms: 3800, lines: [] },
-    { section_name: 'Nobody knows', positive_local_styles: ['playful pizzicato sting and a bouncy bass line', 'witty, light, a shrug in music'], negative_local_styles: ['silence'], duration_ms: 3000, lines: [] },
-    { section_name: 'Cafe', positive_local_styles: ['warm confident groove', 'brushed drums and snaps', 'upright bass', 'felt piano melody', 'intimate and satisfied'], negative_local_styles: ['busy', 'aggressive', 'silence'], duration_ms: 6700, lines: [] },
-    { section_name: 'Lift', positive_local_styles: ['full warm lift', 'bright piano chords and strings', 'satisfying'], negative_local_styles: ['abrupt'], duration_ms: 3000, lines: [] },
+    { section_name: 'Nosy', positive_local_styles: ['sly sneaking pizzicato strings and muted plucks', 'upright bass walking softly', 'finger snaps', 'comic tension, everyone leaning in'], negative_local_styles: ['loud drums'], duration_ms: 5000, lines: [] },
+    { section_name: 'Inside the phone', positive_local_styles: ['a soft airy hush, then one confident felt piano chord and a soft kick', 'cool and assured', 'intimate close-up feeling'], negative_local_styles: ['silence', 'abrupt stop'], duration_ms: 4000, lines: [] },
+    { section_name: 'Sent', positive_local_styles: ['a light confident groove begins', 'brushed drums, snaps, upright bass', 'quietly satisfied'], negative_local_styles: ['busy', 'silence'], duration_ms: 4600, lines: [] },
+    { section_name: 'Nobody knows', positive_local_styles: ['playful pizzicato sting and a bouncy bass line', 'witty, light, a shrug in music'], negative_local_styles: ['silence'], duration_ms: 3400, lines: [] },
+    { section_name: 'Only Sam', positive_local_styles: ['warm and tender', 'felt piano melody over soft pads and brushed drums', 'close and personal'], negative_local_styles: ['busy', 'silence'], duration_ms: 5400, lines: [] },
+    { section_name: 'Spend', positive_local_styles: ['the groove returns, confident and warm', 'brushed drums and snaps', 'upright bass', 'a small bright lift at the payment'], negative_local_styles: ['aggressive', 'silence'], duration_ms: 6000, lines: [] },
+    { section_name: 'Lift', positive_local_styles: ['full warm lift', 'bright piano chords and strings', 'satisfying'], negative_local_styles: ['abrupt'], duration_ms: 3600, lines: [] },
     { section_name: 'Tail', positive_local_styles: ['a warm final major chord held and ringing to the very end'], negative_local_styles: ['silence', 'fade to nothing'], duration_ms: 3000, lines: [] },
   ],
 }

@@ -44,7 +44,7 @@ def put(path, at, db, af=SOFT):
 
 
 L, P = 'public/link/sfx', 'public/private/sfx'
-put(f'{L}/swoosh.mp3', c['turn'] - 0.35, -20)
+put(f'{L}/swoosh.mp3', c['dive'][0] - 0.05, -17)
 put(f'{L}/tap.mp3', c['switchTap'] - 0.02, -22)
 put(f'{P}/lock.mp3', c['switchOn'] - 0.03, -13)
 put(f'{L}/slide.mp3', c['slide'][0] - 0.05, -19)
