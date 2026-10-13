@@ -5025,3 +5025,118 @@ button.w-chip-private:disabled {
 .w-receipt-public {
   margin-top: 0.5rem;
 }
+
+/* ── Naira in and out (components/wallet/naira.tsx) ────────────────────────────────────── */
+
+.w-naira {
+  gap: 0.625rem;
+}
+
+.w-naira-form {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  text-align: left;
+}
+
+.w-naira-field {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.w-naira-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.w-naira-field input,
+.w-naira-field select {
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.125rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  appearance: none;
+}
+
+.w-naira-field select {
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-position: calc(100% - 1.25rem) 50%, calc(100% - 0.875rem) 50%;
+  background-size: 0.375rem 0.375rem;
+  background-repeat: no-repeat;
+  padding-right: 2.5rem;
+}
+
+.w-naira-field input:focus-visible,
+.w-naira-field select:focus-visible {
+  outline: 3px solid var(--coral-soft);
+  outline-offset: 2px;
+}
+
+.w-naira-money {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 3.25rem;
+  padding: 0 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.125rem;
+  background: var(--surface);
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.w-naira-money input {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.w-naira-money input:focus-visible {
+  outline: none;
+}
+
+.w-naira-money:focus-within {
+  outline: 3px solid var(--coral-soft);
+  outline-offset: 2px;
+}
+
+.w-naira-help {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.w-naira-bad {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.w-naira-named {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  justify-self: start;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: var(--teal-light);
+  color: var(--teal-deep);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.w-naira-test {
+  margin-top: 0.25rem;
+}

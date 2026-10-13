@@ -218,3 +218,53 @@ export async function transfersAfter(
   if (!response.ok) throw new Error(`Kova couldn’t load your activity (${response.status}).`)
   return response.json()
 }
+
+/** A naira cash-out, as Kova quotes it (POST /v1/wallets/:address/cash-outs): what to sign, and how it went. */
+export interface CashOutToPay {
+  id: string
+  amount: string
+  naira: string
+  rate: string
+  fee: string
+  bank_name: string
+  account_name?: string
+  account_last4: string
+  status: 'quoted' | 'received' | 'paying' | 'paid' | 'failed' | 'expired'
+  failure: string | null
+  tx_hash: string | null
+  tx_url: string | null
+  refund_tx_url: string | null
+  test_mode: boolean
+  expires_at: string
+  pay: { token: string; to: string | null; value: string; nonce: Hex; valid_before: number }
+}
+
+/**
+ * Signs exactly the transfer a cash-out asks for (its dollars, to Kova's treasury, its own nonce)
+ * and hands it to Kova, which relays it to Monad and pays the naira out. Kova pays the gas.
+ */
+export async function payCashOut(
+  network: NetworkId,
+  account: LocalAccount,
+  cashOut: CashOutToPay,
+): Promise<CashOutToPay & { ms: number }> {
+  if (!cashOut.pay.to) throw new Error('Cashing out to naira isn’t switched on yet.')
+  const token = getToken(network, 'AUSD')
+  const authorization: TransferAuthorization = {
+    from: account.address,
+    to: cashOut.pay.to as Address,
+    value: BigInt(cashOut.pay.value),
+    validAfter: 0n,
+    validBefore: BigInt(cashOut.pay.valid_before),
+    nonce: cashOut.pay.nonce,
+  }
+  const started = performance.now()
+  const signature = await account.signTypedData(
+    transferAuthorizationTypedData(token, getNetwork(network).chainId, authorization),
+  )
+  const paid = await post<CashOutToPay>(
+    `/api/naira/cash-outs/${cashOut.id}/pay`,
+    toSignedAuthorization(token.address, authorization, signature),
+  )
+  return { ...paid, ms: Math.round(performance.now() - started) }
+}

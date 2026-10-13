@@ -26,7 +26,9 @@ import {
   addTestDollars as fetchTestDollars,
   type IndexedTransfer,
   type Moved,
+  type CashOutToPay,
   payCharge,
+  payCashOut,
   sendMoney,
   transfersAfter,
 } from '@/lib/wallet/chain'
@@ -246,6 +248,8 @@ interface WalletValue {
   /** A move in under way. */
   movingIn: { done: number; total: number } | null
   /** Pays a shop's charge, from your balance or (`from: 'private'`) from private dollars. */
+  /** Cashes out to a Nigerian bank: signs the quote's exact transfer to Kova's treasury, and Kova pays the naira. */
+  cashOutNaira: (cashOut: CashOutToPay) => Promise<CashOutToPay>
   payCheckout: (
     charge: ChargeToPay,
     options?: { from?: PayFrom; onStep?: (step: PrivateStep) => void },
@@ -1158,6 +1162,30 @@ export function WalletProvider({
     [network, privateSource, profile, refresh, remember, spentFrom, unlock],
   )
 
+  const cashOutNaira = useCallback(
+    async (cashOut: CashOutToPay) => {
+      if (!profile) throw new Error('Open your wallet first.')
+      const amount = BigInt(cashOut.pay.value)
+      const account = await unlock(amount)
+      const paid = await payCashOut(network, account, cashOut)
+      spend(amount)
+      if (paid.tx_hash)
+        remember(paid.tx_hash, {
+          name: `Cash out to ${cashOut.bank_name}`,
+          detail: `${cashOut.naira} to ····${cashOut.account_last4}`,
+          ms: paid.ms,
+          kind: 'sent',
+          to: cashOut.pay.to ?? '',
+          amount: cashOut.pay.value,
+          at: Date.now(),
+          explorer: paid.tx_url ?? '',
+        })
+      void refresh()
+      return paid
+    },
+    [network, profile, refresh, remember, unlock],
+  )
+
   const addTestDollars = useCallback(async () => {
     if (!profile) throw new Error('Open your wallet first.')
     const next = await fetchTestDollars(network, profile.address)
@@ -1542,6 +1570,7 @@ export function WalletProvider({
       moveIn,
       movingIn,
       payCheckout,
+      cashOutNaira,
       addTestDollars,
       signMessage,
       lock,
@@ -1584,6 +1613,7 @@ export function WalletProvider({
       moveIn,
       movingIn,
       payCheckout,
+      cashOutNaira,
       addTestDollars,
       signMessage,
       lock,
