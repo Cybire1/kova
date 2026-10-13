@@ -14,7 +14,7 @@ import {
 } from '@/lib/wallet/money'
 import { ScreenHead } from './activity'
 import { short, useWallet } from './provider'
-import { CopyButton, Keypad, QR, ShareButton } from './ui'
+import { CopyButton, Keypad, NoSignal, QR, ShareButton } from './ui'
 
 function useOrigin() {
   const [origin, setOrigin] = useState('https://mykova.app')
@@ -137,6 +137,13 @@ export function Receive() {
           <CopyButton text={profile.address} />
         </div>
         <p className="w-fine w-center">Monad address. Send only AUSD on Monad to it.</p>
+        <p className="w-offline-hint">
+          <NoSignal size={15} />
+          <span>
+            No signal? A Kova phone can still scan this and pay you. It settles as soon as either
+            of you is back online.
+          </span>
+        </p>
         <ShareButton
           title={`Pay ${profile.name}`}
           text="Pay me on Kova:"

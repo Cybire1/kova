@@ -6,6 +6,7 @@ import '../styles/landing.css'
 import '../styles/stalls.css'
 import '../styles/takings.css'
 import '../styles/wallet.css'
+import '../styles/offline.css'
 
 const DESCRIPTION = 'Your dollars, anywhere, in seconds. A wallet that opens with a passkey, with your shop inside it. On Monad.'
 

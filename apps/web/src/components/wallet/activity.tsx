@@ -4,9 +4,10 @@ import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { Icon } from '@/components/brand'
 import { baseToNumber, formatLocal, formatUsd } from '@/lib/wallet/money'
+import { isOfflineTx } from '@/lib/wallet/offline'
 import { CheckPrivate } from './private'
 import { type Entry, isUnnamed, short, useWallet } from './provider'
-import { Avatar, EntryBadge, EntryRow, incoming, LockedFace, signed } from './ui'
+import { Avatar, EntryBadge, EntryRow, incoming, LockedFace, NoSignal, signed } from './ui'
 
 /** A screen's title, with the way back. */
 export function ScreenHead({
@@ -352,6 +353,17 @@ export function Receipt({ id }: { id: string }) {
               <dd>{entry.detail}</dd>
             </div>
           )}
+          {isOfflineTx(entry.txHash) ? (
+            <div className="w-receipt-note">
+              <dt>
+                <NoSignal size={14} /> How
+              </dt>
+              <dd>
+                Offline payment
+                <small>Signed on a phone with no signal, settled when it was handed in</small>
+              </dd>
+            </div>
+          ) : null}
           {entry.oneTime ? (
             <div className="w-receipt-note">
               <dt>

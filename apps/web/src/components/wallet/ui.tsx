@@ -13,6 +13,7 @@ import {
   type Key,
   type Rates,
 } from '@/lib/wallet/money'
+import { isOfflineTx } from '@/lib/wallet/offline'
 import { type Entry, useWallet } from './provider'
 
 /** FNV-1a over the lowercased address, as the app picks faces: the same person looks the same everywhere. */
@@ -103,8 +104,34 @@ export function signed(entry: Entry) {
   return incoming(entry) ? formatUsd(amount, { sign: true }) : formatUsd(-amount)
 }
 
+/** No signal: a payment signed on a phone with no connection, settled later. */
+export function NoSignal({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2.5 8.8a14 14 0 0 1 4.3-2.7" />
+      <path d="M11 5.2a14 14 0 0 1 10.5 3.6" />
+      <path d="M5.8 12.4a9 9 0 0 1 3.5-2" />
+      <path d="M15 10.8a9 9 0 0 1 3.2 1.6" />
+      <path d="M9.2 15.7a4.5 4.5 0 0 1 5.6 0" />
+      <path d="M12 19.5h.01" />
+      <path d="M3.5 3.5l17 17" />
+    </svg>
+  )
+}
+
 /** One line of money: who, what, when, and how much, signed by direction. */
 export function EntryRow({ entry }: { entry: Entry }) {
+  const offline = isOfflineTx(entry.txHash)
   return (
     <Link
       href={`/wallet/activity/${encodeURIComponent(entry.id)}`}
@@ -120,6 +147,11 @@ export function EntryRow({ entry }: { entry: Entry }) {
           ) : null}
           {entry.fromPrivate ? (
             <span className="w-from-private">From private dollars</span>
+          ) : offline ? (
+            <span className="w-offline-tag">
+              <NoSignal size={12} />
+              Offline payment
+            </span>
           ) : entry.unconfirmed ? (
             `Unconfirmed sender, ${entry.detail}`
           ) : (
