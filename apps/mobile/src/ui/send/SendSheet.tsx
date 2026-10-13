@@ -20,7 +20,7 @@ import { EnvelopeBadge } from '../LinkParts'
 import { Bob, Burst } from '../motion'
 import { NameSheet } from '../NameSheet'
 import { PillButton, TextLink, Txt } from '../primitives'
-import { MoveInOffer, SendPrivately, SentPrivately } from '../Private'
+import { PayFrom, SendPrivately, SentPrivately, spendLabel, usePayFrom } from '../Private'
 import { Stage as KoviStage } from '../Stage'
 import { ArcRoute, type Leg } from './ArcRoute'
 import { SlideToSend } from './SlideToSend'
@@ -92,11 +92,15 @@ export function SendSheet({ payee }: { payee?: Payee }) {
   const local = theirs && theirs !== 'USD' ? theirs : null
   const typedDollars = typed === '' ? 0 : Number(typed)
   const amount = typedDollars > 0 ? toBase(typedDollars.toFixed(2)) : 0n
-  const over = balance !== null && amount > balance
-  // Short, but private dollars would cover it: they can be moved in first, in one tap.
-  const shortBy = over && balance !== null ? amount - balance : 0n
-  const covered = shortBy > 0n && dollars.waiting >= shortBy
-  const sendPrivately = privately && reach === 'yes'
+  const shortOf = balance !== null && amount > balance
+  // Private dollars only go out privately, to someone who can receive that way. When the balance is
+  // short and they cover it, that's how this send goes.
+  const privateCovers = reach === 'yes' && amount > 0n && dollars.keysHere && dollars.coverFor(amount) !== null
+  const forced = shortOf && privateCovers
+  const sendPrivately = (privately || forced) && reach === 'yes'
+  const payFrom = usePayFrom(amount, balance, sendPrivately)
+  const fromPrivate = sendPrivately && payFrom.source === 'private'
+  const over = shortOf && !fromPrivate && !forced
   // With Send privately on, wait for their key's check: a private send never quietly goes out in the open.
   const checking = privately && reach === 'checking'
 
@@ -117,7 +121,13 @@ export function SendSheet({ payee }: { payee?: Payee }) {
     setLeg('flying')
     const started = Date.now()
     try {
-      const done = await send({ address: to.address, name, currency: theirs ?? undefined }, amount, note.trim() || undefined, { privately: sendPrivately })
+      const payee = { address: to.address, name, currency: theirs ?? undefined }
+      const text = note.trim() || undefined
+      // From private dollars: one of your one-time addresses pays, and your wallet's signature in the
+      // sealed memo tells them it's you.
+      const done = fromPrivate
+        ? await dollars.spendFrom(amount, (account) => send(payee, amount, text, { privately: true, signer: account }))
+        : await send(payee, amount, text, { privately: sendPrivately })
       // Let Kovi finish the leg he is on: the flight is timed to about what the chain takes.
       await new Promise((r) => setTimeout(r, Math.max(0, 1360 - (Date.now() - started))))
       setLeg('landed')
@@ -259,11 +269,11 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           </View>
           <Keypad onKey={(key) => setTyped((v) => applyKey(v, key))} size={56} />
           <View style={{ marginTop: 14 }}>
-            {covered ? (
-              <MoveInOffer short={shortBy} compact />
-            ) : (
-              <PillButton label={over ? 'More than you have' : 'Review'} disabled={amount === 0n || over} onPress={() => moveTo('review')} />
-            )}
+            <PillButton
+              label={over ? 'More than you have' : forced ? 'Review, from private dollars' : 'Review'}
+              disabled={amount === 0n || over}
+              onPress={() => moveTo('review')}
+            />
           </View>
           <NameSheet person={naming ? { address: to.address, name } : null} onClose={() => setNaming(false)} />
         </Animated.View>
@@ -312,8 +322,22 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           </View>
 
           {reach === 'yes' ? (
-            <View style={{ marginBottom: 14 }}>
-              <SendPrivately on={privately} onChange={choosePrivately} amount={amount} first={isUnnamed(name) ? 'they' : first} disabled={busy} />
+            <View style={{ marginBottom: 14, gap: 10 }}>
+              <SendPrivately
+                on={sendPrivately}
+                onChange={choosePrivately}
+                amount={amount}
+                first={isUnnamed(name) ? 'they' : first}
+                disabled={busy || forced}
+              />
+              {forced && !privately ? (
+                <Txt size={12} color={colors.onTint} style={{ marginTop: -4, marginLeft: 4, lineHeight: 17 }}>
+                  Your balance is short, so this one goes privately, from your private dollars.
+                </Txt>
+              ) : null}
+              {sendPrivately && payFrom.offered ? (
+                <PayFrom amount={amount} balance={balance} source={payFrom.source} cover={payFrom.cover} onChange={payFrom.setSource} disabled={busy} />
+              ) : null}
             </View>
           ) : reach === 'untrusted' ? (
             <View style={styles.untrusted}>
@@ -341,10 +365,10 @@ export function SendSheet({ payee }: { payee?: Payee }) {
               </Txt>
             </Animated.View>
           ) : null}
-          {covered ? (
-            <View style={{ marginBottom: 12 }}>
-              <MoveInOffer short={shortBy} />
-            </View>
+          {dollars.spending ? (
+            <Txt weight="medium" size={14} style={{ textAlign: 'center', marginBottom: 10 }}>
+              {spendLabel(dollars.spending)}
+            </Txt>
           ) : over ? (
             <Txt weight="medium" size={14} color={colors.danger} style={{ textAlign: 'center', marginBottom: 10 }}>
               You have {formatUsd(balance ?? 0n)}. Add money or send less.
@@ -389,7 +413,14 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           </View>
           {entry.privately && entry.oneTime ? (
             <View style={{ alignSelf: 'stretch', marginTop: 18 }}>
-              <SentPrivately amount={amount} oneTime={entry.oneTime} first={isUnnamed(name) ? 'they' : first} txHash={entry.txHash} />
+              <SentPrivately
+                amount={amount}
+                oneTime={entry.oneTime}
+                first={isUnnamed(name) ? 'they' : first}
+                txHash={entry.txHash}
+                at={entry.at}
+                fromPrivate={entry.fromPrivate}
+              />
             </View>
           ) : null}
           <View style={{ alignSelf: 'stretch', marginTop: entry.privately ? 16 : 22, gap: 12 }}>

@@ -190,6 +190,8 @@ export interface ScanState {
   caughtUp: boolean
   /** Found, newest first. */
   receipts: PrivateReceipt[]
+  /** Kova's Announcements on Monad, by one-time address (lowercase): payments here and private sends from here. */
+  announced?: Record<string, string>
 }
 
 /** One-time addresses this phone found to be this wallet's, so a move in from one isn't a stranger paying. */

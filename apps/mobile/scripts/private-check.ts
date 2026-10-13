@@ -7,22 +7,20 @@
  * Maya's dollars come from Kova's testnet faucet, or from the wallet whose key is in KOVA_FUNDER_KEY.
  *   EXPO_PUBLIC_KOVA_NETWORK=testnet EXPO_PUBLIC_KOVA_MONAD_API_URL=http://localhost:4215 npm run check:private
  */
-import { generateStealthAddress, stealthMetaAddress, stealthRegistrationMessage, stealthViewKey } from '@kova/monad'
+import { generateStealthPayment, stealthMetaAddress, stealthRegistrationMessage, stealthViewKey } from '@kova/monad'
 import { type Address, decodeEventLog, type Hex, isAddressEqual } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { fundFromFaucet, getBalance, publicClient, sendMoney } from '../src/lib/chain'
 import { apiUrl, settlementToken } from '../src/lib/config'
 import { formatUsd } from '../src/lib/money'
-import { fetchNoteKey, noteKeys, openNote, publishNoteKey } from '../src/lib/notes-core'
 import {
   feedAfter,
   fetchReceivingKey,
   findMine,
   moveIn,
   publishReceivingKey,
-  receiptOf,
+  readReceipt,
   receivingKeys,
-  transferInto,
   UntrustedKey,
   verifyReceivingKey,
   viewFromKey,
@@ -73,11 +71,6 @@ async function main() {
   })
   assert(forged.status === 403, 'Kova won’t take a key for Tunde that someone else signed')
 
-  // Tunde can read private notes.
-  const tundeSecret = crypto.getRandomValues(new Uint8Array(32))
-  const mayaSecret = crypto.getRandomValues(new Uint8Array(32))
-  await publishNoteKey(apiUrl, tunde, tundeSecret)
-
   let t = Date.now()
   const funder = process.env.KOVA_FUNDER_KEY
   if (funder) {
@@ -86,17 +79,20 @@ async function main() {
   } else await fundFromFaucet(maya.address)
   console.log(`    maya has ${formatUsd(await getBalance(maya.address))} (${Date.now() - t} ms)`)
 
-  // Maya sends privately: a one-time address for this payment, and the note sealed to it.
+  // Maya sends privately: a one-time address for this payment, with a memo sealed to it (her, her name, a note).
   const amount = 1_250_000n
-  const stealth = generateStealthAddress((await fetchReceivingKey(tunde.address)) as string)
+  const stealth = generateStealthPayment((await fetchReceivingKey(tunde.address)) as string, {
+    from: maya.address,
+    name: 'Maya',
+    note: 'For the train tickets',
+    kind: 'send',
+  })
   t = Date.now()
-  const sent = await sendMoney(
-    maya,
-    stealth.stealthAddress,
-    amount,
-    { text: 'For the train tickets', mine: noteKeys(mayaSecret).publicKey, theirs: await fetchNoteKey(apiUrl, tunde.address) },
-    { ephemeralPublicKey: stealth.ephemeralPublicKey, viewTag: stealth.viewTag },
-  )
+  const sent = await sendMoney(maya, stealth.stealthAddress, amount, undefined, {
+    ephemeralPublicKey: stealth.ephemeralPublicKey,
+    viewTag: stealth.viewTag,
+    sealed: stealth.sealed,
+  })
   console.log(`    sent ${formatUsd(amount)} privately in ${sent.ms} ms: ${sent.hash}`)
 
   // On Monad: Maya paid an address that isn't Tunde's.
@@ -126,16 +122,11 @@ async function main() {
   const announced = feed.find((a) => isAddressEqual(a.stealth_address, stealth.stealthAddress))
   assert(announced && !JSON.stringify(announced).toLowerCase().includes(tunde.address.slice(2).toLowerCase()), 'the announcement names nobody')
 
-  // Who sent it (public anyway) and the note, which only the two of them can open.
-  const found = receiptOf(mine[0]!)
-  let into = await transferInto(found)
-  for (let i = 0; !into && i < 10; i++) {
-    await new Promise((r) => setTimeout(r, 500))
-    into = await transferInto(found)
-  }
-  assert(into && isAddressEqual(into.from, maya.address), 'Kova’s index says Maya sent it')
-  const note = into?.note ? openNote(into.note.sealed, { from: into.from, to: found.stealthAddress, value: BigInt(found.amount), nonce: into.note.auth_nonce }, noteKeys(tundeSecret).secretKey) : null
-  assert(note === 'For the train tickets', 'Tunde opens Maya’s sealed note')
+  // Who sent it and the note come out of the sealed memo, opened with Tunde's viewing key alone.
+  const found = await readReceipt(tundeKeys.viewingPrivateKey, mine[0]!)
+  assert(found.from && isAddressEqual(found.from, maya.address) && found.senderName === 'Maya' && found.proven === 'chain', 'Tunde’s memo says Maya sent it, and Monad agrees')
+  assert(found.note === 'For the train tickets', 'Tunde opens Maya’s sealed note')
+  assert((await readReceipt(mayaKeys.viewingPrivateKey, mine[0]!)).note === null, 'nobody else’s viewing key opens it')
 
   // Only Tunde's keys open it: Maya's sign nothing, and the dollars stay put.
   const stolen = await moveIn({ keys: mayaKeys, receipts: [found], to: maya.address })

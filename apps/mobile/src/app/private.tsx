@@ -33,7 +33,8 @@ export default function PrivateDollars() {
 
   const days = useMemo(() => {
     const groups: { day: string; receipts: PrivateReceipt[] }[] = []
-    for (const r of p.receipts) {
+    // Your own dollars gathered into one address aren't a payment to you.
+    for (const r of p.receipts.filter((x) => x.kind !== 'change')) {
       const day = dayOf(r.at)
       const last = groups[groups.length - 1]
       if (last?.day === day) last.receipts.push(r)
@@ -41,6 +42,7 @@ export default function PrivateDollars() {
     }
     return groups
   }, [p.receipts])
+  const payments = days.reduce((n, d) => n + d.receipts.length, 0)
 
   return (
     <Screen edges={['top']}>
@@ -71,13 +73,14 @@ export default function PrivateDollars() {
               How it stays private
             </Txt>
             <View style={styles.explain}>
-              <PrivateFlow receipt={p.receipts[0]} />
+              <PrivateFlow receipt={p.receipts.find((r) => r.kind !== 'change')} />
               <Txt size={14} color={colors.onTint} style={{ marginTop: 14, lineHeight: 20 }}>
                 Someone who sends you dollars privately pays an address made for that payment alone. Monad shows who sent it and how much,
                 but only your keys can tell the address is yours, so nobody can add up what you receive.
               </Txt>
               <Txt size={13} color={colors.muted} style={{ marginTop: 8, lineHeight: 18 }}>
-                Moving them into your balance is a payment from that address to you, and that move is public like any other.
+                Spend them where they are: pay shops and send privately straight from these addresses, and your wallet never shows. Moving
+                them into your balance is public on Monad, like any payment to your wallet.
               </Txt>
             </View>
 
@@ -85,13 +88,13 @@ export default function PrivateDollars() {
               <Txt weight="bold" size={20}>
                 Every private payment
               </Txt>
-              {p.receipts.length ? (
+              {days.length ? (
                 <Txt size={14} color={colors.muted}>
-                  {p.receipts.length} {p.receipts.length === 1 ? 'payment' : 'payments'}
+                  {payments} {payments === 1 ? 'payment' : 'payments'}
                 </Txt>
               ) : null}
             </View>
-            {p.receipts.length === 0 ? (
+            {days.length === 0 ? (
               <View style={styles.none}>
                 <Txt size={15} color={colors.muted} style={{ lineHeight: 21 }}>
                   {p.keysHere

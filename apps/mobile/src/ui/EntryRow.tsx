@@ -37,7 +37,13 @@ export function PrivateAvatar({ name, id, size = 38 }: { name: string; id?: stri
 export function EntryRow({ entry }: { entry: Entry }) {
   const incoming = entry.kind === 'received' || entry.kind === 'added'
   // Sent or received privately: a padlock on their face, and "Private" before the note.
-  const detail = entry.privately && entry.private ? `Private · “${entry.detail}”` : entry.detail
+  const detail = [
+    entry.fromPrivate ? 'From private dollars' : null,
+    entry.unconfirmed ? 'Unconfirmed sender' : null,
+    entry.privately && entry.private ? `Private · “${entry.detail}”` : entry.detail,
+  ]
+    .filter(Boolean)
+    .join(' · ')
   return (
     <Pressable
       accessibilityRole="button"
@@ -61,7 +67,7 @@ export function EntryRow({ entry }: { entry: Entry }) {
           {entry.name}
         </Txt>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          {entry.private || entry.privately ? <Icon name="lock" size={12} color={colors.muted} /> : null}
+          {entry.private || entry.privately || entry.fromPrivate ? <Icon name="lock" size={12} color={colors.muted} /> : null}
           <Txt size={13} color={colors.muted} numberOfLines={1} style={{ flexShrink: 1 }}>
             {detail}, {when(entry.at)}
           </Txt>

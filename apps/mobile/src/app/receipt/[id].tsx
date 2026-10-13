@@ -12,6 +12,7 @@ import { Icon, type IconName } from '@/ui/Icon'
 import { type Entry, isUnnamed, useWallet } from '@/lib/wallet'
 import { Avatar, ShopBadge } from '@/ui/art'
 import { PrivateAvatar, signed, when } from '@/ui/EntryRow'
+import { Announced } from '@/ui/Private'
 import { NameSheet } from '@/ui/NameSheet'
 import { Header, PillButton, Screen, TextLink, Txt } from '@/ui/primitives'
 
@@ -69,6 +70,11 @@ export default function Receipt() {
                 {entry.name}
               </Txt>
             )}
+            {entry.unconfirmed ? (
+              <Txt size={13} color={colors.coralDeep} style={{ marginTop: 2, textAlign: 'center' }}>
+                Unconfirmed: only their sealed note says it’s them
+              </Txt>
+            ) : null}
             {person && isUnnamed(entry.name) ? (
               <View style={{ marginTop: 6 }}>
                 <TextLink label="Add a name" onPress={() => setNaming(true)} />
@@ -99,8 +105,24 @@ export default function Receipt() {
                   ? 'Made for this payment. Only you can tell it’s yours.'
                   : `Monad shows that address, not ${isUnnamed(entry.name) ? 'them' : first}. Only ${first} can open it.`}
               </Txt>
-              {receipt ? <Row label="Now" value={waiting ? 'Waiting to move in' : 'In your balance'} /> : null}
+              {receipt ? (
+                <Row
+                  label="Now"
+                  value={waiting ? (BigInt(receipt.held) < BigInt(receipt.amount) ? `${formatUsd(BigInt(receipt.held))} left, private` : 'Private, yours to spend') : receipt.movedTx ? 'Moved into your balance' : 'Spent'}
+                />
+              ) : null}
+              {entry.oneTime ? (
+                <View style={{ alignItems: 'flex-end', marginTop: 4 }}>
+                  <Announced url={privately.announcementAt(entry.oneTime)} at={entry.at} />
+                </View>
+              ) : null}
             </>
+          ) : null}
+          {entry.fromPrivate ? <Row label="Paid from" icon="lock" value="Private dollars" /> : null}
+          {entry.fromPrivate ? (
+            <Txt size={12} color={colors.muted} style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}>
+              One of your one-time addresses paid. Your wallet doesn’t show on Monad.
+            </Txt>
           ) : null}
           {entry.ms ? <Row label="Took" value={`${(entry.ms / 1000).toFixed(1)} seconds`} /> : null}
           <Row label="Fee" value={entry.kind === 'paid' || entry.kind === 'sent' ? '$0.00, covered by Kova' : '$0.00'} />
@@ -115,29 +137,8 @@ export default function Receipt() {
           <Path d={`M0 0 ${zigzag} L360 0 Z`} fill={colors.surface} />
         </Svg>
       </View>
-      <View style={[styles.footer, { gap: 14 }]}>
-        {waiting ? (
-          <>
-            <PillButton
-              label={privately.progress ? 'Moving it in…' : 'Move into my balance'}
-              icon="receive"
-              loading={Boolean(privately.progress)}
-              onPress={() => void privately.moveIn()}
-            />
-            {privately.problem?.during === 'move' ? (
-              <Txt weight="medium" size={13} color={colors.danger} style={{ textAlign: 'center', marginTop: -6 }}>
-                {privately.problem.text}
-              </Txt>
-            ) : null}
-          </>
-        ) : null}
-        {waiting ? (
-          <View style={{ alignItems: 'center' }}>
-            <TextLink label="Share receipt" onPress={() => void Share.share({ message: shareText(entry, incoming) })} />
-          </View>
-        ) : (
-          <PillButton label="Share receipt" icon="share" onPress={() => void Share.share({ message: shareText(entry, incoming) })} />
-        )}
+      <View style={styles.footer}>
+        <PillButton label="Share receipt" icon="share" onPress={() => void Share.share({ message: shareText(entry, incoming) })} />
       </View>
       <NameSheet person={naming && person ? { address: person, name: entry.name } : null} onClose={() => setNaming(false)} />
     </Screen>

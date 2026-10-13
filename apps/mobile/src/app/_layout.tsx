@@ -57,7 +57,7 @@ function ArrivalWatcher() {
         hash: arrival.hash,
         ...(arrival.note ? { note: arrival.note } : {}),
         // Arrived privately: the arrival screen says so, and offers to move it in.
-        ...(arrival.privately ? { private: '1', ...(arrival.oneTime ? { oneTime: arrival.oneTime } : {}) } : {}),
+        ...(arrival.privately ? { private: '1', ...(arrival.oneTime ? { oneTime: arrival.oneTime } : {}), ...(arrival.unconfirmed ? { unconfirmed: '1' } : {}) } : {}),
       },
     })
     clearArrival()

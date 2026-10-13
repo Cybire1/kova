@@ -23,6 +23,7 @@ import { tableFrom } from '@/lib/links'
 import { type DisplayCurrency, formatLocal } from '@/lib/money'
 import { colors, fonts } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import { usePayFrom } from '@/ui/Private'
 import { Coin, Kovi } from '@/ui/art'
 import { Awning } from '@/ui/Awning'
 import { Icon } from '@/ui/Icon'
@@ -351,6 +352,12 @@ function BasketSheet({
   const [busy, setBusy] = useState<'pay' | 'ask' | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
   const [asked, setAsked] = useState<PlacedOrder | null>(null)
+  // Paying from private dollars (as last chosen, or because the balance is short): the order isn't
+  // tied to this wallet, so it collects no stamp. A free item on the card always pays from the wallet.
+  const { balance } = useWallet()
+  const totalBase = BigInt(Math.round(total * 1e6))
+  const payFrom = usePayFrom(totalBase, balance, !free && totalBase > 0n)
+  const privately = payFrom.source === 'private'
 
   useEffect(() => {
     if (visible && lines.length === 0 && !asked) onClose()
@@ -366,15 +373,19 @@ function BasketSheet({
         note: note.trim() || undefined,
         pay_for_me: payForMe,
         table,
-        // Paying yourself earns the stamp, and spends a full card. Someone else paying doesn't.
-        payer: payForMe ? undefined : payer,
+        // Paying yourself earns the stamp, and spends a full card. Someone else paying doesn't, and
+        // nor does a private payment: the stamp would tie it to your wallet.
+        payer: payForMe || privately ? undefined : payer,
       })
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
       if (payForMe) setAsked(placed)
       else {
         onClose()
         onPaid()
-        router.push({ pathname: '/pay/[id]', params: { id: placed.checkout.id, ...(autoPlace ? { autopay: '1' } : {}) } })
+        router.push({
+          pathname: '/pay/[id]',
+          params: { id: placed.checkout.id, ...(autoPlace ? { autopay: '1' } : {}), ...(!privately && payer && stall.loyalty_every ? { stamp: '1' } : {}) },
+        })
       }
     } catch (error) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
@@ -485,7 +496,9 @@ function BasketSheet({
               ) : null}
               {card?.every && !free ? (
                 <Txt size={13} color={colors.muted} style={{ marginTop: 12, marginLeft: 4 }}>
-                  Paying for this earns a stamp: {Math.min(card.stamps + 1, card.every)} of {card.every}.
+                  {privately
+                    ? 'Paying from private dollars. Private payments don’t collect stamps.'
+                    : `Paying for this earns a stamp: ${Math.min(card.stamps + 1, card.every)} of ${card.every}.`}
                 </Txt>
               ) : null}
               <View style={{ gap: 10, marginTop: 16 }}>

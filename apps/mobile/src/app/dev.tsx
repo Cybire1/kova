@@ -36,7 +36,8 @@ import { booksMessage } from '@/ui/Takings'
  * Private sends between people: `private=setup` makes this wallet's private-receiving keys and gives Kova
  * the public half (as opening the wallet does), `private=look` looks through Kova's feed now, `send=…&private=1`
  * sends privately through the real code, and `movein=1` moves every private payment into the balance
- * on the screen it opens (`to=/private`, say). `/send/<address>?amount=…&private=1&autosend=1` films the sheet.
+ * on the screen it opens (`to=/private`, say). `/send/<address>?amount=…&private=1&autosend=1` films the sheet,
+ * and `payfrom=private|balance` picks where payments come from, as the Pay from switch does.
  * Release builds redirect home.
  */
 /** A small Lagos kitchen menu for trying the stall screens. */
@@ -186,6 +187,8 @@ export default function Dev() {
     books?: string
     private?: string
     movein?: string
+    /** Where payments come from, as if chosen: balance or private. */
+    payfrom?: string
   }>()
   const wallet = useWallet()
   const prefs = usePrefs()
@@ -395,6 +398,7 @@ export default function Dev() {
           const entry = await wallet.payCheckout(await getCheckout(params.pay))
           return router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })
         }
+        if (params.payfrom === 'private' || params.payfrom === 'balance') privateRef.current.setSource(params.payfrom)
         if (params.private === 'setup') {
           setStep('making private-receiving keys')
           const ok = await privateRef.current.setUp()

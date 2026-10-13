@@ -15,7 +15,7 @@ import { Icon } from '@/ui/Icon'
 import { Bob } from '@/ui/motion'
 import { OrderProgress, progressCopy } from '@/ui/OrderProgress'
 import { PaidScene } from '@/ui/PaidScene'
-import { MoveInOffer } from '@/ui/Private'
+import { PayFrom, spendLabel, usePayFrom } from '@/ui/Private'
 import { Stage as KoviStage } from '@/ui/Stage'
 import { Chip, Header, PillButton, Rise, RoundButton, Screen, Sticker, TextLink, Txt } from '@/ui/primitives'
 
@@ -27,7 +27,8 @@ let devPaid = false
 
 export default function PayCharge() {
   // autopay is development-only: it presses Pay by itself, so a film can capture the real flow.
-  const { id, autopay } = useLocalSearchParams<{ id: string; autopay?: string }>()
+  // stamp=1: the order was placed with this wallet as its stamp-card payer, so it pays from the balance.
+  const { id, autopay, stamp } = useLocalSearchParams<{ id: string; autopay?: string; stamp?: string }>()
   const { profile, balance, payCheckout } = useWallet()
   const dollars = usePrivate()
   const [stage, setStage] = useState<Stage>('loading')
@@ -61,11 +62,20 @@ export default function PayCharge() {
       })
   }, [id])
 
+  // Private dollars can pay any charge but a stamp-card reward (that's the card owner's wallet alone),
+  // and an order already tied to this wallet's stamp card.
+  const due = checkout ? BigInt(checkout.amount_base) : 0n
+  const payFrom = usePayFrom(due, balance, Boolean(checkout && !checkout.order?.reward && due > 0n && stamp !== '1'))
+  const fromPrivate = payFrom.source === 'private'
+
   const pay = async () => {
     if (!checkout) return
     setStage('paying')
     try {
-      const done = await payCheckout(checkout)
+      // From private dollars: one of your one-time addresses signs the payment, exactly as the wallet would.
+      const done = fromPrivate
+        ? await dollars.spendFrom(due, (account) => payCheckout(checkout, { signer: account }))
+        : await payCheckout(checkout)
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
       // A stall order: follow it until the counter marks it ready, wherever the buyer goes next.
       watchOrder(checkout)
@@ -120,10 +130,8 @@ export default function PayCharge() {
     )
 
   const amount = BigInt(checkout.amount_base)
-  const short = balance !== null && balance < amount
-  // Short, but private dollars cover it: they move in first, in one tap, and then it's paid as usual.
-  const shortBy = short && balance !== null ? amount - balance : 0n
-  const privateCovers = shortBy > 0n && dollars.waiting >= shortBy
+  // Short of the balance, unless private dollars pay it.
+  const short = balance !== null && balance < amount && !fromPrivate
   const reward = checkout.order?.reward ?? null
   // A full stamp card can make the whole order free: it's still approved, for $0, so it has a receipt.
   const free = amount === 0n && reward !== null
@@ -174,7 +182,11 @@ export default function PayCharge() {
               <View style={styles.stats}>
                 <Stat label="Took" value={entry.ms ? `${(entry.ms / 1000).toFixed(1)} seconds` : '—'} />
                 <Stat label="Fee" value="$0.00" />
-                <Stat label="Left" value={balance === null ? '—' : formatUsd(balance)} />
+                {entry.fromPrivate ? (
+                  <Stat label="From" value="Private dollars" />
+                ) : (
+                  <Stat label="Left" value={balance === null ? '—' : formatUsd(balance)} />
+                )}
               </View>
             </Sticker>
           )}
@@ -306,31 +318,43 @@ export default function PayCharge() {
           </View>
         ) : null}
       </ScrollView>
-      <View style={{ paddingHorizontal: 20 }}>
+      <View style={{ paddingHorizontal: 20, gap: 10 }}>
+        {payFrom.offered ? (
+          <PayFrom amount={amount} balance={balance} source={payFrom.source} cover={payFrom.cover} onChange={payFrom.setSource} disabled={stage === 'paying'} />
+        ) : null}
         <Sticker radius={24}>
           <View style={styles.lines}>
-            <Line label="From" value={`Your wallet, ${balance === null ? '…' : formatUsd(balance)}`} />
+            {payFrom.offered ? null : <Line label="From" value={`Your wallet, ${balance === null ? '…' : formatUsd(balance)}`} />}
             <Line label="Fee" value="$0.00, Kova covers it" />
           </View>
         </Sticker>
-        {privateCovers ? (
-          <Txt weight="medium" size={15} style={{ marginTop: 12, textAlign: 'center' }}>
-            You’re {formatUsd(shortBy)} short, but {formatUsd(dollars.waiting)} waits in your private dollars.
+        {fromPrivate && checkout.order?.stall ? (
+          <Txt size={13} color={colors.onTint} style={{ textAlign: 'center' }}>
+            Private payments don’t collect stamps.
           </Txt>
-        ) : short ? (
+        ) : null}
+        {short ? (
           <Txt weight="medium" size={15} color={colors.danger} style={{ marginTop: 12, textAlign: 'center' }}>
             You need {formatUsd(amount - (balance ?? 0n))} more. Add money first.
           </Txt>
         ) : null}
       </View>
       <View style={styles.footer}>
-        {privateCovers ? (
-          <MoveInOffer short={shortBy} compact />
-        ) : short ? (
+        {short ? (
           <PillButton label="Add money" icon="plus" onPress={() => router.push('/add-money')} />
         ) : (
           <>
-            <PillButton label={free ? 'Get it free' : `Pay ${formatUsd(amount)}`} icon={covered ? 'bolt' : 'face'} loading={stage === 'paying'} onPress={pay} />
+            <PillButton
+              label={spendLabel(dollars.spending) ?? (free ? 'Get it free' : fromPrivate ? `Pay ${formatUsd(amount)} privately` : `Pay ${formatUsd(amount)}`)}
+              icon={fromPrivate ? 'lock' : covered ? 'bolt' : 'face'}
+              loading={stage === 'paying'}
+              onPress={pay}
+            />
+            {fromPrivate && dollars.problem?.during === 'spend' && stage === 'review' ? (
+              <Txt weight="medium" size={13} color={colors.danger} style={{ textAlign: 'center', marginTop: 8 }}>
+                {dollars.problem.text}
+              </Txt>
+            ) : null}
             {free ? (
               <Txt size={13} color={colors.muted} style={{ textAlign: 'center', marginTop: 8 }}>
                 {covered ? 'Nothing to pay. Your wallet is open, so no Face ID either.' : 'Nothing to pay. Face ID confirms it’s your card.'}

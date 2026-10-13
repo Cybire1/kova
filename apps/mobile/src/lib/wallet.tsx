@@ -1,5 +1,5 @@
 import { createPasskeyWithPrfOutput, getPasskeyPrfOutput, isMeraError } from '@category-labs/mera'
-import { generateStealthAddress } from '@kova/monad'
+import { generateStealthAddress, generateStealthPayment, type StealthMemo, stealthMemoMessage } from '@kova/monad'
 import { hkdf } from '@noble/hashes/hkdf.js'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { base64urlnopad } from '@scure/base'
@@ -7,6 +7,7 @@ import * as SecureStore from 'expo-secure-store'
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AppState } from 'react-native'
 import { type Address, getAddress, hexToBytes, isAddress, isAddressEqual, type LocalAccount, type TypedDataDefinition } from 'viem'
+import { generatePrivateKey } from 'viem/accounts'
 import { type Checkout, demoSignIn } from './api'
 import { claimLink, fundFromFaucet, getBalance, incomingSince, type PaymentLink, payCharge, recordLink, sendMoney } from './chain'
 import { passkeyDomain } from './config'
@@ -84,6 +85,10 @@ export interface Entry {
   privately?: boolean
   /** That one-time address. */
   oneTime?: Address
+  /** Paid or sent from private dollars, signed by one of this wallet's one-time addresses: the wallet itself never shows. */
+  fromPrivate?: boolean
+  /** Received privately, and only its memo says who from: nothing proves it. */
+  unconfirmed?: boolean
 }
 
 export interface Contact {
@@ -105,6 +110,8 @@ export interface Arrival {
   /** It arrived privately, at a one-time address only this wallet can open. */
   privately?: boolean
   oneTime?: Address
+  /** Only the memo says who it's from. */
+  unconfirmed?: boolean
 }
 
 type Status = 'loading' | 'none' | 'ready'
@@ -136,12 +143,13 @@ interface Wallet {
   setName: (name: string) => Promise<void>
   setCurrency: (currency: DisplayCurrency) => Promise<void>
   addMoney: () => Promise<void>
-  payCheckout: (checkout: Checkout) => Promise<Entry>
+  /** `signer`: one of this wallet's one-time addresses pays instead (private dollars), and the wallet never shows. */
+  payCheckout: (checkout: Checkout, options?: { signer?: LocalAccount }) => Promise<Entry>
   /**
    * Sends dollars to a person. `privately`: to a fresh one-time address made from their published
    * key, checked against their own signature first; Monad shows the amount, but not who got it.
    */
-  send: (to: Contact, amount: bigint, note?: string, options?: { privately?: boolean }) => Promise<Entry>
+  send: (to: Contact, amount: bigint, note?: string, options?: { privately?: boolean; signer?: LocalAccount }) => Promise<Entry>
   /**
    * A private payment this wallet's viewing key found: into your activity as received, and when it
    * arrived while the app is open (`celebrate`), the arrival screen, marked private.
@@ -301,7 +309,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     // Tokens are minted from the zero address (the testnet faucet): that is not a person.
     const zero = '0x0000000000000000000000000000000000000000'
     for (const e of activity) {
-      if (e.address?.toLowerCase() === zero || e.link || e.takings) continue
+      // Nor is a sender only a private memo names: anyone could have written it.
+      if (e.address?.toLowerCase() === zero || e.link || e.takings || e.unconfirmed) continue
       if ((e.kind === 'sent' || e.kind === 'received') && e.address && !seen.has(e.address.toLowerCase()))
         seen.set(e.address.toLowerCase(), { address: e.address, name: e.name })
     }
@@ -557,12 +566,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [profile, refresh])
 
   const payCheckout = useCallback(
-    async (checkout: Checkout) => {
+    async (checkout: Checkout, options: { signer?: LocalAccount } = {}) => {
       const amount = BigInt(checkout.amount_base)
-      const account = await unlock(amount)
+      // From private dollars, the one-time address signs exactly as the wallet would.
+      const account = options.signer ?? (await unlock(amount))
       // Kova submits the signed payment and settles it before answering, so paid means paid.
       const { hash, ms } = await payCharge(account, checkout)
-      spend(amount)
+      if (!options.signer) spend(amount)
       const entry: Entry = {
         id: newId(),
         kind: 'paid',
@@ -573,6 +583,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         txHash: hash,
         ms,
         at: Date.now(),
+        ...(options.signer ? { fromPrivate: true } : {}),
       }
       await record(entry)
       void refresh()
@@ -609,22 +620,42 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const send = useCallback(
-    async (to: Contact, amount: bigint, note?: string, options: { privately?: boolean } = {}) => {
+    async (to: Contact, amount: bigint, note?: string, options: { privately?: boolean; signer?: LocalAccount } = {}) => {
       const text = note?.trim()
+      if (!profile) throw new Error('No wallet on this phone')
+      if (options.signer && !options.privately) throw new Error('Private dollars only go out privately.')
       // Privately: their key is checked before anything is signed, then a one-time address is made
-      // for this payment alone. Kova announces it without them; only their viewing key can find it.
-      const stealth = options.privately ? generateStealthAddress(await theirReceivingKey(to)) : null
-      // Sealed for them and for you; if they have no note key yet, for you alone.
-      const [account, mine, theirs] = await Promise.all([unlock(amount), text ? myNoteKeys() : null, text ? theirNoteKey(to.address) : null])
+      // for this payment alone, with a memo sealed to it (you, your name, your note) that only their
+      // viewing key opens. Kova announces it without them.
+      const meta = options.privately ? await theirReceivingKey(to) : null
+      let stealth: ReturnType<typeof generateStealthPayment> | null = null
+      if (meta) {
+        const memo: StealthMemo = { from: profile.address, ...(profile.name ? { name: profile.name } : {}), ...(text ? { note: text } : {}), kind: 'send' }
+        if (options.signer) {
+          // From private dollars, Monad shows a one-time address paying: the wallet's own signature in
+          // the memo is what tells them it's you.
+          const e = generatePrivateKey()
+          const address = generateStealthAddress(meta, e).stealthAddress
+          const proof = await (await unlock(0n)).signMessage({ message: stealthMemoMessage(address) })
+          stealth = generateStealthPayment(meta, { ...memo, proof }, e)
+        } else stealth = generateStealthPayment(meta, memo)
+      }
+      // A note on a private send travels in its memo; on any other, sealed for them and for you (or
+      // for you alone when they have no note key yet).
+      const [account, mine, theirs] = await Promise.all([
+        options.signer ?? unlock(amount),
+        text && !stealth ? myNoteKeys() : null,
+        text && !stealth ? theirNoteKey(to.address) : null,
+      ])
       const sealing = text && mine ? { text, mine: mine.publicKey, theirs } : undefined
       const { hash, ms } = await sendMoney(
         account,
         stealth?.stealthAddress ?? to.address,
         amount,
         sealing,
-        stealth ? { ephemeralPublicKey: stealth.ephemeralPublicKey, viewTag: stealth.viewTag } : undefined,
+        stealth ? { ephemeralPublicKey: stealth.ephemeralPublicKey, viewTag: stealth.viewTag, sealed: stealth.sealed } : undefined,
       )
-      spend(amount)
+      if (!options.signer) spend(amount)
       const entry: Entry = {
         id: newId(),
         kind: 'sent',
@@ -636,14 +667,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         ms,
         at: Date.now(),
         ...(sealing ? { private: sealing.theirs ? ('both' as const) : ('you' as const) } : {}),
-        ...(stealth ? { privately: true, oneTime: stealth.stealthAddress } : {}),
+        ...(stealth ? { privately: true, oneTime: stealth.stealthAddress, ...(text ? { private: 'both' as const } : {}) } : {}),
+        ...(options.signer ? { fromPrivate: true } : {}),
       }
       await record(entry)
       await rememberContact(to)
       void refresh()
       return entry
     },
-    [unlock, record, rememberContact, refresh],
+    [profile, unlock, record, rememberContact, refresh],
   )
 
   const makeLink = useCallback(
@@ -751,7 +783,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const receivedPrivately = useCallback(
     async (receipt: PrivateReceipt, celebrate: boolean) => {
       const from = receipt.from
-      const name = from ? (nameFor(from) ?? shortAddress(from)) : 'Someone'
+      // Your name for them; else what they call themselves in the memo; else their address.
+      const known = from ? nameFor(from) : undefined
+      const name = known && !isUnnamed(known) ? known : (receipt.senderName ?? (from ? shortAddress(from) : 'Someone'))
+      const unconfirmed = receipt.proven === 'claimed'
       const amount = BigInt(receipt.amount)
       await record({
         id: newId(),
@@ -765,6 +800,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         ...(receipt.note ? { private: 'both' as const } : {}),
         privately: true,
         oneTime: receipt.stealthAddress,
+        ...(unconfirmed ? { unconfirmed: true } : {}),
       })
       if (celebrate)
         setArrival({
@@ -775,6 +811,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           ...(receipt.note ? { note: receipt.note } : {}),
           privately: true,
           oneTime: receipt.stealthAddress,
+          ...(unconfirmed ? { unconfirmed: true } : {}),
         })
     },
     [nameFor, record],

@@ -146,6 +146,8 @@ export interface NoteToSeal {
 export interface StealthTag {
   ephemeralPublicKey: Hex
   viewTag: Hex
+  /** The memo sealed for them (who sent it, a name, a note), which only their viewing key opens. */
+  sealed?: Hex | null
 }
 
 /**
@@ -167,7 +169,9 @@ export async function sendMoney(account: LocalAccount, to: Address, amount: bigi
   const sent = await kova<{ tx_hash: Hash }>('/v1/transfers', {
     ...toSignedAuthorization(settlementToken.address, authorization, signature),
     ...(sealed ? { note: sealed } : {}),
-    ...(stealth ? { stealth: { ephemeral_public_key: stealth.ephemeralPublicKey, view_tag: stealth.viewTag } } : {}),
+    ...(stealth
+      ? { stealth: { ephemeral_public_key: stealth.ephemeralPublicKey, view_tag: stealth.viewTag, ...(stealth.sealed ? { sealed: stealth.sealed } : {}) } }
+      : {}),
   })
   return { hash: sent.tx_hash, ms: Date.now() - started }
 }

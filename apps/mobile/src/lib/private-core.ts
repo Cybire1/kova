@@ -1,17 +1,22 @@
 import {
   checkStealthAddress,
+  generateStealthAddress,
+  generateStealthPayment,
+  openStealthMemo,
   parseStealthMetaAddress,
   parseStealthViewKey,
   personalStealthKeysMessage,
   STEALTH_SCHEME_ID,
   type StealthKeys,
   stealthKeysFromSignature,
+  stealthMemoMessage,
   stealthPrivateKey,
   stealthRegistrationMessage,
+  stealthSender,
 } from '@kova/monad'
-import { type Address, getAddress, type Hash, type Hex, isAddressEqual, recoverMessageAddress } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
-import { balancesOf, explorerTx, getBalance, type Incoming, incomingSince, sendMoney } from './chain'
+import { type Address, getAddress, type Hash, type Hex, isAddressEqual, type LocalAccount, recoverMessageAddress } from 'viem'
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
+import { balancesOf, explorerTx, getBalance, sendMoney } from './chain'
 import { apiUrl } from './config'
 import { toBase } from './money'
 import type { MoveProgress } from './takings-core'
@@ -23,10 +28,15 @@ import type { MoveProgress } from './takings-core'
  * each wallet has private-receiving keys (ERC-5564, scheme 1), made from one signature by the
  * wallet, the same on the phone and on the web. It publishes the public half with Kova, signed, so
  * a sender can check Kova never swapped it. A private send goes to a fresh one-time address made
- * from that key, and Kova announces it in one public feed with every shop's private sales, naming
- * no recipient. Monad shows who sent how much, but not to whom. The recipient's phone finds its
- * own payments in the feed with the viewing key, and moves them into its balance with keys only
- * the spending key can make: one transfer per address, which Kova submits and pays the gas for.
+ * from that key, and Kova announces it in one public feed with every shop's private sales (and on
+ * Monad, to ERC-5564's announcer), naming no recipient. Monad shows who sent how much, but not to
+ * whom. Each payment carries a sealed memo (who sent it, their name, a note) that only the
+ * recipient's viewing key opens, so the phone never has to ask Kova about one of its addresses.
+ *
+ * The recipient spends straight from those addresses: each signs its own transfer with a key only
+ * the spending key can make, and Kova submits it and pays the gas. Several small ones are gathered
+ * into one new address of theirs first. Moving them into the wallet is possible too, but that move
+ * is public: it shows the addresses paying the wallet.
  */
 
 /** One entry in Kova's public feed of private payments: a shop's sale or a person's send. It names nobody. */
@@ -42,6 +52,13 @@ export interface Announcement {
   tx_hash: Hash
   explorer_url: string
   paid_at: string | null
+  /** Where the dollars came from on Monad: public anyway. Null when Kova doesn't know. */
+  from?: Address | null
+  /** The sealed memo, for the recipient's viewing key. */
+  sealed?: Hex | null
+  /** Kova's ERC-5564 Announcement on Monad, a few seconds after the payment. */
+  announce_tx?: Hash | null
+  announce_url?: string | null
 }
 
 /** A private payment this wallet found with its viewing key. Kept as JSON, so amounts are strings. */
@@ -57,16 +74,25 @@ export interface PrivateReceipt {
   explorerUrl: string
   /** When it was paid (ms). */
   at: number
-  /** Who sent it: public on Monad, so Kova's index of the chain says. Null until it's been read. */
+  /** Who sent it: their wallet, from the sealed memo or Monad. Null when there's no telling. */
   from: Address | null
-  /** Their private note, opened on this phone. */
+  /** What the sender calls themselves, from the memo. */
+  senderName?: string | null
+  /**
+   * How sure that is: 'chain' when Monad shows it left their wallet, 'signed' when their wallet
+   * signed for it, 'claimed' when only the memo says so (shown as unconfirmed).
+   */
+  proven?: 'chain' | 'signed' | 'claimed' | null
+  /** Their note, from the sealed memo. */
   note: string | null
-  /** Whether the sender sealed a note, so a note that won't open yet is tried again. */
-  sealed?: boolean
-  /** Base units at the one-time address, as last read from Monad: "0" once it's moved in. */
+  /** 'change': this wallet's own private dollars, gathered into one address. Not a payment to it. */
+  kind?: 'send' | 'change'
+  /** Base units at the one-time address, as last read from Monad: "0" once it's spent or moved in. */
   held: string
   /** The move into this wallet, when this phone made it. */
   movedTx?: Hash
+  /** Kova's Announcement of it on Monad (ERC-5564), once posted. */
+  announceUrl?: string | null
 }
 
 /** What finds this wallet's private payments: the viewing key and the spending public key. It can't move a cent. */
@@ -189,29 +215,32 @@ export async function findMine(
   return mine
 }
 
-export function receiptOf(item: Announcement): PrivateReceipt {
+/**
+ * A payment found in the feed, read with this wallet's viewing key: its sealed memo opened on the
+ * phone (who sent it, their name, their note), and the sender checked against Monad or their
+ * signature. Nothing about the one-time address is asked of Kova.
+ */
+export async function readReceipt(viewingPrivateKey: Hex, item: Announcement): Promise<PrivateReceipt> {
   const amount = toBase(item.amount).toString()
+  const stealthAddress = getAddress(item.stealth_address)
+  const memo = openStealthMemo(viewingPrivateKey, { ephemeralPublicKey: item.ephemeral_public_key, stealthAddress, sealed: item.sealed })
+  const sender = await stealthSender(memo, { stealthAddress, from: item.from ?? null }).catch(() => null)
   return {
     id: item.id,
-    stealthAddress: getAddress(item.stealth_address),
+    stealthAddress,
     ephemeralPublicKey: item.ephemeral_public_key,
     amount,
     txHash: item.tx_hash,
     explorerUrl: item.explorer_url,
     at: item.paid_at ? Date.parse(item.paid_at) : Date.now(),
-    from: null,
-    note: null,
+    from: sender?.address ?? null,
+    senderName: sender?.name ?? null,
+    proven: sender?.proven ?? null,
+    note: memo?.note ?? null,
+    kind: memo?.kind === 'change' ? 'change' : 'send',
     held: amount,
+    announceUrl: item.announce_url ?? null,
   }
-}
-
-/**
- * Who sent it, with their note still sealed: the sender is public on Monad, and Kova's index of the
- * chain has the transfer into the one-time address. Null while the index hasn't seen it yet.
- */
-export async function transferInto(receipt: Pick<PrivateReceipt, 'stealthAddress' | 'txHash'>): Promise<Incoming | null> {
-  const { transfers } = await incomingSince(receipt.stealthAddress, 0n)
-  return transfers.find((t) => t.hash.toLowerCase() === receipt.txHash.toLowerCase()) ?? null
 }
 
 /** What's at each one-time address now, read from Monad; an address whose read failed keeps what it had. */
@@ -261,8 +290,8 @@ function moveProblem(error: unknown): string {
   return text
 }
 
-/** How many moves Kova is asked for at once. */
-const AT_ONCE = 4
+/** One move at a time: Kova's relayer sends them in order anyway. */
+const AT_ONCE = 1
 
 /**
  * Moves private dollars into `to`, this wallet. Each one-time address signs its own transfer of
@@ -338,5 +367,93 @@ export async function moveIn(input: {
     empty,
     held,
     ms: Date.now() - started,
+  }
+}
+
+// --- Spending private dollars ----------------------------------------------------------------------
+
+/** The account that signs for a one-time address, checked to open exactly that address. */
+export function oneTimeAccount(keys: StealthKeys, receipt: Pick<PrivateReceipt, 'stealthAddress' | 'ephemeralPublicKey'>): LocalAccount {
+  const account = privateKeyToAccount(stealthPrivateKey(keys, receipt.ephemeralPublicKey))
+  if (!isAddressEqual(account.address, receipt.stealthAddress)) throw new Error('A private payment’s address didn’t open with your keys. Nothing moved.')
+  return account
+}
+
+/**
+ * Which private dollars pay `amount`: the smallest single address that covers it (the change stays
+ * there, still private), or, when none does alone, the largest ones until they cover it together,
+ * to be gathered into one address first. Null when they don't cover it at all.
+ */
+export function planSpend(receipts: PrivateReceipt[], amount: bigint): { from: PrivateReceipt } | { gather: PrivateReceipt[] } | null {
+  const funded = receipts.filter((r) => BigInt(r.held) > 0n)
+  const single = funded.filter((r) => BigInt(r.held) >= amount).sort((a, b) => (BigInt(a.held) < BigInt(b.held) ? -1 : 1))[0]
+  if (single) return { from: single }
+  const largest = [...funded].sort((a, b) => (BigInt(a.held) > BigInt(b.held) ? -1 : 1))
+  const gather: PrivateReceipt[] = []
+  let sum = 0n
+  for (const r of largest) {
+    if (sum >= amount) break
+    gather.push(r)
+    sum += BigInt(r.held)
+  }
+  return sum >= amount ? { gather } : null
+}
+
+/**
+ * Gathers several one-time addresses into one new address of this wallet's: each moves its whole
+ * balance there (the first carries the sealed memo, kind 'change', vouched for by the wallet's
+ * signature), one at a time. Those addresses become linked to each other on Monad, but not to the
+ * wallet. Returns the new address as a private receipt, to pay from at once.
+ */
+export async function gather(input: {
+  keys: StealthKeys
+  meta: string
+  sources: PrivateReceipt[]
+  me: Address
+  name?: string | null
+  sign: (message: string) => Promise<Hex>
+  onProgress?: (done: number, total: number) => void
+}): Promise<{ receipt: PrivateReceipt; moved: { from: Address; txHash: Hash; amount: bigint }[] }> {
+  const { keys, meta, sources, me, onProgress } = input
+  const e = generatePrivateKey()
+  const address = generateStealthAddress(meta, e).stealthAddress
+  const proof = await input.sign(stealthMemoMessage(address))
+  const g = generateStealthPayment(meta, { from: me, ...(input.name ? { name: input.name } : {}), kind: 'change', proof }, e)
+  const held = await balancesOf(sources.map((r) => r.stealthAddress))
+  const moved: { from: Address; txHash: Hash; amount: bigint }[] = []
+  for (const [i, r] of sources.entries()) {
+    const value = held.get(r.stealthAddress.toLowerCase()) ?? BigInt(r.held)
+    if (value === 0n) continue
+    const first = moved.length === 0
+    const sent = await sendMoney(
+      oneTimeAccount(keys, r),
+      g.stealthAddress,
+      value,
+      undefined,
+      first ? { ephemeralPublicKey: g.ephemeralPublicKey, viewTag: g.viewTag, sealed: g.sealed } : undefined,
+    )
+    moved.push({ from: r.stealthAddress, txHash: sent.hash, amount: value })
+    onProgress?.(i + 1, sources.length)
+  }
+  const first = moved[0]
+  if (!first) throw new Error('Those private dollars had already moved. Nothing was paid.')
+  const total = moved.reduce((sum, m) => sum + m.amount, 0n)
+  return {
+    moved,
+    receipt: {
+      id: `local:${g.stealthAddress.toLowerCase()}`,
+      stealthAddress: g.stealthAddress,
+      ephemeralPublicKey: g.ephemeralPublicKey,
+      amount: total.toString(),
+      txHash: first.txHash,
+      explorerUrl: explorerTx(first.txHash),
+      at: Date.now(),
+      from: me,
+      senderName: input.name ?? null,
+      proven: 'signed',
+      note: null,
+      kind: 'change',
+      held: total.toString(),
+    },
   }
 }

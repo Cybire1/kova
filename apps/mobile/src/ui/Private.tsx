@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Switch, View } from 'react-native'
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated'
 import { explorerTx } from '@/lib/chain'
 import { formatUsd } from '@/lib/money'
-import { usePrivate } from '@/lib/private'
+import { type PaySource, type SpendProgress, usePrivate } from '@/lib/private'
 import type { PrivateReceipt } from '@/lib/private-core'
 import { type MoveProgress, shortAddress } from '@/lib/takings-core'
 import { colors } from '@/lib/theme'
@@ -37,14 +37,129 @@ const progressLabel = (p: MoveProgress) =>
 
 const waitingOf = (receipts: PrivateReceipt[]) => receipts.filter((r) => BigInt(r.held) > 0n)
 
-/** Who sent it, as you know them: your name for them, or their short address. */
+/** Who sent it, as you know them: your name for them, else the name in their memo, else their short address. */
 export function useSenderName() {
   const { contacts } = useWallet()
-  return (from: string | null) => {
-    if (!from) return 'Someone'
-    const known = contacts.find((c) => c.address.toLowerCase() === from.toLowerCase())
-    return known && !isUnnamed(known.name) ? known.name : shortAddress(from)
+  return (from: string | null, memoName?: string | null) => {
+    const known = from ? contacts.find((c) => c.address.toLowerCase() === from.toLowerCase()) : undefined
+    if (known && !isUnnamed(known.name)) return known.name
+    return memoName || (from ? shortAddress(from) : 'Someone')
   }
+}
+
+/** Paying from private dollars, in words. */
+export const spendLabel = (s: SpendProgress | null) =>
+  !s
+    ? null
+    : s.step === 'unlocking'
+      ? 'Opening your private dollars…'
+      : s.step === 'gathering'
+        ? s.total && s.total > 1
+          ? `Gathering your private dollars… ${Math.min((s.done ?? 0) + 1, s.total)} of ${s.total}`
+          : 'Gathering your private dollars…'
+        : 'Paying…'
+
+/**
+ * Where a payment comes from, as the screens decide it: offered only when private dollars cover the
+ * amount (and the payment allows it), starting from the last choice, and from private dollars
+ * whenever the balance alone is short.
+ */
+export function usePayFrom(amount: bigint, balance: bigint | null, allowed = true) {
+  const p = usePrivate()
+  const cover = allowed && p.keysHere && amount > 0n ? p.coverFor(amount) : null
+  const balanceCovers = balance !== null && balance >= amount
+  const offered = cover !== null
+  const source: PaySource = !offered ? 'balance' : !balanceCovers ? 'private' : p.source
+  return { offered, source, cover, balanceCovers, setSource: p.setSource }
+}
+
+/**
+ * Pay from: your balance, or your private dollars. The private side says what Monad will see, and
+ * when several addresses must be gathered first, that this links them to each other, not to you.
+ */
+export function PayFrom({
+  amount,
+  balance,
+  source,
+  cover,
+  onChange,
+  disabled,
+}: {
+  amount: bigint
+  balance: bigint | null
+  source: PaySource
+  cover: 'single' | 'gather' | null
+  onChange: (source: PaySource) => void
+  disabled?: boolean
+}) {
+  const p = usePrivate()
+  const balanceShort = balance !== null && balance < amount
+  const option = (key: PaySource, label: string, value: string, off: boolean) => {
+    const on = source === key
+    return (
+      <Pressable
+        accessibilityRole="radio"
+        accessibilityState={{ selected: on, disabled: off || !!disabled }}
+        accessibilityLabel={`Pay from ${label}, ${value}${off ? ', not enough' : ''}`}
+        disabled={off || disabled}
+        onPress={() => {
+          void Haptics.selectionAsync()
+          onChange(key)
+        }}
+        style={[styles.option, on && styles.optionOn, off && { opacity: 0.4 }]}
+      >
+        <View style={styles.optionTop}>
+          <Icon name={key === 'private' ? 'lock' : 'home'} size={14} color={on ? colors.white : colors.ink} strokeWidth={2.4} />
+          <Txt weight="semi" size={13} color={on ? colors.white : colors.ink}>
+            {label}
+          </Txt>
+        </View>
+        <Txt weight="bold" size={16} color={on ? colors.white : colors.ink} numberOfLines={1}>
+          {value}
+        </Txt>
+      </Pressable>
+    )
+  }
+  return (
+    <View style={styles.payFrom} accessibilityRole="radiogroup">
+      <Txt weight="semi" size={13} color={colors.muted} style={{ marginBottom: 8, marginLeft: 2 }}>
+        Pay from
+      </Txt>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {option('balance', 'Balance', balance === null ? '…' : balanceShort ? `${formatUsd(balance)}, short` : formatUsd(balance), balanceShort)}
+        {option('private', 'Private dollars', formatUsd(p.waiting), false)}
+      </View>
+      {source === 'private' ? (
+        <Txt size={12} color={colors.onTint} style={{ marginTop: 8, lineHeight: 17 }}>
+          {cover === 'gather'
+            ? 'Your private dollars sit at several addresses, so they’re gathered into one first. That links those addresses to each other on Monad, not to you.'
+            : 'Paid from an address only you can open. Monad won’t tie it to your wallet, and the change stays private.'}
+        </Txt>
+      ) : null}
+    </View>
+  )
+}
+
+/** Kova's Announcement of a private payment on Monad (ERC-5564): a link once it's posted, "Announcing…" a moment before. */
+export function Announced({ url, at, onInk }: { url: string | null; at: number; onInk?: boolean }) {
+  const fresh = Date.now() - at < 3 * 60_000
+  if (!url && !fresh) return null
+  const color = onInk ? colors.white : colors.ink
+  return url ? (
+    <Pressable accessibilityRole="link" hitSlop={8} onPress={() => void WebBrowser.openBrowserAsync(url)} style={styles.announced}>
+      <Icon name="check" size={14} color={color} strokeWidth={2.6} />
+      <Txt weight="semi" size={13} color={color} style={{ textDecorationLine: 'underline' }}>
+        Announced on Monad
+      </Txt>
+    </Pressable>
+  ) : (
+    <View style={styles.announced}>
+      <Icon name="clock" size={14} color={onInk ? colors.onInk : colors.muted} />
+      <Txt size={13} color={onInk ? colors.onInk : colors.muted}>
+        Announcing on Monad…
+      </Txt>
+    </View>
+  )
 }
 
 /**
@@ -63,7 +178,7 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
   // The people behind what's waiting, newest first, each once.
   const senders: { key: string; label: string }[] = []
   for (const r of waiting) {
-    const label = senderName(r.from)
+    const label = r.kind === 'change' ? 'you, gathered' : senderName(r.from, r.senderName)
     if (!senders.some((s) => s.label === label)) senders.push({ key: r.id, label })
   }
 
@@ -159,7 +274,8 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
             {formatUsd(p.waiting)}
           </Txt>
           <Txt size={15} color={colors.onInk}>
-            waiting at {p.waitingCount} one-time {p.waitingCount === 1 ? 'address' : 'addresses'}, only yours to open
+            at {p.waitingCount} one-time {p.waitingCount === 1 ? 'address' : 'addresses'}, only yours to open. Pay shops and send privately
+            straight from them.
           </Txt>
           <View style={styles.chips}>
             {senders.slice(0, 2).map((s) => (
@@ -196,7 +312,7 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
             />
           </View>
           <Txt size={12} color={colors.onInk} style={styles.foot}>
-            Kova pays the gas. Each address signs its own move.
+            Moving in is public on Monad: it shows these addresses paying your wallet. Kova pays the gas.
           </Txt>
         </View>
       ) : (
@@ -232,8 +348,9 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
 export function PrivateRow({ receipt, last }: { receipt: PrivateReceipt; last?: boolean }) {
   const { activity } = useWallet()
   const senderName = useSenderName()
-  const name = senderName(receipt.from)
+  const name = senderName(receipt.from, receipt.senderName)
   const waiting = BigInt(receipt.held) > 0n
+  const unconfirmed = receipt.proven === 'claimed'
   const entry = activity.find((e) => e.kind === 'received' && e.txHash?.toLowerCase() === receipt.txHash.toLowerCase())
   return (
     <Pressable
@@ -250,6 +367,7 @@ export function PrivateRow({ receipt, last }: { receipt: PrivateReceipt; last?: 
           {name}
         </Txt>
         <Txt size={13} color={colors.muted} numberOfLines={1}>
+          {unconfirmed ? 'Unconfirmed sender · ' : ''}
           {receipt.note ? `“${receipt.note}”` : `To ${shortAddress(receipt.stealthAddress)}`}, {when(receipt.at)}
         </Txt>
       </View>
@@ -258,7 +376,7 @@ export function PrivateRow({ receipt, last }: { receipt: PrivateReceipt; last?: 
           {formatUsd(BigInt(receipt.amount), { sign: true })}
         </Txt>
         <Txt weight="semi" size={12} color={waiting ? colors.coralDeep : colors.muted}>
-          {waiting ? 'Waiting' : 'Moved in'}
+          {waiting ? (BigInt(receipt.held) < BigInt(receipt.amount) ? `${formatUsd(BigInt(receipt.held))} left` : 'Private') : receipt.movedTx ? 'Moved in' : 'Spent'}
         </Txt>
       </View>
     </Pressable>
@@ -271,7 +389,7 @@ export function PrivateRow({ receipt, last }: { receipt: PrivateReceipt; last?: 
  */
 export function PrivateFlow({ receipt }: { receipt?: PrivateReceipt }) {
   const senderName = useSenderName()
-  const from = receipt ? senderName(receipt.from) : 'Someone'
+  const from = receipt ? senderName(receipt.from, receipt.senderName) : 'Someone'
   return (
     <View style={styles.flow} accessible accessibilityLabel="Someone pays an address made for that payment alone, which only your keys can open">
       <View style={styles.flowEnd}>
@@ -333,54 +451,6 @@ export function ReceivingCard() {
 }
 
 /**
- * When the balance is short but private dollars would cover it: move them in first, in one tap.
- * The wallet opens for it (Face ID once), so what comes next needs none. `compact`: the button
- * alone, where the screen already shows what you have.
- */
-export function MoveInOffer({ short, compact }: { short: bigint; compact?: boolean }) {
-  const p = usePrivate()
-  if (p.waiting < short && !p.progress) return null
-  const button = (
-    <PillButton
-      label={p.progress ? progressLabel(p.progress) : `Move in your private ${formatUsd(p.waiting)} first`}
-      icon="receive"
-      loading={Boolean(p.progress)}
-      onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
-        void p.moveIn({ openWallet: true })
-      }}
-    />
-  )
-  const problem =
-    p.problem?.during === 'move' ? (
-      <Txt weight="medium" size={13} color={colors.danger} style={{ marginTop: compact ? 8 : 0, textAlign: compact ? 'center' : 'left' }}>
-        {p.problem.text}
-      </Txt>
-    ) : null
-  if (compact)
-    return (
-      <View>
-        {button}
-        {problem}
-      </View>
-    )
-  return (
-    <View style={styles.offer}>
-      <View style={styles.offerTop}>
-        <View style={styles.offerLock}>
-          <Icon name="lock" size={15} color={colors.white} strokeWidth={2.4} />
-        </View>
-        <Txt weight="medium" size={14} style={{ flex: 1, lineHeight: 19 }}>
-          You’re {formatUsd(short)} short, but {formatUsd(p.waiting)} waits in your private dollars.
-        </Txt>
-      </View>
-      {button}
-      {problem}
-    </View>
-  )
-}
-
-/**
  * Send privately, on the review step: off by default, remembered once chosen. On, the card turns
  * ink and says exactly what Monad will and won't show.
  */
@@ -436,7 +506,22 @@ export function SendPrivately({
 }
 
 /** Where a private send went, in the sheet's Sent step and on its receipt: the one-time address, not them. */
-export function SentPrivately({ amount, oneTime, first, txHash }: { amount: bigint; oneTime: string; first: string; txHash?: string }) {
+export function SentPrivately({
+  amount,
+  oneTime,
+  first,
+  txHash,
+  at,
+  fromPrivate,
+}: {
+  amount: bigint
+  oneTime: string
+  first: string
+  txHash?: string
+  at: number
+  fromPrivate?: boolean
+}) {
+  const p = usePrivate()
   return (
     <View style={styles.sent}>
       <View style={styles.sentTag}>
@@ -448,7 +533,11 @@ export function SentPrivately({ amount, oneTime, first, txHash }: { amount: bigi
       <Txt size={14} color={colors.onTint} style={{ lineHeight: 20, marginTop: 8 }}>
         Monad shows {formatUsd(amount)} going to <Txt weight="semi" size={14}>{shortAddress(oneTime)}</Txt>, an address made for this payment
         alone. Only {first} can open it.
+        {fromPrivate ? ' It left one of your own one-time addresses, so your wallet doesn’t show either.' : ''}
       </Txt>
+      <View style={{ marginTop: 8 }}>
+        <Announced url={p.announcementAt(oneTime)} at={at} />
+      </View>
       {txHash ? (
         <Pressable
           accessibilityRole="link"
@@ -556,4 +645,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ink,
   },
   sentLink: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+  announced: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  payFrom: { borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, padding: 12 },
+  option: { flex: 1, borderRadius: 16, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.paper, paddingVertical: 8, paddingHorizontal: 10, gap: 2 },
+  optionOn: { backgroundColor: colors.ink },
+  optionTop: { flexDirection: 'row', alignItems: 'center', gap: 5 },
 })

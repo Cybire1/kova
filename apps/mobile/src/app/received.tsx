@@ -1,8 +1,6 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useState } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { baseToNumber, formatLocal, formatUsd } from '@/lib/money'
-import { usePrivate } from '@/lib/private'
 import { shortAddress } from '@/lib/takings-core'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
@@ -18,12 +16,20 @@ import { Chip, Header, PillButton, Rise, Screen, Sticker, TextLink, Txt } from '
  * says so: the dollars wait at a one-time address only this wallet can open, a tap from the balance.
  */
 export default function Received() {
-  const params = useLocalSearchParams<{ amount: string; name: string; hash?: string; note?: string; via?: string; private?: string; oneTime?: string }>()
+  const params = useLocalSearchParams<{
+    amount: string
+    name: string
+    hash?: string
+    note?: string
+    via?: string
+    private?: string
+    oneTime?: string
+    unconfirmed?: string
+  }>()
   // Claimed from a link: their note was written on the link, not sealed for you.
   const byLink = params.via === 'link'
   const privately = params.private === '1'
-  const dollars = usePrivate()
-  const [movedIn, setMovedIn] = useState(false)
+  const unconfirmed = params.unconfirmed === '1'
   const { profile, contacts, activity } = useWallet()
   const { width } = useWindowDimensions()
   // Opened without an arrival (a stale link, a relaunch): show the latest money in instead.
@@ -33,15 +39,6 @@ export default function Received() {
   const note = params.note || (latest?.private ? latest.detail : undefined)
   const base = BigInt(amount ?? '0')
   const known = contacts.find((c) => c.name === name)
-  const receipt = privately ? dollars.receiptAt(params.oneTime) : undefined
-  const waiting = receipt ? BigInt(receipt.held) > 0n : privately
-
-  // Moved in from here: a beat to see it land, then back to where you were.
-  useEffect(() => {
-    if (!movedIn) return
-    const timer = setTimeout(() => router.back(), 1100)
-    return () => clearTimeout(timer)
-  }, [movedIn])
 
   if (!amount || base === 0n) return <Redirect href="/" />
 
@@ -76,14 +73,17 @@ export default function Received() {
         <Txt weight="medium" size={20}>
           {name} {byLink ? 'sent you' : privately ? 'paid you privately' : 'paid you'}
         </Txt>
+        {unconfirmed ? (
+          <Txt size={13} color={colors.coralDeep}>
+            Unconfirmed: only their sealed note says it’s them
+          </Txt>
+        ) : null}
         <Txt weight="bold" size={64} style={{ letterSpacing: -2.5 }} adjustsFontSizeToFit numberOfLines={1}>
           {formatUsd(base, { sign: true })}
         </Txt>
         {privately ? (
           <Txt size={16} color={colors.onTint} style={{ textAlign: 'center', lineHeight: 22 }}>
-            {movedIn || !waiting
-              ? 'In your balance now'
-              : `${profile && profile.currency !== 'USD' ? `About ${formatLocal(baseToNumber(base), profile.currency)}, waiting` : 'Waiting'} at an address only you can open`}
+            {`${profile && profile.currency !== 'USD' ? `About ${formatLocal(baseToNumber(base), profile.currency)}, at` : 'At'} an address only you can open`}
           </Txt>
         ) : profile && profile.currency !== 'USD' ? (
           <Txt size={16} color={colors.onTint}>
@@ -131,25 +131,14 @@ export default function Received() {
       </View>
       )}
       <View style={styles.footer}>
-        {privately && (waiting || movedIn) ? (
-          <View style={{ gap: 14 }}>
-            <PillButton
-              label={movedIn ? 'In your balance' : dollars.progress ? 'Moving it in…' : 'Move into my balance'}
-              icon={movedIn ? 'check' : 'receive'}
-              loading={Boolean(dollars.progress)}
-              onPress={async () => {
-                if (movedIn) return router.back()
-                const outcome = await dollars.moveIn()
-                if (outcome?.count) setMovedIn(true)
-              }}
-            />
-            {dollars.problem?.during === 'move' ? (
-              <Txt weight="medium" size={13} color={colors.danger} style={{ textAlign: 'center', marginTop: -6 }}>
-                {dollars.problem.text}
-              </Txt>
-            ) : null}
+        {privately ? (
+          <View style={{ gap: 12 }}>
+            <Txt size={13} color={colors.onTint} style={{ textAlign: 'center', lineHeight: 18, paddingHorizontal: 8 }}>
+              It stays private: pay shops and send privately straight from it.
+            </Txt>
+            <PillButton label="Done" icon="check" onPress={() => router.back()} />
             <View style={{ alignItems: 'center' }}>
-              <TextLink label="Keep it private for now" onPress={() => router.back()} />
+              <TextLink label="See private dollars" onPress={() => router.replace('/private')} />
             </View>
           </View>
         ) : known ? (
