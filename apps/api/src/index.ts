@@ -15,6 +15,7 @@ import { insightRoutes } from './routes/insights.js'
 import { intentRoutes } from './routes/intents.js'
 import { orderRoutes } from './routes/orders.js'
 import { rateRoutes } from './routes/rates.js'
+import { moneyRoutes } from './routes/money.js'
 import { reportRoutes } from './routes/reports.js'
 import { stallRoutes } from './routes/stalls.js'
 import { terminalRoutes } from './routes/terminals.js'
@@ -61,6 +62,7 @@ app.route('/v1', demoRoutes)
 app.route('/v1', rateRoutes)
 app.route('/v1', webhookRoutes)
 app.route('/v1', reportRoutes)
+app.route('/v1', moneyRoutes)
 
 if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js')) {
   await runMigrations(config.DATABASE_URL)

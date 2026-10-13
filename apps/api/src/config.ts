@@ -66,6 +66,24 @@ const schema = z.object({
   AURORA_DESTINATION_ASSET: z.string().default('AUSD'),
   /** Ramp Network: card and bank top-ups (and cash-out), buying AUSD on Monad. Key from partner@ramp.network. */
   RAMP_HOST_API_KEY: z.string().optional(),
+  /**
+   * Bridge (bridge.xyz): a US account number for each wallet (a virtual account, ACH and wire).
+   * Bridge sends what arrives as USDC to the wallet's Aurora Intents deposit address, which lands
+   * as AUSD on Monad. Sandbox keys come from Bridge after onboarding (support@bridge.xyz).
+   */
+  BRIDGE_API_KEY: z.string().optional(),
+  BRIDGE_API_URL: z.string().url().default('https://api.sandbox.bridge.xyz'),
+  /** The chain and coin Bridge delivers to the wallet's deposit address (Aurora then lands it as AUSD). */
+  BRIDGE_DESTINATION_RAIL: z.string().default('base'),
+  BRIDGE_DESTINATION_CURRENCY: z.string().default('usdc'),
+  /** Lithic: the dollar card (virtual first). Sandbox keys are self-serve at lithic.com. */
+  LITHIC_API_KEY: z.string().optional(),
+  LITHIC_API_URL: z.string().url().default('https://sandbox.lithic.com'),
+  /** The secret Lithic signs card authorizations (Auth Stream Access) with. */
+  LITHIC_ASA_SECRET: z.string().optional(),
+  /** Savings: an ERC-4626 vault for the settlement dollar, and the KovaSaver in front of it. */
+  KOVA_SAVINGS_VAULT: z.string().optional(),
+  KOVA_SAVER: z.string().optional(),
   JEV_MODEL: z.string().optional(),
   /**
    * USSD pockets: pay from any phone by dialling a code. The master key seals each pocket's own

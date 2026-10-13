@@ -141,6 +141,13 @@
       "when": 1791853551691,
       "tag": "0019_announce_on_monad",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791934163732,
+      "tag": "0023_money",
+      "breakpoints": true
     }
   ]
 }
