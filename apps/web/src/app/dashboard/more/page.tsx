@@ -8,6 +8,12 @@ export const metadata: Metadata = { title: 'More' }
 
 const ROWS: { href: string; icon: IconName; title: string; sub: string }[] = [
   {
+    href: '/dashboard/business',
+    icon: 'bag',
+    title: 'Business',
+    sub: 'Private payroll, suppliers abroad, and your team’s spending',
+  },
+  {
     href: '/dashboard/catalogue',
     icon: 'tag',
     title: 'Products',

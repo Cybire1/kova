@@ -2,7 +2,16 @@ import { schema, uuidv7 } from '@kova/db'
 import { explorerTxUrl, formatAmount, parseAmount } from '@kova/monad'
 import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
-import { type Address, getAddress, type Hash, isAddress, isAddressEqual, isHash, parseAbi, parseEventLogs } from 'viem'
+import {
+  type Address,
+  getAddress,
+  type Hash,
+  isAddress,
+  isAddressEqual,
+  isHash,
+  parseAbi,
+  parseEventLogs,
+} from 'viem'
 import { z } from 'zod'
 import { requireApiKey, requireMerchantKey } from '../auth.js'
 import { network, publicClient, settlementToken } from '../chain.js'
@@ -28,7 +37,9 @@ const MAX_PAY = 100_000_000_000n // $100,000 for one payment
 const MAX_PEOPLE = 200
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'NGN', 'KES', 'MXN'] as const
 
-const transferAbi = parseAbi(['event Transfer(address indexed from, address indexed to, uint256 value)'])
+const transferAbi = parseAbi([
+  'event Transfer(address indexed from, address indexed to, uint256 value)',
+])
 
 type Merchant = typeof schema.merchants.$inferSelect
 
@@ -36,16 +47,24 @@ const money = (value: string) => {
   try {
     const base = parseAmount(value)
     if (base <= 0n) throw new Error()
-    if (base > MAX_PAY) throw new KovaError('invalid_request', 'One payment can be $100,000 at most.')
+    if (base > MAX_PAY)
+      throw new KovaError('invalid_request', 'One payment can be $100,000 at most.')
     return base
   } catch (error) {
     if (error instanceof KovaError) throw error
-    throw new KovaError('invalid_request', `“${value}” isn’t an amount. Use dollars, like 250 or 12.50.`)
+    throw new KovaError(
+      'invalid_request',
+      `“${value}” isn’t an amount. Use dollars, like 250 or 12.50.`,
+    )
   }
 }
 
 const wallet = (value: string) => {
-  if (!isAddress(value)) throw new KovaError('invalid_request', 'That isn’t a wallet address. It starts with 0x and has 40 more characters.')
+  if (!isAddress(value))
+    throw new KovaError(
+      'invalid_request',
+      'That isn’t a wallet address. It starts with 0x and has 40 more characters.',
+    )
   return getAddress(value)
 }
 
@@ -59,18 +78,28 @@ const startOfDay = () => {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
 }
 
-async function body<T extends z.ZodTypeAny>(c: { req: { json: () => Promise<unknown> } }, shape: T): Promise<z.infer<T>> {
+async function body<T extends z.ZodTypeAny>(
+  c: { req: { json: () => Promise<unknown> } },
+  shape: T,
+): Promise<z.infer<T>> {
   const parsed = shape.safeParse(await c.req.json().catch(() => ({})))
   if (!parsed.success) {
     const issue = parsed.error.issues[0]
-    throw new KovaError('invalid_request', issue ? `${issue.path.join('.') || 'body'}: ${issue.message}` : 'That request didn’t make sense.')
+    throw new KovaError(
+      'invalid_request',
+      issue
+        ? `${issue.path.join('.') || 'body'}: ${issue.message}`
+        : 'That request didn’t make sense.',
+    )
   }
   return parsed.data
 }
 
 /** Who pays for the business: its owner's wallet, or where its sales settle. */
 function payers(merchant: Merchant): Address[] {
-  return [merchant.ownerAddress, merchant.settlementAddress].filter((a): a is string => Boolean(a)).map((a) => getAddress(a))
+  return [merchant.ownerAddress, merchant.settlementAddress]
+    .filter((a): a is string => Boolean(a))
+    .map((a) => getAddress(a))
 }
 
 /**
@@ -84,17 +113,30 @@ async function confirmTransfer(merchant: Merchant, hash: Hash, to: Address, amou
     receipt = await publicClient.getTransactionReceipt({ hash }).catch(() => null)
     if (!receipt) await new Promise((r) => setTimeout(r, 500))
   }
-  if (!receipt) throw new KovaError('not_found', 'Monad doesn’t have that transaction yet. Try again in a moment.')
-  if (receipt.status !== 'success') throw new KovaError('invalid_request', 'That transaction failed on Monad, so nothing was paid.')
+  if (!receipt)
+    throw new KovaError(
+      'not_found',
+      'Monad doesn’t have that transaction yet. Try again in a moment.',
+    )
+  if (receipt.status !== 'success')
+    throw new KovaError('invalid_request', 'That transaction failed on Monad, so nothing was paid.')
   const from = payers(merchant)
-  const moved = parseEventLogs({ abi: transferAbi, logs: receipt.logs, eventName: 'Transfer' }).some(
+  const moved = parseEventLogs({
+    abi: transferAbi,
+    logs: receipt.logs,
+    eventName: 'Transfer',
+  }).some(
     (log) =>
       isAddressEqual(log.address, settlementToken.address) &&
       isAddressEqual(log.args.to, to) &&
       log.args.value === amount &&
       from.some((f) => isAddressEqual(f, log.args.from)),
   )
-  if (!moved) throw new KovaError('invalid_request', 'That transaction didn’t pay this amount from the business to them.')
+  if (!moved)
+    throw new KovaError(
+      'invalid_request',
+      'That transaction didn’t pay this amount from the business to them.',
+    )
 }
 
 // --- What the routes return ------------------------------------------------------------------------
@@ -119,7 +161,10 @@ const payment = (p: typeof schema.payrollPayments.$inferSelect) => ({
   paid_at: p.paidAt?.toISOString() ?? null,
 })
 
-function run(r: typeof schema.payrollRuns.$inferSelect, payments: (typeof schema.payrollPayments.$inferSelect)[]) {
+function run(
+  r: typeof schema.payrollRuns.$inferSelect,
+  payments: (typeof schema.payrollPayments.$inferSelect)[],
+) {
   const mine = payments.filter((p) => p.runId === r.id)
   const paid = mine.filter((p) => p.status === 'paid')
   return {
@@ -130,7 +175,12 @@ function run(r: typeof schema.payrollRuns.$inferSelect, payments: (typeof schema
     people: mine.length,
     paid: paid.length,
     failed: mine.filter((p) => p.status === 'failed').length,
-    status: paid.length === mine.length ? ('paid' as const) : mine.some((p) => p.status === 'pending') ? ('paying' as const) : ('partial' as const),
+    status:
+      paid.length === mine.length
+        ? ('paid' as const)
+        : mine.some((p) => p.status === 'pending')
+          ? ('paying' as const)
+          : ('partial' as const),
     created_at: r.createdAt.toISOString(),
     payments: mine.map(payment),
   }
@@ -165,7 +215,12 @@ async function runsOf(merchantId: string, limit: number) {
   const runs = await db
     .select()
     .from(schema.payrollRuns)
-    .where(and(eq(schema.payrollRuns.merchantId, merchantId), eq(schema.payrollRuns.network, config.KOVA_NETWORK)))
+    .where(
+      and(
+        eq(schema.payrollRuns.merchantId, merchantId),
+        eq(schema.payrollRuns.network, config.KOVA_NETWORK),
+      ),
+    )
     .orderBy(desc(schema.payrollRuns.createdAt))
     .limit(limit)
   const payments = runs.length
@@ -186,7 +241,9 @@ async function runsOf(merchantId: string, limit: number) {
 async function ownRun(merchantId: string, id: string) {
   const uuid = decodeId('payrollRun', id)
   const found = uuid
-    ? await db.query.payrollRuns.findFirst({ where: and(eq(schema.payrollRuns.id, uuid), eq(schema.payrollRuns.merchantId, merchantId)) })
+    ? await db.query.payrollRuns.findFirst({
+        where: and(eq(schema.payrollRuns.id, uuid), eq(schema.payrollRuns.merchantId, merchantId)),
+      })
     : null
   if (!found) throw new KovaError('not_found', 'No such payroll.')
   return found
@@ -195,7 +252,9 @@ async function ownRun(merchantId: string, id: string) {
 async function ownSupplier(merchantId: string, id: string) {
   const uuid = decodeId('supplier', id)
   const found = uuid
-    ? await db.query.suppliers.findFirst({ where: and(eq(schema.suppliers.id, uuid), eq(schema.suppliers.merchantId, merchantId)) })
+    ? await db.query.suppliers.findFirst({
+        where: and(eq(schema.suppliers.id, uuid), eq(schema.suppliers.merchantId, merchantId)),
+      })
     : null
   if (!found) throw new KovaError('not_found', 'No such supplier.')
   return found
@@ -212,7 +271,13 @@ const personBody = z.object({
 const runBody = z.object({
   label: z.string().trim().min(1).max(60),
   payments: z
-    .array(z.object({ person: z.string().nullish(), name: z.string().trim().min(1).max(60), amount: z.string().trim().max(20) }))
+    .array(
+      z.object({
+        person: z.string().nullish(),
+        name: z.string().trim().min(1).max(60),
+        amount: z.string().trim().max(20),
+      }),
+    )
     .min(1)
     .max(MAX_PEOPLE),
 })
@@ -319,10 +384,19 @@ export const businessRoutes = new Hono()
     const address = wallet(input.wallet_address)
     const amount = input.amount ? money(input.amount) : null
     if (payers(merchant).some((p) => isAddressEqual(p, address)))
-      throw new KovaError('invalid_request', 'That’s the business’s own wallet. Add the wallet of the person you pay.')
+      throw new KovaError(
+        'invalid_request',
+        'That’s the business’s own wallet. Add the wallet of the person you pay.',
+      )
     const [row] = await db
       .insert(schema.payrollPeople)
-      .values({ id: uuidv7(), merchantId: merchant.id, name: input.name, walletAddress: address.toLowerCase(), amount })
+      .values({
+        id: uuidv7(),
+        merchantId: merchant.id,
+        name: input.name,
+        walletAddress: address.toLowerCase(),
+        amount,
+      })
       .onConflictDoUpdate({
         target: [schema.payrollPeople.merchantId, schema.payrollPeople.walletAddress],
         set: { name: input.name, amount, updatedAt: new Date() },
@@ -336,10 +410,15 @@ export const businessRoutes = new Hono()
     const uuid = decodeId('payrollPerson', c.req.param('id'))
     if (!uuid) throw new KovaError('not_found', 'No such person.')
     // Their past pay stays in the book under their name; only the person row goes.
-    await db.update(schema.payrollPayments).set({ personId: null }).where(eq(schema.payrollPayments.personId, uuid))
+    await db
+      .update(schema.payrollPayments)
+      .set({ personId: null })
+      .where(eq(schema.payrollPayments.personId, uuid))
     const gone = await db
       .delete(schema.payrollPeople)
-      .where(and(eq(schema.payrollPeople.id, uuid), eq(schema.payrollPeople.merchantId, merchant.id)))
+      .where(
+        and(eq(schema.payrollPeople.id, uuid), eq(schema.payrollPeople.merchantId, merchant.id)),
+      )
       .returning({ id: schema.payrollPeople.id })
     if (!gone.length) throw new KovaError('not_found', 'No such person.')
     return c.json({ deleted: true })
@@ -353,7 +432,11 @@ export const businessRoutes = new Hono()
   .get('/business/payroll/:id', requireApiKey, requireMerchantKey, async (c) => {
     const merchant = c.get('merchant')
     const found = await ownRun(merchant.id, c.req.param('id'))
-    const payments = await db.select().from(schema.payrollPayments).where(eq(schema.payrollPayments.runId, found.id)).orderBy(schema.payrollPayments.createdAt)
+    const payments = await db
+      .select()
+      .from(schema.payrollPayments)
+      .where(eq(schema.payrollPayments.runId, found.id))
+      .orderBy(schema.payrollPayments.createdAt)
     return c.json(run(found, payments))
   })
 
@@ -374,11 +457,25 @@ export const businessRoutes = new Hono()
     const created = await db.transaction(async (tx) => {
       const [r] = await tx
         .insert(schema.payrollRuns)
-        .values({ id: runId, merchantId: merchant.id, network: config.KOVA_NETWORK, label: input.label, total })
+        .values({
+          id: runId,
+          merchantId: merchant.id,
+          network: config.KOVA_NETWORK,
+          label: input.label,
+          total,
+        })
         .returning()
       const payments = await tx
         .insert(schema.payrollPayments)
-        .values(lines.map((l) => ({ id: uuidv7(), runId, personId: l.personId, name: l.name, amount: l.amount })))
+        .values(
+          lines.map((l) => ({
+            id: uuidv7(),
+            runId,
+            personId: l.personId,
+            name: l.name,
+            amount: l.amount,
+          })),
+        )
         .returning()
       return { r: r as typeof schema.payrollRuns.$inferSelect, payments }
     })
@@ -391,7 +488,12 @@ export const businessRoutes = new Hono()
     const found = await ownRun(merchant.id, c.req.param('id'))
     const paymentId = decodeId('payrollPayment', c.req.param('payment'))
     const row = paymentId
-      ? await db.query.payrollPayments.findFirst({ where: and(eq(schema.payrollPayments.id, paymentId), eq(schema.payrollPayments.runId, found.id)) })
+      ? await db.query.payrollPayments.findFirst({
+          where: and(
+            eq(schema.payrollPayments.id, paymentId),
+            eq(schema.payrollPayments.runId, found.id),
+          ),
+        })
       : null
     if (!row) throw new KovaError('not_found', 'No such payment in this payroll.')
     if (row.status === 'paid') return c.json(payment(row))
@@ -404,12 +506,19 @@ export const businessRoutes = new Hono()
         .returning()
       return c.json(payment(failed as typeof schema.payrollPayments.$inferSelect))
     }
-    if (!isHash(input.tx_hash)) throw new KovaError('invalid_request', 'tx_hash isn’t a transaction hash.')
+    if (!isHash(input.tx_hash))
+      throw new KovaError('invalid_request', 'tx_hash isn’t a transaction hash.')
     const to = wallet(input.stealth_address)
     await confirmTransfer(merchant, input.tx_hash, to, row.amount)
     const [paid] = await db
       .update(schema.payrollPayments)
-      .set({ status: 'paid', failure: null, stealthAddress: to.toLowerCase(), txHash: input.tx_hash, paidAt: new Date() })
+      .set({
+        status: 'paid',
+        failure: null,
+        stealthAddress: to.toLowerCase(),
+        txHash: input.tx_hash,
+        paidAt: new Date(),
+      })
       .where(eq(schema.payrollPayments.id, row.id))
       .returning()
     return c.json(payment(paid as typeof schema.payrollPayments.$inferSelect))
@@ -420,7 +529,10 @@ export const businessRoutes = new Hono()
   .get('/business/suppliers', requireApiKey, requireMerchantKey, async (c) => {
     const merchant = c.get('merchant')
     const [rows, stats] = await Promise.all([
-      db.query.suppliers.findMany({ where: eq(schema.suppliers.merchantId, merchant.id), orderBy: schema.suppliers.name }),
+      db.query.suppliers.findMany({
+        where: eq(schema.suppliers.merchantId, merchant.id),
+        orderBy: schema.suppliers.name,
+      }),
       db
         .select({
           supplierId: schema.supplierPayments.supplierId,
@@ -429,10 +541,20 @@ export const businessRoutes = new Hono()
           last: sql<Date | null>`max(${schema.supplierPayments.createdAt})`,
         })
         .from(schema.supplierPayments)
-        .where(and(eq(schema.supplierPayments.merchantId, merchant.id), eq(schema.supplierPayments.network, config.KOVA_NETWORK)))
+        .where(
+          and(
+            eq(schema.supplierPayments.merchantId, merchant.id),
+            eq(schema.supplierPayments.network, config.KOVA_NETWORK),
+          ),
+        )
         .groupBy(schema.supplierPayments.supplierId),
     ])
-    const bySupplier = new Map(stats.map((s) => [s.supplierId, { total: BigInt(s.total ?? '0'), count: s.count, last: s.last ? new Date(s.last) : null }]))
+    const bySupplier = new Map(
+      stats.map((s) => [
+        s.supplierId,
+        { total: BigInt(s.total ?? '0'), count: s.count, last: s.last ? new Date(s.last) : null },
+      ]),
+    )
     return c.json({ object: 'list', data: rows.map((s) => supplier(s, bySupplier.get(s.id))) })
   })
 
@@ -441,7 +563,10 @@ export const businessRoutes = new Hono()
     const input = await body(c, supplierBody)
     const address = wallet(input.wallet_address)
     if (payers(merchant).some((p) => isAddressEqual(p, address)))
-      throw new KovaError('invalid_request', 'That’s the business’s own wallet. Add your supplier’s wallet.')
+      throw new KovaError(
+        'invalid_request',
+        'That’s the business’s own wallet. Add your supplier’s wallet.',
+      )
     const [row] = await db
       .insert(schema.suppliers)
       .values({
@@ -454,7 +579,12 @@ export const businessRoutes = new Hono()
       })
       .onConflictDoUpdate({
         target: [schema.suppliers.merchantId, schema.suppliers.walletAddress],
-        set: { name: input.name, country: input.country || null, currency: input.currency, updatedAt: new Date() },
+        set: {
+          name: input.name,
+          country: input.country || null,
+          currency: input.currency,
+          updatedAt: new Date(),
+        },
       })
       .returning()
     return c.json(supplier(row as typeof schema.suppliers.$inferSelect), 201)
@@ -463,8 +593,14 @@ export const businessRoutes = new Hono()
   .delete('/business/suppliers/:id', requireApiKey, requireMerchantKey, async (c) => {
     const merchant = c.get('merchant')
     const found = await ownSupplier(merchant.id, c.req.param('id'))
-    const paid = await db.query.supplierPayments.findFirst({ where: eq(schema.supplierPayments.supplierId, found.id) })
-    if (paid) throw new KovaError('conflict', 'This supplier has payments in your book, so they stay. Rename them instead.')
+    const paid = await db.query.supplierPayments.findFirst({
+      where: eq(schema.supplierPayments.supplierId, found.id),
+    })
+    if (paid)
+      throw new KovaError(
+        'conflict',
+        'This supplier has payments in your book, so they stay. Rename them instead.',
+      )
     await db.delete(schema.suppliers).where(eq(schema.suppliers.id, found.id))
     return c.json({ deleted: true })
   })
@@ -496,11 +632,15 @@ export const businessRoutes = new Hono()
     const merchant = c.get('merchant')
     const found = await ownSupplier(merchant.id, c.req.param('id'))
     const input = await body(c, supplierPaymentBody)
-    if (!isHash(input.tx_hash)) throw new KovaError('invalid_request', 'tx_hash isn’t a transaction hash.')
+    if (!isHash(input.tx_hash))
+      throw new KovaError('invalid_request', 'tx_hash isn’t a transaction hash.')
     const amount = money(input.amount)
-    const existing = await db.query.supplierPayments.findFirst({ where: eq(schema.supplierPayments.txHash, input.tx_hash) })
+    const existing = await db.query.supplierPayments.findFirst({
+      where: eq(schema.supplierPayments.txHash, input.tx_hash),
+    })
     if (existing) {
-      if (existing.merchantId !== merchant.id) throw new KovaError('conflict', 'That transaction is already in another book.')
+      if (existing.merchantId !== merchant.id)
+        throw new KovaError('conflict', 'That transaction is already in another book.')
       return c.json(supplierPayment(existing, found.name))
     }
     await confirmTransfer(merchant, input.tx_hash, getAddress(found.walletAddress), amount)
@@ -516,5 +656,8 @@ export const businessRoutes = new Hono()
         txHash: input.tx_hash,
       })
       .returning()
-    return c.json(supplierPayment(row as typeof schema.supplierPayments.$inferSelect, found.name), 201)
+    return c.json(
+      supplierPayment(row as typeof schema.supplierPayments.$inferSelect, found.name),
+      201,
+    )
   })
