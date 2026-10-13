@@ -20,6 +20,7 @@ import { BalanceCard } from '@/ui/BalanceCard'
 import { dockClearance } from '@/ui/Dock'
 import { EntryRow } from '@/ui/EntryRow'
 import { Icon } from '@/ui/Icon'
+import { KeysOnHome, KeyIcon } from '@/ui/Keys'
 import { OfflinePill, OfflineRow } from '@/ui/Offline'
 import { RoundButton, Txt } from '@/ui/primitives'
 import { dollars } from '@/ui/StallParts'
@@ -129,7 +130,27 @@ export default function Home() {
         </View>
       </View>
 
+      <KeysOnHome />
+
       <ShopCard />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Keys. Allowances, your team and AI agents"
+        onPress={() => router.push('/keys')}
+        style={({ pressed }) => [styles.keysRow, pressed && { transform: [{ scale: 0.98 }] }]}
+      >
+        <KeyIcon name="sparkle" tone={colors.coralSoft} />
+        <View style={{ flex: 1 }}>
+          <Txt weight="bold" size={18} style={{ letterSpacing: -0.3 }}>
+            Keys
+          </Txt>
+          <Txt size={12} color={colors.onTint} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+            Allowances, your team and AI agents
+          </Txt>
+        </View>
+        <Icon name="arrow" size={18} />
+      </Pressable>
 
       <Pressable
         accessibilityRole="button"
@@ -309,6 +330,17 @@ function ShopCard() {
 }
 
 const styles = StyleSheet.create({
+  keysRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
   shop: {
     marginTop: 12,
     borderRadius: 26,

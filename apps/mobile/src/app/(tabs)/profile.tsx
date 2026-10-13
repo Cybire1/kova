@@ -154,6 +154,7 @@ export default function Profile() {
 
       {/* Dollars people sent privately, waiting at one-time addresses only this wallet can open. */}
       <PrivateRow />
+      <KeysRow />
 
       {/* Paying from a phone with no data: a small pocket spent by dialling Kova's USSD code. */}
       <Sticker radius={24} accessibilityLabel="Pay by USSD, from any phone" onPress={() => router.push('/ussd')} style={{ height: 62, marginTop: 14 }}>
@@ -420,6 +421,26 @@ function PrivateRow() {
           </Txt>
           <Txt size={13} color={p.waiting > 0n ? colors.coralDeep : colors.muted} numberOfLines={1}>
             {line}
+          </Txt>
+        </View>
+        <Icon name="arrow" size={20} />
+      </View>
+    </Sticker>
+  )
+}
+
+/** Keys: who may spend your dollars, and how much. */
+function KeysRow() {
+  return (
+    <Sticker radius={24} accessibilityLabel="Keys. Allowances, your team and AI agents" onPress={() => router.push('/keys')} style={{ height: 62, marginTop: 14 }}>
+      <View style={[styles.cashOut, { gap: 14 }]}>
+        <Icon name="sparkle" size={22} />
+        <View style={{ flex: 1 }}>
+          <Txt weight="semi" size={16}>
+            Keys
+          </Txt>
+          <Txt size={13} color={colors.muted} numberOfLines={1}>
+            Allowances, your team and AI agents
           </Txt>
         </View>
         <Icon name="arrow" size={20} />
