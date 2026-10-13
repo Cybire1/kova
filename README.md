@@ -61,6 +61,12 @@ see dollars, their own currency beside them, and Face ID. Nothing else.
   alone, so their phone never asks anyone who paid. Private dollars are spent straight from those
   addresses (pay a shop, or send privately again) without ever passing through the recipient's
   wallet; when one address doesn't cover it, several are gathered into one new address first.
+- **Pay with no signal.** In a market, a basement or abroad without data, the wallet still pays:
+  Face ID signs the payment on the phone and it travels as a code, shown as a QR or shared by AirDrop
+  or a message. The other phone checks the signature on the spot, offline too, and whichever phone
+  gets signal first hands it to Kova, which settles it on Monad in about a second. The payer's phone
+  holds back what it has promised, and each code carries $100 at most and lasts a week; the token
+  pays each one once, however many times it's handed in.
 - **One account.** Shop owners sign in on the web with the same wallet (Sign-In with Ethereum,
   EIP-4361): no passwords, no API keys. Customers without Kova can pay a checkout with email or
   Google (Privy).
@@ -134,6 +140,7 @@ see dollars, their own currency beside them, and Face ID. Nothing else.
 | A private send's Announcement on Monad, with its sealed memo in the metadata | [`0x62b66ba6…9069992`](https://testnet.monadscan.com/tx/0x62b66ba678e6373fb963a95e6acd7993c1f7a9237dcf192a22facda913069992) |
 | Paid straight from a one-time address, the change left there | [`0x969774c6…3b1e4a2`](https://testnet.monadscan.com/tx/0x969774c69680a48df7b2681087ba4af971e09394ed7fd625f5fd08cc03b1e4a2) |
 | Two private payments gathered into one new address, then spent from it | [`0x240552b3…290081d`](https://testnet.monadscan.com/tx/0x240552b39b6156883a32cb82f836be137e2d2f9223ed7e796d6fe2699290081d), [`0xcfdc9845…a06a85b`](https://testnet.monadscan.com/tx/0xcfdc9845ef1f87442a949615541c51b08dcc8473778bf6581c3125f0af06a85b) |
+| A payment signed with no network, carried as a code, handed in by the receiver and settled in 0.66 s | [`0x84a1ffae…df70405`](https://testnet.monadscan.com/tx/0x84a1ffae5852b0b44bb7bc2ec31113865929f36c9304ecadff2d47acedf70405) |
 
 ### On-chain (Monad mainnet, chain 143)
 
