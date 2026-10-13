@@ -48,7 +48,7 @@ L, P = 'public/link/sfx', 'public/private/sfx'
 put(f'{P}/hush.mp3', c['focusOut'][0] - 0.1, -17)
 put(f'{L}/tap.mp3', c['switchTap'] - 0.02, -22)
 put(f'{P}/lock.mp3', c['switchOn'] - 0.03, -13)
-for k in ('lift1', 'lift2', 'lift3', 'lift4', 'lift5'):
+for k in sorted(k for k in c if k.startswith('lift') and k != 'lifts'):
     put(f'{P}/lift.mp3', c[k][0] - 0.05, -19)
 put(f'{L}/slide.mp3', c['slide'][0] - 0.05, -19)
 put(f'{L}/land.mp3', c['ada'][-1][0] - 0.05, -19)

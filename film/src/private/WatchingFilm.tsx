@@ -1,5 +1,5 @@
 /**
- * "Everyone's watching": a 36-second announcement for private sends.
+ * "Everyone's watching": a 35-second announcement for private sends.
  *
  * On a city train, three strangers lean in to read Ada's phone: that's every payment on a public
  * blockchain. She turns on "Send privately" in the real app, it lands in 1.00 s, and when they look
@@ -7,11 +7,13 @@
  * from there, so his own wallet never shows up.
  *
  * Higgsfield shots (public/private/hf) and the real Kova screens from one run on Monad testnet
- * (public/private/ada, sam; run.json). The phone stays a calm size in the scene and barely moves; the
- * one thing on its screen that matters lifts out toward you, at the screenshot's own resolution, while
- * the phone falls back behind it. No zooms, no flashes: the train racks out of focus into the phone
- * and back. Every line holds long enough to read (about 15 characters a second after it lands, never
- * under 1.5 s); each lifted card holds 2 to 3.5 s. Cues: src/private/watching-cues.json.
+ * (public/private/ada, sam; run.json). The phone stays still at a calm size in the scene. Only where
+ * the screen's words are too small to read from there (the Sent privately card, Sam's sealed note, Pay
+ * from) does that piece lift out toward you, at the screenshot's own resolution, while the phone falls
+ * back; the switch and Paid! read on the phone as they are. No zooms, no flashes: the train racks out
+ * of focus into the phone and back. Every line holds long enough to read (about 15 characters a second
+ * after it lands, never under 1.5 s); each lifted card holds 3.4 to 4.6 s.
+ * Cues: src/private/watching-cues.json.
  *
  *   0.0  the train, everyone leaning in      On a blockchain, / everyone's watching.
  *   5.0  her phone: the switch, lifted       Not anymore.
@@ -131,10 +133,8 @@ interface Placement {
   y: number
 }
 
-/** Where the phone sits: a calm size on the right, drifting in by 2% over a scene, no more. */
-function phoneAt(t: number, from: number, to: number): Placement {
-  return { h: 940 * (1 + 0.02 * span(t, from, to)), x: 1290, y: 540 }
-}
+/** Where the phone sits: a calm size on the right, still. */
+const PHONE: Placement = { h: 940, x: 1290, y: 540 }
 
 /** A point on the phone's screen (screenshot pixels) in the frame. */
 function onScreen(p: Placement, sx: number, sy: number): [number, number] {
@@ -230,7 +230,7 @@ function Slide({ t }: { t: number }) {
 
 // ——— The film ——————————————————————————————————————————————————————————————————————————
 
-export function WatchingFilm({ sound = true, score = 'w5' }: { sound?: boolean; score?: string }) {
+export function WatchingFilm({ sound = true, score = 'w7' }: { sound?: boolean; score?: string }) {
   const frame = useCurrentFrame()
   const t = frame / FPS
   const [handle] = useState(() => delayRender('Manrope'))
@@ -247,12 +247,12 @@ export function WatchingFilm({ sound = true, score = 'w5' }: { sound?: boolean; 
   const sw = cues.spendWords
   const ew = cues.endWords
 
-  const adaPhone = phoneAt(t, cues.turn, cues.payoff)
-  const samPhone = phoneAt(t, cues.cafe, cues.end)
+  const adaPhone = PHONE
+  const samPhone = PHONE
   const adaIn = rise(t, cues.adaIn[0], cues.adaIn[1] - cues.adaIn[0])
   const samIn = rise(t, cues.samIn[0], cues.samIn[1] - cues.samIn[0])
-  const adaBack = Math.max(liftAmount(t, cues.lift1), liftAmount(t, cues.lift2))
-  const samBack = Math.max(liftAmount(t, cues.lift3), liftAmount(t, cues.lift4), liftAmount(t, cues.lift5))
+  const adaBack = liftAmount(t, cues.lift2)
+  const samBack = Math.max(liftAmount(t, cues.lift3), liftAmount(t, cues.lift4))
   const focusOut = span(t, cues.focusOut[0], cues.focusOut[1])
   const focusIn = 1 - span(t, cues.focusIn[0], cues.focusIn[1])
 
@@ -279,7 +279,6 @@ export function WatchingFilm({ sound = true, score = 'w5' }: { sound?: boolean; 
             </Phone>
           </div>
           <LeftShade />
-          <Lift t={t} spec={lifts.lift1 as LiftSpec} phone={adaPhone} span={cues.lift1} />
           <Lift t={t} spec={lifts.lift2 as LiftSpec} phone={adaPhone} span={cues.lift2} width={820} />
           <Title t={t} out={cues.slide[0] - 0.1} x={84} y={180} width={560} size={96} lines={[{ text: 'Not anymore.', at: cues.notWords }]} />
           <Title t={t} out={cues.payoff} x={84} y={150} width={560} size={96} lines={[{ text: 'Sent', at: [cues.sentWords[0] ?? 11] }, { text: 'privately.', at: [cues.sentWords[1] ?? 11.2] }]} />
@@ -308,7 +307,6 @@ export function WatchingFilm({ sound = true, score = 'w5' }: { sound?: boolean; 
           <LeftShade />
           <Lift t={t} spec={lifts.lift3 as LiftSpec} phone={samPhone} span={cues.lift3} />
           <Lift t={t} spec={lifts.lift4 as LiftSpec} phone={samPhone} span={cues.lift4} />
-          <Lift t={t} spec={lifts.lift5 as LiftSpec} phone={samPhone} span={cues.lift5} width={640} />
           <Title t={t} out={cues.spend} x={84} y={150} width={560} size={96} lines={[{ text: 'Only Sam', at: ow.slice(0, 2) }, { text: 'can open it.', at: ow.slice(2) }]} />
           <Title t={t} out={cues.end} x={84} y={150} width={560} size={96} lines={[{ text: 'He spends it,', at: sw.slice(0, 3) }, { text: 'still private.', at: sw.slice(3) }]} />
         </AbsoluteFill>
