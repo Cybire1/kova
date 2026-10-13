@@ -134,6 +134,13 @@
       "when": 1791825611089,
       "tag": "0018_private_sends",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791853551691,
+      "tag": "0019_announce_on_monad",
+      "breakpoints": true
     }
   ]
 }

@@ -29,6 +29,7 @@ import { webhookRoutes } from './routes/webhooks.js'
 import { expireStaleIntents } from './services/intents.js'
 import { rateBook } from './services/rates.js'
 import { expireTrips } from './services/travel.js'
+import { startAnnouncer } from './workers/announcer.js'
 import { startWatcher } from './workers/watcher.js'
 import { startWebhookWorker } from './workers/webhooks.js'
 
@@ -67,6 +68,8 @@ if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js
   // The watcher settles charges paid by any route and indexes transfers for wallets.
   void startWatcher().catch((error) => console.error('[watcher] failed to start', error))
   startWebhookWorker()
+  // Private payments are announced on Monad itself (ERC-5564), not only in Kova's feed.
+  startAnnouncer()
   // The App Review demo account stays stocked (testnet, and only where it is configured).
   startDemo()
   // Charges nobody paid close when their code expires, so "waiting" means someone could still pay.

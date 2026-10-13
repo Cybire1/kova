@@ -44,10 +44,19 @@ async function receipts(where: ReturnType<typeof and>, order: 'asc' | 'desc', li
     tx_hash: payment.txHash,
     explorer_url: explorerTxUrl(network, payment.txHash as `0x${string}`),
     paid_at: intent.paidAt?.toISOString() ?? null,
+    /** Who paid: public on Monad anyway. */
+    from: payment.payerAddress ? getAddress(payment.payerAddress) : null,
+    sealed: null as string | null,
+    ...announced(sale.announceTx),
     payment_intent: encodeId('paymentIntent', intent.id),
     swept_tx: sale.sweptTx,
     swept_at: sale.sweptAt?.toISOString() ?? null,
   }))
+}
+
+/** The ERC-5564 Announcement Kova posted on Monad for a payment, once it has. */
+function announced(tx: string | null) {
+  return { announce_tx: tx, announce_url: tx ? explorerTxUrl(network, tx as `0x${string}`) : null }
 }
 
 const sweepBody = z.object({ authorizations: z.array(z.unknown()).min(1).max(50) })
@@ -130,8 +139,9 @@ export const takingsRoutes = new Hono()
   })
 
   /**
-   * Public: every paid sale's announcement, without its shop, like ERC-5564's Announcement events.
-   * Only the holder of a shop's viewing key can tell which are its own (checkStealthAddress).
+   * Public: every private payment's announcement, naming no recipient, as ERC-5564's Announcement
+   * events do (Kova also posts each one to the announcer on Monad: `announce_tx`). Only the holder of
+   * a viewing key can tell which are its own (checkStealthAddress), and open a sender's sealed memo.
    */
   .get('/public/stealth/announcements', async (c) => {
     // One feed for every private payment on this network: shops' sales and people's private
@@ -163,6 +173,11 @@ export const takingsRoutes = new Hono()
         tx_hash: a.txHash,
         explorer_url: explorerTxUrl(network, a.txHash as `0x${string}`),
         paid_at: a.createdAt.toISOString(),
+        /** Who sent it: public on Monad anyway (a one-time address, when it came from private dollars). */
+        from: getAddress(a.fromAddress),
+        /** Their memo, sealed: only the recipient's viewing key opens it (openStealthMemo). */
+        sealed: a.sealed,
+        ...announced(a.announceTx),
       })),
     ]
       .sort((x, y) => (x.uuid < y.uuid ? -1 : x.uuid > y.uuid ? 1 : 0))

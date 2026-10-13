@@ -706,6 +706,8 @@ export const stealthPayments = pgTable(
     viewTag: text('view_tag').notNull(),
     sweptTx: text('swept_tx'),
     sweptAt: timestamp('swept_at', { withTimezone: true }),
+    /** The ERC-5564 Announcement Kova posted on Monad for this sale, once it's paid. */
+    announceTx: text('announce_tx'),
     createdAt: createdAt(),
   },
   (t) => [
@@ -745,6 +747,10 @@ export const stealthAnnouncements = pgTable(
     amount: amount('amount').notNull(),
     tokenAddress: address('token_address').notNull(),
     txHash: text('tx_hash').notNull(),
+    /** The sender's memo (who, their name, a note), sealed so only the recipient's viewing key opens it. */
+    sealed: text('sealed'),
+    /** The ERC-5564 Announcement Kova posted on Monad for it. */
+    announceTx: text('announce_tx'),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('stealth_announcements_address_idx').on(t.stealthAddress)],

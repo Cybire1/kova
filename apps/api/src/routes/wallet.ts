@@ -8,6 +8,7 @@ import {
   parseSealedNote,
   parseSignedAuthorization,
   parseStealthMetaAddress,
+  SEALED_MEMO_MAX,
   stealthRegistrationMessage,
   tokenByAddress,
   vaultMessage,
@@ -57,6 +58,13 @@ const MAX_SEND_VALIDITY = 3_600n
 const stealthBody = z.object({
   ephemeral_public_key: z.string().regex(/^0x0[23][0-9a-fA-F]{64}$/),
   view_tag: z.string().regex(/^0x[0-9a-fA-F]{2}$/),
+  /** The sender's memo (who, their name, a note), sealed for the recipient alone: Kova stores it unread. */
+  sealed: z
+    .string()
+    .regex(/^0x01[0-9a-fA-F]+$/)
+    .max(2 + 2 * SEALED_MEMO_MAX)
+    .refine((v) => v.length % 2 === 0 && v.length >= 2 + 2 * 41, 'Not a sealed memo')
+    .optional(),
 })
 
 type TransferRow = typeof schema.transfers.$inferSelect
@@ -176,7 +184,7 @@ export const walletRoutes = new Hono()
     // what they need to find it. Kova publishes it with no recipient (GET /public/stealth/announcements).
     const stealth = body?.stealth === undefined || body.stealth === null ? null : stealthBody.safeParse(body.stealth)
     if (stealth && !stealth.success)
-      throw new KovaError('invalid_request', 'A private send needs { ephemeral_public_key, view_tag }.')
+      throw new KovaError('invalid_request', 'A private send needs { ephemeral_public_key, view_tag } and, if any, a sealed memo.')
     const { authorization, signature } = signed
     const token = tokenByAddress(config.KOVA_NETWORK, signed.token)
     if (!token) throw new KovaError('invalid_request', 'Kova only sends the dollars it settles in.')
@@ -226,6 +234,7 @@ export const walletRoutes = new Hono()
           amount: authorization.value,
           tokenAddress: token.address.toLowerCase(),
           txHash: receipt.transactionHash,
+          sealed: stealth.data.sealed?.toLowerCase() ?? null,
         })
         .onConflictDoNothing()
         .catch((error) =>
