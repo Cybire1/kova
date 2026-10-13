@@ -4,7 +4,10 @@ import {
   decodeMemo,
   explorerTxUrl,
   formatAmount,
+  eip3009Abi,
   noteKeyMessage,
+  OFFLINE_MAX,
+  OFFLINE_VALIDITY,
   parseSealedNote,
   parseSignedAuthorization,
   parseStealthMetaAddress,
@@ -24,7 +27,7 @@ import {
   recoverMessageAddress,
 } from 'viem'
 import { z } from 'zod'
-import { feePayerAddress, network, walletClient } from '../chain.js'
+import { feePayerAddress, network, publicClient, settlementToken, walletClient } from '../chain.js'
 import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError, notFound } from '../errors.js'
@@ -40,6 +43,9 @@ import { indexedThrough } from '../workers/watcher.js'
  * proves itself by signing.
  *
  * - POST /transfers relays a transfer between people that the sender signed; Kova pays the gas.
+ *   An offline payment (`offline: true`) was signed with no signal and travelled as a code: it may
+ *   wait up to a week, carries $100 at most, and either phone may hand it in.
+ * - GET /public/offline-payments/:from/:nonce says whether an offline payment has settled.
  * - GET /wallets/:address/transfers lists what moved in or out, from Kova's index of the chain.
  * - POST /faucet sends test dollars, five a day for each wallet, on testnet only.
  * - GET and PUT /wallets/:address/note-key publish the key a wallet's private notes are sealed to.
@@ -193,12 +199,23 @@ export const walletRoutes = new Hono()
     if (decodeMemo(authorization.nonce))
       throw new KovaError('invalid_request', 'Pay a charge through its checkout.')
     const now = BigInt(Math.floor(Date.now() / 1000))
-    if (authorization.validBefore > now + MAX_SEND_VALIDITY)
+    // Signed with no signal and carried as a code, an offline payment waits for whichever phone
+    // gets online first, so it may live a week; anything else is used within seconds.
+    const offline = body?.offline === true
+    if (offline) {
+      if (authorization.validAfter !== 0n)
+        throw new KovaError('invalid_request', 'An offline payment is valid from the moment it’s signed.')
+      if (authorization.value > OFFLINE_MAX)
+        throw new KovaError('policy_declined', 'An offline payment carries $100 at most.')
+      if (authorization.validBefore > now + OFFLINE_VALIDITY + 600n)
+        throw new KovaError('invalid_request', 'An offline payment can wait a week at most.')
+    } else if (authorization.validBefore > now + MAX_SEND_VALIDITY)
       throw new KovaError('invalid_request', 'An approval to send can last an hour at most.')
 
+    // Offline payments arrive in bursts, all at once when a phone gets signal back.
     limit(
-      `send:${authorization.from.toLowerCase()}`,
-      20,
+      `${offline ? 'send-offline' : 'send'}:${authorization.from.toLowerCase()}`,
+      offline ? 60 : 20,
       600_000,
       'That’s a lot of sends in a few minutes. Try again shortly.',
     )
@@ -247,6 +264,36 @@ export const walletRoutes = new Hono()
       explorer_url: explorerTxUrl(network, receipt.transactionHash),
       ms: Math.round(ms),
     })
+  })
+  /** Public: whether an offline payment has settled, and its transaction once Kova has seen it. */
+  .get('/public/offline-payments/:from/:nonce', async (c) => {
+    const from = c.req.param('from')
+    const nonce = c.req.param('nonce').toLowerCase()
+    if (!isAddress(from) || !/^0x[0-9a-f]{64}$/.test(nonce))
+      throw new KovaError('invalid_request', 'Expected a sender address and a 32-byte nonce.')
+    const tokenParam = c.req.query('token')
+    const token = tokenParam && isAddress(tokenParam) ? tokenByAddress(config.KOVA_NETWORK, getAddress(tokenParam)) : settlementToken
+    if (!token) throw new KovaError('invalid_request', 'Kova doesn’t know that dollar.')
+    const row = await db.query.transfers.findFirst({
+      where: and(
+        eq(schema.transfers.network, config.KOVA_NETWORK),
+        eq(schema.transfers.fromAddress, from.toLowerCase()),
+        eq(schema.transfers.nonce, nonce),
+      ),
+    })
+    if (row)
+      return c.json({
+        object: 'offline_payment',
+        status: 'settled',
+        tx_hash: row.txHash,
+        explorer_url: explorerTxUrl(network, row.txHash as Hex),
+        settled_at: row.createdAt.toISOString(),
+      })
+    // Not in Kova's index yet: the token itself knows whether the authorization was used.
+    const used = await publicClient
+      .readContract({ address: token.address, abi: eip3009Abi, functionName: 'authorizationState', args: [getAddress(from), nonce as Hex] })
+      .catch(() => null)
+    return c.json({ object: 'offline_payment', status: used ? 'settled' : 'waiting', tx_hash: null, explorer_url: null, settled_at: null })
   })
   .get('/wallets/:address/transfers', async (c) => {
     const address = c.req.param('address')
