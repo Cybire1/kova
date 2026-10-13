@@ -199,7 +199,7 @@ function ReachChip({ reach }: { reach: Reach | undefined }) {
 
 function LineIcon({ line }: { line: LineState | undefined }) {
   if (!line || line.state === 'waiting') return <span className="biz-line-icon">·</span>
-  if (line.state === 'paying') return <span className="spinner biz-line-spin" aria-label="Paying" />
+  if (line.state === 'paying') return <span className="spinner biz-line-spin" role="img" aria-label="Paying" />
   if (line.state === 'paid')
     return (
       <span className="biz-line-icon biz-line-paid">
@@ -852,7 +852,6 @@ export function SuppliersPanel({
                           <span>$</span>
                           <input
                             inputMode="decimal"
-                            autoFocus
                             placeholder="0.00"
                             aria-label={`Amount for ${s.name}`}
                             value={amount}
