@@ -66,6 +66,10 @@ const schema = z.object({
   AURORA_DESTINATION_ASSET: z.string().default('AUSD'),
   /** Ramp Network: card and bank top-ups (and cash-out), buying AUSD on Monad. Key from partner@ramp.network. */
   RAMP_HOST_API_KEY: z.string().optional(),
+  /** Paystack: naira in and out (services/naira.ts). A test key (sk_test_…) moves no real money. */
+  PAYSTACK_SECRET_KEY: z.string().optional(),
+  /** Kova's spread on naira each way, a fraction of the market rate (0.01 = 1%). */
+  KOVA_NAIRA_SPREAD: z.coerce.number().min(0).max(0.1).default(0.01),
   JEV_MODEL: z.string().optional(),
   /**
    * USSD pockets: pay from any phone by dialling a code. The master key seals each pocket's own

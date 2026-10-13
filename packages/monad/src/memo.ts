@@ -16,7 +16,7 @@ import type { Hex } from 'viem'
 export const MEMO_MAGIC = '4b4f5641'
 export const MEMO_VERSION = 1
 
-export const memoKinds = { payment: 0x01, refund: 0x02, payout: 0x03 } as const
+export const memoKinds = { payment: 0x01, refund: 0x02, payout: 0x03, cashout: 0x0a } as const
 export type MemoKind = keyof typeof memoKinds
 
 export interface KovaMemo {

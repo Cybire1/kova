@@ -1071,3 +1071,77 @@ export const cardTaps = pgTable(
   },
   (t) => [index('card_taps_card_idx').on(t.cardAddress, t.createdAt), index('card_taps_intent_idx').on(t.intentId)],
 )
+
+/**
+ * Dollars out to a Nigerian bank account, through Paystack (apps/api services/naira.ts). Kova
+ * quotes the naira, the bank names the account, and the wallet signs an EIP-3009 transfer of the
+ * dollars to Kova's treasury, bound to this cash-out by its nonce; once it settles on Monad,
+ * Paystack pays the account. If the bank can't take it, the dollars go back to the wallet.
+ */
+export const cashOuts = pgTable(
+  'cash_outs',
+  {
+    id: id(),
+    network: network('network').notNull(),
+    walletAddress: address('wallet_address').notNull(),
+    /** Dollars, base units. */
+    amount: amount('amount').notNull(),
+    /** Naira the account gets, in kobo, after the bank fee. */
+    naira: bigint('naira', { mode: 'bigint' }).notNull(),
+    /** Naira per dollar, as quoted. */
+    rate: text('rate').notNull(),
+    /** The bank transfer's fee, in kobo, taken from the naira. */
+    fee: bigint('fee', { mode: 'bigint' }).notNull(),
+    bankCode: text('bank_code').notNull(),
+    bankName: text('bank_name').notNull(),
+    accountNumber: text('account_number').notNull(),
+    accountName: text('account_name').notNull(),
+    /** Paystack's transfer recipient for the account, made when the naira is sent. */
+    recipientCode: text('recipient_code'),
+    /** quoted | received | paying | paid | failed | expired */
+    status: text('status').notNull().default('quoted'),
+    /** The wallet's transfer of the dollars to Kova's treasury, on Monad. */
+    txHash: text('tx_hash'),
+    /** The treasury's transfer of the dollars back, when the bank couldn't take them. */
+    refundTxHash: text('refund_tx_hash'),
+    /** Paystack's transfer, by our reference (the cash-out's id) and its code. */
+    transferCode: text('transfer_code'),
+    failure: text('failure'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('cash_outs_wallet_idx').on(t.walletAddress, t.createdAt), uniqueIndex('cash_outs_tx_idx').on(t.txHash)],
+)
+
+/**
+ * Naira in: someone pays naira through Paystack (card, bank transfer or USSD), and once Paystack
+ * confirms it, Kova's treasury sends the dollars to the wallet on Monad, once.
+ */
+export const nairaTopUps = pgTable(
+  'naira_top_ups',
+  {
+    id: id(),
+    network: network('network').notNull(),
+    walletAddress: address('wallet_address').notNull(),
+    /** Dollars the wallet gets, base units. */
+    amount: amount('amount').notNull(),
+    /** Naira charged, in kobo. */
+    naira: bigint('naira', { mode: 'bigint' }).notNull(),
+    /** Naira per dollar, as quoted. */
+    rate: text('rate').notNull(),
+    email: text('email').notNull(),
+    /** Paystack's transaction reference, ours: kova_<hex>. */
+    reference: text('reference').notNull(),
+    /** initialized | paid | settled | failed */
+    status: text('status').notNull().default('initialized'),
+    /** The treasury's transfer of the dollars to the wallet, on Monad. */
+    txHash: text('tx_hash'),
+    failure: text('failure'),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('naira_top_ups_reference_idx').on(t.reference), index('naira_top_ups_wallet_idx').on(t.walletAddress, t.createdAt)],
+)
