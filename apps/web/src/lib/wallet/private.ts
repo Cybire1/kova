@@ -1,18 +1,29 @@
 import {
-  generateStealthAddress,
+  generateStealthPayment,
   type NetworkId,
+  openStealthMemo,
   parseStealthMetaAddress,
   personalStealthKeysMessage,
   type StealthKeys,
+  type StealthMemo,
   stealthKeysFromSignature,
   stealthMetaAddress,
+  stealthPrivateKey,
   stealthRegistrationMessage,
+  stealthSender,
 } from '@kova/monad'
-import { type Address, getAddress, type Hex, isAddressEqual, recoverMessageAddress } from 'viem'
-import type { LocalAccount } from 'viem/accounts'
+import {
+  type Address,
+  getAddress,
+  type Hex,
+  isAddress,
+  isAddressEqual,
+  recoverMessageAddress,
+} from 'viem'
+import { type LocalAccount, privateKeyToAccount } from 'viem/accounts'
 import type { Announcement } from '@/lib/api'
 import { baseOf, scan, type ViewKey } from '@/lib/takings'
-import { balanceOf, type IndexedTransfer, type StealthAnnouncement } from './chain'
+import { balanceOf, type StealthAnnouncement } from './chain'
 import { inTurns, signMoves } from './takings'
 
 /**
@@ -26,9 +37,14 @@ import { inTurns, signMoves } from './takings'
  * address with no one named, in the same feed as shops' private sales, and only the recipient's
  * viewing key picks theirs out.
  *
+ * Each payment carries a sealed memo (who sent it, their name, a note) that only the recipient's
+ * viewing key opens, so finding who paid never means asking Kova about an address. Kova also posts
+ * every payment to ERC-5564's announcer on Monad, so any wallet can find its own on chain.
+ *
  * On the web the keys live in memory, made again whenever the wallet opens: the view half finds
- * new private payments while the page is open, and the spending key moves them in. This browser
- * keeps only what anyone can read in Kova's feed: the addresses it found, never a key.
+ * new private payments while the page is open, and the spending key spends them, straight from
+ * their one-time addresses, or moves them in. This browser keeps the addresses it found and what
+ * their memos said, never a key.
  */
 
 /** This wallet's private-receiving keys, from one signature by the wallet. It moves no money. */
@@ -81,15 +97,23 @@ export async function publishPrivateKey(account: LocalAccount, keys: StealthKeys
   return meta
 }
 
-/** A fresh one-time address for the holder of `meta`, and the announcement that lets them find it. */
-export function oneTimeAddress(meta: string): {
-  address: Address
-  announcement: StealthAnnouncement
-} {
-  const made = generateStealthAddress(meta)
+/**
+ * A fresh one-time address for the holder of `meta`, with the memo sealed for them, and the
+ * announcement that lets them find both. `ephemeral` when the address was made first, to sign it.
+ */
+export function privatePayment(
+  meta: string,
+  memo: StealthMemo,
+  ephemeral?: Hex,
+): { address: Address; announcement: StealthAnnouncement } {
+  const made = generateStealthPayment(meta, memo, ephemeral)
   return {
     address: made.stealthAddress,
-    announcement: { ephemeral_public_key: made.ephemeralPublicKey, view_tag: made.viewTag },
+    announcement: {
+      ephemeral_public_key: made.ephemeralPublicKey,
+      view_tag: made.viewTag,
+      sealed: made.sealed,
+    },
   }
 }
 
@@ -122,9 +146,9 @@ export async function announcedSince(after: string | null): Promise<boolean> {
 
 // --- What this browser remembers -----------------------------------------------------------------
 
-/** A private payment this wallet's viewing key found. Only what Kova's feed shows anyone. */
+/** A private payment this wallet's viewing key found, and what its sealed memo said. */
 export interface FoundPayment {
-  /** Kova's id for its announcement. */
+  /** Kova's id for its announcement (empty for change made here, until Kova lists it). */
   id: string
   /** The one-time address it was paid to. */
   address: string
@@ -135,23 +159,35 @@ export interface FoundPayment {
   tx: string
   explorer: string
   at: number
-  /** Who sent it, from Kova's index of that address; missing until Kova has seen it land. */
+  /** Who sent it: the memo's word, checked against Monad or their signature, or Monad's alone. */
   from?: string
-  /** Their note, sealed for the two of you, and the authorization nonce it's bound to. */
-  note?: IndexedTransfer['note']
-  /** Moved into the wallet: a one-time address that holds nothing now, so it isn't read again. */
+  /** What they call themselves, from the memo. */
+  name?: string
+  /** 'chain': Monad shows it left their wallet. 'signed': their wallet signed for it. 'claimed': only the memo says so. */
+  proven?: 'chain' | 'signed' | 'claimed'
+  /** Their note, from the memo. */
+  note?: string
+  /** 'change': your own private dollars, gathered into one address so they can pay together. */
+  kind?: 'send' | 'change'
+  /** ERC-5564's Announcement of it on Monad, once Kova has posted it. */
+  announced?: string
+  /** Holds nothing now (moved in, spent or gathered): it isn't read again. */
   emptied?: boolean
+  /** Paid out of privately (a shop, or a private send), so what's left is change. */
+  used?: boolean
 }
 
 export interface PrivateLedger {
-  /** The last announcement looked at: the next look starts after it. */
+  /** The feed is read again from here: everything before it is settled (announced, or old). */
   cursor: string | null
   found: FoundPayment[]
   /** One-time addresses this wallet sent to: a private send made in the app reads as one here too. */
   sentTo: string[]
+  /** The Announcement on Monad of each private payment this wallet sent, by one-time address. */
+  announced: Record<string, string>
 }
 
-export const emptyLedger: PrivateLedger = { cursor: null, found: [], sentTo: [] }
+export const emptyLedger: PrivateLedger = { cursor: null, found: [], sentTo: [], announced: {} }
 
 const ledgerKey = (wallet: string) => `kova.web.private.v1.${wallet.toLowerCase()}`
 
@@ -167,6 +203,10 @@ const isFound = (value: unknown): value is FoundPayment => {
   )
 }
 
+/** A payment as stored: notes from before sealed memos were Kova's sealed boxes, not text. */
+const tidy = (f: FoundPayment): FoundPayment =>
+  typeof f.note === 'string' || f.note === undefined ? f : { ...f, note: undefined }
+
 export function readLedger(wallet: string): PrivateLedger {
   try {
     const raw = localStorage.getItem(ledgerKey(wallet))
@@ -174,10 +214,11 @@ export function readLedger(wallet: string): PrivateLedger {
     if (!stored) return emptyLedger
     return {
       cursor: typeof stored.cursor === 'string' ? stored.cursor : null,
-      found: Array.isArray(stored.found) ? stored.found.filter(isFound) : [],
+      found: Array.isArray(stored.found) ? stored.found.filter(isFound).map(tidy) : [],
       sentTo: Array.isArray(stored.sentTo)
         ? stored.sentTo.filter((a): a is string => typeof a === 'string')
         : [],
+      announced: stored.announced && typeof stored.announced === 'object' ? stored.announced : {},
     }
   } catch {
     return emptyLedger
@@ -192,10 +233,19 @@ export function writeLedger(wallet: string, ledger: PrivateLedger) {
   }
 }
 
+/** How long a new payment is read again for, waiting for its Announcement on Monad. */
+const SETTLE_MS = 3 * 60_000
+
 /**
  * Looks through what Kova announced since the ledger's cursor for this wallet's private payments:
- * each check is an elliptic-curve multiplication, a few at a time so the page keeps moving. `sent`
- * is everywhere this wallet sent money, so its own private sends are known for what they were.
+ * each check is an elliptic-curve multiplication, a few at a time so the page keeps moving. Each
+ * one found opens its sealed memo with the viewing key, here: who sent it and their note come from
+ * the payment itself, and nobody is asked about its address. `sent` is everywhere this wallet sent
+ * money, so its own private sends are known for what they were.
+ *
+ * Kova posts each Announcement to Monad a few seconds after the payment, so the cursor stops before
+ * the first payment that has none yet (for three minutes at most) and the next look reads the
+ * same pages again: ordinary pages of the feed, the same for everyone.
  * Null if `stopped` says the page moved on to another wallet.
  */
 export async function lookForPayments(
@@ -209,45 +259,56 @@ export async function lookForPayments(
   if (!list.length) return ledger
   const mine = await scan(view, list, () => {}, stopped)
   if (!mine) return null
-  const known = new Set(ledger.found.map((f) => f.address.toLowerCase()))
-  const found: FoundPayment[] = mine
-    .filter((a) => !known.has(a.stealth_address.toLowerCase()))
-    .map((a) => ({
+  const found = new Map(ledger.found.map((f) => [f.address.toLowerCase(), f]))
+  for (const a of mine) {
+    const key = a.stealth_address.toLowerCase()
+    const known = found.get(key)
+    if (known) {
+      if (a.announce_url && !known.announced)
+        found.set(key, { ...known, announced: a.announce_url })
+      continue
+    }
+    const stealthAddress = getAddress(a.stealth_address)
+    const memo = openStealthMemo(view.viewingPrivateKey, {
+      ephemeralPublicKey: a.ephemeral_public_key as Hex,
+      stealthAddress,
+      sealed: (a.sealed ?? null) as Hex | null,
+    })
+    const sender = await stealthSender(memo, {
+      stealthAddress,
+      from: a.from && isAddress(a.from) ? getAddress(a.from) : null,
+    }).catch(() => null)
+    found.set(key, {
       id: a.id,
-      address: getAddress(a.stealth_address),
+      address: stealthAddress,
       ephemeral: a.ephemeral_public_key,
       amount: baseOf(a.amount).toString(),
       tx: a.tx_hash,
       explorer: a.explorer_url,
       at: a.paid_at ? Date.parse(a.paid_at) : Date.now(),
-    }))
-  const sentTo = list
-    .map((a) => a.stealth_address.toLowerCase())
-    .filter((address) => sent.has(address))
-  return {
-    cursor: list[list.length - 1]?.id ?? ledger.cursor,
-    found: [...ledger.found, ...found],
-    sentTo: [...new Set([...ledger.sentTo, ...sentTo])],
+      ...(sender ? { from: sender.address, proven: sender.proven } : {}),
+      ...(sender?.name ? { name: sender.name } : {}),
+      ...(memo?.note ? { note: memo.note } : {}),
+      ...(memo?.kind ? { kind: memo.kind } : {}),
+      ...(a.announce_url ? { announced: a.announce_url } : {}),
+    })
   }
-}
-
-/**
- * Who sent a private payment, and their note: Kova's index of its one-time address has both.
- * Null until Kova has seen it land, a second or two after it was paid.
- */
-export async function senderOf(
-  payment: FoundPayment,
-): Promise<Pick<FoundPayment, 'from' | 'note'> | null> {
-  const response = await fetch(
-    `/api/wallet/${getAddress(payment.address)}/transfers?direction=in&after_block=0`,
-    { cache: 'no-store' },
-  ).catch(() => null)
-  if (!response?.ok) return null
-  const { data } = (await response.json().catch(() => ({ data: [] }))) as {
-    data: IndexedTransfer[]
+  const announced = { ...ledger.announced }
+  const sentTo = new Set(ledger.sentTo)
+  for (const a of list) {
+    const key = a.stealth_address.toLowerCase()
+    if (!sent.has(key)) continue
+    sentTo.add(key)
+    if (a.announce_url) announced[key] = a.announce_url
   }
-  const paid = data.find((t) => t.tx_hash.toLowerCase() === payment.tx.toLowerCase())
-  return paid ? { from: getAddress(paid.from), note: paid.note ?? null } : null
+  let cursor = ledger.cursor
+  for (const a of list) {
+    const settled =
+      Boolean(a.announce_url) || !a.paid_at || Date.now() - Date.parse(a.paid_at) > SETTLE_MS
+    if (!settled) break
+    cursor = a.id
+  }
+  return { cursor, found: [...found.values()], sentTo: [...sentTo], announced }
 }
 
 /** What each one-time address holds now, read from Monad. One Monad didn't answer for is left out. */
@@ -261,6 +322,92 @@ export async function holdings(network: NetworkId, addresses: string[]) {
     if (typeof value === 'bigint') held.set(address.toLowerCase(), value)
   }
   return held
+}
+
+// --- Spending it, straight from its one-time addresses -------------------------------------------
+
+/** A one-time address's own account: the spending key plus that payment's shared secret. */
+export function oneTimeAccount(
+  keys: StealthKeys,
+  payment: Pick<FoundPayment, 'address' | 'ephemeral'>,
+): LocalAccount {
+  const account = privateKeyToAccount(stealthPrivateKey(keys, payment.ephemeral as Hex))
+  if (!isAddressEqual(account.address, getAddress(payment.address)))
+    throw new Error('Your keys don’t open one of your private addresses. Nothing moved.')
+  return account
+}
+
+/**
+ * Where a private payment of `amount` comes from: the smallest one address that holds enough, so
+ * the rest stay apart; else the fewest addresses, largest first, to gather into one first.
+ */
+export function planSpend(
+  spendable: { payment: FoundPayment; held: bigint }[],
+  amount: bigint,
+): { from: FoundPayment } | { gather: FoundPayment[] } | null {
+  const order = (a: bigint, b: bigint) => (a < b ? -1 : a > b ? 1 : 0)
+  const enough = spendable.filter((s) => s.held >= amount).sort((a, b) => order(a.held, b.held))
+  if (enough[0]) return { from: enough[0].payment }
+  const gather: FoundPayment[] = []
+  let sum = 0n
+  for (const s of [...spendable].sort((a, b) => order(b.held, a.held))) {
+    if (sum >= amount) break
+    if (s.held <= 0n) continue
+    gather.push(s.payment)
+    sum += s.held
+  }
+  return sum >= amount ? { gather } : null
+}
+
+/**
+ * Gathers private dollars into one new address of yours, so a payment bigger than any one of them
+ * can go from a single address. Each moves everything it holds, one at a time (the relayer's nonce
+ * is shared), and only the first carries the announcement, so the new address is found like any
+ * payment. This links those addresses to each other on Monad, never to your wallet.
+ */
+export async function gatherInto(
+  network: NetworkId,
+  keys: StealthKeys,
+  sources: FoundPayment[],
+  to: Address,
+  announcement: StealthAnnouncement,
+): Promise<{ amount: bigint; moved: string[]; tx: string | null; explorer: string | null }> {
+  const { moves } = await signMoves(
+    keys,
+    sources.map((p) => ({ stealth_address: p.address, ephemeral_public_key: p.ephemeral })),
+    to,
+    network,
+  )
+  let amount = 0n
+  let tx: string | null = null
+  let explorer: string | null = null
+  const moved: string[] = []
+  for (const [i, move] of moves.entries()) {
+    const response = await fetch('/api/wallet/send', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        ...move.authorization,
+        ...(i === 0 ? { stealth: announcement } : {}),
+      }),
+    })
+    const json = (await response.json().catch(() => ({}))) as {
+      error?: string
+      tx_hash?: string
+      explorer_url?: string
+    }
+    // Whatever moved before this is at the new address, still yours and still private.
+    if (!response.ok) {
+      if (!moved.length)
+        throw new Error(plain(json.error ?? `Kova didn’t answer (${response.status}).`))
+      break
+    }
+    amount += move.amount
+    moved.push(move.sale.stealth_address.toLowerCase())
+    tx ??= json.tx_hash ?? null
+    explorer ??= json.explorer_url ?? null
+  }
+  return { amount, moved, tx, explorer }
 }
 
 // --- Moving it in ------------------------------------------------------------------------------

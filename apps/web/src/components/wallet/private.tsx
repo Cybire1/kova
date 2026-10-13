@@ -1,16 +1,115 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Icon } from '@/components/brand'
 import { formatUsd } from '@/lib/wallet/money'
 import type { MovedIn } from '@/lib/wallet/private'
 import { useSessionState } from '@/lib/wallet/session'
-import { isUnnamed, short, useWallet } from './provider'
+import { isUnnamed, type PayFrom, type PrivateStep, short, useWallet } from './provider'
 
 /**
- * Private sends, on the wallet's screens: the switch on Send's review, the dollars sent to you
- * privately and the way to move them in, and the line in Profile that says anyone can.
+ * Private sends, on the wallet's screens: the switch on Send's review, paying from private dollars,
+ * the dollars sent to you privately and the way to move them in, and the line in Profile that says
+ * anyone can.
  */
+
+const PAY_FROM = 'kova.web.payFrom.v1'
+
+/** Pay from your balance or your private dollars: the last choice, remembered on this browser. */
+export function usePayFrom(): [PayFrom, (from: PayFrom) => void] {
+  const [from, setFrom] = useState<PayFrom>('balance')
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(PAY_FROM) === 'private') setFrom('private')
+    } catch {}
+  }, [])
+  const choose = useCallback((next: PayFrom) => {
+    setFrom(next)
+    try {
+      localStorage.setItem(PAY_FROM, next)
+    } catch {}
+  }, [])
+  return [from, choose]
+}
+
+/** What paying from private dollars is doing now, in a few words. */
+export const stepLine = (step: PrivateStep | null) =>
+  step === 'gathering' ? 'Gathering your private dollars…' : step === 'paying' ? 'Paying…' : null
+
+/** Why gathering is fine: it links the gathered addresses to each other on Monad, not to you. */
+export const GATHER_LINE =
+  'Gathering links those private addresses to each other on Monad, never to you.'
+
+/**
+ * Pay from your balance, or from your private dollars: then a one-time address only you can open
+ * pays (Kova covers its fee), and Monad can't tie the payment to your wallet. Shown when your
+ * private dollars cover the amount; the balance is greyed out when it doesn't.
+ */
+export function PayFromChoice({
+  value,
+  onChange,
+  amount,
+  disabled,
+}: {
+  value: PayFrom
+  onChange: (from: PayFrom) => void
+  amount: bigint
+  disabled?: boolean
+}) {
+  const { balance, privateBalance, privateLargest, hideBalance } = useWallet()
+  const balanceCovers = balance !== null && balance >= amount
+  const shown = (v: bigint) => (hideBalance ? '••••' : formatUsd(v))
+  return (
+    <div className="w-payfrom">
+      <span className="w-payfrom-label" id="w-payfrom-label">
+        Pay from
+      </span>
+      <div className="w-payfrom-options">
+        <label
+          className="w-payfrom-option"
+          data-on={value === 'balance' ? 'true' : undefined}
+          data-off={disabled || !balanceCovers ? 'true' : undefined}
+        >
+          <input
+            type="radio"
+            name="w-payfrom"
+            aria-describedby="w-payfrom-label"
+            checked={value === 'balance'}
+            disabled={disabled || !balanceCovers}
+            onChange={() => onChange('balance')}
+          />
+          <strong>Balance</strong>
+          <small>{balance === null ? '…' : shown(balance)}</small>
+        </label>
+        <label
+          className="w-payfrom-option w-payfrom-private"
+          data-on={value === 'private' ? 'true' : undefined}
+          data-off={disabled ? 'true' : undefined}
+        >
+          <input
+            type="radio"
+            name="w-payfrom"
+            aria-describedby="w-payfrom-label"
+            checked={value === 'private'}
+            disabled={disabled}
+            onChange={() => onChange('private')}
+          />
+          <strong>
+            <Icon name="lock" size={13} /> Private dollars
+          </strong>
+          <small>{shown(privateBalance)}</small>
+        </label>
+      </div>
+      <p className="w-payfrom-fine">
+        {value === 'private'
+          ? privateLargest >= amount
+            ? 'Paid from an address only you can open. Monad can’t tie it to your wallet.'
+            : `They’re at a few addresses, so they’re gathered into one first. ${GATHER_LINE}`
+          : 'From your wallet, as usual: Monad shows it came from you.'}
+      </p>
+    </div>
+  )
+}
 
 const first = (name: string) => (isUnnamed(name) ? short(name) : (name.split(' ')[0] ?? name))
 
@@ -42,7 +141,7 @@ function fromLine(names: string[]) {
  * and Kova covers the fee; the row says how far it's got, then how long it took.
  */
 export function PrivateWaiting() {
-  const { activity, privateBalance, privateWaiting, moveIn, movingIn, hideBalance } = useWallet()
+  const { activity, privateBalance, moveIn, movingIn, hideBalance } = useWallet()
   const session = useSessionState()
   const [moved, setMoved] = useState<MovedIn | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
@@ -54,9 +153,19 @@ export function PrivateWaiting() {
     return () => clearTimeout(timer)
   }, [moved])
 
-  if (!privateWaiting && !moved && !movingIn) return null
+  /** Moving in is public: the first tap says so, the second moves. */
+  const [sure, setSure] = useState(false)
+  useEffect(() => {
+    if (!sure) return
+    const timer = setTimeout(() => setSure(false), 8000)
+    return () => clearTimeout(timer)
+  }, [sure])
+
+  if (!privateBalance && !moved && !movingIn) return null
 
   const go = async () => {
+    if (!sure) return setSure(true)
+    setSure(false)
     setProblem(null)
     setMoved(null)
     try {
@@ -78,7 +187,7 @@ export function PrivateWaiting() {
   ]
   const from = fromLine(names)
 
-  if (moved && !movingIn && !privateWaiting)
+  if (moved && !movingIn && !privateBalance)
     return (
       <section className="w-private w-private-done" aria-live="polite">
         <span className="w-private-icon">
@@ -112,15 +221,17 @@ export function PrivateWaiting() {
           {movingIn
             ? 'Moving in…'
             : hideBalance
-              ? 'Sent to you privately'
-              : `${formatUsd(privateBalance)} sent to you privately`}
+              ? 'Your private dollars'
+              : `${formatUsd(privateBalance)} in private dollars`}
         </strong>
         <span className="w-private-sub">
           {movingIn
             ? movingIn.total > 1
               ? `${movingIn.done} of ${movingIn.total}, Kova covers the fee`
               : 'Kova covers the fee'
-            : (from ?? 'Only you can tell it’s yours')}
+            : sure
+              ? 'Moving in is public: Monad shows them reaching your wallet.'
+              : (from ?? 'Only you can tell they’re yours')}
         </span>
         <button
           type="button"
@@ -133,7 +244,7 @@ export function PrivateWaiting() {
           ) : (
             <Icon name={session.open ? 'arrow' : 'face'} size={15} />
           )}
-          {movingIn ? 'Moving' : 'Move in'}
+          {movingIn ? 'Moving' : sure ? 'Move in anyway' : 'Move in'}
         </button>
       </section>
       {problem ? (
@@ -203,12 +314,15 @@ export function PrivateSwitch({
   name,
   amount,
   disabled,
+  fromPrivate,
 }: {
   on: boolean
   onChange: (on: boolean) => void
   name: string
   amount: bigint
   disabled?: boolean
+  /** Paid from private dollars, so Monad doesn't show who sent it either. */
+  fromPrivate?: boolean
 }) {
   return (
     <label className={`w-private-switch${on ? ' w-private-switch-on' : ''}`}>
@@ -218,9 +332,11 @@ export function PrivateSwitch({
       <span className="w-private-switch-text">
         <strong>Send privately</strong>
         <small>
-          {on
-            ? `On Monad, people will see you sent ${formatUsd(amount)}, but not to whom.`
-            : `Hide who gets it from everyone but ${first(name)}.`}
+          {on && fromPrivate
+            ? `On Monad, people will see ${formatUsd(amount)} move, but not who sent it or to whom.`
+            : on
+              ? `On Monad, people will see you sent ${formatUsd(amount)}, but not to whom.`
+              : `Hide who gets it from everyone but ${first(name)}.`}
         </small>
       </span>
       <input

@@ -14,8 +14,8 @@ import { parseScanned } from '@/lib/wallet/links'
 import { baseToNumber, formatLocal, formatUsd } from '@/lib/wallet/money'
 import { sessionCovers } from '@/lib/wallet/session'
 import { ScreenHead } from './activity'
-import { MoveInFirst, privateCovers } from './private'
-import { useWallet } from './provider'
+import { MoveInFirst, PayFromChoice, privateCovers, stepLine, usePayFrom } from './private'
+import { type PayFrom, type PrivateStep, useWallet } from './provider'
 
 interface Detector {
   detect(source: HTMLVideoElement): Promise<{ rawValue: string }[]>
@@ -177,7 +177,7 @@ type Stage =
   | { at: 'closed'; message: string }
   | { at: 'review' }
   | { at: 'paying' }
-  | { at: 'paid'; ms: number; hash: string }
+  | { at: 'paid'; ms: number; hash: string; fromPrivate: boolean }
   | { at: 'problem'; message: string }
 
 /** A charge as Kova shows it to the payer, with the stall order behind it. */
@@ -188,6 +188,9 @@ export function PayCharge({ id }: { id: string }) {
   const { balance, payCheckout, profile, rates, privateBalance } = useWallet()
   const [charge, setCharge] = useState<Charge | null>(null)
   const [stage, setStage] = useState<Stage>({ at: 'loading' })
+  const [payFrom, choosePayFrom] = usePayFrom()
+  /** Paying from private dollars: gathering them first, then paying. */
+  const [privateStep, setPrivateStep] = useState<PrivateStep | null>(null)
 
   useEffect(() => {
     let live = true
@@ -243,6 +246,13 @@ export function PayCharge({ id }: { id: string }) {
   /** Short, but private dollars waiting to move in would cover it. */
   const coverable = privateCovers(balance, privateBalance, amount)
   const order = charge.order
+  /**
+   * Private dollars can pay it when they cover it, and it isn't a stamp card's free item: stamps
+   * go to the wallet that pays, and a private payment comes from no wallet anyone can see.
+   */
+  const privateCan = !order?.reward && privateBalance >= amount
+  const from: PayFrom = privateCan ? (short_ ? 'private' : payFrom) : 'balance'
+  const fromPrivate = from === 'private'
 
   if (stage.at === 'paid')
     return (
@@ -261,13 +271,29 @@ export function PayCharge({ id }: { id: string }) {
             <strong>$0.00</strong> Fee
           </span>
           <span>
-            <strong>{balance === null ? '…' : formatUsd(balance)}</strong> Left
+            {stage.fromPrivate ? (
+              <>
+                <strong>{formatUsd(privateBalance)}</strong> Private left
+              </>
+            ) : (
+              <>
+                <strong>{balance === null ? '…' : formatUsd(balance)}</strong> Left
+              </>
+            )}
           </span>
         </div>
+        {stage.fromPrivate ? (
+          <p className="w-moment-private">
+            <Icon name="lock" size={14} /> Paid from your private dollars. Private payments don’t
+            collect stamps.
+          </p>
+        ) : null}
         {order?.stall && order.status && !order.pay_for_me ? (
           <div className="w-moment-order">
             <OrderReady checkoutId={charge.id} order={order} shop={order.stall.name} />
-            <StampsAfterPay slug={order.stall.slug} shop={order.stall.name} usedReward={Boolean(order.reward)} />
+            {stage.fromPrivate ? null : (
+              <StampsAfterPay slug={order.stall.slug} shop={order.stall.name} usedReward={Boolean(order.reward)} />
+            )}
           </div>
         ) : null}
         <div className="w-moment-actions">
@@ -334,7 +360,11 @@ export function PayCharge({ id }: { id: string }) {
             ) : null}
             <div className="w-review-row">
               <span>From</span>
-              <strong>Your wallet, {balance === null ? '…' : formatUsd(balance)}</strong>
+              <strong>
+                {fromPrivate
+                  ? `Private dollars, ${formatUsd(privateBalance)}`
+                  : `Your wallet, ${balance === null ? '…' : formatUsd(balance)}`}
+              </strong>
             </div>
             <div className="w-review-row">
               <span>Fee</span>
@@ -348,7 +378,15 @@ export function PayCharge({ id }: { id: string }) {
               {/went through/i.test(stage.message) ? '' : ' Nothing was paid.'}
             </p>
           ) : null}
-          {coverable ? (
+          {privateCan ? (
+            <PayFromChoice
+              value={from}
+              onChange={choosePayFrom}
+              amount={amount}
+              disabled={stage.at === 'paying'}
+            />
+          ) : null}
+          {coverable && !privateCan ? (
             <>
               <p className="w-fine w-center">
                 You need {formatUsd(amount - (balance ?? 0n))} more, and you have{' '}
@@ -357,7 +395,7 @@ export function PayCharge({ id }: { id: string }) {
               </p>
               <MoveInFirst tone="coral" />
             </>
-          ) : short_ ? (
+          ) : short_ && !fromPrivate ? (
             <>
               <p className="form-error">
                 You need {formatUsd(amount - (balance ?? 0n))} more. Add money first.
@@ -378,29 +416,37 @@ export function PayCharge({ id }: { id: string }) {
               onClick={async () => {
                 setStage({ at: 'paying' })
                 try {
-                  const moved = await payCheckout(charge)
-                  // This wallet is the stamp card at the shop.
-                  if (profile) rememberPayer(profile.address)
-                  setStage({ at: 'paid', ms: moved.ms, hash: moved.hash })
+                  const moved = await payCheckout(charge, { from, onStep: setPrivateStep })
+                  // This wallet is the stamp card at the shop; a private payment is no one's.
+                  if (profile && !fromPrivate) rememberPayer(profile.address)
+                  setStage({ at: 'paid', ms: moved.ms, hash: moved.hash, fromPrivate })
                 } catch (e) {
                   const message = e instanceof Error ? e.message : 'Kova couldn’t pay it.'
                   setStage(/cancel/i.test(message) ? { at: 'review' } : { at: 'problem', message })
+                } finally {
+                  setPrivateStep(null)
                 }
               }}
             >
               <span className="pill-label">
-                {stage.at === 'paying' ? 'Paying…' : `Pay ${formatUsd(amount)}`}
+                {stage.at === 'paying'
+                  ? (stepLine(privateStep) ?? 'Paying…')
+                  : `Pay ${formatUsd(amount)}${fromPrivate ? ' privately' : ''}`}
               </span>
               <span className="pill-cap">
                 <Icon name={sessionCovers(amount) ? 'bolt' : 'face'} size={18} />
               </span>
             </button>
           )}
-          {short_ ? null : (
-            <p className="w-fine w-center">
-              {sessionCovers(amount)
-                ? 'Your wallet is open, so this one needs no passkey.'
-                : 'Your passkey approves it. The shop gets it in about a second.'}
+          {short_ && !fromPrivate ? null : (
+            <p className="w-fine w-center" aria-live="polite">
+              {privateStep === 'gathering'
+                ? 'Kova covers every fee, the gathering too.'
+                : fromPrivate && order?.stall
+                  ? 'Private payments don’t collect stamps.'
+                  : sessionCovers(amount)
+                    ? 'Your wallet is open, so this one needs no passkey.'
+                    : 'Your passkey approves it. The shop gets it in about a second.'}
             </p>
           )}
         </div>

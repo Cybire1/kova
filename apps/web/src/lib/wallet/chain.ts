@@ -27,6 +27,8 @@ export interface NoteToSeal {
 export interface StealthAnnouncement {
   ephemeral_public_key: Hex
   view_tag: Hex
+  /** The sealed memo: who sent it, their name and note, that only the recipient's key opens. */
+  sealed?: Hex | null
 }
 
 /**

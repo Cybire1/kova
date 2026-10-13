@@ -115,8 +115,17 @@ export function EntryRow({ entry }: { entry: Entry }) {
       <span className="w-entry-text">
         <span className="w-entry-name">{entryTitle(entry)}</span>
         <span className="w-entry-sub">
-          {entry.private || entry.locked ? <Icon name="lock" size={12} /> : null}
-          {entry.detail}, {when(entry.at)}
+          {entry.private || entry.locked || entry.fromPrivate ? (
+            <Icon name="lock" size={12} />
+          ) : null}
+          {entry.fromPrivate ? (
+            <span className="w-from-private">From private dollars</span>
+          ) : entry.unconfirmed ? (
+            `Unconfirmed sender, ${entry.detail}`
+          ) : (
+            entry.detail
+          )}
+          , {when(entry.at)}
         </span>
       </span>
       <span className={`w-entry-amount${incoming(entry) ? ' w-in' : ''}`}>{signed(entry)}</span>

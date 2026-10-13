@@ -1,9 +1,16 @@
 'use client'
 
 import type { PasskeyCredentialMetadata } from '@category-labs/mera'
-import type { NetworkId } from '@kova/monad'
+import {
+  generateStealthAddress,
+  type NetworkId,
+  type StealthKeys,
+  stealthMemoMessage,
+  stealthMetaAddress,
+} from '@kova/monad'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { type Address, getAddress, isAddress, isAddressEqual, type LocalAccount } from 'viem'
+import { generatePrivateKey } from 'viem/accounts'
 import {
   createKovaPasskey,
   openKovaPasskey,
@@ -36,17 +43,20 @@ import { fetchNoteKey, noteKeys, openNote, publishNoteKey } from '@/lib/wallet/n
 import {
   announcedSince,
   emptyLedger,
+  type FoundPayment,
   fetchPrivateKey,
+  gatherInto,
   holdings,
   lookForPayments,
   type MovedIn,
   moveIn as moveInPayments,
-  oneTimeAddress,
+  oneTimeAccount,
   type PrivateLedger,
+  planSpend,
   privateKeys,
+  privatePayment,
   publishPrivateKey,
   readLedger,
-  senderOf,
   writeLedger,
 } from '@/lib/wallet/private'
 import {
@@ -106,7 +116,21 @@ export interface Entry {
   waiting?: boolean
   /** The move that brought a private payment into the wallet. */
   movedIn?: { txHash: string; explorer: string; at: number }
+  /** Who it's from rests on the payment's memo alone: shown as unconfirmed. */
+  unconfirmed?: boolean
+  /** Paid out of your private dollars, straight from a one-time address, not your balance. */
+  fromPrivate?: boolean
+  /** Spent privately (a shop, or a private send): what was left stays private as change. */
+  used?: boolean
+  /** ERC-5564's Announcement of this private payment on Monad, once Kova has posted it. */
+  announced?: string
 }
+
+/** Where a payment comes from: your balance, or your private dollars at their one-time addresses. */
+export type PayFrom = 'balance' | 'private'
+
+/** How far paying from private dollars has got: gathering them into one address first, then paying. */
+export type PrivateStep = 'gathering' | 'paying'
 
 export interface ShopToday {
   name: string
@@ -132,6 +156,8 @@ interface Note {
   private?: 'both' | 'you'
   /** A private send: the one-time address it went to (`to` is the person). */
   oneTime?: string
+  /** Paid from private dollars. */
+  fromPrivate?: boolean
 }
 
 const PROFILE = 'kova.web.profile.v1'
@@ -179,12 +205,15 @@ interface WalletValue {
   create: (name: string, currency: DisplayCurrency) => Promise<void>
   /** The wallet an existing passkey holds: the app's, or one made here before. */
   open: () => Promise<{ named: boolean }>
-  /** Sends to a person; `privately` sends to a one-time address only they can tell is theirs. */
+  /**
+   * Sends to a person; `privately` sends to a one-time address only they can tell is theirs, with
+   * who it's from and the note sealed inside it. `from: 'private'` pays it from private dollars.
+   */
   send: (
     to: Contact,
     amount: bigint,
     note?: string,
-    options?: { privately?: boolean },
+    options?: { privately?: boolean; from?: PayFrom; onStep?: (step: PrivateStep) => void },
   ) => Promise<Moved>
   /** Sends a link's dollars to its one-time address (Send as a link). */
   fundLink: (link: KeptLink) => Promise<Moved>
@@ -198,8 +227,12 @@ interface WalletValue {
   privateReceiving: boolean | null
   /** Private dollars this wallet's keys found, still at their one-time addresses. */
   privateBalance: bigint
-  /** How many private payments are waiting to move in. */
+  /** The most any one of those addresses holds: more than that, and they're gathered first. */
+  privateLargest: bigint
+  /** How many one-time addresses still hold private dollars. */
   privateWaiting: number
+  /** The Announcement on Monad of a private payment you sent, by its one-time address. */
+  announcedSend: (oneTime: string) => string | null
   /** The keys are open in this tab, so new private payments are found as they land. */
   privateOpen: boolean
   /** Kova announced private payments this wallet's keys haven't looked through yet. */
@@ -212,7 +245,11 @@ interface WalletValue {
   moveIn: () => Promise<MovedIn>
   /** A move in under way. */
   movingIn: { done: number; total: number } | null
-  payCheckout: (charge: ChargeToPay) => Promise<Moved>
+  /** Pays a shop's charge, from your balance or (`from: 'private'`) from private dollars. */
+  payCheckout: (
+    charge: ChargeToPay,
+    options?: { from?: PayFrom; onStep?: (step: PrivateStep) => void },
+  ) => Promise<Moved>
   addTestDollars: () => Promise<bigint>
   /** Signs a message with this wallet, such as Kova's shop sign-in (EIP-4361). Moves no money. */
   signMessage: (message: string) => Promise<`0x${string}`>
@@ -340,6 +377,8 @@ export function WalletProvider({
   const [movingIn, setMovingIn] = useState<{ done: number; total: number } | null>(null)
   const transfersRef = useRef(transfers)
   transfersRef.current = transfers
+  const notesRef = useRef(notes)
+  notesRef.current = notes
   const lastLooks = useRef({ held: 0, feed: 0 })
   const scanning = useRef(false)
 
@@ -677,11 +716,16 @@ export function WalletProvider({
       scanning.current = true
       try {
         const me = wallet.toLowerCase()
-        const sent = new Set(
-          transfersRef.current
+        // Where this wallet sent money: Kova's index of it, and the private sends made here a
+        // moment ago, before Kova has indexed them (their Announcement may come first).
+        const sent = new Set([
+          ...transfersRef.current
             .filter((t) => t.from.toLowerCase() === me)
             .map((t) => t.to.toLowerCase()),
-        )
+          ...Object.values(notesRef.current).flatMap((n) =>
+            n.oneTime ? [n.oneTime.toLowerCase()] : [],
+          ),
+        ])
         const next = await lookForPayments(
           view,
           ledgerRef.current,
@@ -698,25 +742,6 @@ export function WalletProvider({
     },
     [keepLedger],
   )
-
-  /** Who sent each private payment, and their note, once Kova's index has it. */
-  const fillSenders = useCallback(async () => {
-    const wallet = current.current
-    const missing = ledgerRef.current.found.filter((f) => f.from === undefined)
-    if (!wallet || !missing.length) return
-    const answers = await Promise.all(missing.map((f) => senderOf(f).catch(() => null)))
-    const known = new Map<string, NonNullable<(typeof answers)[number]>>()
-    for (const [i, f] of missing.entries()) {
-      const answer = answers[i]
-      if (answer) known.set(f.address.toLowerCase(), answer)
-    }
-    if (!known.size || current.current !== wallet) return
-    const latest = ledgerRef.current
-    keepLedger(wallet, {
-      ...latest,
-      found: latest.found.map((f) => ({ ...f, ...known.get(f.address.toLowerCase()) })),
-    })
-  }, [keepLedger])
 
   /** One-time addresses that hold nothing now: remembered, so they're never read again. */
   const markEmptied = useCallback(
@@ -771,12 +796,11 @@ export function WalletProvider({
       const fresh = await announcedSince(ledgerRef.current.cursor).catch(() => false)
       if (current.current === wallet) setUnchecked(fresh)
     }
-    await fillSenders().catch(() => {})
     const unread = ledgerRef.current.found.some(
-      (f) => !heldRef.current.has(f.address.toLowerCase()),
+      (f) => !f.emptied && !heldRef.current.has(f.address.toLowerCase()),
     )
     if (unread || now - lastLooks.current.held > 20_000) await refreshHeld().catch(() => {})
-  }, [fillSenders, lookWith, refreshHeld, viewNow])
+  }, [lookWith, refreshHeld, viewNow])
 
   const checkPrivate = useCallback(async () => {
     if (!profile) throw new Error('Open your wallet first.')
@@ -789,9 +813,8 @@ export function WalletProvider({
       .then(() => setReceiving({ address: account.address, on: true }))
       .catch(() => {})
     await lookWith(view)
-    await fillSenders().catch(() => {})
     await refreshHeld().catch(() => {})
-  }, [fillSenders, lookWith, profile, refreshHeld, unlock])
+  }, [lookWith, profile, refreshHeld, unlock])
 
   const privateReaches = useCallback(
     async (address: string) => (await fetchPrivateKey(getAddress(address))) !== null,
@@ -829,6 +852,117 @@ export function WalletProvider({
     }
   }, [keepHeld, markEmptied, network, profile, refreshActivity, refreshBalance, unlock])
 
+  /**
+   * The one-time address to pay `amount` from, as its own account: the smallest that holds enough.
+   * When no one address does, the fewest are gathered into a new address of yours first (its memo,
+   * sealed for you, says it's your change, signed by your wallet), and that one pays.
+   */
+  const privateSource = useCallback(
+    async (
+      wallet: LocalAccount,
+      keys: StealthKeys,
+      amount: bigint,
+      onStep?: (step: PrivateStep) => void,
+    ): Promise<{ account: LocalAccount; source: FoundPayment }> => {
+      const me = wallet.address
+      const candidates = ledgerRef.current.found.filter((f) => !f.emptied)
+      const read = await holdings(
+        network,
+        candidates.map((f) => f.address),
+      )
+      keepHeld((held) => {
+        for (const [address, value] of read) held.set(address, value)
+      })
+      const plan = planSpend(
+        candidates.map((payment) => ({
+          payment,
+          held: read.get(payment.address.toLowerCase()) ?? 0n,
+        })),
+        amount,
+      )
+      if (!plan) throw new Error('Your private dollars don’t cover this any more. Nothing moved.')
+      if ('from' in plan) return { account: oneTimeAccount(keys, plan.from), source: plan.from }
+      onStep?.('gathering')
+      const mine = stealthMetaAddress(keys)
+      const ephemeral = generatePrivateKey()
+      const proof = await wallet.signMessage({
+        message: stealthMemoMessage(generateStealthAddress(mine, ephemeral).stealthAddress),
+      })
+      const name = profileRef.current?.name
+      const change = privatePayment(
+        mine,
+        { from: me, ...(name ? { name } : {}), kind: 'change', proof },
+        ephemeral,
+      )
+      const gathered = await gatherInto(
+        network,
+        keys,
+        plan.gather,
+        change.address,
+        change.announcement,
+      )
+      // The new address is yours from now on: in the ledger at once, before Kova's feed lists it.
+      const found: FoundPayment = {
+        id: '',
+        address: change.address,
+        ephemeral: change.announcement.ephemeral_public_key,
+        amount: gathered.amount.toString(),
+        tx: gathered.tx ?? '',
+        explorer: gathered.explorer ?? '',
+        at: Date.now(),
+        from: me,
+        proven: 'signed',
+        kind: 'change',
+        ...(name ? { name } : {}),
+      }
+      const moved = new Set(gathered.moved)
+      const latest = ledgerRef.current
+      keepLedger(me, {
+        ...latest,
+        found: [
+          ...latest.found.map((f) =>
+            moved.has(f.address.toLowerCase()) ? { ...f, emptied: true, used: true } : f,
+          ),
+          found,
+        ],
+      })
+      keepHeld((held) => {
+        for (const address of moved) held.set(address, 0n)
+        held.set(change.address.toLowerCase(), gathered.amount)
+      })
+      if (gathered.amount < amount)
+        throw new Error(
+          'Not all your private dollars could be gathered just now. They’re safe and still private, together at one address of yours. Try again.',
+        )
+      return { account: oneTimeAccount(keys, found), source: found }
+    },
+    [keepHeld, keepLedger, network],
+  )
+
+  /** After paying from a one-time address: it's been used, and holds only the change, if any. */
+  const spentFrom = useCallback(
+    async (source: FoundPayment) => {
+      const wallet = current.current
+      if (!wallet) return
+      const key = source.address.toLowerCase()
+      const left = await balanceOf(network, getAddress(source.address)).catch(() => null)
+      if (left !== null)
+        keepHeld((held) => {
+          held.set(key, left)
+        })
+      const latest = ledgerRef.current
+      keepLedger(wallet, {
+        ...latest,
+        found: latest.found.map((f) =>
+          f.address.toLowerCase() === key
+            ? { ...f, used: true, ...(left === 0n ? { emptied: true } : {}) }
+            : f,
+        ),
+      })
+    },
+    [keepHeld, keepLedger, network],
+  )
+
   const remember = useCallback(
     (hash: string, note: Note) => {
       if (!profile) return
@@ -859,37 +993,88 @@ export function WalletProvider({
   )
 
   const send = useCallback(
-    async (to: Contact, amount: bigint, note?: string, options: { privately?: boolean } = {}) => {
+    async (
+      to: Contact,
+      amount: bigint,
+      note?: string,
+      options: { privately?: boolean; from?: PayFrom; onStep?: (step: PrivateStep) => void } = {},
+    ) => {
       if (!profile) throw new Error('Open your wallet first.')
       const text = note?.trim()
       const person = getAddress(to.address)
-      // Sealed for them and for you; if they have no note key yet, for you alone.
+      const privately = options.privately === true
+      const fromPrivate = privately && options.from === 'private'
+      // A plain send's note is sealed for them and for you (for you alone if they have no note key);
+      // a private send's note rides inside its sealed memo instead.
       const [account, theirs, meta] = await Promise.all([
         unlock(amount),
-        text ? fetchNoteKey(person) : null,
-        options.privately ? fetchPrivateKey(person) : null,
+        text && !privately ? fetchNoteKey(person) : null,
+        privately ? fetchPrivateKey(person) : null,
       ])
       // Privately only to a key their own wallet signed: never one Kova could have swapped in.
-      if (options.privately && !meta)
+      if (privately && !meta)
         throw new Error(
           `Kova couldn’t confirm ${isUnnamed(to.name) ? 'their' : `${to.name.split(' ')[0]}’s`} private key. Turn off Send privately to send it the usual way.`,
         )
       const secret = vaultSecret.current
       const sealing =
-        text && secret ? { text, mine: noteKeys(secret).publicKey, theirs } : undefined
-      // A fresh one-time address only they can tell is theirs, and what they need to find it.
-      const oneTime = meta ? oneTimeAddress(meta) : null
-      const moved = await sendMoney(
-        network,
-        account,
-        oneTime?.address ?? person,
-        amount,
-        sealing,
-        oneTime?.announcement,
-      )
+        text && secret && !privately
+          ? { text, mine: noteKeys(secret).publicKey, theirs }
+          : undefined
+      let moved: Moved
+      let oneTime: Address | null = null
+      if (meta) {
+        // Who it's from, your name and your note, sealed so only they can open it: nobody has to
+        // ask Kova who paid them.
+        const memo = {
+          from: profile.address,
+          ...(profile.name ? { name: profile.name } : {}),
+          ...(text ? { note: text } : {}),
+          kind: 'send' as const,
+        }
+        if (fromPrivate) {
+          const keys = await privateKeys(account)
+          const { account: payer, source } = await privateSource(
+            account,
+            keys,
+            amount,
+            options.onStep,
+          )
+          // Monad shows the dollars leaving a one-time address, not you, so your wallet signs for
+          // its new address inside the memo: they see it's really from you.
+          const ephemeral = generatePrivateKey()
+          const proof = await account.signMessage({
+            message: stealthMemoMessage(generateStealthAddress(meta, ephemeral).stealthAddress),
+          })
+          const payment = privatePayment(meta, { ...memo, proof }, ephemeral)
+          options.onStep?.('paying')
+          moved = await sendMoney(
+            network,
+            payer,
+            payment.address,
+            amount,
+            undefined,
+            payment.announcement,
+          )
+          oneTime = payment.address
+          void spentFrom(source)
+        } else {
+          const payment = privatePayment(meta, memo)
+          moved = await sendMoney(
+            network,
+            account,
+            payment.address,
+            amount,
+            undefined,
+            payment.announcement,
+          )
+          oneTime = payment.address
+        }
+      } else moved = await sendMoney(network, account, person, amount, sealing)
       spend(amount)
       remember(moved.hash, {
         ...(sealing ? { private: sealing.theirs ? ('both' as const) : ('you' as const) } : {}),
+        ...(oneTime && text ? { private: 'both' as const } : {}),
         name: to.name,
         detail: text || (oneTime ? 'Sent privately' : 'Sent'),
         ms: moved.ms,
@@ -898,13 +1083,14 @@ export function WalletProvider({
         amount: amount.toString(),
         at: Date.now(),
         explorer: moved.explorer,
-        ...(oneTime ? { oneTime: oneTime.address } : {}),
+        ...(oneTime ? { oneTime } : {}),
+        ...(fromPrivate ? { fromPrivate: true } : {}),
       })
       if (!isUnnamed(to.name)) rememberContact(to)
       void refresh()
       return moved
     },
-    [network, profile, refresh, remember, rememberContact, unlock],
+    [network, privateSource, profile, refresh, remember, rememberContact, spentFrom, unlock],
   )
 
   const fundLink = useCallback(
@@ -931,11 +1117,29 @@ export function WalletProvider({
   )
 
   const payCheckout = useCallback(
-    async (charge: ChargeToPay) => {
+    async (
+      charge: ChargeToPay,
+      options: { from?: PayFrom; onStep?: (step: PrivateStep) => void } = {},
+    ) => {
       if (!profile) throw new Error('Open your wallet first.')
       const amount = BigInt(charge.amount_base)
       const account = await unlock(amount)
-      const moved = await payCharge(network, account, charge)
+      const fromPrivate = options.from === 'private'
+      let moved: Moved
+      if (fromPrivate) {
+        // The charge is paid exactly as from the wallet, signed by a one-time address instead:
+        // the shop gets paid, and Monad can't tie the payment to you.
+        const keys = await privateKeys(account)
+        const { account: payer, source } = await privateSource(
+          account,
+          keys,
+          amount,
+          options.onStep,
+        )
+        options.onStep?.('paying')
+        moved = await payCharge(network, payer, charge)
+        void spentFrom(source)
+      } else moved = await payCharge(network, account, charge)
       spend(amount)
       remember(moved.hash, {
         name: charge.order?.stall?.name ?? charge.merchant_name,
@@ -946,11 +1150,12 @@ export function WalletProvider({
         amount: charge.amount_base,
         at: Date.now(),
         explorer: moved.explorer,
+        ...(fromPrivate ? { fromPrivate: true } : {}),
       })
       void refresh()
       return moved
     },
-    [network, profile, refresh, remember, unlock],
+    [network, privateSource, profile, refresh, remember, spentFrom, unlock],
   )
 
   const addTestDollars = useCallback(async () => {
@@ -1108,6 +1313,7 @@ export function WalletProvider({
       const oneTime =
         note?.oneTime ?? (out && sentPrivately.has(t.to.toLowerCase()) ? t.to : undefined)
       if (out && oneTime) {
+        const announced = ledger.announced[oneTime.toLowerCase()]
         entries.push({
           id: t.id,
           kind: 'sent',
@@ -1117,6 +1323,7 @@ export function WalletProvider({
           ...secret,
           ...(note ? { address: note.to } : {}),
           oneTime: getAddress(oneTime),
+          ...(announced ? { announced } : {}),
           txHash: t.tx_hash,
           explorer: t.explorer_url,
           ...(note ? { ms: note.ms } : {}),
@@ -1193,37 +1400,45 @@ export function WalletProvider({
         ...(note.private ? { private: note.private } : {}),
         ...(linkAddresses.has(note.to.toLowerCase()) ? { link: true } : {}),
         ...(note.oneTime ? { oneTime: note.oneTime } : {}),
+        ...(note.oneTime && ledger.announced[note.oneTime.toLowerCase()]
+          ? { announced: ledger.announced[note.oneTime.toLowerCase()] }
+          : {}),
+        // Paid from a one-time address, so Kova's index of your wallet never lists it: this is
+        // its only record, here.
+        ...(note.fromPrivate ? { fromPrivate: true } : {}),
       })
     }
-    // Paid to you privately: who from (Kova's index of the one-time address knows), their note,
-    // and whether it's still there or moved in.
+    // Paid to you privately: who from and their note (the payment's own sealed memo says, opened
+    // with your key), and whether it's still there, spent privately or moved in. Your change from
+    // gathering is your own money, not a payment to you.
     for (const f of ledger.found) {
+      if (f.kind === 'change') continue
       const key = f.address.toLowerCase()
       const moved = movedIn.get(key)
       const holds = f.emptied ? 0n : held.get(key)
       const waiting = holds === undefined ? !moved : holds > 0n
-      const sealed =
-        f.note && f.from
-          ? openFor({
-              tx_hash: f.tx,
-              note: f.note,
-              from: f.from,
-              to: f.address,
-              amount_base: f.amount,
-            })
-          : null
-      const locked = Boolean(f.note) && !noteSecret
       entries.push({
         id: `private:${key}`,
         kind: 'received',
         amount: f.amount,
-        name: f.from ? (nameFor(f.from) ?? short(getAddress(f.from))) : '',
-        detail: sealed ?? (locked ? 'Private note' : waiting ? 'Waiting to move in' : 'Moved in'),
-        ...(sealed !== null ? { private: 'both' as const } : locked ? { locked: true } : {}),
+        name: f.from ? (nameFor(f.from) ?? f.name ?? short(getAddress(f.from))) : (f.name ?? ''),
+        detail:
+          f.note ??
+          (waiting
+            ? 'Ready to spend'
+            : moved
+              ? 'Moved in'
+              : f.used
+                ? 'Spent privately'
+                : 'Moved in'),
+        ...(f.note ? { private: 'both' as const } : {}),
         ...(f.from ? { address: getAddress(f.from) } : {}),
+        ...(f.proven === 'claimed' ? { unconfirmed: true } : {}),
         oneTime: getAddress(f.address),
         waiting,
         ...(moved ? { movedIn: moved } : {}),
+        ...(f.used ? { used: true } : {}),
+        ...(f.announced ? { announced: f.announced } : {}),
         txHash: f.tx,
         explorer: f.explorer,
         at: f.at,
@@ -1260,21 +1475,32 @@ export function WalletProvider({
     return [...people.values()]
   }, [activity, linkAddresses, nameFor, saved])
 
-  /** What waits at one-time addresses: as Monad last said, or as announced until it has. */
-  const privateBalance = useMemo(
-    () =>
-      activity.reduce(
-        (sum, e) =>
-          e.oneTime && e.kind === 'received' && e.waiting
-            ? sum + (held.get(e.oneTime.toLowerCase()) ?? BigInt(e.amount))
-            : sum,
-        0n,
-      ),
-    [activity, held],
+  /**
+   * What each one-time address of yours holds (your change too): as Monad last said, or as
+   * announced until it has, and nothing once it's moved in.
+   */
+  const privateHeld = useMemo(() => {
+    const me = profile?.address.toLowerCase()
+    const movedFrom = new Set(
+      transfers.filter((t) => t.to.toLowerCase() === me).map((t) => t.from.toLowerCase()),
+    )
+    return ledger.found
+      .filter((f) => !f.emptied)
+      .map((f) => {
+        const key = f.address.toLowerCase()
+        return held.get(key) ?? (movedFrom.has(key) ? 0n : BigInt(f.amount))
+      })
+      .filter((value) => value > 0n)
+  }, [held, ledger, profile?.address, transfers])
+  const privateBalance = useMemo(() => privateHeld.reduce((sum, v) => sum + v, 0n), [privateHeld])
+  const privateLargest = useMemo(
+    () => privateHeld.reduce((most, v) => (v > most ? v : most), 0n),
+    [privateHeld],
   )
-  const privateWaiting = useMemo(
-    () => activity.filter((e) => e.oneTime && e.kind === 'received' && e.waiting).length,
-    [activity],
+  const privateWaiting = privateHeld.length
+  const announcedSend = useCallback(
+    (oneTime: string) => ledger.announced[oneTime.toLowerCase()] ?? null,
+    [ledger.announced],
   )
   const privateReceiving =
     receiving && profile && isAddressEqual(getAddress(receiving.address), profile.address)
@@ -1306,7 +1532,9 @@ export function WalletProvider({
       privateReaches,
       privateReceiving,
       privateBalance,
+      privateLargest,
       privateWaiting,
+      announcedSend,
       privateOpen,
       privateUnchecked: unchecked && !privateOpen,
       checkPrivate,
@@ -1346,7 +1574,9 @@ export function WalletProvider({
       privateReaches,
       privateReceiving,
       privateBalance,
+      privateLargest,
       privateWaiting,
+      announcedSend,
       privateOpen,
       unchecked,
       checkPrivate,

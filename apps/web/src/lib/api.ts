@@ -350,6 +350,13 @@ export interface Announcement {
   tx_hash: string
   explorer_url: string
   paid_at: string | null
+  /** Where the dollars came from on Monad; null when Kova doesn't know. */
+  from?: string | null
+  /** The sealed memo (who sent it, their name, a note), for the recipient's viewing key alone. */
+  sealed?: string | null
+  /** ERC-5564's Announcement on Monad: null until Kova has posted it, a few seconds after. */
+  announce_tx?: string | null
+  announce_url?: string | null
 }
 
 /** One of the shop's own private sales, and whether it has been moved to its wallet. */

@@ -271,6 +271,11 @@ export function Receipt({ id }: { id: string }) {
                   : 'Sent privately'
               : `${verb[entry.kind]} ${direction[entry.kind]}`}
           </span>
+          {entry.unconfirmed ? (
+            <span className="w-receipt-unconfirmed">
+              Unconfirmed: only their sealed note says so
+            </span>
+          ) : null}
           {person && naming ? (
             <form
               className="w-receipt-rename"
@@ -370,13 +375,51 @@ export function Receipt({ id }: { id: string }) {
               <dt>Now</dt>
               <dd>
                 {entry.waiting ? (
-                  'Waiting to move in'
+                  entry.used ? (
+                    'Change, still private'
+                  ) : (
+                    'Private, ready to spend'
+                  )
                 ) : entry.movedIn ? (
                   <a href={entry.movedIn.explorer} target="_blank" rel="noreferrer">
                     In your balance
                   </a>
+                ) : entry.used ? (
+                  'Spent privately'
                 ) : (
                   'In your balance'
+                )}
+              </dd>
+            </div>
+          ) : null}
+          {entry.fromPrivate ? (
+            <div className="w-receipt-note">
+              <dt>
+                <Icon name="lock" size={14} /> Paid from
+              </dt>
+              <dd>
+                Private dollars
+                <small>A one-time address paid it: Monad can’t tie it to you</small>
+              </dd>
+            </div>
+          ) : null}
+          {entry.oneTime ? (
+            <div>
+              <dt>On Monad</dt>
+              <dd>
+                {entry.announced ? (
+                  <a
+                    className="w-announced"
+                    href={entry.announced}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Announced <Icon name="external" size={13} />
+                  </a>
+                ) : Date.now() - entry.at < 3 * 60_000 ? (
+                  <span className="w-announcing">Announcing…</span>
+                ) : (
+                  'Not announced'
                 )}
               </dd>
             </div>
@@ -403,7 +446,13 @@ export function Receipt({ id }: { id: string }) {
         ) : null}
       </article>
       {entry.oneTime && entry.kind === 'received' && entry.waiting ? (
-        <MoveInHere busy={movingIn !== null} onMove={moveIn} />
+        <>
+          <MoveInHere busy={movingIn !== null} onMove={moveIn} />
+          <p className="w-fine w-center w-receipt-public">
+            Moving in is public on Monad: it shows these dollars reaching your wallet. Paying a shop
+            or a friend straight from private dollars keeps them private.
+          </p>
+        </>
       ) : null}
       {person && entry.address ? (
         <Link
