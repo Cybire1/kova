@@ -1,0 +1,59 @@
+{
+  "story": "Ada sends Sam $20 privately with the note \"Train tickets\". Sam's phone finds it in Kova's public feed with its viewing key, opens the sealed memo (From Ada, the note) itself, and shows +$20 private. Sam pays Ada's Bakery (croissant + flat white, $7.75) straight from that one-time address; the $12.25 change stays there, still private.",
+  "network": "Monad testnet (chain 10143)",
+  "api": "Local Kova API at commit f33743d (sealed memos, feed from/sealed/announce, ERC-5564 announcer), app at 174e623 + dev stash tooling. The deployed testnet API does not have f33743d yet, so Ada's Bakery here is a copy of adas-bakery-a2cf (same name and menu), not that stall.",
+  "device": "Kova iPhone 16 simulator, 1179x2556, status bar pinned to 9:41",
+  "wallets": {
+    "ada": "0x7FFaDcA4e2eE6f1D064569fbA4449E48767C31fD",
+    "sam": "0x29cFE607BbC434fc51AEf6eC20E143fE75Bb1b22",
+    "one_time_address": "0x16032bA54b158D6918E2159de1266ea7c2E0Dad6",
+    "bakery_settles_to": "0x15C10305a8FA5Eebf65f6369aE4547BDBfe49cFB"
+  },
+  "transactions": {
+    "private_send": {
+      "tx": "0x730ae1eece22bc8a56fcdffa98ed1afb6d5b20d5a5725ba1f662e8302c9962d3",
+      "url": "https://testnet.monadscan.com/tx/0x730ae1eece22bc8a56fcdffa98ed1afb6d5b20d5a5725ba1f662e8302c9962d3",
+      "what": "Ada -> one-time 0x1603…Dad6, $20.00 (AUSD), sealed memo {from: Ada, name: Ada, note: Train tickets}",
+      "block": 70553800,
+      "at": "2026-10-13T01:37:40Z",
+      "measured": { "app_send_to_landed_ms": 1000, "api_relay_ms": 977 }
+    },
+    "announcement": {
+      "tx": "0xf2ee38478129d039b8611ff078be8f577d026bfb666cb7f3ead532351383a379",
+      "url": "https://testnet.monadscan.com/tx/0xf2ee38478129d039b8611ff078be8f577d026bfb666cb7f3ead532351383a379",
+      "what": "ERC-5564 Announcement at 0x55649E01B5Df198D18D95b5cc5051630cfD45564 for 0x1603…Dad6 (201 bytes of metadata, sealed memo included)",
+      "block": 70553803,
+      "measured": { "after_send_s": 1 }
+    },
+    "cafe_payment": {
+      "tx": "0xd0180cdd1dea58bec331db695bbef9ca11a665cfc52de201af0d583ebd94c63f",
+      "url": "https://testnet.monadscan.com/tx/0xd0180cdd1dea58bec331db695bbef9ca11a665cfc52de201af0d583ebd94c63f",
+      "what": "one-time 0x1603…Dad6 -> Ada's Bakery, $7.75 (croissant $3.25 + flat white $4.50), charge pi_06gk5tw8jxtyh4mbexyjtwqgb8; Sam's wallet never appears",
+      "block": 70554621,
+      "at": "2026-10-13T01:41:50Z",
+      "measured": { "app_tap_to_paid_ms": 2300, "api_authorize_ms": 2000 },
+      "change_left_private": "12.25"
+    },
+    "sam_test_dollars": "0x96444dbe8dd076432011c83d30a0ee3e7bf1e95cd065975ab3559d09ca62a094 (faucet, $5.00, before the run)"
+  },
+  "amounts": { "sent": "20.00", "paid": "7.75", "private_left": "12.25", "sam_balance": "5.00", "ada_balance_after": "0.50" },
+  "frames": {
+    "ada/01-review-off.png": "Send review to Sam, $20.00, note Train tickets, Send privately OFF",
+    "ada/02-review-on.png": "Same review, Send privately ON: padlock on Sam's face, 'On Monad, people will see you sent $20.00, but not to whom', slider 'Slide to send $20.00 privately'",
+    "ada/03-sent-privately.png": "Sent step: $20.00 landed with Sam, arrived in 1.00 s, Sent privately card with the one-time address 0x1603…Dad6 and 'Announced on Monad'",
+    "ada/04-receipt.png": "Ada's receipt: Sent to Sam, private note, Sent privately, paid to 0x1603…Dad6 one-time, Announced on Monad, View on Monadscan",
+    "sam/01-home-before.png": "Sam's Home before the payment: $5.00, no private chip",
+    "sam/02-arrival-appears.png": "The private arrival the moment it appeared (first frame, animation starting): Ada paid you privately, +$20.00, note Train tickets",
+    "sam/03-arrival.png": "The same arrival screen, settled",
+    "sam/04-home-private-chip.png": "Sam's Home after: $5.00 with '+$20.00 private'",
+    "sam/05-private-dollars.png": "Private dollars screen: $20.00 at 1 one-time address, From Ada, how it stays private",
+    "sam/06-pay-from-private.png": "Paying Ada's Bakery $7.75: Pay from Private dollars ($20.00) chosen, balance $5.00 short, 'Private payments don't collect stamps', 'Pay $7.75 privately'",
+    "sam/07-opening-private-dollars.png": "Paying state: 'Opening your private dollars…' (no Face ID: the wallet session was open)",
+    "sam/08-paying.png": "Paying state: 'Paying…'",
+    "sam/09-paid.png": "Paid! $7.75 to Ada's Bakery, order tracker",
+    "sam/10-activity.png": "Activity: Ada's Bakery −$7.75 'From private dollars', Ada +$20.00 'Private · Train tickets', Test dollars +$5.00"
+  },
+  "not_captured": [
+    "Ada's slide in mid-travel and the sending state: the burst capture script failed at that moment, and re-sending would have made a second run."
+  ]
+}
