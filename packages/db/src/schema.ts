@@ -1071,3 +1071,97 @@ export const cardTaps = pgTable(
   },
   (t) => [index('card_taps_card_idx').on(t.cardAddress, t.createdAt), index('card_taps_intent_idx').on(t.intentId)],
 )
+
+/**
+ * A key that spends a wallet's dollars, short of the wallet itself: someone's allowance on their
+ * own phone, a team member's budget, or an AI agent's key that Kova holds. Each is linked to the
+ * owner's wallet through the KovaCard contract on Monad, exactly like a Kova Card, so the chain
+ * caps what it can spend in a day and stops it when frozen; Kova checks the rest (a weekly total,
+ * the end date, the most one payment can be, who it may pay, asking first) before it cosigns.
+ */
+export const walletKeys = pgTable(
+  'wallet_keys',
+  {
+    id: id(),
+    network: network('network').notNull(),
+    /** The wallet whose dollars the key spends: the KovaCard holder. Lowercase. */
+    ownerAddress: address('owner_address').notNull(),
+    ownerName: text('owner_name'),
+    /** allowance | team | agent */
+    kind: text('kind').notNull(),
+    /** Who it's for, as the owner wrote it: "Mum", "Tobi at the till", "Claude". */
+    label: text('label').notNull(),
+    /** The key's address (the KovaCard "card"). Null until an invite is accepted. Lowercase. */
+    keyAddress: address('key_address'),
+    /** An allowance's or team member's own Kova wallet: where "From Ada: $24 left" shows. */
+    holderAddress: address('holder_address'),
+    holderName: text('holder_name'),
+    /** What it may spend each period, in base units. */
+    spendLimit: amount('spend_limit').notNull(),
+    /** Seconds the limit renews over: 86,400 (a day) or 604,800 (a week). */
+    period: integer('period').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    /** An agent's rules: the most one payment can be, the line above which it asks, who it may pay. */
+    rules: jsonb('rules').$type<{ perPayment: string; approveAbove: string; payees: 'anyone' | string[] }>(),
+    /** An agent's private key, sealed under KOVA_KEYS_MASTER_KEY. */
+    sealedKey: text('sealed_key'),
+    /** The start of an agent's token, to find it by; the whole token is only stored hashed. */
+    tokenPrefix: text('token_prefix'),
+    tokenHash: text('token_hash'),
+    /** An invite's code, hashed: whoever opens the link first claims it. */
+    inviteHash: text('invite_hash'),
+    /** The key's Claim signature (KovaCard), made on the recipient's device when they accept. */
+    claimSignature: text('claim_signature'),
+    claimDeadline: bigint('claim_deadline', { mode: 'number' }),
+    /** invited | accepted | active | frozen | removed */
+    status: text('status').notNull().default('invited'),
+    linkTxHash: text('link_tx_hash'),
+    removedTxHash: text('removed_tx_hash'),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('wallet_keys_owner_idx').on(t.ownerAddress, t.network),
+    index('wallet_keys_holder_idx').on(t.holderAddress, t.network),
+    uniqueIndex('wallet_keys_key_idx').on(t.keyAddress),
+    uniqueIndex('wallet_keys_token_idx').on(t.tokenPrefix),
+    uniqueIndex('wallet_keys_invite_idx').on(t.inviteHash),
+  ],
+)
+
+/**
+ * Every payment a key asked Kova to make, paid or not: the owner's audit log. A payment over an
+ * agent's ask-first line waits here for its owner and is paid only once they say yes.
+ */
+export const keyPayments = pgTable(
+  'key_payments',
+  {
+    id: id(),
+    walletKeyId: uuid('wallet_key_id')
+      .notNull()
+      .references(() => walletKeys.id),
+    /** pay (to a wallet) or charge (a Kova shop's charge) */
+    kind: text('kind').notNull(),
+    recipient: address('recipient').notNull(),
+    amount: amount('amount').notNull(),
+    /** What it's for, as the payer said, or the shop's name. Shown, never trusted. */
+    description: text('description'),
+    /** prepared | paying | paid | denied | pending_approval | approved | declined | failed | expired */
+    status: text('status').notNull(),
+    reason: text('reason'),
+    /** The KovaCard payment's memo and deadline, as the key signs them. */
+    memo: text('memo'),
+    deadline: bigint('deadline', { mode: 'number' }),
+    txHash: text('tx_hash'),
+    /** What to pay once approved. */
+    request: jsonb('request').$type<Record<string, unknown>>(),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('key_payments_key_idx').on(t.walletKeyId, t.createdAt),
+    index('key_payments_status_idx').on(t.status),
+  ],
+)

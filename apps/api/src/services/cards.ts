@@ -560,7 +560,7 @@ export async function completeTap(
 // ── Sending ─────────────────────────────────────────────────────────────────────────────────
 
 /** Relays a KovaCard call, turning the contract's refusals into words a person can act on. */
-async function sendCard(contract: Address, data: Hex): Promise<TransactionReceipt> {
+export async function sendCard(contract: Address, data: Hex): Promise<TransactionReceipt> {
   let receipt: TransactionReceipt
   try {
     receipt = await sendFromRelayer(contract, data, { maxGas: CARD_GAS })

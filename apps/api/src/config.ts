@@ -103,6 +103,15 @@ const schema = z.object({
     .string()
     .regex(/^0x[0-9a-fA-F]{64}$/)
     .optional(),
+  /**
+   * Spending keys: seals the private keys Kova holds for AI agents (AES-256-GCM). 32 bytes, hex.
+   * Without it, allowances and team keys still work (their keys live on people's phones), but
+   * agent keys are off.
+   */
+  KOVA_KEYS_MASTER_KEY: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{64}$/)
+    .optional(),
 })
 
 export type Config = z.infer<typeof schema>
