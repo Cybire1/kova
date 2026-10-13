@@ -88,7 +88,7 @@ export default function Receipt() {
           <Row label="When" value={`${new Date(entry.at).toLocaleDateString([], { day: 'numeric', month: 'long' })}, ${when(entry.at)}`} />
           {entry.private ? (
             <Row label="Private note" icon="lock" value={entry.detail} />
-          ) : ['Sent', 'Arrived', 'Scan to pay', 'AUSD test faucet'].includes(entry.detail) || entry.takings || entry.privately ? null : (
+          ) : ['Sent', 'Arrived', 'Scan to pay', 'AUSD test faucet'].includes(entry.detail) || entry.takings || entry.privately || entry.offline ? null : (
             <Row label="For" value={entry.detail} />
           )}
           {entry.private ? (
@@ -118,13 +118,21 @@ export default function Receipt() {
               ) : null}
             </>
           ) : null}
+          {entry.offline ? (
+            <>
+              <Row label="How" icon="noSignal" value="Paid with a code" />
+              <Txt size={12} color={colors.muted} style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}>
+                Signed on {incoming ? `${first}’s` : 'your'} phone with no signal, and settled on Monad once a phone was online.
+              </Txt>
+            </>
+          ) : null}
           {entry.fromPrivate ? <Row label="Paid from" icon="lock" value="Private dollars" /> : null}
           {entry.fromPrivate ? (
             <Txt size={12} color={colors.muted} style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}>
               One of your one-time addresses paid. Your wallet doesn’t show on Monad.
             </Txt>
           ) : null}
-          {entry.ms ? <Row label="Took" value={`${(entry.ms / 1000).toFixed(1)} seconds`} /> : null}
+          {entry.ms ? <Row label={entry.offline ? 'Settled in' : 'Took'} value={`${(entry.ms / 1000).toFixed(entry.offline ? 2 : 1)} seconds`} /> : null}
           <Row label="Fee" value={entry.kind === 'paid' || entry.kind === 'sent' ? '$0.00, covered by Kova' : '$0.00'} />
           <Row label="Amount" value={formatUsd(BigInt(entry.amount))} />
           {entry.txHash ? (

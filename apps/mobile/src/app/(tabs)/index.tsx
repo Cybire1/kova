@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
 import { getSummary } from '@/lib/api'
 import { isTestnet } from '@/lib/config'
+import { useOffline } from '@/lib/offline'
 import { usePrefs } from '@/lib/prefs'
 import { usePrivate } from '@/lib/private'
 import { useStall } from '@/lib/stall'
@@ -19,6 +20,7 @@ import { BalanceCard } from '@/ui/BalanceCard'
 import { dockClearance } from '@/ui/Dock'
 import { EntryRow } from '@/ui/EntryRow'
 import { Icon } from '@/ui/Icon'
+import { OfflinePill, OfflineRow } from '@/ui/Offline'
 import { RoundButton, Txt } from '@/ui/primitives'
 import { dollars } from '@/ui/StallParts'
 
@@ -33,6 +35,7 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false)
   const takings = useTakings()
   const privately = usePrivate()
+  const offline = useOffline()
   const { setMode } = usePrefs()
   const { refresh: refreshTakings } = takings
   const { refresh: refreshPrivate } = privately
@@ -67,6 +70,8 @@ export default function Home() {
         <RoundButton icon="bell" label="Activity" size={36} onPress={() => router.push('/(tabs)/activity')} />
       </View>
 
+      <OfflinePill />
+
       <BalanceCard
         balance={balance}
         currency={profile.currency}
@@ -82,6 +87,11 @@ export default function Home() {
             : null
         }
         privately={privately.waiting > 0n ? { amount: privately.waiting, onPress: () => router.push('/private') } : null}
+        waiting={
+          offline.waiting.length > 0
+            ? { out: offline.outWaiting, in: offline.inWaiting, onPress: () => router.push('/(tabs)/activity') }
+            : null
+        }
       />
 
       <View style={styles.hero}>
@@ -205,7 +215,10 @@ export default function Home() {
           </Pressable>
         ) : null}
       </View>
-      {activity.length === 0 ? (
+      {offline.waiting.slice(0, 3).map((item) => (
+        <OfflineRow key={item.id} item={item} />
+      ))}
+      {activity.length === 0 && offline.waiting.length === 0 ? (
         <Txt size={15} color={colors.muted} style={{ marginTop: 6, lineHeight: 22 }}>
           Your payments show up here the moment they land.
         </Txt>

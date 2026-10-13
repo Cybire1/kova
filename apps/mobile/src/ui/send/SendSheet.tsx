@@ -7,6 +7,8 @@ import Animated, { FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimat
 import { type Address, getAddress, isAddressEqual } from 'viem'
 import { parseScanned } from '@/lib/links'
 import { applyKey, currencyInfo, type DisplayCurrency, displayCurrencies, formatLocal, formatUsd, groupTyped, toBase } from '@/lib/money'
+import { useOffline } from '@/lib/offline'
+import { OFFLINE_MAX } from '@/lib/offline-core'
 import { usePrivate } from '@/lib/private'
 import { fetchReceivingKey, UntrustedKey } from '@/lib/private-core'
 import { rateLabel } from '@/lib/rates'
@@ -19,6 +21,7 @@ import { Keypad } from '../Keypad'
 import { EnvelopeBadge } from '../LinkParts'
 import { Bob, Burst } from '../motion'
 import { NameSheet } from '../NameSheet'
+import { OfflineNotice } from '../Offline'
 import { PillButton, TextLink, Txt } from '../primitives'
 import { PayFrom, SendPrivately, SentPrivately, spendLabel, usePayFrom } from '../Private'
 import { Stage as KoviStage } from '../Stage'
@@ -62,6 +65,9 @@ const SIDE = 20
 export function SendSheet({ payee }: { payee?: Payee }) {
   const { profile, balance, send, contacts, noteReaches } = useWallet()
   const dollars = usePrivate()
+  // No signal: the payment is signed here and goes as a code, settling once either phone is online.
+  const net = useOffline()
+  const viaCode = net.offline
   const { width } = useWindowDimensions()
   const inner = width - SIDE * 2
 
@@ -92,17 +98,20 @@ export function SendSheet({ payee }: { payee?: Payee }) {
   const local = theirs && theirs !== 'USD' ? theirs : null
   const typedDollars = typed === '' ? 0 : Number(typed)
   const amount = typedDollars > 0 ? toBase(typedDollars.toFixed(2)) : 0n
-  const shortOf = balance !== null && amount > balance
+  // Offline, a code can only promise what the last known balance holds beyond the codes still waiting.
+  const limit = viaCode ? net.spendable : balance
+  const shortOf = limit !== null && amount > limit
+  const overCap = viaCode && amount > OFFLINE_MAX
   // Private dollars only go out privately, to someone who can receive that way. When the balance is
   // short and they cover it, that's how this send goes.
-  const privateCovers = reach === 'yes' && amount > 0n && dollars.keysHere && dollars.coverFor(amount) !== null
+  const privateCovers = !viaCode && reach === 'yes' && amount > 0n && dollars.keysHere && dollars.coverFor(amount) !== null
   const forced = shortOf && privateCovers
-  const sendPrivately = (privately || forced) && reach === 'yes'
+  const sendPrivately = !viaCode && (privately || forced) && reach === 'yes'
   const payFrom = usePayFrom(amount, balance, sendPrivately)
   const fromPrivate = sendPrivately && payFrom.source === 'private'
-  const over = shortOf && !fromPrivate && !forced
+  const over = viaCode ? shortOf || overCap : shortOf && !fromPrivate && !forced
   // With Send privately on, wait for their key's check: a private send never quietly goes out in the open.
-  const checking = privately && reach === 'checking'
+  const checking = !viaCode && privately && reach === 'checking'
 
   const pick = (p: Payee) => {
     void Haptics.selectionAsync()
@@ -122,6 +131,15 @@ export function SendSheet({ payee }: { payee?: Payee }) {
     const started = Date.now()
     try {
       const payee = { address: to.address, name, currency: theirs ?? undefined }
+      if (viaCode) {
+        // Signed on this phone with no network: the code is the payment, kept until it settles.
+        const made = await net.pay(payee, amount)
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+        setLeg('waiting')
+        setBusy(false)
+        router.replace({ pathname: '/offline/[id]', params: { id: made.id, fresh: '1' } })
+        return
+      }
       const text = note.trim() || undefined
       // From private dollars: one of your one-time addresses pays, and your wallet's signature in the
       // sealed memo tells them it's you.
@@ -142,14 +160,17 @@ export function SendSheet({ payee }: { payee?: Payee }) {
       setBusy(false)
       if (!/cancel/i.test(message)) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
-        setProblem(message)
+        // The connection went: look again, and if Kova really is out of reach this becomes a code.
+        const lost = !viaCode && /network request failed|unreachable|timed? ?out|aborted/i.test(message)
+        if (lost) void net.checkNow()
+        setProblem(lost ? 'No connection. If it stays down, slide again to pay with a code.' : message)
       }
     }
   }
 
   const address = to?.address
   useEffect(() => {
-    if (!address) return
+    if (!address || viaCode) return
     let live = true
     setReaches(null)
     setReach('checking')
@@ -162,7 +183,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
       live = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [address])
+  }, [address, viaCode])
 
   // The switch starts where it was left last time.
   useEffect(() => {
@@ -246,7 +267,15 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                   </Txt>
                 </View>
               ) : null}
-              {balance !== null ? (
+              {viaCode && net.spendable !== null ? (
+                <View style={[styles.pill, over && { backgroundColor: colors.coralSoft }]}>
+                  <Txt weight="medium" size={14} color={over ? colors.danger : colors.onTint}>
+                    {overCap
+                      ? 'Up to $100 a code'
+                      : `${formatUsd(net.spendable)} available${net.outWaiting > 0n ? ` · ${formatUsd(net.outWaiting)} waiting to settle` : ''}`}
+                  </Txt>
+                </View>
+              ) : !viaCode && balance !== null ? (
                 <View style={[styles.pill, over && { backgroundColor: colors.coralSoft }]}>
                   <Txt weight="medium" size={14} color={over ? colors.danger : colors.onTint}>
                     {over ? `You have ${formatUsd(balance)}` : `${formatUsd(balance)} available`}
@@ -254,6 +283,14 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                 </View>
               ) : null}
             </View>
+            {viaCode ? (
+              <View style={styles.offlineTag}>
+                <Icon name="noSignal" size={15} color={colors.white} strokeWidth={2.2} />
+                <Txt weight="semi" size={13} color={colors.white}>
+                  Offline · you’ll pay with a code
+                </Txt>
+              </View>
+            ) : (
             <View style={styles.note}>
               <Icon name="lock" size={15} color={colors.muted} />
               <TextInput
@@ -266,11 +303,12 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                 style={styles.noteInput}
               />
             </View>
+            )}
           </View>
           <Keypad onKey={(key) => setTyped((v) => applyKey(v, key))} size={56} />
           <View style={{ marginTop: 14 }}>
             <PillButton
-              label={over ? 'More than you have' : forced ? 'Review, from private dollars' : 'Review'}
+              label={overCap ? 'Up to $100 a code' : over ? 'More than you have' : forced ? 'Review, from private dollars' : 'Review'}
               disabled={amount === 0n || over}
               onPress={() => moveTo('review')}
             />
@@ -284,7 +322,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           <View style={styles.top}>
             <Round icon="back" label="Change the amount" onPress={() => moveTo('amount')} disabled={busy} />
             <Txt weight="semi" size={17} style={{ flex: 1 }}>
-              {busy ? `Sending to ${first}` : 'Check and send'}
+              {viaCode ? (busy ? `Signing for ${first}` : 'Check and sign') : busy ? `Sending to ${first}` : 'Check and send'}
             </Txt>
           </View>
 
@@ -297,13 +335,19 @@ export function SendSheet({ payee }: { payee?: Payee }) {
               {formatUsd(amount)}
             </Txt>
             <Txt size={15} color={colors.onTint}>
-              {local ? `${first} gets ${formatUsd(amount)}, about ${formatLocal(typedDollars, local)}` : isUnnamed(name) ? 'They get all of it' : `${first} gets all of it`}
+              {local
+                ? `${first} gets ${formatUsd(amount)}, about ${formatLocal(typedDollars, local)}`
+                : `${isUnnamed(name) ? 'They get' : `${first} gets`} all of it${viaCode ? ' once it settles' : ''}`}
             </Txt>
           </View>
 
           <View style={styles.facts}>
             <Fact label="Fee" value="$0.00, Kova covers it" />
-            <Fact label="Arrives" value="In about a second" icon="bolt" />
+            {viaCode ? (
+              <Fact label="Settles" value="When a phone is online" icon="clock" hint="On Monad · good for 7 days" />
+            ) : (
+              <Fact label="Arrives" value="In about a second" icon="bolt" />
+            )}
             {local ? (
               <Fact
                 label="Rate"
@@ -311,7 +355,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                 hint={rateLabel()}
               />
             ) : null}
-            {note.trim() ? (
+            {note.trim() && !viaCode ? (
               <Fact
                 label="Note"
                 value={note.trim()}
@@ -321,7 +365,9 @@ export function SendSheet({ payee }: { payee?: Payee }) {
             ) : null}
           </View>
 
-          {reach === 'yes' ? (
+          {viaCode ? (
+            <OfflineNotice />
+          ) : reach === 'yes' ? (
             <View style={{ marginBottom: 14, gap: 10 }}>
               <SendPrivately
                 on={sendPrivately}
@@ -371,18 +417,22 @@ export function SendSheet({ payee }: { payee?: Payee }) {
             </Txt>
           ) : over ? (
             <Txt weight="medium" size={14} color={colors.danger} style={{ textAlign: 'center', marginBottom: 10 }}>
-              You have {formatUsd(balance ?? 0n)}. Add money or send less.
+              {overCap
+                ? 'One code carries $100 at most. Send less.'
+                : viaCode
+                  ? `${formatUsd(limit ?? 0n)} is free to promise offline. Send less.`
+                  : `You have ${formatUsd(balance ?? 0n)}. Add money or send less.`}
             </Txt>
           ) : null}
 
           <SlideToSend
-            label={problem ? 'Slide to try again' : `Slide to send ${formatUsd(amount)}${sendPrivately ? ' privately' : ''}`}
+            label={problem ? 'Slide to try again' : viaCode ? `Slide to sign ${formatUsd(amount)}` : `Slide to send ${formatUsd(amount)}${sendPrivately ? ' privately' : ''}`}
             busy={busy}
             disabled={over || amount === 0n || checking}
             onSend={go}
           />
           <Txt size={12} color={colors.muted} style={{ textAlign: 'center', marginTop: 10 }}>
-            Face ID confirms it. Payments on Monad can’t be undone.
+            {viaCode ? 'Face ID confirms it. Once they have the code, it’s theirs to settle.' : 'Face ID confirms it. Payments on Monad can’t be undone.'}
           </Txt>
         </Animated.View>
       ) : null}
@@ -444,6 +494,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
 /** Who to send to: one field for a name, an address or a link; your recent people one tap away. */
 function Who({ onPick }: { onPick: (p: Payee) => void }) {
   const { contacts, activity } = useWallet()
+  const { offline } = useOffline()
   const [text, setText] = useState('')
   const [problem, setProblem] = useState<string | null>(null)
   const [naming, setNaming] = useState<Contact | null>(null)
@@ -460,6 +511,7 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
   const go = (value: string) => {
     const scanned = parseScanned(value)
     if (!scanned) return setProblem('That isn’t a Kova link or a wallet address.')
+    if (scanned.kind === 'offline') return router.replace({ pathname: '/o', params: { code: scanned.code } })
     if (scanned.kind === 'charge') return router.replace({ pathname: '/pay/[id]', params: { id: scanned.id } })
     if (scanned.kind === 'pair') return router.replace({ pathname: '/terminal/setup', params: { code: scanned.code } })
     if (scanned.kind === 'claim') return router.replace({ pathname: '/c/[id]', params: { id: scanned.id, ...(scanned.key ? { key: scanned.key } : {}) } })
@@ -479,6 +531,19 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
       <Txt weight="bold" size={30} style={{ letterSpacing: -0.8 }}>
         Send to
       </Txt>
+      {offline ? (
+        <View style={styles.offlineWho}>
+          <View style={styles.offlineWhoIcon}>
+            <Icon name="noSignal" size={16} color={colors.white} strokeWidth={2.2} />
+          </View>
+          <Txt size={13} color={colors.onTint} style={{ flex: 1, lineHeight: 18 }}>
+            <Txt weight="semi" size={13}>
+              You’re offline.{' '}
+            </Txt>
+            Pick someone you’ve paid before, or scan their code. You’ll pay with a code.
+          </Txt>
+        </View>
+      ) : null}
 
       <View style={[styles.field, problem ? { borderColor: colors.danger } : null]}>
         <Icon name="send" size={18} color={colors.muted} />
@@ -528,6 +593,25 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
         </Pressable>
       ) : null}
 
+      {direct && direct.kind === 'offline' ? (
+        <Pressable accessibilityRole="button" onPress={() => go(text)} style={({ pressed }) => [styles.direct, pressed && { transform: [{ scale: 0.98 }] }]}>
+          <View style={styles.directBadge}>
+            <Icon name="qr" size={24} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Txt weight="semi" size={16} color={colors.white}>
+              Open this payment code
+            </Txt>
+            <Txt size={13} color={colors.onInk}>
+              Paid with no signal, checked on your phone
+            </Txt>
+          </View>
+          <View style={styles.directGo}>
+            <Icon name="arrow" size={20} />
+          </View>
+        </Pressable>
+      ) : null}
+
       {direct && direct.kind === 'claim' ? (
         <Pressable accessibilityRole="button" onPress={() => go(text)} style={({ pressed }) => [styles.direct, pressed && { transform: [{ scale: 0.98 }] }]}>
           <View style={styles.directBadge}>
@@ -547,7 +631,7 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
         </Pressable>
       ) : null}
 
-      {!query ? (
+      {!query && !offline ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Send as a link, for anyone, even without Kova"
@@ -755,6 +839,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   noteInput: { flex: 1, height: '100%', fontFamily: fonts.medium, fontSize: 15, color: colors.ink },
+  offlineTag: { marginTop: 14, height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  offlineWho: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, paddingRight: 14, borderRadius: 20, backgroundColor: colors.sunken },
+  offlineWhoIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   sums: { alignItems: 'center', marginTop: 4 },
   facts: { marginTop: 18, marginBottom: 16, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, paddingHorizontal: 16, paddingVertical: 6 },
   fact: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingVertical: 9 },

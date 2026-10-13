@@ -23,6 +23,7 @@ export function BalanceCard({
   currency,
   takings,
   privately,
+  waiting,
 }: {
   balance: bigint | null
   currency: DisplayCurrency
@@ -36,6 +37,11 @@ export function BalanceCard({
    * from your balance, but not in it, so they're shown beside it.
    */
   privately?: { amount: bigint; onPress: () => void } | null
+  /**
+   * Offline payments signed but not settled: what this wallet has promised in codes, and what was
+   * promised to it. Not in the balance until they settle on Monad.
+   */
+  waiting?: { out: bigint; in: bigint; onPress: () => void } | null
 }) {
   const { hideBalance, setHideBalance } = usePrefs()
   const shown = useCounted(balance)
@@ -127,6 +133,26 @@ export function BalanceCard({
             <Icon name="lock" size={13} color={colors.ink} strokeWidth={2.4} />
             <Txt weight="semi" size={13}>
               {hideBalance ? '+•••• private takings' : `+${formatUsd(takings.amount)} private takings`}
+            </Txt>
+          </Pressable>
+        ) : null}
+        {waiting ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={
+              hideBalance
+                ? 'Payments waiting to settle. See them'
+                : `Waiting to settle: ${[waiting.out > 0n ? `${formatUsd(waiting.out)} out` : null, waiting.in > 0n ? `${formatUsd(waiting.in)} in` : null].filter(Boolean).join(', ')}`
+            }
+            hitSlop={6}
+            onPress={waiting.onPress}
+            style={({ pressed }) => [styles.chip, styles.takings, pressed && { transform: [{ scale: 0.96 }] }]}
+          >
+            <Icon name="clock" size={13} color={colors.ink} strokeWidth={2.4} />
+            <Txt weight="semi" size={13}>
+              {hideBalance
+                ? '•••• waiting'
+                : [waiting.out > 0n ? formatUsd(-waiting.out) : null, waiting.in > 0n ? formatUsd(waiting.in, { sign: true }) : null].filter(Boolean).join(' · ') + ' waiting'}
             </Txt>
           </Pressable>
         ) : null}

@@ -8,6 +8,7 @@ import { finishTap, forgetDevCard, linkCard, readTap } from '@/lib/card'
 import type { DisplayCurrency } from '@/lib/money'
 import { type Mode, usePrefs } from '@/lib/prefs'
 import { stashWallet, unstashWallet } from '@/lib/dev-slots'
+import { useOffline } from '@/lib/offline'
 import { usePrivate } from '@/lib/private'
 import { useStall } from '@/lib/stall'
 import { save } from '@/lib/storage'
@@ -40,6 +41,10 @@ import { booksMessage } from '@/ui/Takings'
  * on the screen it opens (`to=/private`, say). `/send/<address>?amount=…&private=1&autosend=1` films the sheet,
  * and `payfrom=private|balance` picks where payments come from, as the Pay from switch does.
  * `stash=<name>` keeps this dev wallet whole and signs it out; `unstash=<name>` puts it back for the next launch.
+ * Offline payments: `offline=1` makes the app act as if it had no signal (it lasts across launches) and
+ * `offline=0` brings it back online, which settles whatever is waiting. With `offline=1`,
+ * `to=/send/<address>?amount=0.25&autosend=1` signs a payment code through the real flow, and
+ * `to=%2Fo%3Fcode%3D<code>` opens a payment code as if it was scanned.
  * Release builds redirect home.
  */
 /** A small Lagos kitchen menu for trying the stall screens. */
@@ -195,6 +200,8 @@ export default function Dev() {
     stash?: string
     /** Puts a stashed wallet back; launch again to open it. */
     unstash?: string
+    /** 1: act as if there's no signal (until 0). */
+    offline?: string
   }>()
   const wallet = useWallet()
   const prefs = usePrefs()
@@ -207,6 +214,9 @@ export default function Dev() {
   const privately = usePrivate()
   const privateRef = useRef(privately)
   privateRef.current = privately
+  const offlinePay = useOffline()
+  const offlineRef = useRef(offlinePay)
+  offlineRef.current = offlinePay
   const [step, showStep] = useState('starting')
   const setStep = (next: string) => {
     console.log(`[dev] ${next}`)
@@ -277,6 +287,11 @@ export default function Dev() {
         }
         progress.current.finished = true
         console.log(`[dev] wallet ${wallet.profile?.address ?? 'none'}`)
+        if (params.offline === '1' || params.offline === '0') {
+          await offlineRef.current.force(params.offline === '1')
+          const o = offlineRef.current
+          console.log(`[dev] ${params.offline === '1' ? 'offline on purpose' : 'back online'}: ${o.items.length} offline payments, ${o.waiting.length} waiting`)
+        }
         if (params.fund) {
           setStep('funding')
           await wallet.addMoney().catch(() => {})

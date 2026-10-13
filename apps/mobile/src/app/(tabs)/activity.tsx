@@ -8,11 +8,13 @@ import type { SpendingCategory } from '@/lib/api'
 import { categoryInfo, useSpendingCategories } from '@/lib/categories'
 import { formatUsd } from '@/lib/money'
 import { colors } from '@/lib/theme'
+import { useOffline } from '@/lib/offline'
 import { type Entry, useWallet } from '@/lib/wallet'
 import { Kovi } from '@/ui/art'
 import { dockClearance } from '@/ui/Dock'
 import { EntryRow } from '@/ui/EntryRow'
 import { EnvelopeBadge } from '@/ui/LinkParts'
+import { WaitingCard } from '@/ui/Offline'
 import { Txt } from '@/ui/primitives'
 
 const filters = [
@@ -47,6 +49,7 @@ function short(base: bigint) {
  */
 export default function Activity() {
   const { activity } = useWallet()
+  const { waiting } = useOffline()
   const insets = useSafeAreaInsets()
   const [filter, setFilter] = useState<Filter>('all')
   const [category, setCategory] = useState<SpendingCategory | null>(null)
@@ -141,6 +144,9 @@ export default function Activity() {
           </Txt>
         </Pressable>
       </View>
+
+      {/* Offline payments signed but not yet settled: they become normal entries once they do. */}
+      <WaitingCard items={waiting} />
 
       {/* The month */}
       <View style={styles.month}>

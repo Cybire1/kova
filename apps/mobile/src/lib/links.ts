@@ -1,3 +1,4 @@
+import { offlineCodeFrom } from '@kova/monad'
 import { type Address, type Hex, isAddress } from 'viem'
 import { webUrl } from './config'
 import type { DisplayCurrency } from './money'
@@ -14,12 +15,15 @@ import { displayCurrencies } from './money'
  *   a bare address work too.
  * - A link with dollars in it: `https://mykova.app/c/<id>#<key>`, or `kova://c/<id>#<key>`. The key
  *   after the # is what claims them; a link without it can be looked at but not claimed.
+ * - A payment made with no signal: `https://mykova.app/o#<code>`, or the code alone, from the payer's
+ *   QR. The code is the signed payment itself, checked on the phone with no network.
  */
 export type Scanned =
   | { kind: 'charge'; id: string }
   | { kind: 'stall'; slug: string; table?: string }
   | { kind: 'pair'; code: string }
   | { kind: 'claim'; id: string; key: Hex | null }
+  | { kind: 'offline'; code: string }
   | {
       kind: 'person'
       address: Address
@@ -31,6 +35,8 @@ export type Scanned =
 
 export function parseScanned(text: string): Scanned | null {
   const value = text.trim()
+  const offline = offlineCodeFrom(value) ?? offlineCodeFrom(value.replace(/^kova:\/\/o#/, 'https://mykova.app/o#'))
+  if (offline) return { kind: 'offline', code: offline }
   const pairing = /^kova:\/\/pair\/([0-9A-Za-z-]{4,12})$/.exec(value)
   if (pairing?.[1]) return { kind: 'pair', code: pairing[1] }
   const claim = /^(?:https?:\/\/[^/]+|kova:\/)\/c\/(lnk_[0-9a-z]{26})\/?(?:\?[^#]*)?(?:#(.*))?$/i.exec(value)

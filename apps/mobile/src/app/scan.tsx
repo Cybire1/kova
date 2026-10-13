@@ -6,6 +6,7 @@ import { useRef, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { parseScanned, type Scanned } from '@/lib/links'
+import { useOffline } from '@/lib/offline'
 import { colors } from '@/lib/theme'
 import { Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
@@ -17,11 +18,14 @@ export default function Scan() {
   const [permission, requestPermission] = useCameraPermissions()
   const [problem, setProblem] = useState<string | null>(null)
   const handled = useRef(false)
+  const { offline } = useOffline()
 
   const open = (scanned: Scanned) => {
     handled.current = true
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    if (scanned.kind === 'charge') router.replace({ pathname: '/pay/[id]', params: { id: scanned.id } })
+    // A payment someone signed with no signal: checked on this phone, no network needed.
+    if (scanned.kind === 'offline') router.replace({ pathname: '/o', params: { code: scanned.code } })
+    else if (scanned.kind === 'charge') router.replace({ pathname: '/pay/[id]', params: { id: scanned.id } })
     else if (scanned.kind === 'stall') router.replace({ pathname: '/s/[slug]', params: { slug: scanned.slug, ...(scanned.table ? { table: scanned.table } : {}) } })
     else if (scanned.kind === 'pair') router.replace({ pathname: '/terminal/setup', params: { code: scanned.code } })
     else if (scanned.kind === 'claim')
@@ -100,10 +104,13 @@ export default function Scan() {
         ) : (
           <>
             <Txt weight="semi" size={22}>
-              Point at a Kova code
+              {offline ? 'Offline? Scan anyway' : 'Point at a Kova code'}
             </Txt>
             <Txt size={15} color={problem ? colors.danger : colors.muted} style={styles.sheetBody}>
-              {problem ?? "A shop's QR, a stall's table poster, a friend's code, or a link with dollars in it."}
+              {problem ??
+                (offline
+                  ? "A friend's code to pay them with a code, or their payment code to get paid. Both work with no signal."
+                  : "A shop's QR, a stall's table poster, a friend's code, a payment code, or a link with dollars in it.")}
             </Txt>
           </>
         )}

@@ -65,6 +65,9 @@ const glyphs = {
   sparkle: ['M12 3.5l1.9 5.6 5.6 1.9-5.6 1.9L12 18.5l-1.9-5.6L4.5 11l5.6-1.9z', 'M19 17v4', 'M17 19h4'],
   bolt: ['M13 3L5.5 13.5h6L10.5 21 18 10.5h-6z'],
   web: ['M3.5 12h17', 'M12 3.5c2.4 2.3 3.5 5.1 3.5 8.5s-1.1 6.2-3.5 8.5c-2.4-2.3-3.5-5.1-3.5-8.5s1.1-6.2 3.5-8.5z'],
+  /** No signal: the wifi arcs, struck through. */
+  noSignal: ['M3 9.5a13 13 0 0 1 18 0', 'M6.5 13a8 8 0 0 1 11 0', 'M9.6 16.4a3.4 3.4 0 0 1 4.8 0', 'M12 19.6h.01', 'M4.5 3.5l15 17'],
+  qr: ['M4 4h6v6H4z', 'M14 4h6v6h-6z', 'M4 14h6v6H4z', 'M14 14h3v3h-3z', 'M20 14v.01', 'M14 20h.01', 'M17.5 20H20v-3', 'M7 7h.01', 'M17 7h.01', 'M7 17h.01'],
 } as const
 
 export type IconName = keyof typeof glyphs

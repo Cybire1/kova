@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics'
 import { useState } from 'react'
 import { Pressable, Share, StyleSheet, View } from 'react-native'
 import { personLink } from '@/lib/links'
+import { useOffline } from '@/lib/offline'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { CodeCard } from '@/ui/CodeCard'
@@ -12,6 +13,7 @@ import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
 /** Your code: anyone with Kova scans it to pay you. Any Monad wallet can use the address. */
 export default function Receive() {
   const { profile } = useWallet()
+  const { offline } = useOffline()
   const [copied, setCopied] = useState(false)
   if (!profile) return null
   const link = personLink({ address: profile.address, name: profile.name, currency: profile.currency })
@@ -23,8 +25,8 @@ export default function Receive() {
         <Txt weight="semi" size={30} style={{ letterSpacing: -0.6, textAlign: 'center' }}>
           Scan to pay {profile.name.split(' ')[0]}
         </Txt>
-        <Txt size={16} color={colors.onTint} style={{ textAlign: 'center', marginTop: 6 }}>
-          It lands in seconds, from anywhere.
+        <Txt size={16} color={colors.onTint} style={{ textAlign: 'center', marginTop: 6, lineHeight: 22 }}>
+          {offline ? 'No signal? They scan this, then you scan their payment code.' : 'It lands in seconds, from anywhere.'}
         </Txt>
         <CodeCard value={link} />
         <Pressable

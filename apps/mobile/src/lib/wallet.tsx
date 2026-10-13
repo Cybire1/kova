@@ -1,5 +1,5 @@
 import { createPasskeyWithPrfOutput, getPasskeyPrfOutput, isMeraError } from '@category-labs/mera'
-import { generateStealthAddress, generateStealthPayment, type StealthMemo, stealthMemoMessage } from '@kova/monad'
+import { generateStealthAddress, generateStealthPayment, type OfflinePayment, type StealthMemo, stealthMemoMessage } from '@kova/monad'
 import { hkdf } from '@noble/hashes/hkdf.js'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { base64urlnopad } from '@scure/base'
@@ -11,6 +11,8 @@ import { generatePrivateKey } from 'viem/accounts'
 import { type Checkout, demoSignIn } from './api'
 import { claimLink, fundFromFaucet, getBalance, incomingSince, type PaymentLink, payCharge, recordLink, sendMoney } from './chain'
 import { passkeyDomain } from './config'
+import { signOfflinePayment } from './offline-core'
+import { offlineArrival, offlineEntryId } from './offline-store'
 import { openSigningSession } from './keys'
 import { type DisplayCurrency, formatUsd } from './money'
 import { kovaWebAuthnClient, takeVaultOutput } from './passkey'
@@ -89,6 +91,8 @@ export interface Entry {
   fromPrivate?: boolean
   /** Received privately, and only its memo says who from: nothing proves it. */
   unconfirmed?: boolean
+  /** Signed with no signal and carried as a code; settled on Monad once a phone was online. */
+  offline?: boolean
 }
 
 export interface Contact {
@@ -160,6 +164,13 @@ interface Wallet {
    * recorded with Kova. The key comes back to be shared and stays in this phone's Keychain.
    */
   makeLink: (amount: bigint, note?: string) => Promise<{ link: PaymentLink; key: `0x${string}`; entry: Entry }>
+  /**
+   * Signs a payment with no network (one Face ID, or the open session): the signed payment is a code
+   * to show or share, and settles on Monad once either phone is online. Nothing leaves the phone here.
+   */
+  signOffline: (to: Contact, amount: bigint) => Promise<{ code: string; payment: OfflinePayment }>
+  /** An offline payment that settled, into your activity (once, whoever saw it first). */
+  recordOffline: (entry: Entry) => Promise<void>
   /** Claims a link someone sent into this wallet. */
   claimFromLink: (link: PaymentLink, key: `0x${string}`) => Promise<{ link: PaymentLink; entry: Entry }>
   /** Takes back a link you sent that no one has claimed: everything at it comes home. */
@@ -372,6 +383,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           // This wallet's own private dollars, moved in from one of its one-time addresses: they're in
           // your activity already, from when they arrived privately, so they're not news twice.
           if (await isPrivateAddress(t.from)) continue
+          // One of this phone's offline payments settling: it had its arrival screen when its code was
+          // scanned, so it goes into activity quietly, as itself.
+          const offline = await offlineArrival(t.from, t.amount, t.hash)
+          if (offline) {
+            const known = nameFor(t.from)
+            await record({
+              id: offline.entryId ?? offlineEntryId(offline.id),
+              kind: 'received',
+              amount: t.amount.toString(),
+              name: known && !isUnnamed(known) ? known : offline.name,
+              detail: 'Paid with a code',
+              address: t.from,
+              txHash: t.hash,
+              ...(offline.ms ? { ms: offline.ms } : {}),
+              at: offline.at,
+              offline: true,
+            })
+            continue
+          }
           const note = t.note ? await readNote(t.note, { from: t.from, to: profile.address, value: t.amount }) : null
           const refund = t.kind === 'refund'
           // Money out of a link: your own coming back, or one claimed here a moment ago.
@@ -730,6 +760,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [profile, unlock, record, refresh],
   )
 
+  const signOffline = useCallback(
+    async (to: Contact, amount: bigint) => {
+      if (!profile) throw new Error('No wallet on this phone')
+      const account = await unlock(amount)
+      const signed = await signOfflinePayment(account, to.address, amount, profile.name || null)
+      spend(amount)
+      await rememberContact(to)
+      return signed
+    },
+    [profile, unlock, rememberContact],
+  )
+
   const claimFromLink = useCallback(
     async (link: PaymentLink, key: `0x${string}`) => {
       if (!profile) throw new Error('Make your Kova wallet first, then claim it.')
@@ -904,6 +946,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     payCheckout,
     send,
     makeLink,
+    signOffline,
+    recordOffline: record,
     claimFromLink,
     takeBack,
     receivedPrivately,
