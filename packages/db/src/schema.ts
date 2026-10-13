@@ -1071,3 +1071,108 @@ export const cardTaps = pgTable(
   },
   (t) => [index('card_taps_card_idx').on(t.cardAddress, t.createdAt), index('card_taps_intent_idx').on(t.intentId)],
 )
+
+// --- Kova for Business -----------------------------------------------------------------------------
+
+/**
+ * The people a business pays: its own payroll book, kept for it by Kova. Every payment to them
+ * goes privately, to a one-time address made for that payment alone, so Monad shows the business
+ * paying addresses nobody can tie to these people.
+ */
+export const payrollPeople = pgTable(
+  'payroll_people',
+  {
+    id: id(),
+    merchantId: uuid('merchant_id')
+      .notNull()
+      .references(() => merchants.id),
+    name: text('name').notNull(),
+    /** Their Kova wallet: where their private-receiving key is published. Lowercase. */
+    walletAddress: address('wallet_address').notNull(),
+    /** What they're usually paid, so a new run starts filled in. */
+    amount: amount('amount'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('payroll_people_merchant_wallet_idx').on(t.merchantId, t.walletAddress)],
+)
+
+/** One payroll: a label ("October salary") and what each person got, approved with one Face ID. */
+export const payrollRuns = pgTable(
+  'payroll_runs',
+  {
+    id: id(),
+    merchantId: uuid('merchant_id')
+      .notNull()
+      .references(() => merchants.id),
+    network: network('network').notNull(),
+    label: text('label').notNull(),
+    total: amount('total').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('payroll_runs_merchant_idx').on(t.merchantId, t.createdAt)],
+)
+
+/** One person's pay in a run: the one-time address it went to and the transaction, once paid. */
+export const payrollPayments = pgTable(
+  'payroll_payments',
+  {
+    id: id(),
+    runId: uuid('run_id')
+      .notNull()
+      .references(() => payrollRuns.id),
+    personId: uuid('person_id').references(() => payrollPeople.id),
+    name: text('name').notNull(),
+    amount: amount('amount').notNull(),
+    stealthAddress: address('stealth_address'),
+    txHash: text('tx_hash'),
+    /** pending, paid or failed. */
+    status: text('status').notNull().default('pending'),
+    failure: text('failure'),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('payroll_payments_run_idx').on(t.runId)],
+)
+
+/** The people and companies a business buys from, wherever they are, and the currency they think in. */
+export const suppliers = pgTable(
+  'suppliers',
+  {
+    id: id(),
+    merchantId: uuid('merchant_id')
+      .notNull()
+      .references(() => merchants.id),
+    name: text('name').notNull(),
+    walletAddress: address('wallet_address').notNull(),
+    country: text('country'),
+    /** What their amounts are shown in: USD, EUR, GBP, NGN, KES or MXN. */
+    currency: text('currency').notNull().default('USD'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('suppliers_merchant_wallet_idx').on(t.merchantId, t.walletAddress)],
+)
+
+/** A payment to a supplier, checked against Monad before it's recorded. */
+export const supplierPayments = pgTable(
+  'supplier_payments',
+  {
+    id: id(),
+    merchantId: uuid('merchant_id')
+      .notNull()
+      .references(() => merchants.id),
+    supplierId: uuid('supplier_id')
+      .notNull()
+      .references(() => suppliers.id),
+    network: network('network').notNull(),
+    amount: amount('amount').notNull(),
+    note: text('note'),
+    txHash: text('tx_hash').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('supplier_payments_merchant_idx').on(t.merchantId, t.createdAt),
+    uniqueIndex('supplier_payments_tx_idx').on(t.txHash),
+  ],
+)

@@ -25,6 +25,11 @@ export const prefixes = {
   paymentLink: 'lnk',
   stealthPayment: 'spa',
   stealthAnnouncement: 'san',
+  payrollPerson: 'emp',
+  payrollRun: 'run',
+  payrollPayment: 'wage',
+  supplier: 'sup',
+  supplierPayment: 'spay',
 } as const
 
 export type ObjectKind = keyof typeof prefixes
