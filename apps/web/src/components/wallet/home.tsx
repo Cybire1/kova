@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Awning } from '@/components/awning'
 import { Art, Icon } from '@/components/brand'
 import { formatUsd, toBase } from '@/lib/wallet/money'
+import { KeysOnHome } from './keys'
 import { PrivateWaiting } from './private'
 import { isUnnamed, useWallet } from './provider'
 import { ActionTile, Avatar, BalanceCard, EntryRow } from './ui'
@@ -70,9 +71,19 @@ export function Home() {
         </div>
       </div>
 
+      <KeysOnHome />
+
       <PrivateWaiting />
 
       <ShopCard />
+
+      <Link href="/wallet/keys" className="w-add-chain">
+        <span>
+          <strong>Keys</strong>
+          <small>Allowances, your team and AI agents, each with its own limit</small>
+        </span>
+        <Icon name="key" size={16} />
+      </Link>
 
       {empty ? (
         <Link href="/wallet/add" className="w-notice">

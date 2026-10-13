@@ -95,6 +95,14 @@ export function Profile() {
         </Link>
       ) : null}
 
+      <Link href="/wallet/keys" className="w-add-chain">
+        <span>
+          <strong>Keys</strong>
+          <small>Allowances, your team and AI agents: who may spend your dollars, and how much</small>
+        </span>
+        <Icon name="key" size={16} />
+      </Link>
+
       <section className="w-money">
         <div>
           <small>Your money shows in</small>

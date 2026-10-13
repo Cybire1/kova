@@ -5025,3 +5025,234 @@ button.w-chip-private:disabled {
 .w-receipt-public {
   margin-top: 0.5rem;
 }
+
+/* Keys: allowances, team budgets, AI agents */
+
+.w-keys-problem {
+  margin: 0.5rem 0;
+  color: #b23b2e;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.w-keyrow,
+.w-approval {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.625rem;
+  padding: 0.75rem 0.875rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.375rem;
+  background: var(--surface);
+}
+
+.w-approval {
+  border-color: var(--coral, #d46558);
+  background: #fdf1ee;
+}
+
+.w-keyrow-frozen {
+  opacity: 0.72;
+  border-style: dashed;
+}
+
+.w-keyrow-icon {
+  display: grid;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #bfd9d9;
+  color: var(--ink);
+}
+
+.w-keyrow-icon-coral {
+  background: #f3c7bf;
+}
+
+.w-keyrow-icon-light {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.w-keyrow-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.w-keyrow-text small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.w-keyrow-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.w-keyrow-remove {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.w-keyform {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.625rem;
+  padding: 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.375rem;
+  background: var(--surface);
+}
+
+.w-keyform label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.w-keyform input,
+.w-keyform select {
+  width: 100%;
+  min-width: 0;
+  height: 2.75rem;
+  padding: 0 0.875rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.w-keyform input:focus,
+.w-keyform select:focus {
+  box-shadow: 0 0 0 4px rgba(212, 101, 88, 0.25);
+}
+
+.w-keyform-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 0.625rem;
+}
+
+.w-keyform-link {
+  display: block;
+  padding: 0.75rem;
+  border-radius: 0.875rem;
+  background: var(--ink);
+  color: #f1efea;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.w-keyform-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.w-keyform-token {
+  border-color: #2f6669;
+  background: #e8f1f1;
+}
+
+.w-allowance {
+  margin-top: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 1.5rem;
+  background: #2f6669;
+  color: #fff;
+}
+
+.w-allowance-frozen {
+  background: #6f8384;
+}
+
+.w-allowance-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.w-allowance .w-keyrow-text small {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.w-allowance .w-keyrow-text strong {
+  font-size: 1.125rem;
+}
+
+.w-allowance .mini {
+  background: #fff;
+  color: var(--ink);
+}
+
+.w-allowance .w-keyform {
+  color: var(--ink);
+}
+
+.w-allowance-done {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0.75rem 0 0;
+  font-weight: 700;
+}
+
+.w-allowance-done a {
+  color: #fff;
+}
+
+.w-keys-home {
+  display: grid;
+}
+
+.w-accept {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  text-align: center;
+}
+
+.w-accept h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.w-accept .w-facts {
+  width: 100%;
+  text-align: left;
+}
+
+.w-accept-done {
+  display: grid;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.w-accept-done strong {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+}
+
+.w-accept .w-fact {
+  justify-content: flex-start;
+  gap: 0.625rem;
+  text-align: left;
+}

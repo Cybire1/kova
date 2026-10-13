@@ -9,7 +9,7 @@ import {
   stealthMetaAddress,
 } from '@kova/monad'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { type Address, getAddress, isAddress, isAddressEqual, type LocalAccount } from 'viem'
+import { type Address, getAddress, isAddress, isAddressEqual, type LocalAccount, type TypedDataDefinition } from 'viem'
 import { generatePrivateKey } from 'viem/accounts'
 import {
   createKovaPasskey,
@@ -253,6 +253,8 @@ interface WalletValue {
   addTestDollars: () => Promise<bigint>
   /** Signs a message with this wallet, such as Kova's shop sign-in (EIP-4361). Moves no money. */
   signMessage: (message: string) => Promise<`0x${string}`>
+  /** Signs EIP-712 typed data with this wallet: a key's link, a freeze, a permit. Moves no money itself. */
+  signTypedData: (typedData: TypedDataDefinition) => Promise<`0x${string}`>
   /** Locks the wallet now: the next payment asks for the passkey. */
   lock: () => void
   setName: (name: string) => void
@@ -1171,6 +1173,11 @@ export function WalletProvider({
     [unlock],
   )
 
+  const signTypedData = useCallback(
+    async (typedData: TypedDataDefinition) => (await unlock(0n)).signTypedData(typedData as never),
+    [unlock],
+  )
+
   const lock = useCallback(() => endSession(), [])
 
   const setName = useCallback(
@@ -1544,6 +1551,7 @@ export function WalletProvider({
       payCheckout,
       addTestDollars,
       signMessage,
+      signTypedData,
       lock,
       setName,
       setCurrency,
@@ -1586,6 +1594,7 @@ export function WalletProvider({
       payCheckout,
       addTestDollars,
       signMessage,
+      signTypedData,
       lock,
       setName,
       setCurrency,
