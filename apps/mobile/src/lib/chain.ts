@@ -321,3 +321,51 @@ export async function claimLink(link: PaymentLink, key: Hex, to: Address): Promi
     toSignedAuthorization(settlementToken.address, authorization, signature),
   )
 }
+
+// --- naira ---------------------------------------------------------------------------------
+
+/** A naira cash-out, as Kova quotes it (POST /v1/wallets/:address/cash-outs): what to sign, and how it went. */
+export interface CashOutToPay {
+  id: string
+  amount: string
+  naira: string
+  rate: string
+  fee: string
+  bank_name: string
+  account_name?: string
+  account_last4: string
+  status: 'quoted' | 'received' | 'paying' | 'paid' | 'failed' | 'expired'
+  failure: string | null
+  tx_hash: string | null
+  tx_url: string | null
+  refund_tx_url: string | null
+  test_mode: boolean
+  expires_at: string
+  pay: { token: string; to: string | null; value: string; nonce: Hex; valid_before: number }
+}
+
+/**
+ * Signs exactly the transfer a cash-out asks for (its dollars, to Kova's treasury, with the
+ * cash-out's own nonce) and hands it to Kova, which relays it to Monad, paying the gas, and pays
+ * the naira out.
+ */
+export async function payCashOut(account: LocalAccount, cashOut: CashOutToPay): Promise<CashOutToPay & { ms: number }> {
+  if (!cashOut.pay.to) throw new Error('Cashing out to naira isn’t switched on yet.')
+  const started = Date.now()
+  const token = tokenByAddress(networkId, cashOut.pay.token as Address)
+  if (!token) throw new Error('This cash-out asks for a token Kova doesn’t use. Nothing moved.')
+  const authorization = {
+    from: account.address,
+    to: cashOut.pay.to as Address,
+    value: BigInt(cashOut.pay.value),
+    validAfter: 0n,
+    validBefore: BigInt(cashOut.pay.valid_before),
+    nonce: cashOut.pay.nonce,
+  }
+  const signature = await account.signTypedData(transferAuthorizationTypedData(token, network.chainId, authorization))
+  const paid = await kova<CashOutToPay>(
+    `/v1/cash-outs/${cashOut.id}/pay`,
+    toSignedAuthorization(token.address, authorization, signature),
+  )
+  return { ...paid, ms: Date.now() - started }
+}
