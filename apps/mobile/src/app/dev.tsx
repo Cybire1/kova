@@ -7,6 +7,7 @@ import { apiUrl } from '@/lib/config'
 import { finishTap, forgetDevCard, linkCard, readTap } from '@/lib/card'
 import type { DisplayCurrency } from '@/lib/money'
 import { type Mode, usePrefs } from '@/lib/prefs'
+import { stashWallet, unstashWallet } from '@/lib/dev-slots'
 import { usePrivate } from '@/lib/private'
 import { useStall } from '@/lib/stall'
 import { save } from '@/lib/storage'
@@ -38,6 +39,7 @@ import { booksMessage } from '@/ui/Takings'
  * sends privately through the real code, and `movein=1` moves every private payment into the balance
  * on the screen it opens (`to=/private`, say). `/send/<address>?amount=…&private=1&autosend=1` films the sheet,
  * and `payfrom=private|balance` picks where payments come from, as the Pay from switch does.
+ * `stash=<name>` keeps this dev wallet whole and signs it out; `unstash=<name>` puts it back for the next launch.
  * Release builds redirect home.
  */
 /** A small Lagos kitchen menu for trying the stall screens. */
@@ -189,6 +191,10 @@ export default function Dev() {
     movein?: string
     /** Where payments come from, as if chosen: balance or private. */
     payfrom?: string
+    /** Keeps this dev wallet under a name and signs it out, so another can take the phone. */
+    stash?: string
+    /** Puts a stashed wallet back; launch again to open it. */
+    unstash?: string
   }>()
   const wallet = useWallet()
   const prefs = usePrefs()
@@ -222,6 +228,20 @@ export default function Dev() {
       return
     void (async () => {
       try {
+        // stash=<name>: this dev wallet, kept whole, then signed out; unstash=<name>: one put back.
+        if (params.stash && !progress.current.reset && wallet.profile) {
+          progress.current.reset = true
+          setStep(`stashing this wallet as ${params.stash}`)
+          await stashWallet(params.stash, wallet.profile.address)
+          await wallet.signOut()
+          return
+        }
+        if (params.unstash && wallet.status === 'none' && !progress.current.finished) {
+          progress.current.finished = true
+          const owner = await unstashWallet(params.unstash)
+          setStep(`${params.unstash} (${owner}) is back: launch again to open it`)
+          return
+        }
         if (params.reset && !progress.current.reset) {
           progress.current.reset = true
           if (wallet.status !== 'none') {
