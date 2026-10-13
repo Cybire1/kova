@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Sound for "Everyone's watching" (WatchingFilm): the score carries the film; a few subtle effects mark the
-real moments: a swoosh into each turn, the lock as "Send privately" turns on, the slide, the money
-landing, the hush as the strangers give up, Sam's phone arriving, his tap to pay, "Paid" and the logo. Effects are high-passed
+real moments: a hush as the train racks out of focus, the lock as "Send privately" turns on, a soft
+swell each time a card lifts out of the phone, the slide, the money landing, the hush as the
+strangers give up, Sam's phone arriving, his tap to pay, "Paid" and the logo. Effects are high-passed
 and softened to sit inside the music, which dips a little under the big moments.
 Mastered to -14 LUFS with one fixed gain and a peak limiter.
 
@@ -44,16 +45,17 @@ def put(path, at, db, af=SOFT):
 
 
 L, P = 'public/link/sfx', 'public/private/sfx'
-put(f'{L}/swoosh.mp3', c['dive'][0] - 0.05, -17)
+put(f'{P}/hush.mp3', c['focusOut'][0] - 0.1, -17)
 put(f'{L}/tap.mp3', c['switchTap'] - 0.02, -22)
 put(f'{P}/lock.mp3', c['switchOn'] - 0.03, -13)
+for k in ('lift1', 'lift2', 'lift3', 'lift4', 'lift5'):
+    put(f'{P}/lift.mp3', c[k][0] - 0.05, -19)
 put(f'{L}/slide.mp3', c['slide'][0] - 0.05, -19)
 put(f'{L}/land.mp3', c['ada'][-1][0] - 0.05, -19)
-put(f'{P}/hush.mp3', c['payoff'] - 0.15, -18)
-put(f'{L}/swoosh.mp3', c['cafe'] - 0.35, -20)
-put(f'{L}/land.mp3', c['samIn'][1] - 0.2, -18)
+put(f'{P}/hush.mp3', c['payoff'] - 0.15, -20)
+put(f'{L}/land.mp3', c['samIn'][1] - 0.2, -19)
 put(f'{L}/tap.mp3', c['payTap'] - 0.02, -22)
-put(f'{L}/tap.mp3', c['sam'][3][0] - 0.02, -26)
+put(f'{L}/tap.mp3', c['sam'][4][0] - 0.02, -27)
 put(f'{L}/success.mp3', c['sam'][-1][0] - 0.08, -11)
 put(f'{L}/logo.mp3', c['mark'] - 0.08, -13, af='lowpass=f=12000')
 

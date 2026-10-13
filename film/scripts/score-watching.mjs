@@ -17,13 +17,13 @@ const plan = {
   ],
   negative_global_styles: ['vocals', 'lo-fi', 'distorted', 'muddy', 'cheesy', 'chiptune', 'video game', 'horror', 'silence', 'harsh', 'noisy', 'corporate stock music cliché'],
   sections: [
-    { section_name: 'Nosy', positive_local_styles: ['sly sneaking pizzicato strings and muted plucks', 'upright bass walking softly', 'finger snaps', 'comic tension, everyone leaning in'], negative_local_styles: ['loud drums'], duration_ms: 5000, lines: [] },
-    { section_name: 'Inside the phone', positive_local_styles: ['a soft airy hush, then one confident felt piano chord and a soft kick', 'cool and assured', 'intimate close-up feeling'], negative_local_styles: ['silence', 'abrupt stop'], duration_ms: 4000, lines: [] },
-    { section_name: 'Sent', positive_local_styles: ['a light confident groove begins', 'brushed drums, snaps, upright bass', 'quietly satisfied'], negative_local_styles: ['busy', 'silence'], duration_ms: 4600, lines: [] },
+    { section_name: 'Nosy', positive_local_styles: ['sly sneaking pizzicato strings and muted plucks', 'upright bass walking softly', 'finger snaps', 'comic tension, everyone leaning in'], negative_local_styles: ['loud drums'], duration_ms: 4500, lines: [] },
+    { section_name: 'Into her phone', positive_local_styles: ['the room goes soft and out of focus: an airy hush', 'then one confident felt piano chord and a soft kick', 'cool and assured'], negative_local_styles: ['silence', 'abrupt stop'], duration_ms: 5500, lines: [] },
+    { section_name: 'Sent', positive_local_styles: ['a light confident groove begins', 'brushed drums, snaps, upright bass', 'quietly satisfied'], negative_local_styles: ['busy', 'silence'], duration_ms: 6150, lines: [] },
     { section_name: 'Nobody knows', positive_local_styles: ['playful pizzicato sting and a bouncy bass line', 'witty, light, a shrug in music'], negative_local_styles: ['silence'], duration_ms: 3400, lines: [] },
     { section_name: 'Only Sam', positive_local_styles: ['warm and tender', 'felt piano melody over soft pads and brushed drums', 'close and personal'], negative_local_styles: ['busy', 'silence'], duration_ms: 5400, lines: [] },
-    { section_name: 'Spend', positive_local_styles: ['the groove returns, confident and warm', 'brushed drums and snaps', 'upright bass', 'a small bright lift at the payment'], negative_local_styles: ['aggressive', 'silence'], duration_ms: 6000, lines: [] },
-    { section_name: 'Lift', positive_local_styles: ['full warm lift', 'bright piano chords and strings', 'satisfying'], negative_local_styles: ['abrupt'], duration_ms: 3600, lines: [] },
+    { section_name: 'Spend', positive_local_styles: ['the groove returns, confident and warm', 'brushed drums and snaps', 'upright bass', 'a small bright lift near the end of the section'], negative_local_styles: ['aggressive', 'silence'], duration_ms: 9000, lines: [] },
+    { section_name: 'Lift', positive_local_styles: ['full warm lift', 'bright piano chords and strings', 'satisfying'], negative_local_styles: ['abrupt'], duration_ms: 3500, lines: [] },
     { section_name: 'Tail', positive_local_styles: ['a warm final major chord held and ringing to the very end'], negative_local_styles: ['silence', 'fade to nothing'], duration_ms: 3000, lines: [] },
   ],
 }
