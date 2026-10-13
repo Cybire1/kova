@@ -9,6 +9,7 @@ import type { DisplayCurrency } from '@/lib/money'
 import { type Mode, usePrefs } from '@/lib/prefs'
 import { stashWallet, unstashWallet } from '@/lib/dev-slots'
 import { useOffline } from '@/lib/offline'
+import { clearOffline } from '@/lib/offline-store'
 import { usePrivate } from '@/lib/private'
 import { useStall } from '@/lib/stall'
 import { save } from '@/lib/storage'
@@ -42,7 +43,8 @@ import { booksMessage } from '@/ui/Takings'
  * and `payfrom=private|balance` picks where payments come from, as the Pay from switch does.
  * `stash=<name>` keeps this dev wallet whole and signs it out; `unstash=<name>` puts it back for the next launch.
  * Offline payments: `offline=1` makes the app act as if it had no signal (it lasts across launches) and
- * `offline=0` brings it back online, which settles whatever is waiting. With `offline=1`,
+ * `offline=0` brings it back online, which settles whatever is waiting (`offline=clear` forgets this
+ * phone's offline payments, for a clean film). With `offline=1`,
  * `to=/send/<address>?amount=0.25&autosend=1` signs a payment code through the real flow, and
  * `to=%2Fo%3Fcode%3D<code>` opens a payment code as if it was scanned.
  * Release builds redirect home.
@@ -287,6 +289,10 @@ export default function Dev() {
         }
         progress.current.finished = true
         console.log(`[dev] wallet ${wallet.profile?.address ?? 'none'}`)
+        if (params.offline === 'clear') {
+          await clearOffline()
+          console.log('[dev] offline payments on this phone forgotten')
+        }
         if (params.offline === '1' || params.offline === '0') {
           await offlineRef.current.force(params.offline === '1')
           const o = offlineRef.current

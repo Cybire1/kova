@@ -70,7 +70,15 @@ export function openOfflineStore(address: Address | null): Promise<void> {
 }
 
 export const offlineItems = () => items
-export const offlineReady = () => loading
+
+/** Waits until this wallet's offline payments are read, even if the wallet opened while waiting. */
+export async function offlineReady() {
+  let current: Promise<void>
+  do {
+    current = loading
+    await current
+  } while (current !== loading)
+}
 
 export function onOfflineChange(listener: () => void) {
   listeners.add(listener)
@@ -84,15 +92,23 @@ async function persist() {
 }
 
 export async function putOffline(item: OfflineItem) {
-  await loading
+  await offlineReady()
   items = [item, ...items.filter((i) => i.id !== item.id)]
   notify()
   await persist()
 }
 
 export async function patchOffline(id: Hex, patch: Partial<OfflineItem>) {
-  await loading
+  await offlineReady()
   items = items.map((i) => (i.id === id ? { ...i, ...patch } : i))
+  notify()
+  await persist()
+}
+
+/** Development only: forgets this wallet's offline payments (test codes), settled or not. */
+export async function clearOffline() {
+  await offlineReady()
+  items = []
   notify()
   await persist()
 }
@@ -106,7 +122,7 @@ export const offlineEntryId = (id: Hex) => `offline-${id.slice(2, 18)}`
  * new money. It already had its arrival screen when its code was scanned.
  */
 export async function offlineArrival(from: Address, amount: bigint, hash: Hex): Promise<OfflineItem | null> {
-  await loading
+  await offlineReady()
   const lower = hash.toLowerCase()
   const known = items.find((i) => i.direction === 'in' && i.txHash?.toLowerCase() === lower)
   if (known) return known
