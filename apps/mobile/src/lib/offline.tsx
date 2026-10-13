@@ -238,6 +238,11 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     async (to: Contact, amount: bigint) => {
       if (!me) throw new Error('No wallet on this phone')
       if (amount > OFFLINE_MAX) throw new Error('One payment code carries $100 at most.')
+      // Never promise more than the last known balance holds beyond the codes still waiting.
+      const promised = offlineItems()
+        .filter((i) => i.direction === 'out' && open(i))
+        .reduce((total, i) => total + BigInt(i.amount), 0n)
+      if (balance === null || amount > balance - promised) throw new Error('That’s more than you can promise offline. Send less.')
       const { code, payment } = await signOffline(to, amount)
       const item: OfflineItem = {
         id: offlinePaymentId(payment),
@@ -259,7 +264,7 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       if (__DEV__) console.log(`[offline] signed ${amount} base units to ${to.address} with no network: ${item.id} code ${code}`)
       return item
     },
-    [me, signOffline],
+    [me, balance, signOffline],
   )
 
   const accept = useCallback(
