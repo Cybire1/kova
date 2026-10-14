@@ -70,7 +70,7 @@ export default function Team() {
               Give someone a key in Keys: a daily budget, who they may pay, and a freeze that works at once. They show up here with what
               they’ve spent today.
             </Txt>
-            {owned ? <PillButton label="Add a team member in Keys" icon="lock" onPress={() => router.push('/keys')} /> : null}
+            {owned ? <PillButton label="Add a team member in Keys" icon="lock" onPress={() => router.push('/keys' as never)} /> : null}
           </View>
         ) : null}
       </ScrollView>
