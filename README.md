@@ -1,14 +1,27 @@
 # Kova
 
-**Tap. Paid. Anywhere.** A dollar wallet you open with a passkey, with your shop inside it.
-Every payment settles in AUSD on [Monad](https://monad.xyz) in about a second and a half, and Kova
-pays the gas, so nobody needs a crypto token, a seed phrase or an exchange to pay or get paid.
+**Tap. Paid. Anywhere.** A dollar account you open with a passkey: it pays with no signal, in
+private and across borders, and every card, person or AI agent that spends it has its own limit.
+Every payment settles in AUSD on [Monad](https://monad.xyz) in about a second, and Kova pays the
+gas, so nobody needs a crypto token, a seed phrase or an exchange to pay or get paid.
 
+- **Try it free, in a minute:** [mykova.app/try](https://mykova.app/try) (Monad testnet, $5 of test dollars a day)
 - **Live on Monad mainnet:** [mykova.app](https://mykova.app)
-- **Try it free:** [web-monad.up.railway.app](https://web-monad.up.railway.app), Kova on Monad testnet with $5 of test dollars a day
+- **iPhone:** [TestFlight](https://testflight.apple.com/join/RPEhxUWv)
 - **Built for:** Monad Metropolis, Track 02: Consumer Products & Payments
-- **Demo video:** _link added at submission_
+- **Demo videos:** the product demo, the Agora cross-border cut and the Chainlink CRE run are linked in the submission (sources in [`film/`](film))
 - **Licence:** [MIT](LICENSE)
+
+## New on Monad, proven on-chain (13–14 Oct 2026)
+
+| Feature | What works | Proof on Monad testnet |
+|---|---|---|
+| **AI agents with limits** | Claude pays over Kova's MCP server (`/mcp`) with its own key: a daily limit, a cap per payment, an ask-first line the owner approves, freeze and remove. The limit lives in the KovaCard contract. | key switched on [`0xee1771f2…`](https://testnet.monadscan.com/tx/0xee1771f28d129aae6e91be57bbd7ea5717011ae4b435bd760d881599fc74458b), Claude pays [`0x47c9e9f5…`](https://testnet.monadscan.com/tx/0x47c9e9f502c5cb5af43b8e604a3418f5ed438fa06c8e73c0a9588a7ffe1852b5), owner approves [`0xd9c89c96…`](https://testnet.monadscan.com/tx/0xd9c89c96141bbce8054d12ef2c5806b5fbe1a434dc272e8cb973453779bdbf74), Claude Code run [`0xf7659c65…`](https://testnet.monadscan.com/tx/0xf7659c659ae3c2d7c75f9d3702339bb9c2e60425ab59560ee91390f7b6a2e5d2) |
+| **Allowances and team keys** | An owner invites someone; their key is made on their own phone; the owner switches it on; they spend the owner's dollars within the limit. | switched on [`0x155d853c…`](https://testnet.monadscan.com/tx/0x155d853c41fb96ba765820df34425264b32cf66329b59eba7e1e60b5fe5de58a), spent [`0xc7296af1…`](https://testnet.monadscan.com/tx/0xc7296af12e91af94bd40553ac22353d625394f5138fd59dda1e5676112d5c883) |
+| **Kova for Business** | Private payroll (each person paid at a one-time address with a sealed note) and supplier payments, each checked on Monad before it counts. | payroll [`0x7726357c…`](https://testnet.monadscan.com/tx/0x7726357cc8a516c6d237ca9e318db16a999f39930d564b97fdb1784e3592d16b), [`0x43935f81…`](https://testnet.monadscan.com/tx/0x43935f81367ef2b578124fe10d518fe25b2131c507dacfd4ca8563e4faffbba3), [`0x2ab78661…`](https://testnet.monadscan.com/tx/0x2ab7866140ec8bac152a172d8d96491cf0d3e6909b57b5f957b66bfc8407d0f9); supplier [`0x94fb846d…`](https://testnet.monadscan.com/tx/0x94fb846d97d989b02dd30faba56f2db98f2a58178dbdb7f0cb6341073cd9b50e) |
+| **Naira in and out** | Add money in naira and cash out to a Nigerian bank through Paystack (test mode on testnet), at the Chainlink rate. | live at `GET /v1/naira` on the testnet API |
+| **Chainlink CRE rates** | A real `cre workflow simulate --broadcast` run wrote a signed report to KovaRates. | [`0xb5f7efae…`](https://testnet.monadscan.com/tx/0xb5f7efae050b65bb84c8a54d67b430cfb44ca3247bf66ae0ef6e830bb9004130) |
+| US account number, dollar card, savings | Screens and server built behind partner keys (Bridge, Lithic, an AUSD vault); today they show **Request access**. | not live yet |
 
 ## The problem, and who it's for
 
