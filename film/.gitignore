@@ -11,3 +11,5 @@ public/shop/app/*-raw
 # Raw takes for the demo video (screen recordings, screencast frames); the cut clips live in public/demo
 demo/raw
 demo/vo
+# Raw voice takes for the CRE film; the lines used live in public/cre
+cre/vo
