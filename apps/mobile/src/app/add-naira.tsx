@@ -5,7 +5,7 @@ import * as WebBrowser from 'expo-web-browser'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { KeyboardAvoidingView, Pressable, StyleSheet, TextInput, View } from 'react-native'
 import { naira, type NairaInfo, type NairaQuote, type NairaTopUp } from '@/lib/api'
-import { webUrl } from '@/lib/config'
+import { shareWebUrl } from '@/lib/config'
 import { applyKey, groupTyped, type Key, toBase } from '@/lib/money'
 import { colors, fonts } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
@@ -82,7 +82,8 @@ export default function AddNaira() {
       const started = await naira.topUp(profile.address, {
         amount: dollars(amount),
         email,
-        returnUrl: `${webUrl}/wallet/add/naira`,
+        // Kova's web for this network, which checks the payment too if Paystack lands there first.
+        returnUrl: `${shareWebUrl}/wallet/add/naira`,
       })
       setTopUp(started)
       await WebBrowser.openBrowserAsync(started.url)
