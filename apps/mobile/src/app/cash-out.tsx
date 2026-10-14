@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics'
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
@@ -44,10 +44,26 @@ export default function CashOutScreen() {
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
   const quick = useSessionCovers(quote ? BigInt(quote.pay.value) : 0n)
+  // Development only, for films and screenshots: ?amount=2&bank=001&account=0000000000&step=account|review
+  const dev = useLocalSearchParams<{ amount?: string; bank?: string; account?: string; step?: string }>()
 
   useEffect(() => {
     void naira.info().then(setInfo)
   }, [])
+
+  useEffect(() => {
+    if (!__DEV__ || !dev.amount) return
+    setTyped(dev.amount)
+    if (dev.account) setAccount(dev.account)
+    if (dev.step === 'account' || dev.step === 'review') setStep('account')
+    // biome-ignore lint/correctness/useExhaustiveDependencies: once, from the dev link
+  }, [])
+
+  useEffect(() => {
+    if (!__DEV__ || !dev.bank || !banks || bank) return
+    const found = banks.find((b) => b.code === dev.bank)
+    if (found) setBank(found)
+  }, [banks, bank, dev.bank])
 
   const onKey = useCallback((key: Key) => setTyped((v) => applyKey(v, key, 2)), [])
   const amount = useMemo(() => {
@@ -90,6 +106,11 @@ export default function CashOutScreen() {
       .catch((e: Error) => setProblem(e.message))
       .finally(() => setLooking(false))
   }, [account, bank])
+
+  useEffect(() => {
+    if (__DEV__ && dev.step === 'review' && named && step === 'account' && !busy && !quote) void review()
+    // biome-ignore lint/correctness/useExhaustiveDependencies: the dev link's one review
+  }, [named])
 
   const shown = useMemo(() => {
     if (!banks) return []

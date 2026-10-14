@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics'
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import * as SecureStore from 'expo-secure-store'
 import * as WebBrowser from 'expo-web-browser'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -36,10 +36,20 @@ export default function AddNaira() {
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
 
+  // Development only, for films and screenshots: ?amount=10&email=ada@example.com&step=pay
+  const dev = useLocalSearchParams<{ amount?: string; email?: string; step?: string }>()
   useEffect(() => {
     void naira.info().then(setInfo)
     void SecureStore.getItemAsync(EMAIL).then((saved) => saved && setEmail(saved))
+    if (__DEV__ && dev.amount) setTyped(dev.amount)
+    if (__DEV__ && dev.email) setEmail(dev.email)
+    // biome-ignore lint/correctness/useExhaustiveDependencies: once, from the dev link
   }, [])
+
+  useEffect(() => {
+    if (__DEV__ && dev.step === 'pay' && quote && step === 'amount') setStep('pay')
+    // biome-ignore lint/correctness/useExhaustiveDependencies: the dev link's one step
+  }, [quote])
 
   const onKey = useCallback((key: Key) => setTyped((v) => applyKey(v, key, 2)), [])
   const amount = useMemo(() => {
