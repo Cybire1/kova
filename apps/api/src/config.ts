@@ -134,6 +134,11 @@ const schema = z.object({
     .string()
     .regex(/^0x[0-9a-fA-F]{64}$/)
     .optional(),
+  /**
+   * Kova's team, for the few routes only it uses (the iPhone beta's list): sent as x-kova-admin.
+   * Without it those routes don't exist (404).
+   */
+  KOVA_ADMIN_SECRET: z.string().min(16).optional(),
 })
 
 export type Config = z.infer<typeof schema>

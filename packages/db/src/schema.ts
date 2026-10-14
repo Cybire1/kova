@@ -1443,3 +1443,26 @@ export const keyPayments = pgTable(
     index('key_payments_status_idx').on(t.status),
   ],
 )
+
+// --- Kova for iPhone, in TestFlight ------------------------------------------------------------
+
+/**
+ * People asking for Kova's iPhone beta (mykova.app/iphone). Kova keeps their email, and their name
+ * and country when they give them, only to send the TestFlight invite; invited_at is set once it
+ * has gone out.
+ */
+export const iosBetaRequests = pgTable(
+  'ios_beta_requests',
+  {
+    id: id(),
+    /** Lowercase. */
+    email: text('email').notNull(),
+    name: text('name'),
+    country: text('country'),
+    /** Where they asked from: iphone-page, home or try. */
+    source: text('source').notNull().default('iphone-page'),
+    createdAt: createdAt(),
+    invitedAt: timestamp('invited_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('ios_beta_requests_email_idx').on(t.email)],
+)

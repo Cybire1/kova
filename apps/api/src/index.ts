@@ -30,6 +30,7 @@ import { nairaRoutes } from './routes/naira.js'
 import { takingsRoutes } from './routes/takings.js'
 import { businessRoutes } from './routes/business.js'
 import { statsRoutes } from './routes/stats.js'
+import { iosBetaRoutes } from './routes/ios-beta.js'
 import { webhookRoutes } from './routes/webhooks.js'
 import { expireStaleIntents } from './services/intents.js'
 import { checkPayingCashOuts, retryTopUps } from './services/naira.js'
@@ -66,6 +67,7 @@ app.route('/v1', linkRoutes)
 app.route('/v1', takingsRoutes)
 app.route('/v1', businessRoutes)
 app.route('/v1', statsRoutes)
+app.route('/v1', iosBetaRoutes)
 app.route('/v1', ussdRoutes)
 app.route('/v1', cardRoutes)
 app.route('/v1', spendKeyRoutes)

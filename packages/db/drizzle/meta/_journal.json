@@ -169,6 +169,13 @@
       "when": 1791934163732,
       "tag": "0023_money",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791994839035,
+      "tag": "0024_ios_beta",
+      "breakpoints": true
     }
   ]
 }
