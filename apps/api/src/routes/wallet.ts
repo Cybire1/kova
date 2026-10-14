@@ -115,7 +115,23 @@ async function notesFor(rows: TransferRow[]): Promise<Notes> {
   return new Map(found.map((n) => [n.txHash, { sealed: n.sealed, auth_nonce: n.authNonce }]))
 }
 
-function serializeTransfer(row: TransferRow, shops: Shops = new Map(), notes: Notes = new Map()) {
+/** Kova's treasury sends dollars for naira: a top-up landing, or a cash-out's dollars coming back. */
+type NairaMoves = Map<string, 'top_up' | 'cash_out_refund'>
+
+async function nairaMovesFor(rows: TransferRow[]): Promise<NairaMoves> {
+  const hashes = [...new Set(rows.map((r) => r.txHash))]
+  if (hashes.length === 0) return new Map()
+  const [topUps, refunds] = await Promise.all([
+    db.select({ txHash: schema.nairaTopUps.txHash }).from(schema.nairaTopUps).where(inArray(schema.nairaTopUps.txHash, hashes)),
+    db.select({ txHash: schema.cashOuts.refundTxHash }).from(schema.cashOuts).where(inArray(schema.cashOuts.refundTxHash, hashes)),
+  ])
+  const moves: NairaMoves = new Map()
+  for (const t of topUps) if (t.txHash) moves.set(t.txHash, 'top_up')
+  for (const r of refunds) if (r.txHash) moves.set(r.txHash, 'cash_out_refund')
+  return moves
+}
+
+function serializeTransfer(row: TransferRow, shops: Shops = new Map(), notes: Notes = new Map(), naira: NairaMoves = new Map()) {
   const memo = row.nonce ? decodeMemo(row.nonce as Hex) : null
   const token = tokenByAddress(config.KOVA_NETWORK, row.tokenAddress as Address)
   return {
@@ -139,8 +155,11 @@ function serializeTransfer(row: TransferRow, shops: Shops = new Map(), notes: No
     faucet:
       config.KOVA_NETWORK === 'testnet' &&
       !row.nonce &&
+      !naira.has(row.txHash) &&
       (row.fromAddress === AUSD_TESTNET_FAUCET.toLowerCase() ||
         row.fromAddress === feePayerAddress?.toLowerCase()),
+    /** Dollars from Kova's treasury for naira: a top-up landing, or a cash-out's dollars coming back. */
+    naira: naira.get(row.txHash) ?? null,
     explorer_url: explorerTxUrl(network, row.txHash as Hex),
     /** The sender's private note, sealed for the two of them: Kova can't read it. */
     note: notes.get(row.txHash) ?? null,
@@ -330,10 +349,10 @@ export const walletRoutes = new Hono()
     const last = rows.at(-1)
     const cursor =
       rows.length === page && last ? last.blockNumber - 1n : (through ?? BigInt(afterText))
-    const [shops, notes] = await Promise.all([shopsPaid(rows), notesFor(rows)])
+    const [shops, notes, naira] = await Promise.all([shopsPaid(rows), notesFor(rows), nairaMovesFor(rows)])
     return c.json({
       object: 'list',
-      data: rows.map((row) => serializeTransfer(row, shops, notes)),
+      data: rows.map((row) => serializeTransfer(row, shops, notes, naira)),
       indexed_through: cursor.toString(),
       has_more: rows.length === page,
     })

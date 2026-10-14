@@ -1382,11 +1382,15 @@ export function WalletProvider({
       } else {
         entries.push({
           id: t.id,
-          kind: t.faucet ? 'added' : 'received',
+          kind: t.faucet || t.naira === 'top_up' ? 'added' : 'received',
           amount: t.amount_base,
           name: t.faucet
             ? 'Test dollars'
-            : t.kind === 'refund'
+            : t.naira === 'top_up'
+              ? 'Added from your bank'
+              : t.naira === 'cash_out_refund'
+                ? 'Cash-out returned'
+                : t.kind === 'refund'
               ? 'Refund'
               : link
                 ? 'Your link'
@@ -1397,7 +1401,11 @@ export function WalletProvider({
               ? 'Private note'
               : t.faucet
                 ? 'AUSD test faucet'
-                : t.kind === 'refund'
+                : t.naira === 'top_up'
+                  ? 'Naira, through Paystack'
+                  : t.naira === 'cash_out_refund'
+                    ? 'The bank couldn’t take it'
+                    : t.kind === 'refund'
                   ? 'Money back'
                   : link
                     ? 'Taken back'

@@ -185,6 +185,8 @@ export interface Incoming {
   kind: 'payment' | 'refund' | 'payout' | null
   /** Test dollars from the testnet faucet, not from a person. */
   faucet: boolean
+  /** Dollars from Kova's treasury for naira: a top-up landing, or a cash-out's dollars coming back. */
+  naira: 'top_up' | 'cash_out_refund' | null
   /** The sender's private note, still sealed, and the authorization nonce it is bound to. */
   note: { sealed: SealedNote; auth_nonce: Hex } | null
 }
@@ -197,6 +199,7 @@ interface IndexedTransfer {
   block: string
   kind: Incoming['kind']
   faucet: boolean
+  naira?: Incoming['naira']
   note?: Incoming['note']
 }
 
@@ -219,6 +222,7 @@ export async function incomingSince(
         block: BigInt(t.block),
         kind: t.kind,
         faucet: t.faucet,
+        naira: t.naira ?? null,
         note: t.note ?? null,
       })),
   }

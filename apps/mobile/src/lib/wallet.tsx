@@ -412,14 +412,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           const fromTakings = !fromLink && (await isTakingsAddress(t.from))
           const name = t.faucet
             ? 'Test dollars'
-            : refund
+            : t.naira === 'top_up'
+              ? 'Added from your bank'
+              : t.naira === 'cash_out_refund'
+                ? 'Cash-out returned'
+                : refund
               ? 'Refund'
               : fromTakings
                 ? 'Private takings'
                 : (fromLink?.name ?? nameFor(t.from) ?? `${t.from.slice(0, 6)}…${t.from.slice(-4)}`)
           await record({
             id: newId(),
-            kind: t.faucet ? 'added' : 'received',
+            kind: t.faucet || t.naira === 'top_up' ? 'added' : 'received',
             amount: t.amount.toString(),
             name,
             detail:
