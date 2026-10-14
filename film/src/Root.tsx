@@ -7,6 +7,8 @@ import { TABLE_DURATION, TableFilm } from './queue/TableFilm'
 import { LINK_DURATION, LinkFilm } from './link/LinkFilm'
 import { WATCHING_DURATION, WatchingFilm } from './private/WatchingFilm'
 import { DEMO_DURATION, DemoFilm } from './demo/DemoFilm'
+import { DEMO2_DURATION, DemoFilm2 } from './demo/DemoFilm2'
+import { AGORA_DURATION, AgoraFilm } from './agora/AgoraFilm'
 import { CRE_DURATION, CreFilm } from './cre/CreFilm'
 import { CARDS_DURATION, KovaCards } from './KovaCards'
 import { DURATION, KovisDay } from './KovisDay'
@@ -73,6 +75,8 @@ export const RemotionRoot = () => (
     <Composition id="TableSpot" component={TableSpot} durationInFrames={SPOT_DURATION * FPS} fps={FPS} width={1920} height={1080} />
     <Still id="TableTent" component={TableTent} width={1333} height={1000} />
     <Composition id="DemoFilm" component={DemoFilm} durationInFrames={DEMO_DURATION * FPS} fps={FPS} width={1920} height={1080} />
+    <Composition id="DemoFilm2" component={DemoFilm2} durationInFrames={DEMO2_DURATION * FPS} fps={FPS} width={1920} height={1080} />
+    <Composition id="AgoraFilm" component={AgoraFilm} durationInFrames={AGORA_DURATION * FPS} fps={FPS} width={1920} height={1080} />
     <Composition id="CreFilm" component={CreFilm} durationInFrames={CRE_DURATION * FPS} fps={FPS} width={1920} height={1080} />
     <Composition id="WatchingFilm" component={WatchingFilm} durationInFrames={WATCHING_DURATION * FPS} fps={FPS} width={1920} height={1080} defaultProps={{ sound: true, score: 'w7' }} />
     <Composition id="LinkFilm" component={LinkFilm} durationInFrames={LINK_DURATION * FPS} fps={FPS} width={1920} height={1080} />

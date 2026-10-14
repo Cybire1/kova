@@ -1,0 +1,32 @@
+[
+  {
+    "id": "hook2",
+    "text": "This phone has no signal. Watch it pay.",
+    "dur": 2.600635
+  },
+  {
+    "id": "problem",
+    "text": "People want dollars. But wallets stop with no signal, show everything in public, and ask for gas and seed phrases. Kova is a dollar account that works anywhere, on Monad.",
+    "dur": 11.702857
+  },
+  {
+    "id": "agent",
+    "text": "Sam can also give his AI agent its own key. Claude pays Ada’s Bakery twenty cents on its own, but anything over fifty cents waits for Sam to approve it. Monad enforces the limit.",
+    "dur": 11.702857
+  },
+  {
+    "id": "agora-hook",
+    "text": "Fifty cents to a friend abroad, in about a second, in AUSD on Monad.",
+    "dur": 4.597551
+  },
+  {
+    "id": "agora-offline",
+    "text": "And with no signal, AUSD’s EIP-3009 lets the phone sign the payment offline. It settles on Monad once either phone is back online.",
+    "dur": 9.520181
+  },
+  {
+    "id": "agora-close",
+    "text": "Every balance and every payment in Kova is AUSD. Try it at mykova dot app, slash try.",
+    "dur": 6.965986
+  }
+]

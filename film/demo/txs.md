@@ -18,3 +18,10 @@ Recorded 14 Oct 2026 (WAT) against Kova's live testnet API (api-monad.up.railway
 Not in the film: an earlier take's plain (not private) send, Ada to Sam $0.25,
 0x555cd89a99864c1155290f731b922fc148247cf9586ab93371519598b8529eb3 (Sam's private-receiving key
 wasn't on the live API yet; it was published before the private take).
+
+## Demo v2: the AI agent scene (14 Oct 2026, Monad testnet, through https://api-monad.up.railway.app)
+
+- Sam's new wallet 0x942C20264eb411D53B9CFaAfD7B146716d2055eE funded $1 by Ada's Bakery: 0xad2be4655ee34e3513c6d922cd9c922930c1b0854aae6dd652e31cbbdd0ff1f7, and $0.50 more: 0x90d270b030bc72e9d1bb936c3391702f606fe7891821731d4ff1b338fbc0caa8
+- Claude's key ($2 a day, asks above $0.50) linked through KovaCard: 0xa5a5992b69ea6fd72cab8c2e776d4968904962d485cdbe4ccae2970b75f57a62
+- The filmed run (demo/raw/agent3.cast): Claude pays Ada's Bakery $0.20: 0xf7659c659ae3c2d7c75f9d3702339bb9c2e60425ab59560ee91390f7b6a2e5d2; the $0.55 waits for Sam (payment 01a13827-a549-7849-95f3-76da19a1712d, not paid)
+- Earlier takes, not in the film: $0.20 paid 0xa9789905cde03a053dfcc72c00eb70aaa2afc16d884e3ba0a5ef34808df47797 and 0xc34d6b6d38a994a049de8aa83f5a815d76ca28c6d70437b12d7f19683fe87625 (each with a $0.75/$0.55 left waiting)
