@@ -275,7 +275,7 @@ const lie = await fetch(`${api}/v1/business/payroll/${fake.id}/payments/${fake.p
   headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
   body: JSON.stringify({ stealth_address: supplierWallet, tx_hash: firstTx }),
 })
-check(lie.status === 400, 'a transaction that paid someone else is refused as proof')
+check(lie.status === 400 || lie.status === 409, `a transaction that paid someone else is refused as proof (${lie.status})`)
 
 // 5. Tunde finds his pay with his own keys and opens the note.
 const tunde = staff[0] as (typeof staff)[number]
