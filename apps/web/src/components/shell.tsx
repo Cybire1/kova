@@ -18,6 +18,7 @@ const TABS_AFTER: { href: string; label: string; icon: DockIcon; also?: string[]
     label: 'More',
     icon: 'shop',
     also: [
+      '/dashboard/business',
       '/dashboard/catalogue',
       '/dashboard/terminals',
       '/dashboard/private',

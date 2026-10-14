@@ -9,6 +9,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
+    "check:business": "tsx --env-file-if-exists=.env src/scripts/business-check.ts",
     "setup:dev": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.monad src/scripts/setup-dev.ts",
     "test:e2e": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.monad ./node_modules/vitest/vitest.mjs run",
     "demo:payments": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.monad src/scripts/demo-payments.ts",

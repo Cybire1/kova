@@ -21,6 +21,11 @@ export default function TerminalLayout() {
           <Stack.Screen name="item" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.paper } }} />
           <Stack.Screen name="share" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.paper } }} />
           <Stack.Screen name="takings" options={{ contentStyle: { backgroundColor: colors.paper } }} />
+          <Stack.Screen name="business" options={{ contentStyle: { backgroundColor: colors.paper } }} />
+          <Stack.Screen name="payroll" options={{ contentStyle: { backgroundColor: colors.paper } }} />
+          <Stack.Screen name="payroll-run" options={{ contentStyle: { backgroundColor: colors.paper } }} />
+          <Stack.Screen name="suppliers" options={{ contentStyle: { backgroundColor: colors.paper } }} />
+          <Stack.Screen name="team" options={{ contentStyle: { backgroundColor: colors.paper } }} />
           <Stack.Screen name="snap" options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: colors.paper } }} />
         </Stack>
         <NewOrderBanner />

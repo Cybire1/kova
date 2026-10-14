@@ -1,0 +1,736 @@
+/*
+ * Kova for Business: payroll, suppliers and the team, inside the shop. The shop's language: paper,
+ * 2px ink cards, teal for money that went out well, coral for paying.
+ */
+
+.biz {
+  display: grid;
+  gap: 1.25rem;
+}
+
+/* --- Home ------------------------------------------------------------------------------------- */
+
+.biz-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.6rem 1.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.9rem;
+  background: var(--teal);
+  color: #fff;
+  animation: rise 0.5s var(--spring) both;
+}
+
+.biz-hero-label {
+  color: #dcebea;
+  font-weight: 700;
+}
+
+.biz-hero-amount {
+  margin-top: 0.2rem;
+  font-size: clamp(2.8rem, 6vw, 4.6rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.biz-hero-sub {
+  margin-top: 0.6rem;
+  color: #dcebea;
+  font-weight: 600;
+}
+
+.biz-hero-kovi {
+  flex: none;
+  width: 9rem;
+  height: auto;
+}
+
+.biz-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.biz-tile {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  padding: 1.25rem 1.35rem 1.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.6rem;
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  transition: transform 0.4s var(--spring), background-color 0.3s var(--spring);
+}
+
+.biz-tile:hover {
+  background: #fff;
+}
+
+.biz-tile:active {
+  transform: scale(0.98);
+}
+
+.biz-tile-icon {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin-bottom: 0.35rem;
+  border-radius: 50%;
+  background: var(--sunken);
+}
+
+.biz-tile-teal {
+  background: var(--teal-soft);
+}
+
+.biz-tile-coral {
+  background: var(--coral-soft);
+}
+
+.biz-tile strong {
+  font-size: 1.05rem;
+}
+
+.biz-tile-amount {
+  font-size: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.biz-tile small {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.biz-tile-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.biz-how {
+  padding: 1.35rem 1.5rem;
+}
+
+.biz-how h2 {
+  font-size: 1.125rem;
+  font-weight: 750;
+}
+
+.biz-how ol {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.9rem 0 0;
+  padding-left: 1.25rem;
+  color: var(--muted);
+  font-weight: 550;
+  line-height: 1.5;
+}
+
+.biz-how ol strong {
+  color: var(--ink);
+}
+
+.biz-how-small p {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-weight: 550;
+  line-height: 1.5;
+}
+
+/* --- Two columns: the work, and its history ---------------------------------------------------- */
+
+.biz-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.biz-side {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.biz-run,
+.biz-suppliers {
+  display: grid;
+  gap: 1rem;
+  padding-bottom: 1.25rem;
+}
+
+.biz-run > :not(.card-head),
+.biz-suppliers > :not(.card-head) {
+  margin-inline: 1.25rem;
+}
+
+.biz-field {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.biz-field input,
+.biz-add input,
+.biz-add select,
+.biz-pay-note {
+  height: 2.9rem;
+  padding: 0 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 0.95rem;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+}
+
+.biz-field small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 550;
+}
+
+.biz-people,
+.biz-supplier-list,
+.biz-team ul,
+.biz-history ul,
+.biz-receipt-list,
+.biz-progress ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.biz-people {
+  border: 2px solid var(--ink);
+  border-radius: 1.2rem;
+  background: #fff;
+}
+
+.biz-person {
+  display: grid;
+  grid-template-columns: auto 2.5rem minmax(0, 1fr) 8rem 2.25rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+}
+
+.biz-person + .biz-person {
+  border-top: 1px solid var(--hairline);
+}
+
+.biz-person[data-off] .biz-person-name strong,
+.biz-person[data-off] .biz-amount {
+  opacity: 0.55;
+}
+
+.biz-person input[type="checkbox"] {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--teal-deep);
+}
+
+.biz-avatar {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--teal-soft);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.biz-avatar-coral {
+  background: var(--coral-soft);
+}
+
+.biz-person-name {
+  display: grid;
+  min-width: 0;
+}
+
+.biz-person-name strong {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.biz-person-name small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.biz-reach {
+  font-weight: 700;
+}
+
+.biz-reach-ok {
+  color: var(--teal-deep);
+}
+
+.biz-reach-ok svg {
+  vertical-align: -2px;
+}
+
+.biz-reach-no {
+  color: var(--coral-deep);
+}
+
+.biz-amount,
+.biz-pay-amount {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  height: 2.6rem;
+  padding: 0 0.8rem;
+  border-radius: 0.85rem;
+  background: var(--paper);
+  font-weight: 800;
+}
+
+.biz-amount input,
+.biz-pay-amount input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  outline: none;
+}
+
+.biz-remove {
+  --round-size: 2.25rem;
+  color: var(--muted);
+}
+
+.biz-add {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  padding: 1rem;
+  border-radius: 1.2rem;
+  background: var(--paper);
+}
+
+.biz-add-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.biz-add-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 3rem;
+  border: 2px dashed rgba(11, 26, 29, 0.35);
+  border-radius: 1.1rem;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.biz-add-open:hover {
+  border-color: var(--ink);
+}
+
+.biz-problem {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.95rem;
+  background: var(--coral-soft);
+  color: var(--ink);
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.biz-problem svg {
+  flex: none;
+  margin-top: 0.1rem;
+}
+
+.biz-run-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.biz-run-foot p {
+  max-width: 22rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* --- A run paying, and its receipt -------------------------------------------------------------- */
+
+.biz-progress {
+  padding: 1rem 1.1rem;
+  border-radius: 1.2rem;
+  background: var(--paper);
+}
+
+.biz-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.4rem;
+  font-weight: 750;
+}
+
+.biz-line {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+}
+
+.biz-line + .biz-line {
+  border-top: 1px solid var(--hairline);
+}
+
+.biz-line-icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--sunken);
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.biz-line-paid {
+  background: var(--teal);
+  color: #fff;
+}
+
+.biz-line-failed {
+  background: var(--coral-soft);
+  color: var(--coral-deep);
+}
+
+.biz-line-spin {
+  width: 1.4rem;
+  height: 1.4rem;
+  margin: 0.3rem;
+}
+
+.biz-line-name {
+  display: grid;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.biz-line-name small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.biz-line[data-state="failed"] .biz-line-name small {
+  color: var(--coral-deep);
+  white-space: normal;
+}
+
+.biz-line-amount {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.biz-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  color: var(--teal-deep);
+  font-size: 0.875rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.biz-link:hover {
+  text-decoration: underline;
+}
+
+.biz-receipt {
+  padding: 1.4rem 1.5rem;
+}
+
+.biz-receipt-total {
+  display: grid;
+  gap: 0.15rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+.biz-receipt-total p {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.biz-receipt-total strong {
+  font-size: 3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.biz-receipt-total small {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.biz-receipt-list {
+  margin-top: 0.5rem;
+}
+
+/* --- History, on the side ------------------------------------------------------------------------ */
+
+.biz-history ul {
+  padding: 0 0.6rem 0.6rem;
+}
+
+.biz-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 1rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.biz-history-row:hover {
+  background: var(--paper);
+}
+
+.biz-history-row span:first-child {
+  display: grid;
+  min-width: 0;
+}
+
+.biz-history-row strong {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.biz-history-row small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 550;
+}
+
+.biz-history-amount {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.biz-empty {
+  padding: 0 1.5rem 1.4rem;
+  color: var(--muted);
+  font-weight: 550;
+  line-height: 1.5;
+}
+
+/* --- Suppliers ------------------------------------------------------------------------------------ */
+
+.biz-supplier-list {
+  border: 2px solid var(--ink);
+  border-radius: 1.2rem;
+  background: #fff;
+}
+
+.biz-supplier + .biz-supplier {
+  border-top: 1px solid var(--hairline);
+}
+
+.biz-supplier-row {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.biz-supplier[data-open] {
+  background: var(--surface);
+}
+
+.biz-pay {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0 0.9rem 1rem;
+}
+
+.biz-pay-amount {
+  height: 3.6rem;
+  border: 2px solid var(--ink);
+  background: #fff;
+  font-size: 1.6rem;
+}
+
+.biz-pay-amount input {
+  text-align: left;
+}
+
+.biz-pay-theirs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.biz-pay-theirs strong {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.biz-pay-theirs small {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.biz-paid {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--teal-deep);
+  font-weight: 750;
+}
+
+/* --- Team ------------------------------------------------------------------------------------------ */
+
+.biz-team ul {
+  padding: 0.4rem 0.6rem;
+}
+
+.biz-key {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 0.75rem;
+}
+
+.biz-key + .biz-key {
+  border-top: 1px solid var(--hairline);
+}
+
+.biz-bar {
+  display: block;
+  height: 0.4rem;
+  margin-top: 0.4rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--sunken);
+}
+
+.biz-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--teal);
+}
+
+.biz-key[data-frozen] .biz-bar span {
+  background: var(--muted);
+}
+
+.biz-chip-frozen .dot {
+  background: var(--coral);
+}
+
+.biz-team-empty {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.6rem 1.75rem;
+}
+
+.biz-team-empty h2 {
+  font-size: 1.25rem;
+  font-weight: 750;
+}
+
+.biz-team-empty p {
+  max-width: 34rem;
+  margin: 0.5rem 0 1rem;
+  color: var(--muted);
+  font-weight: 550;
+  line-height: 1.5;
+}
+
+/* --- Phones ------------------------------------------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  .biz-cols,
+  .biz-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .biz-hero-kovi {
+    width: 6.5rem;
+  }
+
+  .biz-person {
+    grid-template-columns: auto 2.25rem minmax(0, 1fr) 5.75rem;
+  }
+
+  .biz-person .biz-remove {
+    display: none;
+  }
+
+  .biz-add {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .biz-team-empty {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

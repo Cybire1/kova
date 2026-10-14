@@ -1,14 +1,18 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Image, Share, View } from 'react-native'
-import { checkStealthAddress } from '@kova/monad'
+import { checkStealthAddress, personalStealthKeysMessage, stealthKeysFromSignature, stealthMetaAddress, stealthRegistrationMessage } from '@kova/monad'
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { createCharge, createItem, getCatalog, getCheckout, listOrders, lookupBarcode, ringUp, setOrderStatus, type StealthReceipt, updateStall, uploadImage } from '@/lib/api'
+import { addPayrollPerson, addSupplier, listPayrollPeople, startPayrollRun } from '@/lib/api'
+import { payPayroll, reachOf } from '@/lib/business'
 import { apiUrl } from '@/lib/config'
 import { finishTap, forgetDevCard, linkCard, readTap } from '@/lib/card'
 import type { DisplayCurrency } from '@/lib/money'
 import { type Mode, usePrefs } from '@/lib/prefs'
 import { stashWallet, unstashWallet } from '@/lib/dev-slots'
 import { useOffline } from '@/lib/offline'
+import { publishReceivingKey } from '@/lib/private-core'
 import { clearOffline } from '@/lib/offline-store'
 import { usePrivate } from '@/lib/private'
 import { useStall } from '@/lib/stall'
@@ -198,6 +202,12 @@ export default function Dev() {
     movein?: string
     /** Where payments come from, as if chosen: balance or private. */
     payfrom?: string
+    /**
+     * `biz=seed` fills this shop's business book: four people (three can be paid privately) and two
+     * suppliers. `biz=pay&amount=0.05` pays everyone who can be paid privately that much, through the
+     * real payroll code, and opens the run's receipt.
+     */
+    biz?: string
     /** Keeps this dev wallet under a name and signs it out, so another can take the phone. */
     stash?: string
     /** Puts a stashed wallet back; launch again to open it. */
@@ -452,6 +462,57 @@ export default function Dev() {
           await new Promise((r) => setTimeout(r, 300))
           const p = privateRef.current
           console.log(`[dev] private payments: ${p.receipts.length} found, ${p.waiting} base units waiting at ${p.waitingCount}`)
+        }
+        if (params.biz === 'seed') {
+          setStep('filling the business book')
+          // Each person a wallet of their own; three publish a private-receiving key, as opening Kova does.
+          const people: [string, string, boolean][] = [
+            ['Tunde Bakare', '250', true],
+            ['Amaka Obi', '180', true],
+            ['Kemi Adeyemi', '120', true],
+            ['Chidi Okafor', '150', false],
+          ]
+          for (const [name, amount, receives] of people) {
+            const person = privateKeyToAccount(generatePrivateKey())
+            if (receives) {
+              const meta = stealthMetaAddress(stealthKeysFromSignature(await person.signMessage({ message: personalStealthKeysMessage(person.address) })))
+              await publishReceivingKey(person.address, meta, await person.signMessage({ message: stealthRegistrationMessage(person.address, meta) }))
+            }
+            await addPayrollPerson({ name, wallet_address: person.address, amount })
+          }
+          await addSupplier({ name: 'Lisbon Coffee Roasters', wallet_address: privateKeyToAccount(generatePrivateKey()).address, country: 'Portugal', currency: 'EUR' })
+          await addSupplier({ name: 'Shenzhen Parts Co', wallet_address: privateKeyToAccount(generatePrivateKey()).address, country: 'China', currency: 'USD' })
+          console.log('[dev] business book filled: 4 people, 2 suppliers')
+        }
+        if (params.biz === 'pay') {
+          setStep('paying the payroll')
+          // The shop's owner key comes out of the Keychain a moment after launch.
+          let people: Awaited<ReturnType<typeof listPayrollPeople>> = []
+          for (let i = 0; i < 20; i++) {
+            try {
+              people = await listPayrollPeople()
+              break
+            } catch {
+              await new Promise((r) => setTimeout(r, 500))
+            }
+          }
+          const reach = await reachOf(people.map((p) => p.wallet_address))
+          const paying = people.filter((p) => reach[p.wallet_address.toLowerCase()] === 'private')
+          const run = await startPayrollRun(
+            'October salary',
+            paying.map((p) => ({ person: p.id, name: p.name, amount: params.amount || p.amount || '0.05' })),
+          )
+          const wallets = Object.fromEntries(
+            run.payments.map((payment) => [payment.id, paying.find((p) => p.id === payment.person)?.wallet_address ?? '']),
+          )
+          await payPayroll({
+            approve: wallet.approve,
+            business: stall.owned?.name ?? 'My shop',
+            run,
+            wallets,
+            onLine: (id, line) => console.log(`[dev] payroll ${id}: ${line.state}${line.state === 'failed' ? ` (${line.why})` : line.state === 'paid' ? ` in ${line.ms}ms ${line.explorer}` : ''}`),
+          })
+          return router.replace({ pathname: '/terminal/payroll-run', params: { id: run.id } })
         }
         if (params.send && params.amount) {
           setStep(params.private === '1' ? 'sending privately' : 'sending')

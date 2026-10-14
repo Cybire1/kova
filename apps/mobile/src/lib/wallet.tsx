@@ -193,6 +193,11 @@ interface Wallet {
    * exactly what it allows; none moves money by itself.
    */
   signTypedData: (typedData: TypedDataDefinition) => Promise<`0x${string}`>
+  /**
+   * The wallet, opened for `amount`: the open session when it covers it, or Face ID asked once
+   * ("Approve $X"). Kova for Business signs a whole payroll with the one approval.
+   */
+  approve: (amount: bigint) => Promise<LocalAccount>
   signOut: () => Promise<void>
 }
 
@@ -987,6 +992,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     renameContact,
     signMessage,
     signTypedData,
+    approve: unlock,
     signOut,
   }
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>

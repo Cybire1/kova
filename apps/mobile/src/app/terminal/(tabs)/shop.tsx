@@ -83,6 +83,15 @@ export default function ShopTab() {
 
       {owned ? <TakingsGroup /> : null}
 
+      {owned ? (
+        <Group title="Business">
+          <Row icon="chart" label="Business" value="This month’s payroll, suppliers and your team" onPress={() => router.push('/terminal/business')} />
+          <Row icon="lock" label="Payroll" value="Pay everyone privately with one Face ID" onPress={() => router.push('/terminal/payroll')} />
+          <Row icon="web" label="Suppliers" value="Pay anyone, anywhere, in seconds" onPress={() => router.push('/terminal/suppliers')} />
+          <Row icon="user" label="Team" value="Who can spend the business’s dollars" onPress={() => router.push('/terminal/team')} last />
+        </Group>
+      ) : null}
+
       <Group title="Prices">
         <View style={styles.pad}>
           <Txt size={14} color={colors.muted} style={{ lineHeight: 20 }}>

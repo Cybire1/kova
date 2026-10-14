@@ -817,3 +817,113 @@ export const naira = {
     }),
   verifyTopUp: (reference: string) => request<NairaTopUp>(`/v1/naira-top-ups/${reference}/verify`, { method: 'POST' }),
 }
+
+// --- Kova for Business ---------------------------------------------------------------------------
+
+export interface Business {
+  name: string
+  owner_address: string | null
+  settlement_address: string
+  month_starts: string
+  payroll: { paid_this_month: string; payments_this_month: number; runs_this_month: number; people: number }
+  suppliers: { paid_this_month: string; paid_today: string; payments_this_month: number; count: number }
+}
+
+export interface PayrollPerson {
+  id: string
+  name: string
+  wallet_address: string
+  amount: string | null
+}
+
+export interface PayrollPayment {
+  id: string
+  person: string | null
+  name: string
+  amount: string
+  status: 'pending' | 'paid' | 'failed'
+  stealth_address: string | null
+  tx_hash: string | null
+  explorer_url: string | null
+  failure: string | null
+  paid_at: string | null
+}
+
+export interface PayrollRun {
+  id: string
+  label: string
+  total: string
+  paid_total: string
+  people: number
+  paid: number
+  failed: number
+  status: 'paying' | 'paid' | 'partial'
+  created_at: string
+  payments: PayrollPayment[]
+}
+
+export interface Supplier {
+  id: string
+  name: string
+  wallet_address: string
+  country: string | null
+  currency: string
+  paid_total: string
+  payments: number
+  last_paid_at: string | null
+}
+
+export interface SupplierPayment {
+  id: string
+  supplier: string
+  supplier_name?: string
+  amount: string
+  note: string | null
+  tx_hash: string
+  explorer_url: string
+  paid_at: string
+}
+
+export interface TeamKey {
+  id: string
+  kind: string
+  name: string
+  daily_limit: string | null
+  spent_today: string | null
+  frozen: boolean
+  ends_at: string | null
+  created_at: string
+}
+
+export const getBusiness = () => request<Business>('/v1/business', { auth: 'owner' })
+export const listPayrollPeople = () => request<{ data: PayrollPerson[] }>('/v1/business/people', { auth: 'owner' }).then((r) => r.data)
+export const addPayrollPerson = (person: { name: string; wallet_address: string; amount?: string | null }) =>
+  request<PayrollPerson>('/v1/business/people', { method: 'POST', auth: 'owner', body: JSON.stringify(person) })
+export const removePayrollPerson = (id: string) => request<{ deleted: true }>(`/v1/business/people/${id}`, { method: 'DELETE', auth: 'owner' })
+export const listPayrollRuns = () => request<{ data: PayrollRun[] }>('/v1/business/payroll', { auth: 'owner' }).then((r) => r.data)
+export const getPayrollRun = (id: string) => request<PayrollRun>(`/v1/business/payroll/${id}`, { auth: 'owner' })
+export const startPayrollRun = (label: string, payments: { person: string | null; name: string; amount: string }[]) =>
+  request<PayrollRun>('/v1/business/payroll', { method: 'POST', auth: 'owner', body: JSON.stringify({ label, payments }) })
+export const reportPayrollPayment = (run: string, payment: string, result: { stealth_address: string; tx_hash: string } | { failure: string }) =>
+  request<PayrollPayment>(`/v1/business/payroll/${run}/payments/${payment}`, { method: 'POST', auth: 'owner', body: JSON.stringify(result) })
+export const listSuppliers = () => request<{ data: Supplier[] }>('/v1/business/suppliers', { auth: 'owner' }).then((r) => r.data)
+export const addSupplier = (supplier: { name: string; wallet_address: string; country?: string | null; currency: string }) =>
+  request<Supplier>('/v1/business/suppliers', { method: 'POST', auth: 'owner', body: JSON.stringify(supplier) })
+export const listSupplierPayments = () =>
+  request<{ data: SupplierPayment[] }>('/v1/business/supplier_payments', { auth: 'owner' }).then((r) => r.data)
+export const recordSupplierPayment = (supplier: string, payment: { amount: string; tx_hash: string; note?: string | null }) =>
+  request<SupplierPayment>(`/v1/business/suppliers/${supplier}/payments`, { method: 'POST', auth: 'owner', body: JSON.stringify(payment) })
+
+/**
+ * The team keys that can spend the business's dollars, from Keys. Asked with the owner's key but
+ * outside `request`: a server without keys answering 401 or 404 must not sign the shop out here.
+ */
+export async function getTeamKeys(wallet: string): Promise<{ available: boolean; data: TeamKey[] }> {
+  const key = keys.owner
+  const response = await fetch(`${apiUrl}/v1/wallets/${wallet}/keys?kind=team`, {
+    headers: { 'content-type': 'application/json', ...(key ? { authorization: `Bearer ${key}` } : {}) },
+  }).catch(() => null)
+  if (!response?.ok) return { available: false, data: [] }
+  const body = (await response.json().catch(() => ({}))) as { data?: TeamKey[] }
+  return { available: true, data: body.data ?? [] }
+}
