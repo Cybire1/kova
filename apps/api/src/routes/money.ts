@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { KovaError } from '../errors.js'
 import { clientIp, limit } from '../limits.js'
 import {
+  type CardAuthorizationEvent,
   decideCardAuthorization,
   dollarCardFor,
   issueDollarCard,
@@ -116,9 +117,19 @@ export const moneyRoutes = new Hono()
   })
   .post('/dollar-card/authorizations', async (c) => {
     const raw = await c.req.text()
-    if (!verifyLithicSignature(raw, c.req.header('x-lithic-hmac')))
-      throw new KovaError('unauthorized', 'Not signed by the card issuer.')
-    const event = JSON.parse(raw) as { card_token?: string; amount?: number; token?: string }
+    const signed = verifyLithicSignature(raw, {
+      id: c.req.header('webhook-id'),
+      timestamp: c.req.header('webhook-timestamp'),
+      signature: c.req.header('webhook-signature'),
+    })
+    if (!signed) throw new KovaError('unauthorized', 'Not signed by the card issuer.')
+    const event = (() => {
+      try {
+        return JSON.parse(raw) as CardAuthorizationEvent
+      } catch {
+        throw new KovaError('invalid_request', 'Expected a card authorization.')
+      }
+    })()
     return c.json(await decideCardAuthorization(event))
   })
   .get('/wallets/:address/savings', async (c) => c.json(await savingsFor(walletAddress(c))))

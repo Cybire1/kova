@@ -1,4 +1,4 @@
-import { createHmac } from 'node:crypto'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import { schema, uuidv7 } from '@kova/db'
 import {
   erc4626Abi,
@@ -443,32 +443,64 @@ export async function revealDollarCard(wallet: Address, targetOrigin: string): P
   return { url: `${config.LITHIC_API_URL}/v1/embed/card?${params}`, expires_at: expires.toISOString() }
 }
 
+/** What Lithic sends for a card authorization (Auth Stream Access), as far as Kova reads it. */
+export interface CardAuthorizationEvent {
+  token?: string
+  card_token?: string
+  card?: { token?: string }
+  /** Cents. Older payloads carry `amount`; newer ones `amounts.cardholder.amount`. */
+  amount?: number
+  amounts?: { cardholder?: { amount?: number } }
+}
+
 /**
  * A card authorization from Lithic (Auth Stream Access): approved only when the card is open and
  * the wallet holds enough dollars, so the card spends from the Kova balance and never past it.
+ * The reply is Lithic's documented `{ result }`: APPROVED, or a decline such as INSUFFICIENT_FUNDS.
  */
-export async function decideCardAuthorization(event: { card_token?: string; amount?: number; token?: string }) {
-  const decline = (reason: string) => ({ result: reason, token: event.token })
-  if (!event.card_token || typeof event.amount !== 'number' || event.amount <= 0) return decline('UNAUTHORIZED_MERCHANT')
+export async function decideCardAuthorization(event: CardAuthorizationEvent): Promise<{ result: string }> {
+  const cardToken = event.card_token ?? event.card?.token
+  const cents = event.amounts?.cardholder?.amount ?? event.amount
+  if (!cardToken || typeof cents !== 'number' || cents <= 0) return { result: 'UNAUTHORIZED_MERCHANT' }
   const [row] = await db
     .select()
     .from(schema.dollarCards)
-    .where(eq(schema.dollarCards.providerCardToken, event.card_token))
+    .where(eq(schema.dollarCards.providerCardToken, cardToken))
     .limit(1)
-  if (!row || row.state !== 'open') return decline('CARD_PAUSED')
+  if (!row || row.state !== 'open') return { result: 'CARD_PAUSED' }
   const balance = await publicClient
     .readContract({ address: settlementToken.address, abi: erc4626Abi, functionName: 'balanceOf', args: [getAddress(row.wallet)] })
     .catch(() => null)
-  if (balance === null) return decline('INSUFFICIENT_FUNDS')
-  if (fromCents(event.amount) > balance) return decline('INSUFFICIENT_FUNDS')
-  return { result: 'APPROVED', token: event.token }
+  if (balance === null || fromCents(cents) > balance) return { result: 'INSUFFICIENT_FUNDS' }
+  return { result: 'APPROVED' }
 }
 
-export function verifyLithicSignature(raw: string, signature: string | undefined): boolean {
-  if (!config.LITHIC_ASA_SECRET) return false
-  if (!signature) return false
-  const expected = createHmac('sha256', config.LITHIC_ASA_SECRET).update(raw).digest('base64')
-  return expected === signature
+/**
+ * Lithic signs Auth Stream Access requests the way it signs webhooks: `webhook-signature` holds
+ * "v1,<base64 HMAC-SHA256>" over "<webhook-id>.<webhook-timestamp>.<body>", keyed with the
+ * base64 secret after "whsec_". Five minutes of clock skew at most.
+ */
+export function verifyLithicSignature(
+  raw: string,
+  headers: { id?: string; timestamp?: string; signature?: string },
+  now = Math.floor(Date.now() / 1000),
+): boolean {
+  const secret = config.LITHIC_ASA_SECRET
+  if (!secret || !headers.id || !headers.timestamp || !headers.signature) return false
+  const at = Number(headers.timestamp)
+  if (!Number.isFinite(at) || Math.abs(now - at) > 300) return false
+  const key = Buffer.from(secret.startsWith('whsec_') ? secret.slice(6) : secret, 'base64')
+  const expected = createHmac('sha256', key).update(`${headers.id}.${headers.timestamp}.${raw}`).digest('base64')
+  return headers.signature.split(' ').some((part) => {
+    const [version, sig] = part.split(',')
+    return version === 'v1' && sig !== undefined && timingSafeEqualText(sig, expected)
+  })
+}
+
+function timingSafeEqualText(a: string, b: string): boolean {
+  const x = Buffer.from(a)
+  const y = Buffer.from(b)
+  return x.length === y.length && timingSafeEqual(x, y)
 }
 
 // --- Savings (an ERC-4626 vault, behind KovaSaver) ---------------------------------------------
