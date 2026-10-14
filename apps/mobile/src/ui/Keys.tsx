@@ -178,7 +178,13 @@ export function Received({ spendKey, onDone }: { spendKey: SpendKey; onDone?: ()
   const pay = () => {
     setBusy(true)
     setProblem(null)
-    spendFrom(spendKey, profile.address as Address, { to: getAddress(to), amount }, signMessage)
+    const charge = /\bpi_[0-9a-z]{26}\b/.exec(to)?.[0]
+    spendFrom(
+      spendKey,
+      profile.address as Address,
+      charge ? { charge } : { to: getAddress(to), amount },
+      signMessage,
+    )
       .then((paid) => {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
         setDone(paid)
@@ -219,7 +225,7 @@ export function Received({ spendKey, onDone }: { spendKey: SpendKey; onDone?: ()
               label="Pay"
               value={to}
               onChange={(v) => setTo(v.trim())}
-              placeholder="0x… their Kova address"
+              placeholder="0x… their address, or a shop’s pay link"
             />
             <Field label="How much" value={amount} onChange={setAmount} placeholder="0.00" money />
             {problem ? (
@@ -236,7 +242,9 @@ export function Received({ spendKey, onDone }: { spendKey: SpendKey; onDone?: ()
               ink
               busy={busy}
               onPress={() =>
-                isAddress(to) && amount ? pay() : setProblem('Add who to pay and how much.')
+                /\bpi_[0-9a-z]{26}\b/.test(to) || (isAddress(to) && amount)
+                  ? pay()
+                  : setProblem('Add who to pay and how much, or paste a shop’s pay link.')
               }
             />
           </View>

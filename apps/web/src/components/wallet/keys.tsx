@@ -597,10 +597,11 @@ export function Received({ spendKey, onDone }: { spendKey: SpendKey; onDone?: ()
               e.preventDefault()
               setBusy(true)
               setError(null)
+              const charge = /\bpi_[0-9a-z]{26}\b/.exec(to)?.[0]
               spendFrom(
                 spendKey,
                 profile.address as Address,
-                { to: getAddress(to), amount },
+                charge ? { charge } : { to: getAddress(to), amount },
                 signMessage,
               )
                 .then((paid) => {
@@ -618,26 +619,28 @@ export function Received({ spendKey, onDone }: { spendKey: SpendKey; onDone?: ()
               <input
                 value={to}
                 onChange={(e) => setTo(e.target.value.trim())}
-                placeholder="0x… their Kova address"
+                placeholder="0x… their address, or a shop’s pay link"
                 required
               />
             </label>
-            <label>
-              <span>How much</span>
-              <input
-                value={amount}
-                onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                inputMode="decimal"
-                placeholder="0.00"
-                required
-              />
-            </label>
+            {/\bpi_[0-9a-z]{26}\b/.test(to) ? null : (
+              <label>
+                <span>How much</span>
+                <input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  required
+                />
+              </label>
+            )}
             {error ? <p className="w-keys-problem">{error}</p> : null}
             <button
               type="submit"
               className="pill pill-block"
               data-tone="ink"
-              disabled={busy || !isAddress(to) || !amount}
+              disabled={busy || !(/\bpi_[0-9a-z]{26}\b/.test(to) || (isAddress(to) && amount))}
             >
               <span className="pill-label">
                 {busy
