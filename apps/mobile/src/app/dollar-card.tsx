@@ -5,7 +5,13 @@ import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { webUrl } from '@/lib/config'
 import { formatUsd } from '@/lib/money'
-import { type DollarCard, getDollarCard, issueDollarCard, revealDollarCard, setDollarCard } from '@/lib/partners'
+import {
+  type DollarCard,
+  getDollarCard,
+  issueDollarCard,
+  revealDollarCard,
+  setDollarCard,
+} from '@/lib/partners'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon, type IconName } from '@/ui/Icon'
@@ -87,7 +93,9 @@ export default function DollarCardScreen() {
                 icon="card"
                 loading={busy !== null}
                 disabled={!profile}
-                onPress={() => profile && act('issue', () => issueDollarCard(profile.address, signMessage))}
+                onPress={() =>
+                  profile && act('issue', () => issueDollarCard(profile.address, signMessage))
+                }
               />
             </View>
           </View>
@@ -119,7 +127,9 @@ export default function DollarCardScreen() {
                   {profile?.name || 'Kova'}
                 </Txt>
                 <Txt weight="semi" size={14} color={colors.onInk}>
-                  {card.exp_month && card.exp_year ? `${card.exp_month}/${card.exp_year.slice(-2)}` : ''}
+                  {card.exp_month && card.exp_year
+                    ? `${card.exp_month}/${card.exp_year.slice(-2)}`
+                    : ''}
                 </Txt>
               </View>
             </View>
@@ -138,7 +148,11 @@ export default function DollarCardScreen() {
                   setBusy('reveal')
                   setError(null)
                   try {
-                    const reveal = await revealDollarCard(profile.address, signMessage, new URL(webUrl).origin)
+                    const reveal = await revealDollarCard(
+                      profile.address,
+                      signMessage,
+                      new URL(webUrl).origin,
+                    )
                     await WebBrowser.openBrowserAsync(reveal.url)
                   } catch (e) {
                     setError(problemOf(e))
@@ -152,7 +166,12 @@ export default function DollarCardScreen() {
                 label={busy === 'freeze' ? 'One moment…' : card.frozen ? 'Unfreeze' : 'Freeze'}
                 fill={card.frozen ? colors.tealSoft : colors.coralSoft}
                 disabled={busy !== null}
-                onPress={() => profile && act('freeze', () => setDollarCard(profile.address, signMessage, { frozen: !card.frozen }))}
+                onPress={() =>
+                  profile &&
+                  act('freeze', () =>
+                    setDollarCard(profile.address, signMessage, { frozen: !card.frozen }),
+                  )
+                }
               />
             </View>
             <Txt weight="semi" size={14} color={colors.muted} style={styles.section}>
@@ -169,7 +188,12 @@ export default function DollarCardScreen() {
                     accessibilityState={{ selected: on }}
                     disabled={busy !== null || on}
                     onPress={() =>
-                      profile && act('limit', () => setDollarCard(profile.address, signMessage, { daily_limit: units.toString() }))
+                      profile &&
+                      act('limit', () =>
+                        setDollarCard(profile.address, signMessage, {
+                          daily_limit: units.toString(),
+                        }),
+                      )
                     }
                     style={[styles.limit, on && styles.limitOn]}
                   >
@@ -196,7 +220,11 @@ export default function DollarCardScreen() {
                         {t.merchant}
                       </Txt>
                       <Txt size={13} color={colors.muted}>
-                        {new Date(t.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {t.status}
+                        {new Date(t.at).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}{' '}
+                        · {t.status}
                       </Txt>
                     </View>
                     <Txt weight="semi" size={15}>
@@ -227,7 +255,12 @@ function Action({
   fill?: string
 }) {
   return (
-    <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[styles.action, { backgroundColor: fill }]}>
+    <Pressable
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.action, { backgroundColor: fill }]}
+    >
       <Icon name={icon} size={18} />
       <Txt weight="semi" size={15}>
         {label}
@@ -252,7 +285,12 @@ const styles = StyleSheet.create({
   },
   cardFrozen: { backgroundColor: '#3E4C4F' },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  chip: { paddingVertical: 3, paddingHorizontal: 10, borderRadius: 999, backgroundColor: colors.surface },
+  chip: {
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+  },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
   action: {
     flex: 1,
@@ -278,7 +316,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   limitOn: { backgroundColor: colors.ink },
-  list: { paddingHorizontal: 16, borderWidth: 2, borderColor: colors.ink, borderRadius: 22, backgroundColor: colors.surface },
+  list: {
+    paddingHorizontal: 16,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+  },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(11,26,29,0.18)' },
 })

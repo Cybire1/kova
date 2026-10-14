@@ -69,11 +69,19 @@ export default function UsAccountScreen() {
             <Txt size={16} color={colors.onTint} style={styles.lead}>
               Bridge checks who you are first, as every bank does. It takes a few minutes.
             </Txt>
-            {data.sandbox ? <SandboxNote text="Bridge sandbox: a test account, no money moves" /> : null}
+            {data.sandbox ? (
+              <SandboxNote text="Bridge sandbox: a test account, no money moves" />
+            ) : null}
             <Txt weight="semi" size={13} color={colors.muted} style={styles.label}>
               Your full name
             </Txt>
-            <TextInput value={name} onChangeText={setName} style={styles.input} autoComplete="name" textContentType="name" />
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              style={styles.input}
+              autoComplete="name"
+              textContentType="name"
+            />
             <Txt weight="semi" size={13} color={colors.muted} style={styles.label}>
               Email
             </Txt>
@@ -97,7 +105,13 @@ export default function UsAccountScreen() {
                 loading={busy !== null}
                 disabled={!profile || name.trim().length < 2 || !email.includes('@')}
                 onPress={() =>
-                  profile && act('open', () => openUsAccount(profile.address, signMessage, { full_name: name.trim(), email: email.trim() }))
+                  profile &&
+                  act('open', () =>
+                    openUsAccount(profile.address, signMessage, {
+                      full_name: name.trim(),
+                      email: email.trim(),
+                    }),
+                  )
                 }
               />
             </View>
@@ -111,8 +125,9 @@ export default function UsAccountScreen() {
               Finish with Bridge
             </Txt>
             <Txt size={16} color={colors.onTint} style={styles.lead}>
-              Bridge is checking it’s you{data.kyc_status ? ` (${data.kyc_status.replaceAll('_', ' ')})` : ''}. Your account number
-              appears here the moment it’s approved.
+              Bridge is checking it’s you
+              {data.kyc_status ? ` (${data.kyc_status.replaceAll('_', ' ')})` : ''}. Your account
+              number appears here the moment it’s approved.
             </Txt>
             {data.kyc_link ? (
               <View style={{ marginTop: 22 }}>
@@ -138,7 +153,9 @@ export default function UsAccountScreen() {
             <Txt weight="semi" size={30} style={styles.title}>
               Paid in dollars, from anywhere
             </Txt>
-            {data.sandbox ? <SandboxNote text="Bridge sandbox: a test account, no money moves" /> : null}
+            {data.sandbox ? (
+              <SandboxNote text="Bridge sandbox: a test account, no money moves" />
+            ) : null}
             {data.details ? (
               <View style={styles.bank}>
                 {(
@@ -157,7 +174,9 @@ export default function UsAccountScreen() {
                 accessibilityRole="button"
                 style={[styles.bank, { padding: 18 }]}
                 disabled={busy !== null}
-                onPress={() => profile && act('view', () => viewUsAccount(profile.address, signMessage))}
+                onPress={() =>
+                  profile && act('view', () => viewUsAccount(profile.address, signMessage))
+                }
               >
                 <Txt size={13} color={colors.muted}>
                   Account ending {data.last_four ?? '····'}
@@ -172,8 +191,13 @@ export default function UsAccountScreen() {
                 {error}
               </Txt>
             ) : null}
-            <Txt size={13} color={colors.muted} style={{ marginTop: 14, lineHeight: 19, textAlign: 'center' }}>
-              ACH takes 1 to 3 business days and wires arrive the same day. Either way it lands here as {data.arrives_as}.
+            <Txt
+              size={13}
+              color={colors.muted}
+              style={{ marginTop: 14, lineHeight: 19, textAlign: 'center' }}
+            >
+              ACH takes 1 to 3 business days and wires arrive the same day. Either way it lands here
+              as {data.arrives_as}.
             </Txt>
           </View>
         )}

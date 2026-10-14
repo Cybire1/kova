@@ -104,8 +104,12 @@ export const bridgeLive = () => Boolean(config.BRIDGE_API_KEY)
 /** Bridge's sandbox moves no money; its accounts are labelled as such. */
 export const bridgeSandbox = () => config.BRIDGE_API_URL.includes('sandbox')
 
-async function bridge<T>(path: string, init: { method?: string; body?: unknown; idempotencyKey?: string } = {}): Promise<T> {
-  if (!config.BRIDGE_API_KEY) throw new KovaError('conflict', 'US accounts aren’t switched on for this server yet.')
+async function bridge<T>(
+  path: string,
+  init: { method?: string; body?: unknown; idempotencyKey?: string } = {},
+): Promise<T> {
+  if (!config.BRIDGE_API_KEY)
+    throw new KovaError('conflict', 'US accounts aren’t switched on for this server yet.')
   const response = await fetch(`${config.BRIDGE_API_URL}/v0${path}`, {
     method: init.method ?? 'GET',
     headers: {
@@ -119,7 +123,10 @@ async function bridge<T>(path: string, init: { method?: string; body?: unknown; 
   if (!response) throw new KovaError('chain_error', 'Bridge didn’t answer. Try again in a moment.')
   const body = (await response.json().catch(() => null)) as (T & { message?: string }) | null
   if (!response.ok || !body)
-    throw new KovaError('chain_error', `Bridge refused that${body?.message ? `: ${body.message}` : '.'}`)
+    throw new KovaError(
+      'chain_error',
+      `Bridge refused that${body?.message ? `: ${body.message}` : '.'}`,
+    )
   return body
 }
 
@@ -161,7 +168,9 @@ async function usAccountRow(wallet: Address): Promise<UsAccountRow | null> {
   const [row] = await db
     .select()
     .from(schema.usAccounts)
-    .where(and(eq(schema.usAccounts.wallet, wallet.toLowerCase()), eq(schema.usAccounts.network, net)))
+    .where(
+      and(eq(schema.usAccounts.wallet, wallet.toLowerCase()), eq(schema.usAccounts.network, net)),
+    )
     .limit(1)
   return row ?? null
 }
@@ -225,7 +234,9 @@ export async function openUsAccount(wallet: Address, person: { full_name: string
 
 /** Once Bridge approves the person, makes the virtual account that lands in this wallet. */
 async function advanceUsAccount(row: UsAccountRow): Promise<UsAccountRow> {
-  const link = await bridge<BridgeKycLink>(`/kyc_links/${encodeURIComponent(row.kycLinkId as string)}`).catch(() => null)
+  const link = await bridge<BridgeKycLink>(
+    `/kyc_links/${encodeURIComponent(row.kycLinkId as string)}`,
+  ).catch(() => null)
   if (!link) return row
   if (link.kyc_status !== 'approved' || !link.customer_id) {
     if (link.kyc_status === row.kycStatus) return row
@@ -238,19 +249,22 @@ async function advanceUsAccount(row: UsAccountRow): Promise<UsAccountRow> {
   }
   const wallet = getAddress(row.wallet)
   const destination = await landingAddress(wallet)
-  const account = await bridge<BridgeVirtualAccount>(`/customers/${encodeURIComponent(link.customer_id)}/virtual_accounts`, {
-    method: 'POST',
-    body: {
-      source: { currency: 'usd' },
-      destination: {
-        currency: config.BRIDGE_DESTINATION_CURRENCY,
-        payment_rail: config.BRIDGE_DESTINATION_RAIL,
-        address: destination,
+  const account = await bridge<BridgeVirtualAccount>(
+    `/customers/${encodeURIComponent(link.customer_id)}/virtual_accounts`,
+    {
+      method: 'POST',
+      body: {
+        source: { currency: 'usd' },
+        destination: {
+          currency: config.BRIDGE_DESTINATION_CURRENCY,
+          payment_rail: config.BRIDGE_DESTINATION_RAIL,
+          address: destination,
+        },
+        developer_fee_percent: '0.0',
       },
-      developer_fee_percent: '0.0',
+      idempotencyKey: `kova-va-${net}-${row.wallet}`,
     },
-    idempotencyKey: `kova-va-${net}-${row.wallet}`,
-  })
+  )
   const i = account.source_deposit_instructions
   const details: UsAccountDetails = {
     bank_name: i.bank_name ?? null,
@@ -285,17 +299,24 @@ export const DEFAULT_CARD_DAILY_LIMIT = 200_000_000n
 export const MAX_CARD_DAILY_LIMIT = 2_000_000_000n
 
 async function lithic<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
-  if (!config.LITHIC_API_KEY) throw new KovaError('conflict', 'The dollar card isn’t switched on for this server yet.')
+  if (!config.LITHIC_API_KEY)
+    throw new KovaError('conflict', 'The dollar card isn’t switched on for this server yet.')
   const response = await fetch(`${config.LITHIC_API_URL}/v1${path}`, {
     method: init.method ?? 'GET',
     headers: { Authorization: config.LITHIC_API_KEY, 'content-type': 'application/json' },
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
     signal: AbortSignal.timeout(15_000),
   }).catch(() => null)
-  if (!response) throw new KovaError('chain_error', 'The card issuer didn’t answer. Try again in a moment.')
-  const body = (await response.json().catch(() => null)) as (T & { message?: string; debugging_request_id?: string }) | null
+  if (!response)
+    throw new KovaError('chain_error', 'The card issuer didn’t answer. Try again in a moment.')
+  const body = (await response.json().catch(() => null)) as
+    | (T & { message?: string; debugging_request_id?: string })
+    | null
   if (!response.ok || !body)
-    throw new KovaError('chain_error', `The card issuer refused that${body?.message ? `: ${body.message}` : '.'}`)
+    throw new KovaError(
+      'chain_error',
+      `The card issuer refused that${body?.message ? `: ${body.message}` : '.'}`,
+    )
   return body
 }
 
@@ -353,7 +374,13 @@ function serializeCard(row: DollarCardRow) {
 export async function dollarCardFor(wallet: Address) {
   const live = lithicLive()
   const row = await cardRow(wallet)
-  let transactions: Array<{ id: string; amount: string; status: string; merchant: string; at: string }> = []
+  let transactions: Array<{
+    id: string
+    amount: string
+    status: string
+    merchant: string
+    at: string
+  }> = []
   if (live && row) {
     const page = await lithic<{ data: LithicTransaction[] }>(
       `/transactions?card_token=${encodeURIComponent(row.providerCardToken)}&page_size=20`,
@@ -379,7 +406,8 @@ export async function dollarCardFor(wallet: Address) {
 
 /** Issues the wallet's virtual card, spending at most `dailyLimit` a day. */
 export async function issueDollarCard(wallet: Address, dailyLimit = DEFAULT_CARD_DAILY_LIMIT) {
-  if (await cardRow(wallet)) throw new KovaError('conflict', 'This wallet already has a dollar card.')
+  if (await cardRow(wallet))
+    throw new KovaError('conflict', 'This wallet already has a dollar card.')
   const card = await lithic<LithicCard>('/cards', {
     method: 'POST',
     body: {
@@ -406,15 +434,24 @@ export async function issueDollarCard(wallet: Address, dailyLimit = DEFAULT_CARD
 }
 
 /** Freezes or unfreezes the card at the issuer, so the next payment is refused there. */
-export async function setDollarCard(wallet: Address, change: { frozen?: boolean; dailyLimit?: bigint }) {
+export async function setDollarCard(
+  wallet: Address,
+  change: { frozen?: boolean; dailyLimit?: bigint },
+) {
   const row = await cardRow(wallet)
   if (!row) throw new KovaError('not_found', 'This wallet has no dollar card yet.')
-  if (change.dailyLimit !== undefined && (change.dailyLimit <= 0n || change.dailyLimit > MAX_CARD_DAILY_LIMIT))
+  if (
+    change.dailyLimit !== undefined &&
+    (change.dailyLimit <= 0n || change.dailyLimit > MAX_CARD_DAILY_LIMIT)
+  )
     throw new KovaError('invalid_request', 'A daily limit is between $1 and $2,000.')
   const body: Record<string, unknown> = {}
   if (change.frozen !== undefined) body.state = change.frozen ? 'PAUSED' : 'OPEN'
   if (change.dailyLimit !== undefined) body.spend_limit = toCents(change.dailyLimit)
-  const card = await lithic<LithicCard>(`/cards/${encodeURIComponent(row.providerCardToken)}`, { method: 'PATCH', body })
+  const card = await lithic<LithicCard>(`/cards/${encodeURIComponent(row.providerCardToken)}`, {
+    method: 'PATCH',
+    body,
+  })
   await db
     .update(schema.dollarCards)
     .set({
@@ -430,17 +467,28 @@ export async function setDollarCard(wallet: Address, change: { frozen?: boolean;
  * A link to Lithic's own frame that shows the card's number, expiry and CVC, so they never pass
  * through Kova. Signed with the API key, as Lithic's embedded card UI expects.
  */
-export async function revealDollarCard(wallet: Address, targetOrigin: string): Promise<{ url: string; expires_at: string }> {
+export async function revealDollarCard(
+  wallet: Address,
+  targetOrigin: string,
+): Promise<{ url: string; expires_at: string }> {
   const row = await cardRow(wallet)
   if (!row) throw new KovaError('not_found', 'This wallet has no dollar card yet.')
-  if (!config.LITHIC_API_KEY) throw new KovaError('conflict', 'The dollar card isn’t switched on for this server yet.')
+  if (!config.LITHIC_API_KEY)
+    throw new KovaError('conflict', 'The dollar card isn’t switched on for this server yet.')
   const expires = new Date(Date.now() + 5 * 60_000)
   const request = Buffer.from(
-    JSON.stringify({ token: row.providerCardToken, expiration: expires.toISOString(), target_origin: targetOrigin }),
+    JSON.stringify({
+      token: row.providerCardToken,
+      expiration: expires.toISOString(),
+      target_origin: targetOrigin,
+    }),
   ).toString('base64')
   const hmac = createHmac('sha256', config.LITHIC_API_KEY).update(request).digest('base64')
   const params = new URLSearchParams({ embed_request: request, hmac })
-  return { url: `${config.LITHIC_API_URL}/v1/embed/card?${params}`, expires_at: expires.toISOString() }
+  return {
+    url: `${config.LITHIC_API_URL}/v1/embed/card?${params}`,
+    expires_at: expires.toISOString(),
+  }
 }
 
 /** What Lithic sends for a card authorization (Auth Stream Access), as far as Kova reads it. */
@@ -458,18 +506,26 @@ export interface CardAuthorizationEvent {
  * the wallet holds enough dollars, so the card spends from the Kova balance and never past it.
  * The reply is Lithic's documented `{ result }`: APPROVED, or a decline such as INSUFFICIENT_FUNDS.
  */
-export async function decideCardAuthorization(event: CardAuthorizationEvent): Promise<{ result: string }> {
+export async function decideCardAuthorization(
+  event: CardAuthorizationEvent,
+): Promise<{ result: string }> {
   const cardToken = event.card_token ?? event.card?.token
   const cents = event.amounts?.cardholder?.amount ?? event.amount
-  if (!cardToken || typeof cents !== 'number' || cents <= 0) return { result: 'UNAUTHORIZED_MERCHANT' }
+  if (!cardToken || typeof cents !== 'number' || cents <= 0)
+    return { result: 'UNAUTHORIZED_MERCHANT' }
   const [row] = await db
     .select()
     .from(schema.dollarCards)
     .where(eq(schema.dollarCards.providerCardToken, cardToken))
     .limit(1)
-  if (!row || row.state !== 'open') return { result: 'CARD_PAUSED' }
+  if (row?.state !== 'open') return { result: 'CARD_PAUSED' }
   const balance = await publicClient
-    .readContract({ address: settlementToken.address, abi: erc4626Abi, functionName: 'balanceOf', args: [getAddress(row.wallet)] })
+    .readContract({
+      address: settlementToken.address,
+      abi: erc4626Abi,
+      functionName: 'balanceOf',
+      args: [getAddress(row.wallet)],
+    })
     .catch(() => null)
   if (balance === null || fromCents(cents) > balance) return { result: 'INSUFFICIENT_FUNDS' }
   return { result: 'APPROVED' }
@@ -490,7 +546,9 @@ export function verifyLithicSignature(
   const at = Number(headers.timestamp)
   if (!Number.isFinite(at) || Math.abs(now - at) > 300) return false
   const key = Buffer.from(secret.startsWith('whsec_') ? secret.slice(6) : secret, 'base64')
-  const expected = createHmac('sha256', key).update(`${headers.id}.${headers.timestamp}.${raw}`).digest('base64')
+  const expected = createHmac('sha256', key)
+    .update(`${headers.id}.${headers.timestamp}.${raw}`)
+    .digest('base64')
   return headers.signature.split(' ').some((part) => {
     const [version, sig] = part.split(',')
     return version === 'v1' && sig !== undefined && timingSafeEqualText(sig, expected)
@@ -506,7 +564,9 @@ function timingSafeEqualText(a: string, b: string): boolean {
 // --- Savings (an ERC-4626 vault, behind KovaSaver) ---------------------------------------------
 
 export function savingsVault(): Address | null {
-  return config.KOVA_SAVINGS_VAULT && isAddress(config.KOVA_SAVINGS_VAULT) ? getAddress(config.KOVA_SAVINGS_VAULT) : null
+  return config.KOVA_SAVINGS_VAULT && isAddress(config.KOVA_SAVINGS_VAULT)
+    ? getAddress(config.KOVA_SAVINGS_VAULT)
+    : null
 }
 
 export function saver(): Address | null {
@@ -533,33 +593,67 @@ export async function savingsFor(wallet: Address) {
       moves: [],
     }
   const [name, shares, nonce] = await Promise.all([
-    publicClient.readContract({ address: vault, abi: erc4626Abi, functionName: 'name' }).catch(() => 'Savings'),
-    publicClient.readContract({ address: vault, abi: erc4626Abi, functionName: 'balanceOf', args: [wallet] }),
-    publicClient.readContract({ address: vault, abi: erc4626Abi, functionName: 'nonces', args: [wallet] }).catch(() => 0n),
+    publicClient
+      .readContract({ address: vault, abi: erc4626Abi, functionName: 'name' })
+      .catch(() => 'Savings'),
+    publicClient.readContract({
+      address: vault,
+      abi: erc4626Abi,
+      functionName: 'balanceOf',
+      args: [wallet],
+    }),
+    publicClient
+      .readContract({ address: vault, abi: erc4626Abi, functionName: 'nonces', args: [wallet] })
+      .catch(() => 0n),
   ])
   const balance =
     shares === 0n
       ? 0n
-      : await publicClient.readContract({ address: vault, abi: erc4626Abi, functionName: 'convertToAssets', args: [shares] })
+      : await publicClient.readContract({
+          address: vault,
+          abi: erc4626Abi,
+          functionName: 'convertToAssets',
+          args: [shares],
+        })
   const moves = await db
     .select()
     .from(schema.savingsMoves)
-    .where(and(eq(schema.savingsMoves.wallet, wallet.toLowerCase()), eq(schema.savingsMoves.network, net)))
+    .where(
+      and(
+        eq(schema.savingsMoves.wallet, wallet.toLowerCase()),
+        eq(schema.savingsMoves.network, net),
+      ),
+    )
     .orderBy(desc(schema.savingsMoves.createdAt))
     .limit(50)
-  const deposited = moves.reduce((sum, m) => (m.kind === 'in' ? sum + m.assets : sum - m.assets), 0n)
+  const deposited = moves.reduce(
+    (sum, m) => (m.kind === 'in' ? sum + m.assets : sum - m.assets),
+    0n,
+  )
   const earned = balance > deposited ? balance - deposited : 0n
   return {
     object: 'savings' as const,
     live: true,
     test: net === 'testnet',
     requested: false,
-    vault: { address: vault, name, version: '1', chain_id: network.chainId, shares: shares.toString(), nonce: nonce.toString() },
+    vault: {
+      address: vault,
+      name,
+      version: '1',
+      chain_id: network.chainId,
+      shares: shares.toString(),
+      nonce: nonce.toString(),
+    },
     saver: helper,
     balance: balance.toString(),
     deposited: (deposited > 0n ? deposited : 0n).toString(),
     earned: earned.toString(),
-    moves: moves.map((m) => ({ kind: m.kind, amount: m.assets.toString(), tx_hash: m.txHash, at: m.createdAt.toISOString() })),
+    moves: moves.map((m) => ({
+      kind: m.kind,
+      amount: m.assets.toString(),
+      tx_hash: m.txHash,
+      at: m.createdAt.toISOString(),
+    })),
   }
 }
 
@@ -570,30 +664,58 @@ export async function saveIn(
 ) {
   const vault = savingsVault()
   const helper = saver()
-  if (!vault || !helper) throw new KovaError('conflict', 'Savings aren’t switched on for this server yet.')
+  if (!vault || !helper)
+    throw new KovaError('conflict', 'Savings aren’t switched on for this server yet.')
   if (signed.value <= 0n) throw new KovaError('invalid_request', 'Save more than $0.00.')
   const { v, r, s, yParity } = parseSignature(signed.signature)
   const data = encodeFunctionData({
     abi: kovaSaverAbi,
     functionName: 'save',
-    args: [wallet, signed.value, signed.validAfter, signed.validBefore, signed.nonce, Number(v ?? BigInt(yParity + 27)), r, s],
+    args: [
+      wallet,
+      signed.value,
+      signed.validAfter,
+      signed.validBefore,
+      signed.nonce,
+      Number(v ?? BigInt(yParity + 27)),
+      r,
+      s,
+    ],
   })
   const receipt = await sendFromRelayer(helper, data, { maxGas: 400_000n })
-  if (receipt.status !== 'success') throw new KovaError('chain_error', 'Monad refused the move into savings.')
+  if (receipt.status !== 'success')
+    throw new KovaError('chain_error', 'Monad refused the move into savings.')
   await db
     .insert(schema.savingsMoves)
-    .values({ id: uuidv7(), wallet: wallet.toLowerCase(), network: net, vault: vault.toLowerCase(), kind: 'in', assets: signed.value, txHash: receipt.transactionHash })
+    .values({
+      id: uuidv7(),
+      wallet: wallet.toLowerCase(),
+      network: net,
+      vault: vault.toLowerCase(),
+      kind: 'in',
+      assets: signed.value,
+      txHash: receipt.transactionHash,
+    })
     .onConflictDoNothing()
   return { tx_hash: receipt.transactionHash }
 }
 
 /** Out of savings: a permit on the wallet's vault shares, redeemed by KovaSaver back to the wallet. */
-export async function saveOut(wallet: Address, signed: { shares: bigint; deadline: bigint; signature: Hex }) {
+export async function saveOut(
+  wallet: Address,
+  signed: { shares: bigint; deadline: bigint; signature: Hex },
+) {
   const vault = savingsVault()
   const helper = saver()
-  if (!vault || !helper) throw new KovaError('conflict', 'Savings aren’t switched on for this server yet.')
+  if (!vault || !helper)
+    throw new KovaError('conflict', 'Savings aren’t switched on for this server yet.')
   if (signed.shares <= 0n) throw new KovaError('invalid_request', 'Move out more than $0.00.')
-  const assets = await publicClient.readContract({ address: vault, abi: erc4626Abi, functionName: 'convertToAssets', args: [signed.shares] })
+  const assets = await publicClient.readContract({
+    address: vault,
+    abi: erc4626Abi,
+    functionName: 'convertToAssets',
+    args: [signed.shares],
+  })
   const { v, r, s, yParity } = parseSignature(signed.signature)
   const data = encodeFunctionData({
     abi: kovaSaverAbi,
@@ -601,10 +723,19 @@ export async function saveOut(wallet: Address, signed: { shares: bigint; deadlin
     args: [wallet, signed.shares, signed.deadline, Number(v ?? BigInt(yParity + 27)), r, s],
   })
   const receipt = await sendFromRelayer(helper, data, { maxGas: 400_000n })
-  if (receipt.status !== 'success') throw new KovaError('chain_error', 'Monad refused the move out of savings.')
+  if (receipt.status !== 'success')
+    throw new KovaError('chain_error', 'Monad refused the move out of savings.')
   await db
     .insert(schema.savingsMoves)
-    .values({ id: uuidv7(), wallet: wallet.toLowerCase(), network: net, vault: vault.toLowerCase(), kind: 'out', assets, txHash: receipt.transactionHash })
+    .values({
+      id: uuidv7(),
+      wallet: wallet.toLowerCase(),
+      network: net,
+      vault: vault.toLowerCase(),
+      kind: 'out',
+      assets,
+      txHash: receipt.transactionHash,
+    })
     .onConflictDoNothing()
   return { tx_hash: receipt.transactionHash, amount: assets.toString() }
 }

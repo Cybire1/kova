@@ -32,7 +32,8 @@ import { CopyButton } from './ui'
  * has it, the real thing opens.
  */
 
-const problemOf = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong. Try again.')
+const problemOf = (e: unknown) =>
+  e instanceof Error ? e.message : 'Something went wrong. Try again.'
 
 /** Loads one of the three, and reloads it on demand. */
 function useMoney<T>(load: (address: string) => Promise<T>) {
@@ -147,12 +148,11 @@ export function UsAccountScreen() {
   const [error, setError] = useState<string | null>(null)
   const address = profile?.address as `0x${string}` | undefined
 
-  const act = async (label: string, run: () => Promise<UsAccount | void>) => {
+  const act = async (label: string, run: () => Promise<UsAccount>) => {
     setBusy(label)
     setError(null)
     try {
-      const next = await run()
-      if (next) setData(next)
+      setData(await run())
     } catch (e) {
       setError(problemOf(e))
     } finally {
@@ -184,22 +184,40 @@ export function UsAccountScreen() {
         <div className="m-intro">
           <Art name="kovi-catch" size={104} className="m-intro-art" />
           <h1 className="w-title">Your own US account number</h1>
-          <p className="w-lead">Bridge checks who you are first, as every bank does. It takes a few minutes.</p>
-          {data.sandbox ? <Sandbox what="Bridge sandbox: the account is a test one and no money moves." /> : null}
+          <p className="w-lead">
+            Bridge checks who you are first, as every bank does. It takes a few minutes.
+          </p>
+          {data.sandbox ? (
+            <Sandbox what="Bridge sandbox: the account is a test one and no money moves." />
+          ) : null}
           <label className="m-field">
             <span>Your full name</span>
-            <input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} autoComplete="name" />
+            <input
+              value={form.full_name}
+              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+              autoComplete="name"
+            />
           </label>
           <label className="m-field">
             <span>Email</span>
-            <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" autoComplete="email" />
+            <input
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              type="email"
+              autoComplete="email"
+            />
           </label>
           {error ? <p className="form-error">{error}</p> : null}
           <button
             type="button"
             className="pill pill-block"
             data-tone="coral"
-            disabled={busy !== null || !address || form.full_name.trim().length < 2 || !form.email.includes('@')}
+            disabled={
+              busy !== null ||
+              !address ||
+              form.full_name.trim().length < 2 ||
+              !form.email.includes('@')
+            }
             onClick={() => address && act('open', () => openUsAccount(address, signMessage, form))}
           >
             <span className="pill-label">{busy ? 'Starting…' : 'Continue to verification'}</span>
@@ -213,11 +231,18 @@ export function UsAccountScreen() {
           <Art name="kovi-key" size={104} className="m-intro-art" />
           <h1 className="w-title">Finish with Bridge</h1>
           <p className="w-lead">
-            Bridge is checking it’s you{data.kyc_status ? ` (${data.kyc_status.replaceAll('_', ' ')})` : ''}. Your account
+            Bridge is checking it’s you
+            {data.kyc_status ? ` (${data.kyc_status.replaceAll('_', ' ')})` : ''}. Your account
             number appears here the moment it’s approved.
           </p>
           {data.kyc_link ? (
-            <a href={data.kyc_link} target="_blank" rel="noopener noreferrer" className="pill pill-block" data-tone="coral">
+            <a
+              href={data.kyc_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pill pill-block"
+              data-tone="coral"
+            >
               <span className="pill-label">Verify with Bridge</span>
               <span className="pill-cap">
                 <Icon name="external" size={18} />
@@ -267,7 +292,8 @@ export function UsAccountScreen() {
           )}
           {error ? <p className="form-error">{error}</p> : null}
           <p className="m-quiet">
-            ACH takes 1 to 3 business days and wires arrive the same day. Either way it lands here as {data.arrives_as}.
+            ACH takes 1 to 3 business days and wires arrive the same day. Either way it lands here
+            as {data.arrives_as}.
           </p>
         </div>
       )}
@@ -323,7 +349,9 @@ export function DollarCardScreen() {
         <div className="m-intro">
           <Art name="card-active" size={150} className="m-intro-art" />
           <h1 className="w-title">Get your dollar card</h1>
-          <p className="w-lead">A virtual card you can use straight away, spending up to $200 a day from your balance.</p>
+          <p className="w-lead">
+            A virtual card you can use straight away, spending up to $200 a day from your balance.
+          </p>
           {data.sandbox ? <Sandbox what="Card sandbox: a test card, no money moves." /> : null}
           {error ? <p className="form-error">{error}</p> : null}
           <button
@@ -345,12 +373,20 @@ export function DollarCardScreen() {
           <div className="m-card" data-frozen={data.card.frozen ? 'yes' : 'no'}>
             <span className="m-card-top">
               <span className="m-card-brand">kova</span>
-              {data.card.frozen ? <span className="m-chip">Frozen</span> : <span className="m-card-kind">Virtual</span>}
+              {data.card.frozen ? (
+                <span className="m-chip">Frozen</span>
+              ) : (
+                <span className="m-card-kind">Virtual</span>
+              )}
             </span>
             <span className="m-card-number">•••• •••• •••• {data.card.last_four}</span>
             <span className="m-card-bottom">
               <span>{profile?.name || 'Kova'}</span>
-              <span>{data.card.exp_month && data.card.exp_year ? `${data.card.exp_month}/${data.card.exp_year.slice(-2)}` : ''}</span>
+              <span>
+                {data.card.exp_month && data.card.exp_year
+                  ? `${data.card.exp_month}/${data.card.exp_year.slice(-2)}`
+                  : ''}
+              </span>
             </span>
           </div>
           {error ? <p className="form-error">{error}</p> : null}
@@ -381,11 +417,16 @@ export function DollarCardScreen() {
               data-tone={data.card.frozen ? 'teal' : 'coral'}
               disabled={busy !== null || !address}
               onClick={() =>
-                address && act('freeze', () => setDollarCard(address, signMessage, { frozen: !data.card?.frozen }))
+                address &&
+                act('freeze', () =>
+                  setDollarCard(address, signMessage, { frozen: !data.card?.frozen }),
+                )
               }
             >
               <Icon name="lock" size={18} />
-              <span>{busy === 'freeze' ? 'One moment…' : data.card.frozen ? 'Unfreeze' : 'Freeze'}</span>
+              <span>
+                {busy === 'freeze' ? 'One moment…' : data.card.frozen ? 'Unfreeze' : 'Freeze'}
+              </span>
             </button>
           </div>
           <h2 className="w-section">Daily limit</h2>
@@ -401,7 +442,10 @@ export function DollarCardScreen() {
                   aria-pressed={on}
                   disabled={busy !== null || on || !address}
                   onClick={() =>
-                    address && act('limit', () => setDollarCard(address, signMessage, { daily_limit: units.toString() }))
+                    address &&
+                    act('limit', () =>
+                      setDollarCard(address, signMessage, { daily_limit: units.toString() }),
+                    )
                   }
                 >
                   ${dollars.toLocaleString('en-US')}
@@ -419,7 +463,11 @@ export function DollarCardScreen() {
                   <span>
                     <strong>{t.merchant}</strong>
                     <small>
-                      {new Date(t.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {t.status}
+                      {new Date(t.at).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                      })}{' '}
+                      · {t.status}
                     </small>
                   </span>
                   <span className="m-amount">−{formatUsd(BigInt(t.amount))}</span>
@@ -433,7 +481,12 @@ export function DollarCardScreen() {
         <div className="m-reveal" role="dialog" aria-label="Card number">
           <div className="m-reveal-sheet">
             <iframe src={reveal} title="Your card number" className="m-reveal-frame" />
-            <button type="button" className="pill pill-block" data-tone="ink" onClick={() => setReveal(null)}>
+            <button
+              type="button"
+              className="pill pill-block"
+              data-tone="ink"
+              onClick={() => setReveal(null)}
+            >
               <span className="pill-label">Done</span>
               <span className="pill-cap">
                 <Icon name="check" size={18} />
@@ -481,21 +534,31 @@ export function SavingsScreen() {
           <p className="m-eyebrow">{data.vault?.name ?? 'Savings'}</p>
           <p className="m-big">{formatUsd(BigInt(data.balance))}</p>
           <p className="m-earned">
-            <strong>+{formatUsd(BigInt(data.earned))}</strong> {data.test ? 'test interest' : 'earned'} on{' '}
-            {formatUsd(BigInt(data.deposited))} put in
+            <strong>+{formatUsd(BigInt(data.earned))}</strong>{' '}
+            {data.test ? 'test interest' : 'earned'} on {formatUsd(BigInt(data.deposited))} put in
           </p>
           {data.test ? (
             <Sandbox what="Test savings on Monad testnet: the interest is test dollars Kova adds, not a real yield." />
           ) : null}
           <div className="m-toggle" role="tablist">
             {(['in', 'out'] as const).map((m) => (
-              <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}>
+              <button
+                key={m}
+                type="button"
+                role="tab"
+                aria-selected={mode === m}
+                onClick={() => setMode(m)}
+              >
                 {m === 'in' ? 'Move in' : 'Move out'}
               </button>
             ))}
           </div>
           <label className="m-field m-field-money">
-            <span>{mode === 'in' ? `From your balance (${formatUsd(balance ?? 0n)})` : `From savings (${formatUsd(BigInt(data.balance))})`}</span>
+            <span>
+              {mode === 'in'
+                ? `From your balance (${formatUsd(balance ?? 0n)})`
+                : `From savings (${formatUsd(BigInt(data.balance))})`}
+            </span>
             <span className="m-money-input">
               <span>$</span>
               <input
@@ -528,7 +591,11 @@ export function SavingsScreen() {
                   const total = BigInt(data.balance)
                   if (value > total) throw new Error('That’s more than you have in savings.')
                   const shares = (BigInt(data.vault?.shares ?? '0') * value) / (total || 1n)
-                  await saveOut(account, data, value === total ? BigInt(data.vault?.shares ?? '0') : shares)
+                  await saveOut(
+                    account,
+                    data,
+                    value === total ? BigInt(data.vault?.shares ?? '0') : shares,
+                  )
                   setDone(`${formatUsd(value)} is back in your balance.`)
                 }
                 setAmount('')
@@ -540,7 +607,9 @@ export function SavingsScreen() {
               }
             }}
           >
-            <span className="pill-label">{busy ? 'Moving…' : mode === 'in' ? 'Move into savings' : 'Move to my balance'}</span>
+            <span className="pill-label">
+              {busy ? 'Moving…' : mode === 'in' ? 'Move into savings' : 'Move to my balance'}
+            </span>
             <span className="pill-cap">
               <Icon name={mode === 'in' ? 'down' : 'up'} size={18} />
             </span>
@@ -553,7 +622,12 @@ export function SavingsScreen() {
                   <li key={m.tx_hash}>
                     <span>
                       <strong>{m.kind === 'in' ? 'Into savings' : 'Back to balance'}</strong>
-                      <small>{new Date(m.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</small>
+                      <small>
+                        {new Date(m.at).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
+                      </small>
                     </span>
                     <span className="m-amount">{formatUsd(BigInt(m.amount))}</span>
                   </li>
@@ -577,8 +651,12 @@ export function MoneyRow() {
   const address = profile?.address
   useEffect(() => {
     if (!address) return
-    void getSavings(address).then(setSavings).catch(() => null)
-    void getDollarCard(address).then(setCard).catch(() => null)
+    void getSavings(address)
+      .then(setSavings)
+      .catch(() => null)
+    void getDollarCard(address)
+      .then(setCard)
+      .catch(() => null)
   }, [address])
   const saved = savings?.live ? BigInt(savings.balance) : 0n
   return (
@@ -589,7 +667,9 @@ export function MoneyRow() {
         </span>
         <small>Savings</small>
         <strong>{savings?.live && saved > 0n ? formatUsd(saved) : 'Earn on spare dollars'}</strong>
-        {savings?.live && BigInt(savings.earned) > 0n ? <span className="m-tile-note">+{formatUsd(BigInt(savings.earned))}</span> : null}
+        {savings?.live && BigInt(savings.earned) > 0n ? (
+          <span className="m-tile-note">+{formatUsd(BigInt(savings.earned))}</span>
+        ) : null}
       </Link>
       <Link href="/wallet/card" className="m-tile" data-tone="ink">
         <span className="m-tile-icon">

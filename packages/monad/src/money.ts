@@ -19,7 +19,12 @@ export const MONEY_SIGNATURE_MAX_AGE = 300
  * account, issue or freeze its card, see its card number). `detail` pins the exact change, so a
  * signature for one action can't be replayed as another.
  */
-export function moneyActionMessage(wallet: Address, action: string, signedAt: number, detail = ''): string {
+export function moneyActionMessage(
+  wallet: Address,
+  action: string,
+  signedAt: number,
+  detail = '',
+): string {
   return `Kova account\nWallet ${wallet.toLowerCase()}\nAction ${action}${detail ? `\n${detail}` : ''}\nSigned ${signedAt}`
 }
 
@@ -49,9 +54,18 @@ export interface ReceiveAuthorization {
  * it in the vault in the wallet's own name. Nobody else can carry this out, and the vault shares
  * can only go to the wallet that signed.
  */
-export function receiveAuthorizationTypedData(token: Token, chainId: number, message: ReceiveAuthorization) {
+export function receiveAuthorizationTypedData(
+  token: Token,
+  chainId: number,
+  message: ReceiveAuthorization,
+) {
   return {
-    domain: { name: token.domain.name, version: token.domain.version, chainId, verifyingContract: token.address },
+    domain: {
+      name: token.domain.name,
+      version: token.domain.version,
+      chainId,
+      verifyingContract: token.address,
+    },
     types: receiveAuthorizationTypes,
     primaryType: 'ReceiveWithAuthorization' as const,
     message,
@@ -84,7 +98,12 @@ export function vaultPermitTypedData(
   message: { owner: Address; spender: Address; value: bigint; nonce: bigint; deadline: bigint },
 ) {
   return {
-    domain: { name: vault.name, version: vault.version, chainId, verifyingContract: vault.verifyingContract },
+    domain: {
+      name: vault.name,
+      version: vault.version,
+      chainId,
+      verifyingContract: vault.verifyingContract,
+    },
     types: permitTypes,
     primaryType: 'Permit' as const,
     message,
@@ -127,11 +146,53 @@ export const kovaSaverAbi = [
 
 /** The parts of an ERC-4626 vault (with EIP-2612 permit on its shares) that savings reads. */
 export const erc4626Abi = [
-  { type: 'function', name: 'name', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] },
-  { type: 'function', name: 'asset', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
-  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'owner', type: 'address' }], outputs: [{ type: 'uint256' }] },
-  { type: 'function', name: 'convertToAssets', stateMutability: 'view', inputs: [{ name: 'shares', type: 'uint256' }], outputs: [{ type: 'uint256' }] },
-  { type: 'function', name: 'convertToShares', stateMutability: 'view', inputs: [{ name: 'assets', type: 'uint256' }], outputs: [{ type: 'uint256' }] },
-  { type: 'function', name: 'nonces', stateMutability: 'view', inputs: [{ name: 'owner', type: 'address' }], outputs: [{ type: 'uint256' }] },
-  { type: 'function', name: 'totalAssets', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  {
+    type: 'function',
+    name: 'name',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'string' }],
+  },
+  {
+    type: 'function',
+    name: 'asset',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'balanceOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'convertToAssets',
+    stateMutability: 'view',
+    inputs: [{ name: 'shares', type: 'uint256' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'convertToShares',
+    stateMutability: 'view',
+    inputs: [{ name: 'assets', type: 'uint256' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'nonces',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'totalAssets',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
 ] as const

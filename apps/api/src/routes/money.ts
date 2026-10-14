@@ -45,11 +45,31 @@ function walletAddress(c: { req: { param: (name: string) => string } }): Address
 }
 
 const signed = { signed_at: z.number().int(), signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/) }
-const accessBody = z.object({ feature: z.enum(MONEY_FEATURES as [MoneyFeature, ...MoneyFeature[]]), ...signed })
-const openBody = z.object({ full_name: z.string().trim().min(2).max(120), email: z.string().trim().email().max(200), ...signed })
+const accessBody = z.object({
+  feature: z.enum(MONEY_FEATURES as [MoneyFeature, ...MoneyFeature[]]),
+  ...signed,
+})
+const openBody = z.object({
+  full_name: z.string().trim().min(2).max(120),
+  email: z.string().trim().email().max(200),
+  ...signed,
+})
 const plainSigned = z.object(signed)
-const issueBody = z.object({ daily_limit: z.string().regex(/^\d{1,13}$/).optional(), ...signed })
-const settingsBody = z.object({ frozen: z.boolean().optional(), daily_limit: z.string().regex(/^\d{1,13}$/).optional(), ...signed })
+const issueBody = z.object({
+  daily_limit: z
+    .string()
+    .regex(/^\d{1,13}$/)
+    .optional(),
+  ...signed,
+})
+const settingsBody = z.object({
+  frozen: z.boolean().optional(),
+  daily_limit: z
+    .string()
+    .regex(/^\d{1,13}$/)
+    .optional(),
+  ...signed,
+})
 const revealBody = z.object({ origin: z.string().url().max(200), ...signed })
 const saveInBody = z.object({
   value: z.string().regex(/^\d{1,30}$/),
@@ -64,7 +84,11 @@ const saveOutBody = z.object({
   signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/),
 })
 
-async function body<T>(c: { req: { json: () => Promise<unknown> } }, schema: z.ZodType<T>, expected: string): Promise<T> {
+async function body<T>(
+  c: { req: { json: () => Promise<unknown> } },
+  schema: z.ZodType<T>,
+  expected: string,
+): Promise<T> {
   const parsed = schema.safeParse(await c.req.json().catch(() => ({})))
   if (!parsed.success) throw new KovaError('invalid_request', `Expected ${expected}.`)
   return parsed.data
@@ -75,16 +99,34 @@ export const moneyRoutes = new Hono()
     const wallet = walletAddress(c)
     const b = await body(c, accessBody, '{ feature, signed_at, signature }')
     await requireWalletSignature(wallet, 'request-access', b.signed_at, b.signature, b.feature)
-    limit(`money-access-ip:${clientIp(c)}`, 60, 3_600_000, 'That’s a lot from here. Try again later.')
+    limit(
+      `money-access-ip:${clientIp(c)}`,
+      60,
+      3_600_000,
+      'That’s a lot from here. Try again later.',
+    )
     await requestAccess(wallet, b.feature)
     return c.json({ object: 'access_request', feature: b.feature, requested: true })
   })
-  .get('/wallets/:address/us-account', async (c) => c.json(await usAccountFor(walletAddress(c), false)))
+  .get('/wallets/:address/us-account', async (c) =>
+    c.json(await usAccountFor(walletAddress(c), false)),
+  )
   .post('/wallets/:address/us-account', async (c) => {
     const wallet = walletAddress(c)
     const b = await body(c, openBody, '{ full_name, email, signed_at, signature }')
-    await requireWalletSignature(wallet, 'open-us-account', b.signed_at, b.signature, b.email.toLowerCase())
-    limit(`us-account-ip:${clientIp(c)}`, 10, 3_600_000, 'That’s a lot of accounts from here. Try again later.')
+    await requireWalletSignature(
+      wallet,
+      'open-us-account',
+      b.signed_at,
+      b.signature,
+      b.email.toLowerCase(),
+    )
+    limit(
+      `us-account-ip:${clientIp(c)}`,
+      10,
+      3_600_000,
+      'That’s a lot of accounts from here. Try again later.',
+    )
     return c.json(await openUsAccount(wallet, { full_name: b.full_name, email: b.email }))
   })
   .post('/wallets/:address/us-account/view', async (c) => {
@@ -97,22 +139,50 @@ export const moneyRoutes = new Hono()
   .post('/wallets/:address/dollar-card', async (c) => {
     const wallet = walletAddress(c)
     const b = await body(c, issueBody, '{ daily_limit?, signed_at, signature }')
-    await requireWalletSignature(wallet, 'issue-dollar-card', b.signed_at, b.signature, b.daily_limit ?? '')
-    limit(`dollar-card-ip:${clientIp(c)}`, 10, 3_600_000, 'That’s a lot of cards from here. Try again later.')
+    await requireWalletSignature(
+      wallet,
+      'issue-dollar-card',
+      b.signed_at,
+      b.signature,
+      b.daily_limit ?? '',
+    )
+    limit(
+      `dollar-card-ip:${clientIp(c)}`,
+      10,
+      3_600_000,
+      'That’s a lot of cards from here. Try again later.',
+    )
     return c.json(await issueDollarCard(wallet, b.daily_limit ? BigInt(b.daily_limit) : undefined))
   })
   .post('/wallets/:address/dollar-card/settings', async (c) => {
     const wallet = walletAddress(c)
     const b = await body(c, settingsBody, '{ frozen?, daily_limit?, signed_at, signature }')
-    const detail = `${b.frozen === undefined ? '' : b.frozen ? 'freeze' : 'unfreeze'}${b.daily_limit ? ` limit ${b.daily_limit}` : ''}`.trim()
+    const detail =
+      `${b.frozen === undefined ? '' : b.frozen ? 'freeze' : 'unfreeze'}${b.daily_limit ? ` limit ${b.daily_limit}` : ''}`.trim()
     await requireWalletSignature(wallet, 'dollar-card-settings', b.signed_at, b.signature, detail)
-    return c.json(await setDollarCard(wallet, { frozen: b.frozen, dailyLimit: b.daily_limit ? BigInt(b.daily_limit) : undefined }))
+    return c.json(
+      await setDollarCard(wallet, {
+        frozen: b.frozen,
+        dailyLimit: b.daily_limit ? BigInt(b.daily_limit) : undefined,
+      }),
+    )
   })
   .post('/wallets/:address/dollar-card/reveal', async (c) => {
     const wallet = walletAddress(c)
     const b = await body(c, revealBody, '{ origin, signed_at, signature }')
-    await requireWalletSignature(wallet, 'reveal-dollar-card', b.signed_at, b.signature, new URL(b.origin).origin)
-    limit(`dollar-card-reveal:${wallet.toLowerCase()}`, 20, 3_600_000, 'That’s a lot of looks at the card. Try again later.')
+    await requireWalletSignature(
+      wallet,
+      'reveal-dollar-card',
+      b.signed_at,
+      b.signature,
+      new URL(b.origin).origin,
+    )
+    limit(
+      `dollar-card-reveal:${wallet.toLowerCase()}`,
+      20,
+      3_600_000,
+      'That’s a lot of looks at the card. Try again later.',
+    )
     return c.json(await revealDollarCard(wallet, new URL(b.origin).origin))
   })
   .post('/dollar-card/authorizations', async (c) => {
@@ -136,7 +206,12 @@ export const moneyRoutes = new Hono()
   .post('/wallets/:address/savings/in', async (c) => {
     const wallet = walletAddress(c)
     const b = await body(c, saveInBody, '{ value, valid_after, valid_before, nonce, signature }')
-    limit(`savings:${wallet.toLowerCase()}`, 30, 3_600_000, 'That’s a lot of moves in an hour. Try again later.')
+    limit(
+      `savings:${wallet.toLowerCase()}`,
+      30,
+      3_600_000,
+      'That’s a lot of moves in an hour. Try again later.',
+    )
     return c.json(
       await saveIn(wallet, {
         value: BigInt(b.value),
@@ -150,6 +225,17 @@ export const moneyRoutes = new Hono()
   .post('/wallets/:address/savings/out', async (c) => {
     const wallet = walletAddress(c)
     const b = await body(c, saveOutBody, '{ shares, deadline, signature }')
-    limit(`savings:${wallet.toLowerCase()}`, 30, 3_600_000, 'That’s a lot of moves in an hour. Try again later.')
-    return c.json(await saveOut(wallet, { shares: BigInt(b.shares), deadline: BigInt(b.deadline), signature: b.signature as Hex }))
+    limit(
+      `savings:${wallet.toLowerCase()}`,
+      30,
+      3_600_000,
+      'That’s a lot of moves in an hour. Try again later.',
+    )
+    return c.json(
+      await saveOut(wallet, {
+        shares: BigInt(b.shares),
+        deadline: BigInt(b.deadline),
+        signature: b.signature as Hex,
+      }),
+    )
   })

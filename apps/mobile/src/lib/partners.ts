@@ -40,7 +40,13 @@ export interface DollarCard {
   sandbox: boolean
   provider: string
   requested: boolean
-  card: { last_four: string; exp_month: string | null; exp_year: string | null; frozen: boolean; daily_limit: string } | null
+  card: {
+    last_four: string
+    exp_month: string | null
+    exp_year: string | null
+    frozen: boolean
+    daily_limit: string
+  } | null
   transactions: Array<{ id: string; amount: string; status: string; merchant: string; at: string }>
 }
 
@@ -48,7 +54,14 @@ export interface Savings {
   live: boolean
   test: boolean
   requested: boolean
-  vault: { address: Address; name: string; version: string; chain_id: number; shares: string; nonce: string } | null
+  vault: {
+    address: Address
+    name: string
+    version: string
+    chain_id: number
+    shares: string
+    nonce: string
+  } | null
   saver: Address | null
   balance: string
   deposited: string
@@ -61,10 +74,15 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
     `${apiUrl}/v1/wallets/${path}`,
     body === undefined
       ? undefined
-      : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) },
+      : {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        },
   )
   const json = (await response.json().catch(() => ({}))) as { error?: { message?: string } }
-  if (!response.ok) throw new Error(json.error?.message ?? `Kova is unreachable (${response.status})`)
+  if (!response.ok)
+    throw new Error(json.error?.message ?? `Kova is unreachable (${response.status})`)
   return json as T
 }
 
@@ -77,29 +95,53 @@ type SignTyped = (typedData: TypedDataDefinition) => Promise<Hex>
 
 async function signed(address: Address, sign: Sign, action: string, detail = '') {
   const signed_at = Math.floor(Date.now() / 1000)
-  return { signed_at, signature: await sign(moneyActionMessage(address, action, signed_at, detail)) }
+  return {
+    signed_at,
+    signature: await sign(moneyActionMessage(address, action, signed_at, detail)),
+  }
 }
 
 export async function requestAccess(address: Address, sign: Sign, feature: MoneyFeature) {
-  return call<{ requested: true }>(`${address}/access-requests`, { feature, ...(await signed(address, sign, 'request-access', feature)) })
+  return call<{ requested: true }>(`${address}/access-requests`, {
+    feature,
+    ...(await signed(address, sign, 'request-access', feature)),
+  })
 }
 
-export async function openUsAccount(address: Address, sign: Sign, person: { full_name: string; email: string }) {
+export async function openUsAccount(
+  address: Address,
+  sign: Sign,
+  person: { full_name: string; email: string },
+) {
   const proof = await signed(address, sign, 'open-us-account', person.email.trim().toLowerCase())
   return call<UsAccount>(`${address}/us-account`, { ...person, ...proof })
 }
 
 export async function viewUsAccount(address: Address, sign: Sign) {
-  return call<UsAccount>(`${address}/us-account/view`, await signed(address, sign, 'view-us-account'))
+  return call<UsAccount>(
+    `${address}/us-account/view`,
+    await signed(address, sign, 'view-us-account'),
+  )
 }
 
 export async function issueDollarCard(address: Address, sign: Sign) {
-  return call<DollarCard>(`${address}/dollar-card`, await signed(address, sign, 'issue-dollar-card'))
+  return call<DollarCard>(
+    `${address}/dollar-card`,
+    await signed(address, sign, 'issue-dollar-card'),
+  )
 }
 
-export async function setDollarCard(address: Address, sign: Sign, change: { frozen?: boolean; daily_limit?: string }) {
-  const detail = `${change.frozen === undefined ? '' : change.frozen ? 'freeze' : 'unfreeze'}${change.daily_limit ? ` limit ${change.daily_limit}` : ''}`.trim()
-  return call<DollarCard>(`${address}/dollar-card/settings`, { ...change, ...(await signed(address, sign, 'dollar-card-settings', detail)) })
+export async function setDollarCard(
+  address: Address,
+  sign: Sign,
+  change: { frozen?: boolean; daily_limit?: string },
+) {
+  const detail =
+    `${change.frozen === undefined ? '' : change.frozen ? 'freeze' : 'unfreeze'}${change.daily_limit ? ` limit ${change.daily_limit}` : ''}`.trim()
+  return call<DollarCard>(`${address}/dollar-card/settings`, {
+    ...change,
+    ...(await signed(address, sign, 'dollar-card-settings', detail)),
+  })
 }
 
 /** The issuer's own page with the card's number, opened in the in-app browser. */
@@ -110,10 +152,16 @@ export async function revealDollarCard(address: Address, sign: Sign, origin: str
   })
 }
 
-const randomNonce = (): Hex => `0x${Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join('')}`
+const randomNonce = (): Hex =>
+  `0x${Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join('')}`
 
 /** Into savings: one signed receiveWithAuthorization naming Kova's saver contract. */
-export async function saveIn(address: Address, signTyped: SignTyped, savings: Savings, value: bigint) {
+export async function saveIn(
+  address: Address,
+  signTyped: SignTyped,
+  savings: Savings,
+  value: bigint,
+) {
   if (!savings.saver) throw new Error('Savings aren’t open yet.')
   const token = getToken(networkId, 'AUSD')
   const message = {
@@ -124,7 +172,13 @@ export async function saveIn(address: Address, signTyped: SignTyped, savings: Sa
     validBefore: BigInt(Math.floor(Date.now() / 1000) + 600),
     nonce: randomNonce(),
   }
-  const signature = await signTyped(receiveAuthorizationTypedData(token, network.chainId, message) as unknown as TypedDataDefinition)
+  const signature = await signTyped(
+    receiveAuthorizationTypedData(
+      token,
+      network.chainId,
+      message,
+    ) as unknown as TypedDataDefinition,
+  )
   return call<{ tx_hash: Hex }>(`${address}/savings/in`, {
     value: value.toString(),
     valid_after: '0',
@@ -135,14 +189,29 @@ export async function saveIn(address: Address, signTyped: SignTyped, savings: Sa
 }
 
 /** Out of savings: a permit on the vault shares for Kova's saver, which sends them home. */
-export async function saveOut(address: Address, signTyped: SignTyped, savings: Savings, shares: bigint) {
+export async function saveOut(
+  address: Address,
+  signTyped: SignTyped,
+  savings: Savings,
+  shares: bigint,
+) {
   if (!savings.saver || !savings.vault) throw new Error('Savings aren’t open yet.')
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 600)
   const signature = await signTyped(
     vaultPermitTypedData(
-      { name: savings.vault.name, version: savings.vault.version, verifyingContract: savings.vault.address },
+      {
+        name: savings.vault.name,
+        version: savings.vault.version,
+        verifyingContract: savings.vault.address,
+      },
       savings.vault.chain_id,
-      { owner: address, spender: savings.saver, value: shares, nonce: BigInt(savings.vault.nonce), deadline },
+      {
+        owner: address,
+        spender: savings.saver,
+        value: shares,
+        nonce: BigInt(savings.vault.nonce),
+        deadline,
+      },
     ) as unknown as TypedDataDefinition,
   )
   return call<{ tx_hash: Hex; amount: string }>(`${address}/savings/out`, {

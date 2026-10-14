@@ -39,7 +39,9 @@ export async function POST(request: Request, context: Context) {
   const path = await target(context)
   if (!path) return Response.json({ error: 'Not found' }, { status: 404 })
   try {
-    return Response.json(await kovaPublic(path, { method: 'POST', body: JSON.stringify(await request.json()) }))
+    return Response.json(
+      await kovaPublic(path, { method: 'POST', body: JSON.stringify(await request.json()) }),
+    )
   } catch (error) {
     return failure(error)
   }

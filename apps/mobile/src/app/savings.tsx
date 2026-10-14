@@ -88,7 +88,9 @@ export default function SavingsScreen() {
               </Txt>{' '}
               {data.test ? 'test interest' : 'earned'} on {formatUsd(BigInt(data.deposited))} put in
             </Txt>
-            {data.test ? <SandboxNote text="Testnet: the interest is test dollars Kova adds" /> : null}
+            {data.test ? (
+              <SandboxNote text="Testnet: the interest is test dollars Kova adds" />
+            ) : null}
             <View style={styles.toggle}>
               {(['in', 'out'] as const).map((m) => (
                 <Pressable
@@ -104,8 +106,15 @@ export default function SavingsScreen() {
                 </Pressable>
               ))}
             </View>
-            <Txt weight="semi" size={13} color={colors.muted} style={{ marginTop: 16, marginLeft: 4 }}>
-              {mode === 'in' ? `From your balance (${formatUsd(balance ?? 0n)})` : `From savings (${formatUsd(BigInt(data.balance))})`}
+            <Txt
+              weight="semi"
+              size={13}
+              color={colors.muted}
+              style={{ marginTop: 16, marginLeft: 4 }}
+            >
+              {mode === 'in'
+                ? `From your balance (${formatUsd(balance ?? 0n)})`
+                : `From savings (${formatUsd(BigInt(data.balance))})`}
             </Txt>
             <View style={styles.money}>
               <Txt weight="bold" size={30}>
@@ -131,7 +140,9 @@ export default function SavingsScreen() {
             ) : null}
             <View style={{ marginTop: 18 }}>
               <PillButton
-                label={busy ? 'Moving…' : mode === 'in' ? 'Move into savings' : 'Move to my balance'}
+                label={
+                  busy ? 'Moving…' : mode === 'in' ? 'Move into savings' : 'Move to my balance'
+                }
                 icon={mode === 'in' ? 'down' : 'up'}
                 loading={busy}
                 disabled={!(Number(amount) > 0)}
@@ -147,7 +158,10 @@ export default function SavingsScreen() {
                         {m.kind === 'in' ? 'Into savings' : 'Back to balance'}
                       </Txt>
                       <Txt size={13} color={colors.muted}>
-                        {new Date(m.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        {new Date(m.at).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
                       </Txt>
                     </View>
                     <Txt weight="semi" size={15}>
@@ -177,7 +191,13 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: colors.surface,
   },
-  toggleItem: { flex: 1, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 999 },
+  toggleItem: {
+    flex: 1,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+  },
   toggleOn: { backgroundColor: colors.ink },
   money: {
     flexDirection: 'row',
@@ -192,7 +212,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   moneyInput: { flex: 1, fontFamily: fonts.bold, fontSize: 30, color: colors.ink },
-  list: { marginTop: 22, paddingHorizontal: 16, borderWidth: 2, borderColor: colors.ink, borderRadius: 22, backgroundColor: colors.surface },
+  list: {
+    marginTop: 22,
+    paddingHorizontal: 16,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+  },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(11,26,29,0.18)' },
 })

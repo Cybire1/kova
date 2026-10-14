@@ -40,7 +40,13 @@ export interface DollarCard {
   sandbox: boolean
   provider: string
   requested: boolean
-  card: { last_four: string; exp_month: string | null; exp_year: string | null; frozen: boolean; daily_limit: string } | null
+  card: {
+    last_four: string
+    exp_month: string | null
+    exp_year: string | null
+    frozen: boolean
+    daily_limit: string
+  } | null
   transactions: Array<{ id: string; amount: string; status: string; merchant: string; at: string }>
 }
 
@@ -48,7 +54,14 @@ export interface Savings {
   live: boolean
   test: boolean
   requested: boolean
-  vault: { address: Address; name: string; version: string; chain_id: number; shares: string; nonce: string } | null
+  vault: {
+    address: Address
+    name: string
+    version: string
+    chain_id: number
+    shares: string
+    nonce: string
+  } | null
   saver: Address | null
   balance: string
   deposited: string
@@ -64,8 +77,10 @@ async function read<T>(response: Response): Promise<T> {
   return body
 }
 
-export const getUsAccount = (address: string) => fetch(`${base(address)}/us-account`).then(read<UsAccount>)
-export const getDollarCard = (address: string) => fetch(`${base(address)}/dollar-card`).then(read<DollarCard>)
+export const getUsAccount = (address: string) =>
+  fetch(`${base(address)}/us-account`).then(read<UsAccount>)
+export const getDollarCard = (address: string) =>
+  fetch(`${base(address)}/dollar-card`).then(read<DollarCard>)
 export const getSavings = (address: string) => fetch(`${base(address)}/savings`).then(read<Savings>)
 
 type Sign = (message: string) => Promise<Hex>
@@ -86,10 +101,17 @@ async function post<T>(address: string, path: string, body: unknown): Promise<T>
 }
 
 export async function requestAccess(address: Address, sign: Sign, feature: MoneyFeature) {
-  return post<{ requested: true }>(address, 'access-requests', { feature, ...(await signed(address, sign, 'request-access', feature)) })
+  return post<{ requested: true }>(address, 'access-requests', {
+    feature,
+    ...(await signed(address, sign, 'request-access', feature)),
+  })
 }
 
-export async function openUsAccount(address: Address, sign: Sign, person: { full_name: string; email: string }) {
+export async function openUsAccount(
+  address: Address,
+  sign: Sign,
+  person: { full_name: string; email: string },
+) {
   const proof = await signed(address, sign, 'open-us-account', person.email.trim().toLowerCase())
   return post<UsAccount>(address, 'us-account', { ...person, ...proof })
 }
@@ -102,9 +124,17 @@ export async function issueDollarCard(address: Address, sign: Sign) {
   return post<DollarCard>(address, 'dollar-card', await signed(address, sign, 'issue-dollar-card'))
 }
 
-export async function setDollarCard(address: Address, sign: Sign, change: { frozen?: boolean; daily_limit?: string }) {
-  const detail = `${change.frozen === undefined ? '' : change.frozen ? 'freeze' : 'unfreeze'}${change.daily_limit ? ` limit ${change.daily_limit}` : ''}`.trim()
-  return post<DollarCard>(address, 'dollar-card/settings', { ...change, ...(await signed(address, sign, 'dollar-card-settings', detail)) })
+export async function setDollarCard(
+  address: Address,
+  sign: Sign,
+  change: { frozen?: boolean; daily_limit?: string },
+) {
+  const detail =
+    `${change.frozen === undefined ? '' : change.frozen ? 'freeze' : 'unfreeze'}${change.daily_limit ? ` limit ${change.daily_limit}` : ''}`.trim()
+  return post<DollarCard>(address, 'dollar-card/settings', {
+    ...change,
+    ...(await signed(address, sign, 'dollar-card-settings', detail)),
+  })
 }
 
 export async function revealDollarCard(address: Address, sign: Sign) {
@@ -116,7 +146,12 @@ export async function revealDollarCard(address: Address, sign: Sign) {
 }
 
 /** Into savings: one signed receiveWithAuthorization naming Kova's saver contract. */
-export async function saveIn(network: NetworkId, account: LocalAccount, savings: Savings, value: bigint) {
+export async function saveIn(
+  network: NetworkId,
+  account: LocalAccount,
+  savings: Savings,
+  value: bigint,
+) {
   if (!savings.saver) throw new Error('Savings aren’t open yet.')
   const token = getToken(network, 'AUSD')
   const message = {
@@ -127,7 +162,9 @@ export async function saveIn(network: NetworkId, account: LocalAccount, savings:
     validBefore: BigInt(Math.floor(Date.now() / 1000) + 600),
     nonce: toHex(crypto.getRandomValues(new Uint8Array(32))),
   }
-  const signature = await account.signTypedData(receiveAuthorizationTypedData(token, getNetwork(network).chainId, message))
+  const signature = await account.signTypedData(
+    receiveAuthorizationTypedData(token, getNetwork(network).chainId, message),
+  )
   return post<{ tx_hash: Hex }>(account.address, 'savings/in', {
     value: value.toString(),
     valid_after: '0',
@@ -143,9 +180,19 @@ export async function saveOut(account: LocalAccount, savings: Savings, shares: b
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 600)
   const signature = await account.signTypedData(
     vaultPermitTypedData(
-      { name: savings.vault.name, version: savings.vault.version, verifyingContract: savings.vault.address },
+      {
+        name: savings.vault.name,
+        version: savings.vault.version,
+        verifyingContract: savings.vault.address,
+      },
       savings.vault.chain_id,
-      { owner: account.address, spender: savings.saver, value: shares, nonce: BigInt(savings.vault.nonce), deadline },
+      {
+        owner: account.address,
+        spender: savings.saver,
+        value: shares,
+        nonce: BigInt(savings.vault.nonce),
+        deadline,
+      },
     ),
   )
   return post<{ tx_hash: Hex; amount: string }>(account.address, 'savings/out', {

@@ -5,7 +5,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
 import type { Address } from 'viem'
 import { formatUsd } from '@/lib/money'
-import { type DollarCard, getDollarCard, getSavings, requestAccess, type Savings } from '@/lib/partners'
+import {
+  type DollarCard,
+  getDollarCard,
+  getSavings,
+  requestAccess,
+  type Savings,
+} from '@/lib/partners'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import type { KoviPose } from './art'
@@ -18,7 +24,8 @@ import { Stage } from './Stage'
  * and the honest state for a feature that waits on a partner.
  */
 
-export const problemOf = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong. Try again.')
+export const problemOf = (e: unknown) =>
+  e instanceof Error ? e.message : 'Something went wrong. Try again.'
 
 export function useMoney<T>(load: (address: Address) => Promise<T>) {
   const { profile } = useWallet()
@@ -186,8 +193,12 @@ export function MoneyTiles() {
   const address = profile?.address
   useEffect(() => {
     if (!address) return
-    void getSavings(address).then(setSavings).catch(() => null)
-    void getDollarCard(address).then(setCard).catch(() => null)
+    void getSavings(address)
+      .then(setSavings)
+      .catch(() => null)
+    void getDollarCard(address)
+      .then(setCard)
+      .catch(() => null)
   }, [address])
   const saved = savings?.live ? BigInt(savings.balance) : 0n
   return (
@@ -196,7 +207,11 @@ export function MoneyTiles() {
         accessibilityRole="button"
         accessibilityLabel="Savings"
         onPress={() => router.push('/savings')}
-        style={({ pressed }) => [tiles.tile, { backgroundColor: colors.tealSoft }, pressed && tiles.pressed]}
+        style={({ pressed }) => [
+          tiles.tile,
+          { backgroundColor: colors.tealSoft },
+          pressed && tiles.pressed,
+        ]}
       >
         <View style={tiles.icon}>
           <Icon name="up" size={16} />
@@ -212,7 +227,11 @@ export function MoneyTiles() {
         accessibilityRole="button"
         accessibilityLabel="Dollar card"
         onPress={() => router.push('/dollar-card')}
-        style={({ pressed }) => [tiles.tile, { backgroundColor: colors.ink }, pressed && tiles.pressed]}
+        style={({ pressed }) => [
+          tiles.tile,
+          { backgroundColor: colors.ink },
+          pressed && tiles.pressed,
+        ]}
       >
         <View style={[tiles.icon, { borderColor: colors.surface }]}>
           <Icon name="card" size={16} color={colors.surface} />
@@ -221,7 +240,9 @@ export function MoneyTiles() {
           Dollar card
         </Txt>
         <Txt weight="bold" size={15} color={colors.surface} numberOfLines={2}>
-          {card?.card ? `•••• ${card.card.last_four}${card.card.frozen ? ' · Frozen' : ''}` : 'Spend anywhere'}
+          {card?.card
+            ? `•••• ${card.card.last_four}${card.card.frozen ? ' · Frozen' : ''}`
+            : 'Spend anywhere'}
         </Txt>
       </Pressable>
     </View>
@@ -238,7 +259,12 @@ export function DollarCardRow() {
         onPress={() => router.push('/dollar-card')}
         style={({ pressed }) => [tiles.wide, pressed && tiles.pressed]}
       >
-        <View style={[tiles.icon, { position: 'relative', top: 0, left: 0, borderColor: colors.surface }]}>
+        <View
+          style={[
+            tiles.icon,
+            { position: 'relative', top: 0, left: 0, borderColor: colors.surface },
+          ]}
+        >
           <Icon name="card" size={16} color={colors.surface} />
         </View>
         <View style={{ flex: 1 }}>
