@@ -16,13 +16,16 @@ const ALLOWED = [
 
 async function pass(request: Request, params: Promise<{ path: string[] }>) {
   const path = (await params).path.join('/')
-  if (!ALLOWED.some((re) => re.test(path))) return Response.json({ error: 'No such endpoint.' }, { status: 404 })
+  if (!ALLOWED.some((re) => re.test(path)))
+    return Response.json({ error: 'No such endpoint.' }, { status: 404 })
   const query = new URL(request.url).search
   try {
     return Response.json(
       await kovaPublic(`/v1/${path}${query}`, {
         method: request.method,
-        ...(request.method === 'POST' ? { body: JSON.stringify(await request.json().catch(() => ({}))) } : {}),
+        ...(request.method === 'POST'
+          ? { body: JSON.stringify(await request.json().catch(() => ({}))) }
+          : {}),
       }),
     )
   } catch (error) {

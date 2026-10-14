@@ -6,10 +6,10 @@ import type { Address } from 'viem'
 import { accept, inviteInfo, type KeyInvite } from '@/lib/spend-keys'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import { Kovi } from '@/ui/art'
 import { Icon, type IconName } from '@/ui/Icon'
 import { short } from '@/ui/Keys'
 import { Header, PillButton, Rise, Screen, Txt } from '@/ui/primitives'
-import { Kovi } from '@/ui/art'
 
 /**
  * An allowance or a budget someone gave you (mykova.app/a/<code>): your wallet makes the key on
@@ -38,13 +38,19 @@ export default function AcceptKey() {
     ? [
         { icon: 'lock', text: 'Your phone makes its own key. Nobody else can spend with it.' },
         { icon: 'snow', text: `${from} can freeze it any time, in one tap.` },
-        { icon: 'clock', text: `Until ${new Date(invite.ends_at).toLocaleDateString([], { day: 'numeric', month: 'short' })}` },
+        {
+          icon: 'clock',
+          text: `Until ${new Date(invite.ends_at).toLocaleDateString([], { day: 'numeric', month: 'short' })}`,
+        },
       ]
     : []
 
   return (
     <Screen bg={colors.tealSoft}>
-      <Header backIcon="close" onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+      <Header
+        backIcon="close"
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+      />
       <ScrollView contentContainerStyle={styles.body}>
         {problem && !invite ? (
           <Txt size={16} weight="semi" color={colors.danger}>
@@ -89,7 +95,9 @@ export default function AcceptKey() {
             <>
               <Txt weight="bold" size={17} style={styles.center}>
                 {invite.status === 'active' ? 'It’s on.' : 'Accepted.'}{' '}
-                {invite.status === 'active' ? 'It’s on your Home.' : `${from} switches it on, then it shows on your Home.`}
+                {invite.status === 'active'
+                  ? 'It’s on your Home.'
+                  : `${from} switches it on, then it shows on your Home.`}
               </Txt>
               <PillButton label="Go to Home" icon="home" onPress={() => router.replace('/')} />
             </>
@@ -110,7 +118,9 @@ export default function AcceptKey() {
                     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
                     setAccepted(true)
                   })
-                  .catch((e: unknown) => setProblem(e instanceof Error ? e.message : 'That didn’t go through.'))
+                  .catch((e: unknown) =>
+                    setProblem(e instanceof Error ? e.message : 'That didn’t go through.'),
+                  )
                   .finally(() => setBusy(false))
               }}
             />

@@ -1,4 +1,10 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  timingSafeEqual,
+} from 'node:crypto'
 import { schema, uuidv7 } from '@kova/db'
 import {
   claimTypedData,
@@ -34,7 +40,15 @@ import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
 import { decodeId } from '../ids.js'
-import { cardContract, cardsReady, holderNonce, MAX_DAILY_LIMIT, onChainCard, permitState, sendCard } from './cards.js'
+import {
+  cardContract,
+  cardsReady,
+  holderNonce,
+  MAX_DAILY_LIMIT,
+  onChainCard,
+  permitState,
+  sendCard,
+} from './cards.js'
 import { settleFromReceipt } from './settle.js'
 
 /**
@@ -73,18 +87,25 @@ const nowS = () => Math.floor(Date.now() / 1000)
 export const keysReady = () => cardsReady()
 export const agentsReady = () => cardsReady() && Boolean(config.KOVA_KEYS_MASTER_KEY)
 
-export function requireKeys(kind?: KeyKind): { contract: Address; cosigner: ReturnType<typeof privateKeyToAccount> } {
+export function requireKeys(kind?: KeyKind): {
+  contract: Address
+  cosigner: ReturnType<typeof privateKeyToAccount>
+} {
   if (!cardContract || !config.KOVA_CARD_COSIGNER_KEY || !cardsReady())
     throw new KovaError('conflict', 'Spending keys aren’t switched on for this server yet.')
   if (kind === 'agent' && !config.KOVA_KEYS_MASTER_KEY)
     throw new KovaError('conflict', 'Agent keys aren’t switched on for this server yet.')
-  return { contract: cardContract, cosigner: privateKeyToAccount(config.KOVA_CARD_COSIGNER_KEY as Hex) }
+  return {
+    contract: cardContract,
+    cosigner: privateKeyToAccount(config.KOVA_CARD_COSIGNER_KEY as Hex),
+  }
 }
 
 // ── Sealing an agent's key ──────────────────────────────────────────────────────────────────
 
 function masterKey(): Buffer {
-  if (!config.KOVA_KEYS_MASTER_KEY) throw new KovaError('conflict', 'Agent keys aren’t switched on for this server yet.')
+  if (!config.KOVA_KEYS_MASTER_KEY)
+    throw new KovaError('conflict', 'Agent keys aren’t switched on for this server yet.')
   return Buffer.from(config.KOVA_KEYS_MASTER_KEY.slice(2), 'hex')
 }
 
@@ -92,7 +113,10 @@ function seal(privateKey: Hex, keyId: string): string {
   const iv = randomBytes(12)
   const cipher = createCipheriv('aes-256-gcm', masterKey(), iv)
   cipher.setAAD(Buffer.from(keyId))
-  const body = Buffer.concat([cipher.update(Buffer.from(privateKey.slice(2), 'hex')), cipher.final()])
+  const body = Buffer.concat([
+    cipher.update(Buffer.from(privateKey.slice(2), 'hex')),
+    cipher.final(),
+  ])
   return Buffer.concat([iv, cipher.getAuthTag(), body]).toString('base64url')
 }
 
@@ -136,10 +160,14 @@ export async function keysOf(wallet: Address): Promise<{ given: KeyRow[]; receiv
     ),
     orderBy: [desc(schema.walletKeys.createdAt)],
   })
-  const fresh = rows.filter((r) => !(r.status === 'invited' && r.createdAt.getTime() < Date.now() - INVITE_TTL_MS))
+  const fresh = rows.filter(
+    (r) => !(r.status === 'invited' && r.createdAt.getTime() < Date.now() - INVITE_TTL_MS),
+  )
   return {
     given: fresh.filter((r) => r.ownerAddress === address),
-    received: fresh.filter((r) => r.holderAddress === address && (r.status === 'active' || r.status === 'frozen')),
+    received: fresh.filter(
+      (r) => r.holderAddress === address && (r.status === 'active' || r.status === 'frozen'),
+    ),
   }
 }
 
@@ -233,7 +261,10 @@ export function serializePayment(row: KeyPaymentRow, key?: KeyRow) {
 export async function paymentsOf(keyIds: string[], limit = 50): Promise<KeyPaymentRow[]> {
   if (keyIds.length === 0) return []
   return db.query.keyPayments.findMany({
-    where: and(inArray(schema.keyPayments.walletKeyId, keyIds), sql`${schema.keyPayments.status} <> 'prepared'`),
+    where: and(
+      inArray(schema.keyPayments.walletKeyId, keyIds),
+      sql`${schema.keyPayments.status} <> 'prepared'`,
+    ),
     orderBy: [desc(schema.keyPayments.createdAt)],
     limit,
   })
@@ -251,7 +282,10 @@ export interface Terms {
 function checkTerms(terms: Terms) {
   if (!terms.label.trim()) throw new KovaError('invalid_request', 'Say who it’s for.')
   if (terms.limit <= 0n || terms.limit > MAX_DAILY_LIMIT)
-    throw new KovaError('invalid_request', `A limit is between $0.01 and $${formatAmount(MAX_DAILY_LIMIT)}.`)
+    throw new KovaError(
+      'invalid_request',
+      `A limit is between $0.01 and $${formatAmount(MAX_DAILY_LIMIT)}.`,
+    )
   if (!Number.isInteger(terms.days) || terms.days < 1 || terms.days > MAX_DAYS)
     throw new KovaError('invalid_request', 'A key lasts between a day and a year.')
 }
@@ -289,7 +323,8 @@ async function inviteRow(code: string): Promise<KeyRow> {
   const row = /^[A-Za-z0-9_-]{8,64}$/.test(code)
     ? await db.query.walletKeys.findFirst({ where: eq(schema.walletKeys.inviteHash, sha256(code)) })
     : undefined
-  if (!row || row.status === 'removed' || row.network !== network.id) throw new KovaError('not_found', 'This invite isn’t open.')
+  if (!row || row.status === 'removed' || row.network !== network.id)
+    throw new KovaError('not_found', 'This invite isn’t open.')
   return row
 }
 
@@ -319,14 +354,23 @@ export async function inviteFor(code: string) {
  */
 export async function acceptInvite(
   code: string,
-  input: { holder: Address; holderName?: string | undefined; key: Address; claimSignature: Hex; claimDeadline: bigint },
+  input: {
+    holder: Address
+    holderName?: string | undefined
+    key: Address
+    claimSignature: Hex
+    claimDeadline: bigint
+  },
 ): Promise<KeyRow> {
   const { contract } = requireKeys()
   const row = await inviteRow(code)
   if (row.status !== 'invited' || row.createdAt.getTime() < Date.now() - INVITE_TTL_MS)
     throw new KovaError('conflict', 'This invite has already been used or has run out.')
   if (isAddressEqual(row.ownerAddress as Address, input.holder))
-    throw new KovaError('invalid_request', 'This is your own invite. Send the link to the person it’s for.')
+    throw new KovaError(
+      'invalid_request',
+      'This is your own invite. Send the link to the person it’s for.',
+    )
   const deadline = Number(input.claimDeadline)
   if (deadline < nowS() + 3600 || deadline > nowS() + CLAIM_MAX_S)
     throw new KovaError('invalid_request', 'That approval’s time is off. Try again.')
@@ -340,7 +384,9 @@ export async function acceptInvite(
   }).catch(() => null)
   if (!signer || !isAddressEqual(signer, input.key))
     throw new KovaError('invalid_request', 'The key’s signature doesn’t match. Try again.')
-  const taken = await db.query.walletKeys.findFirst({ where: eq(schema.walletKeys.keyAddress, input.key.toLowerCase()) })
+  const taken = await db.query.walletKeys.findFirst({
+    where: eq(schema.walletKeys.keyAddress, input.key.toLowerCase()),
+  })
   if (taken && taken.id !== row.id) throw new KovaError('conflict', 'That key is already in use.')
 
   const [updated] = await db
@@ -368,15 +414,27 @@ export interface AgentTerms extends Terms {
   payees: 'anyone' | Address[]
 }
 
-export async function createAgent(owner: Address, input: AgentTerms & { ownerName?: string | undefined }): Promise<KeyRow> {
+export async function createAgent(
+  owner: Address,
+  input: AgentTerms & { ownerName?: string | undefined },
+): Promise<KeyRow> {
   requireKeys('agent')
   checkTerms(input)
   if (input.perPayment <= 0n || input.perPayment > input.limit)
-    throw new KovaError('invalid_request', 'The most one payment can be is between $0.01 and the key’s limit.')
+    throw new KovaError(
+      'invalid_request',
+      'The most one payment can be is between $0.01 and the key’s limit.',
+    )
   if (input.approveAbove < 0n || input.approveAbove > input.perPayment)
-    throw new KovaError('invalid_request', 'The ask-first line is at most the most one payment can be.')
+    throw new KovaError(
+      'invalid_request',
+      'The ask-first line is at most the most one payment can be.',
+    )
   if (input.payees !== 'anyone' && (input.payees.length === 0 || input.payees.length > 20))
-    throw new KovaError('invalid_request', 'List between 1 and 20 wallets it may pay, or let it pay anyone.')
+    throw new KovaError(
+      'invalid_request',
+      'List between 1 and 20 wallets it may pay, or let it pay anyone.',
+    )
   const id = uuidv7()
   const privateKey = generatePrivateKey()
   const key = privateKeyToAccount(privateKey).address
@@ -417,7 +475,10 @@ export async function agentForToken(token: string | undefined): Promise<KeyRow> 
   const expected = Buffer.from(row?.tokenHash ?? '0'.repeat(64), 'hex')
   const given = Buffer.from(sha256(token), 'hex')
   if (!row || row.kind !== 'agent' || !timingSafeEqual(expected, given) || row.status === 'removed')
-    throw new KovaError('unauthorized', 'This agent key isn’t valid any more. Its owner can make a new one.')
+    throw new KovaError(
+      'unauthorized',
+      'This agent key isn’t valid any more. Its owner can make a new one.',
+    )
   return row
 }
 
@@ -427,12 +488,19 @@ export async function agentForToken(token: string | undefined): Promise<KeyRow> 
 export async function linkPlan(row: KeyRow) {
   const { contract } = requireKeys(row.kind as KeyKind)
   if (row.status !== 'accepted' || !row.keyAddress)
-    throw new KovaError('conflict', row.status === 'invited' ? 'Nobody has accepted this invite yet.' : 'This key is already on.')
+    throw new KovaError(
+      'conflict',
+      row.status === 'invited' ? 'Nobody has accepted this invite yet.' : 'This key is already on.',
+    )
   let deadline = row.claimDeadline ?? 0
   if (row.kind === 'agent' || deadline < nowS() + 120) {
-    if (row.kind !== 'agent') throw new KovaError('conflict', 'This invite’s approval ran out. Send a new one.')
+    if (row.kind !== 'agent')
+      throw new KovaError('conflict', 'This invite’s approval ran out. Send a new one.')
     deadline = nowS() + 600
-    await db.update(schema.walletKeys).set({ claimDeadline: deadline }).where(eq(schema.walletKeys.id, row.id))
+    await db
+      .update(schema.walletKeys)
+      .set({ claimDeadline: deadline })
+      .where(eq(schema.walletKeys.id, row.id))
   }
   const owner = getAddress(row.ownerAddress)
   const [nonce, permit] = await Promise.all([holderNonce(owner), permitState(owner)])
@@ -457,7 +525,10 @@ export async function linkPlan(row: KeyRow) {
 
 export async function activateKey(
   row: KeyRow,
-  input: { holderSignature: Hex; permit: { value: bigint; deadline: bigint; signature: Hex } | null },
+  input: {
+    holderSignature: Hex
+    permit: { value: bigint; deadline: bigint; signature: Hex } | null
+  },
 ): Promise<{ row: KeyRow; token: string | null }> {
   const { contract } = requireKeys(row.kind as KeyKind)
   if (row.status !== 'accepted' || !row.keyAddress || !row.claimDeadline)
@@ -465,11 +536,18 @@ export async function activateKey(
   const owner = getAddress(row.ownerAddress)
   const card = getAddress(row.keyAddress)
   const deadline = BigInt(row.claimDeadline)
-  if (Number(deadline) < nowS() + 5) throw new KovaError('invalid_request', 'That approval ran out. Try again.')
+  if (Number(deadline) < nowS() + 5)
+    throw new KovaError('invalid_request', 'That approval ran out. Try again.')
 
   const nonce = await holderNonce(owner)
   const holderSigner = await recoverTypedDataAddress({
-    ...linkTypedData(network.chainId, contract, { holder: owner, card, dailyLimit: dailyCap(row), nonce, deadline }),
+    ...linkTypedData(network.chainId, contract, {
+      holder: owner,
+      card,
+      dailyLimit: dailyCap(row),
+      nonce,
+      deadline,
+    }),
     signature: input.holderSignature,
   }).catch(() => null)
   if (!holderSigner || !isAddressEqual(holderSigner, owner))
@@ -477,9 +555,13 @@ export async function activateKey(
 
   const claimSignature =
     row.kind === 'agent'
-      ? await agentAccount(row).signTypedData(claimTypedData(network.chainId, contract, { card, holder: owner, deadline }))
+      ? await agentAccount(row).signTypedData(
+          claimTypedData(network.chainId, contract, { card, holder: owner, deadline }),
+        )
       : (row.claimSignature as Hex)
-  const permit = input.permit ? splitPermit(input.permit.value, input.permit.deadline, input.permit.signature) : NO_PERMIT
+  const permit = input.permit
+    ? splitPermit(input.permit.value, input.permit.deadline, input.permit.signature)
+    : NO_PERMIT
   const receipt = await sendCard(
     contract,
     encodeFunctionData({
@@ -500,7 +582,11 @@ export async function activateKey(
     values.tokenPrefix = token.slice(0, TOKEN_PREFIX)
     values.tokenHash = sha256(token)
   }
-  const [updated] = await db.update(schema.walletKeys).set(values).where(eq(schema.walletKeys.id, row.id)).returning()
+  const [updated] = await db
+    .update(schema.walletKeys)
+    .set(values)
+    .where(eq(schema.walletKeys.id, row.id))
+    .returning()
   return { row: updated as KeyRow, token }
 }
 
@@ -547,10 +633,14 @@ export async function setFrozen(
     }),
     signature: input.holderSignature,
   }).catch(() => null)
-  if (!signer || !isAddressEqual(signer, owner)) throw new KovaError('invalid_request', 'The wallet’s approval doesn’t match. Try again.')
+  if (!signer || !isAddressEqual(signer, owner))
+    throw new KovaError('invalid_request', 'The wallet’s approval doesn’t match. Try again.')
   // A freeze bites now: Kova stops cosigning at once, before the chain hears of it.
   if (input.frozen)
-    await db.update(schema.walletKeys).set({ status: 'frozen', updatedAt: new Date() }).where(eq(schema.walletKeys.id, row.id))
+    await db
+      .update(schema.walletKeys)
+      .set({ status: 'frozen', updatedAt: new Date() })
+      .where(eq(schema.walletKeys.id, row.id))
   await sendCard(
     contract,
     encodeFunctionData({
@@ -581,10 +671,17 @@ export async function removePlan(row: KeyRow) {
       nonce: (await holderNonce(owner)).toString(),
       deadline: nowS() + 600,
     }
-  return { object: 'key_remove_plan', on_chain: false, message: keyRemoveMessage({ owner, keyId: row.id }) }
+  return {
+    object: 'key_remove_plan',
+    on_chain: false,
+    message: keyRemoveMessage({ owner, keyId: row.id }),
+  }
 }
 
-export async function removeKey(row: KeyRow, input: { deadline?: bigint | undefined; signature: Hex }): Promise<KeyRow> {
+export async function removeKey(
+  row: KeyRow,
+  input: { deadline?: bigint | undefined; signature: Hex },
+): Promise<KeyRow> {
   const { contract } = requireKeys()
   const owner = getAddress(row.ownerAddress)
   let txHash: Hex | null = null
@@ -593,15 +690,28 @@ export async function removeKey(row: KeyRow, input: { deadline?: bigint | undefi
     const card = getAddress(row.keyAddress)
     const nonce = await holderNonce(owner)
     const signer = await recoverTypedDataAddress({
-      ...unlinkTypedData(network.chainId, contract, { holder: owner, card, nonce, deadline: input.deadline }),
+      ...unlinkTypedData(network.chainId, contract, {
+        holder: owner,
+        card,
+        nonce,
+        deadline: input.deadline,
+      }),
       signature: input.signature,
     }).catch(() => null)
-    if (!signer || !isAddressEqual(signer, owner)) throw new KovaError('invalid_request', 'The wallet’s approval doesn’t match. Try again.')
+    if (!signer || !isAddressEqual(signer, owner))
+      throw new KovaError('invalid_request', 'The wallet’s approval doesn’t match. Try again.')
     // Off for Kova at once; the chain follows.
-    await db.update(schema.walletKeys).set({ status: 'frozen', updatedAt: new Date() }).where(eq(schema.walletKeys.id, row.id))
+    await db
+      .update(schema.walletKeys)
+      .set({ status: 'frozen', updatedAt: new Date() })
+      .where(eq(schema.walletKeys.id, row.id))
     const receipt = await sendCard(
       contract,
-      encodeFunctionData({ abi: kovaCardAbi, functionName: 'unlink', args: [card, input.deadline, input.signature] }),
+      encodeFunctionData({
+        abi: kovaCardAbi,
+        functionName: 'unlink',
+        args: [card, input.deadline, input.signature],
+      }),
     )
     txHash = receipt.transactionHash
   } else {
@@ -609,11 +719,18 @@ export async function removeKey(row: KeyRow, input: { deadline?: bigint | undefi
       message: keyRemoveMessage({ owner, keyId: row.id }),
       signature: input.signature,
     }).catch(() => null)
-    if (!signer || !isAddressEqual(signer, owner)) throw new KovaError('invalid_request', 'The wallet’s approval doesn’t match. Try again.')
+    if (!signer || !isAddressEqual(signer, owner))
+      throw new KovaError('invalid_request', 'The wallet’s approval doesn’t match. Try again.')
   }
   const [updated] = await db
     .update(schema.walletKeys)
-    .set({ status: 'removed', removedTxHash: txHash, tokenHash: null, sealedKey: null, updatedAt: new Date() })
+    .set({
+      status: 'removed',
+      removedTxHash: txHash,
+      tokenHash: null,
+      sealedKey: null,
+      updatedAt: new Date(),
+    })
     .where(eq(schema.walletKeys.id, row.id))
     .returning()
   return updated as KeyRow
@@ -623,26 +740,41 @@ export async function removeKey(row: KeyRow, input: { deadline?: bigint | undefi
 
 type Verdict = { kind: 'pay' } | { kind: 'ask' } | { kind: 'deny'; reason: string }
 
-async function judge(row: KeyRow, amount: bigint, to: Address, approved: boolean): Promise<Verdict> {
+async function judge(
+  row: KeyRow,
+  amount: bigint,
+  to: Address,
+  approved: boolean,
+): Promise<Verdict> {
   if (row.status === 'frozen') return { kind: 'deny', reason: 'This key is frozen by its owner.' }
-  if (row.status !== 'active' || !row.keyAddress) return { kind: 'deny', reason: 'This key isn’t switched on.' }
-  if (row.expiresAt < new Date()) return { kind: 'deny', reason: 'This key has ended. Its owner can make a new one.' }
+  if (row.status !== 'active' || !row.keyAddress)
+    return { kind: 'deny', reason: 'This key isn’t switched on.' }
+  if (row.expiresAt < new Date())
+    return { kind: 'deny', reason: 'This key has ended. Its owner can make a new one.' }
   if (amount <= 0n) return { kind: 'deny', reason: 'A payment has to move some money.' }
-  if (isAddressEqual(to, row.ownerAddress as Address)) return { kind: 'deny', reason: 'That would pay the owner their own money.' }
+  if (isAddressEqual(to, row.ownerAddress as Address))
+    return { kind: 'deny', reason: 'That would pay the owner their own money.' }
   const rules = row.rules
   if (rules) {
     if (amount > BigInt(rules.perPayment))
-      return { kind: 'deny', reason: `That’s over this key’s limit of $${formatAmount(BigInt(rules.perPayment))} a payment.` }
+      return {
+        kind: 'deny',
+        reason: `That’s over this key’s limit of $${formatAmount(BigInt(rules.perPayment))} a payment.`,
+      }
     if (rules.payees !== 'anyone' && !rules.payees.some((p) => isAddressEqual(p as Address, to)))
       return { kind: 'deny', reason: 'This key may only pay the wallets its owner listed.' }
   }
   const spent = await spentSince(row.id, periodStart(row))
   if (spent + amount > row.spendLimit) {
     const left = row.spendLimit > spent ? row.spendLimit - spent : 0n
-    return { kind: 'deny', reason: `That’s over what this key has left this ${row.period === KEY_WEEK ? 'week' : 'day'}: $${formatAmount(left)}.` }
+    return {
+      kind: 'deny',
+      reason: `That’s over what this key has left this ${row.period === KEY_WEEK ? 'week' : 'day'}: $${formatAmount(left)}.`,
+    }
   }
   const chain = await onChainCard(getAddress(row.keyAddress))
-  if (!isAddressEqual(chain.holder, row.ownerAddress as Address)) return { kind: 'deny', reason: 'This key isn’t linked on Monad any more.' }
+  if (!isAddressEqual(chain.holder, row.ownerAddress as Address))
+    return { kind: 'deny', reason: 'This key isn’t linked on Monad any more.' }
   if (chain.frozen) return { kind: 'deny', reason: 'This key is frozen by its owner.' }
   if (chain.left < amount) {
     const dayLeft = chain.dailyLimit > chain.spentToday ? chain.dailyLimit - chain.spentToday : 0n
@@ -658,7 +790,10 @@ async function judge(row: KeyRow, amount: bigint, to: Address, approved: boolean
   return { kind: 'pay' }
 }
 
-async function record(row: KeyRow, values: Omit<typeof schema.keyPayments.$inferInsert, 'id' | 'walletKeyId'>) {
+async function record(
+  row: KeyRow,
+  values: Omit<typeof schema.keyPayments.$inferInsert, 'id' | 'walletKeyId'>,
+) {
   const [payment] = await db
     .insert(schema.keyPayments)
     .values({ id: uuidv7(), walletKeyId: row.id, ...values })
@@ -666,14 +801,20 @@ async function record(row: KeyRow, values: Omit<typeof schema.keyPayments.$infer
   return payment as KeyPaymentRow
 }
 
-async function settle(payment: KeyPaymentRow, values: Partial<typeof schema.keyPayments.$inferInsert>) {
+async function settle(
+  payment: KeyPaymentRow,
+  values: Partial<typeof schema.keyPayments.$inferInsert>,
+) {
   const [updated] = await db
     .update(schema.keyPayments)
     .set({ ...values, updatedAt: new Date() })
     .where(eq(schema.keyPayments.id, payment.id))
     .returning()
   if (values.status === 'paid')
-    await db.update(schema.walletKeys).set({ lastUsedAt: new Date() }).where(eq(schema.walletKeys.id, payment.walletKeyId))
+    await db
+      .update(schema.walletKeys)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(schema.walletKeys.id, payment.walletKeyId))
   return updated as KeyPaymentRow
 }
 
@@ -695,13 +836,22 @@ function paymentData(contract: Address, row: KeyRow, payment: KeyPaymentRow) {
 }
 
 /** Cosigns and sends a payment the key has signed. The payment is claimed first, so it pays once. */
-async function cosignAndSend(row: KeyRow, payment: KeyPaymentRow, keySignature: Hex): Promise<KeyPaymentRow> {
+async function cosignAndSend(
+  row: KeyRow,
+  payment: KeyPaymentRow,
+  keySignature: Hex,
+): Promise<KeyPaymentRow> {
   const { contract, cosigner } = requireKeys()
   const typed = paymentData(contract, row, payment)
   const [claimed] = await db
     .update(schema.keyPayments)
     .set({ status: 'paying', updatedAt: new Date() })
-    .where(and(eq(schema.keyPayments.id, payment.id), inArray(schema.keyPayments.status, ['prepared', 'approved'])))
+    .where(
+      and(
+        eq(schema.keyPayments.id, payment.id),
+        inArray(schema.keyPayments.status, ['prepared', 'approved']),
+      ),
+    )
     .returning()
   if (!claimed) throw new KovaError('conflict', 'This payment is already being paid.')
   try {
@@ -726,7 +876,10 @@ async function cosignAndSend(row: KeyRow, payment: KeyPaymentRow, keySignature: 
     if (payment.kind === 'charge') await settleFromReceipt(receipt).catch(() => {})
     return settle(claimed, { status: 'paid', txHash: receipt.transactionHash })
   } catch (error) {
-    return settle(claimed, { status: 'failed', reason: error instanceof KovaError ? error.message : why(error) })
+    return settle(claimed, {
+      status: 'failed',
+      reason: error instanceof KovaError ? error.message : why(error),
+    })
   }
 }
 
@@ -738,13 +891,22 @@ export function chargeIdFrom(text: string): string | null {
 
 async function openCharge(chargeId: string) {
   const uuid = decodeId('paymentIntent', chargeId)
-  const intent = uuid ? await db.query.paymentIntents.findFirst({ where: eq(schema.paymentIntents.id, uuid) }) : undefined
+  const intent = uuid
+    ? await db.query.paymentIntents.findFirst({ where: eq(schema.paymentIntents.id, uuid) })
+    : undefined
   if (!intent) throw new KovaError('not_found', 'No such Kova charge.')
-  if (intent.status !== 'requires_payment') throw new KovaError('conflict', `This charge is ${intent.status.replace('_', ' ')}.`)
-  if (intent.expiresAt < new Date()) throw new KovaError('conflict', 'This charge has expired. Ask the shop for a new one.')
+  if (intent.status !== 'requires_payment')
+    throw new KovaError('conflict', `This charge is ${intent.status.replace('_', ' ')}.`)
+  if (intent.expiresAt < new Date())
+    throw new KovaError('conflict', 'This charge has expired. Ask the shop for a new one.')
   if (!isAddressEqual(intent.tokenAddress as Address, settlementToken.address))
-    throw new KovaError('invalid_request', 'This charge is in a different dollar than Kova keys pay in.')
-  const merchant = await db.query.merchants.findFirst({ where: eq(schema.merchants.id, intent.merchantId) })
+    throw new KovaError(
+      'invalid_request',
+      'This charge is in a different dollar than Kova keys pay in.',
+    )
+  const merchant = await db.query.merchants.findFirst({
+    where: eq(schema.merchants.id, intent.merchantId),
+  })
   return { intent, shop: merchant?.name ?? 'A Kova shop' }
 }
 
@@ -753,10 +915,20 @@ async function openCharge(chargeId: string) {
 /** The holder wants to pay: check the key may, and give back the exact payment for it to sign. */
 export async function preparePayment(
   row: KeyRow,
-  input: { holder: Address; to?: Address | undefined; amount?: bigint | undefined; charge?: string | undefined; note?: string | undefined },
+  input: {
+    holder: Address
+    to?: Address | undefined
+    amount?: bigint | undefined
+    charge?: string | undefined
+    note?: string | undefined
+  },
 ): Promise<{ payment: KeyPaymentRow; typedData: ReturnType<typeof paymentTypedData> }> {
   const { contract } = requireKeys()
-  if (row.kind === 'agent' || !row.holderAddress || !isAddressEqual(row.holderAddress as Address, input.holder))
+  if (
+    row.kind === 'agent' ||
+    !row.holderAddress ||
+    !isAddressEqual(row.holderAddress as Address, input.holder)
+  )
     throw new KovaError('forbidden', 'Only the person this key was given to can spend it.')
   let to: Address
   let amount: bigint
@@ -771,7 +943,8 @@ export async function preparePayment(
     description = shop
     kind = 'charge'
   } else {
-    if (!input.to || !input.amount) throw new KovaError('invalid_request', 'Say who to pay and how much.')
+    if (!input.to || !input.amount)
+      throw new KovaError('invalid_request', 'Say who to pay and how much.')
     to = input.to
     amount = input.amount
   }
@@ -796,13 +969,21 @@ export async function paymentRow(id: string): Promise<KeyPaymentRow | undefined>
 }
 
 /** The holder's key signed: check it, run the rules once more, cosign and pay. */
-export async function completePayment(payment: KeyPaymentRow, signature: Hex): Promise<KeyPaymentRow> {
+export async function completePayment(
+  payment: KeyPaymentRow,
+  signature: Hex,
+): Promise<KeyPaymentRow> {
   const { contract } = requireKeys()
   const row = await keyRow(payment.walletKeyId)
   if (!row || !row.keyAddress) throw new KovaError('not_found', 'No such key.')
-  if (payment.status !== 'prepared') throw new KovaError('conflict', `This payment is ${payment.status}.`)
-  if ((payment.deadline ?? 0) <= nowS() + 3) throw new KovaError('conflict', 'That took too long. Try again.')
-  const signer = await recoverTypedDataAddress({ ...paymentData(contract, row, payment), signature }).catch(() => null)
+  if (payment.status !== 'prepared')
+    throw new KovaError('conflict', `This payment is ${payment.status}.`)
+  if ((payment.deadline ?? 0) <= nowS() + 3)
+    throw new KovaError('conflict', 'That took too long. Try again.')
+  const signer = await recoverTypedDataAddress({
+    ...paymentData(contract, row, payment),
+    signature,
+  }).catch(() => null)
   if (!signer || !isAddressEqual(signer, row.keyAddress as Address))
     throw new KovaError('invalid_request', 'The key’s signature doesn’t match. Try again.')
   // A prepared payment isn't counted yet, so the rules see what's already been paid, plus this.
@@ -815,12 +996,18 @@ export async function completePayment(payment: KeyPaymentRow, signature: Hex): P
 
 async function agentSend(row: KeyRow, payment: KeyPaymentRow): Promise<KeyPaymentRow> {
   const { contract } = requireKeys('agent')
-  const fresh = await settle(payment, { memo: payment.memo ?? randomMemo(), deadline: nowS() + PAYMENT_TTL_S })
+  const fresh = await settle(payment, {
+    memo: payment.memo ?? randomMemo(),
+    deadline: nowS() + PAYMENT_TTL_S,
+  })
   const signature = await agentAccount(row).signTypedData(paymentData(contract, row, fresh))
   return cosignAndSend(row, fresh, signature)
 }
 
-export async function agentPay(row: KeyRow, input: { to: Address; amount: bigint; note?: string | undefined }) {
+export async function agentPay(
+  row: KeyRow,
+  input: { to: Address; amount: bigint; note?: string | undefined },
+) {
   const verdict = await judge(row, input.amount, input.to, false)
   const base = {
     kind: 'pay',
@@ -828,7 +1015,8 @@ export async function agentPay(row: KeyRow, input: { to: Address; amount: bigint
     amount: input.amount,
     description: input.note?.trim().slice(0, 200) || null,
   }
-  if (verdict.kind === 'deny') return record(row, { ...base, status: 'denied', reason: verdict.reason })
+  if (verdict.kind === 'deny')
+    return record(row, { ...base, status: 'denied', reason: verdict.reason })
   if (verdict.kind === 'ask') return record(row, { ...base, status: 'pending_approval' })
   return agentSend(row, await record(row, { ...base, status: 'prepared', memo: randomMemo() }))
 }
@@ -845,7 +1033,8 @@ export async function agentPayCharge(row: KeyRow, chargeId: string) {
     request: { charge: chargeId },
   }
   const verdict = await judge(row, intent.amount, to, false)
-  if (verdict.kind === 'deny') return record(row, { ...base, status: 'denied', reason: verdict.reason })
+  if (verdict.kind === 'deny')
+    return record(row, { ...base, status: 'denied', reason: verdict.reason })
   if (verdict.kind === 'ask') return record(row, { ...base, status: 'pending_approval' })
   return agentSend(row, await record(row, { ...base, status: 'prepared' }))
 }
@@ -868,9 +1057,14 @@ export async function describeAgent(row: KeyRow) {
 
 // ── The owner's answer to an agent's ask ────────────────────────────────────────────────────
 
-export async function approvalsFor(owner: Address): Promise<{ payment: KeyPaymentRow; key: KeyRow }[]> {
+export async function approvalsFor(
+  owner: Address,
+): Promise<{ payment: KeyPaymentRow; key: KeyRow }[]> {
   const keys = await db.query.walletKeys.findMany({
-    where: and(eq(schema.walletKeys.ownerAddress, owner.toLowerCase()), eq(schema.walletKeys.network, network.id)),
+    where: and(
+      eq(schema.walletKeys.ownerAddress, owner.toLowerCase()),
+      eq(schema.walletKeys.network, network.id),
+    ),
   })
   if (keys.length === 0) return []
   const ids = keys.map((k) => k.id)
@@ -885,13 +1079,23 @@ export async function approvalsFor(owner: Address): Promise<{ payment: KeyPaymen
       ),
     )
   const waiting = await db.query.keyPayments.findMany({
-    where: and(inArray(schema.keyPayments.walletKeyId, ids), eq(schema.keyPayments.status, 'pending_approval')),
+    where: and(
+      inArray(schema.keyPayments.walletKeyId, ids),
+      eq(schema.keyPayments.status, 'pending_approval'),
+    ),
     orderBy: [desc(schema.keyPayments.createdAt)],
   })
-  return waiting.map((payment) => ({ payment, key: keys.find((k) => k.id === payment.walletKeyId) as KeyRow }))
+  return waiting.map((payment) => ({
+    payment,
+    key: keys.find((k) => k.id === payment.walletKeyId) as KeyRow,
+  }))
 }
 
-export function approvalMessageFor(owner: Address, payment: KeyPaymentRow, decision: 'approve' | 'decline') {
+export function approvalMessageFor(
+  owner: Address,
+  payment: KeyPaymentRow,
+  decision: 'approve' | 'decline',
+) {
   return keyApprovalMessage({
     owner,
     paymentId: payment.id,
@@ -912,7 +1116,10 @@ export async function answerApproval(input: {
   if (!payment || !key || !isAddressEqual(key.ownerAddress as Address, input.owner))
     throw new KovaError('not_found', 'No such payment waiting for this wallet.')
   if (payment.status !== 'pending_approval')
-    throw new KovaError('conflict', `This payment is ${payment.status.replace('_', ' ')}, not waiting.`)
+    throw new KovaError(
+      'conflict',
+      `This payment is ${payment.status.replace('_', ' ')}, not waiting.`,
+    )
   const signer = await recoverMessageAddress({
     message: approvalMessageFor(getAddress(input.owner), payment, input.decision),
     signature: input.signature,
@@ -921,15 +1128,24 @@ export async function answerApproval(input: {
     throw new KovaError('forbidden', 'Only the wallet that owns this key can answer for it.')
   const [claimed] = await db
     .update(schema.keyPayments)
-    .set({ status: input.decision === 'approve' ? 'approved' : 'declined', decidedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(schema.keyPayments.id, payment.id), eq(schema.keyPayments.status, 'pending_approval')))
+    .set({
+      status: input.decision === 'approve' ? 'approved' : 'declined',
+      decidedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(
+      and(eq(schema.keyPayments.id, payment.id), eq(schema.keyPayments.status, 'pending_approval')),
+    )
     .returning()
   if (!claimed) throw new KovaError('conflict', 'This payment was already answered.')
   if (input.decision === 'decline') return claimed
   if (claimed.kind === 'charge') {
     try {
-      const { intent } = await openCharge(String((claimed.request as { charge?: string } | null)?.charge ?? ''))
-      if (intent.amount !== claimed.amount) return settle(claimed, { status: 'failed', reason: 'The charge changed.' })
+      const { intent } = await openCharge(
+        String((claimed.request as { charge?: string } | null)?.charge ?? ''),
+      )
+      if (intent.amount !== claimed.amount)
+        return settle(claimed, { status: 'failed', reason: 'The charge changed.' })
     } catch (error) {
       return settle(claimed, { status: 'failed', reason: why(error) })
     }

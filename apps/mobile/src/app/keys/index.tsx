@@ -4,7 +4,16 @@ import { useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import type { Address } from 'viem'
 import { apiUrl, shareWebUrl } from '@/lib/config'
-import { freeze, inviteSomeone, leftLine, limitLine, newAgent, removeKey, type SpendKey, switchOn } from '@/lib/spend-keys'
+import {
+  freeze,
+  inviteSomeone,
+  leftLine,
+  limitLine,
+  newAgent,
+  removeKey,
+  type SpendKey,
+  switchOn,
+} from '@/lib/spend-keys'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon, type IconName } from '@/ui/Icon'
@@ -13,10 +22,10 @@ import {
   copyAndTell,
   Field,
   KeyIcon,
+  styles as keyStyles,
   Mini,
   Received,
   shareLink,
-  styles as keyStyles,
   useKeys,
 } from '@/ui/Keys'
 import { Header, Screen, Txt } from '@/ui/primitives'
@@ -28,15 +37,46 @@ import { Header, Screen, Txt } from '@/ui/primitives'
  */
 
 type Kind = 'allowance' | 'team' | 'agent'
-const groups: { kind: Kind; title: string; icon: IconName; tone: string; empty: string; add: string }[] = [
-  { kind: 'allowance', title: 'Allowances', icon: 'sparkle', tone: colors.coralSoft, empty: 'Give someone dollars to spend, a day or a week at a time.', add: 'Give one' },
-  { kind: 'team', title: 'Your team', icon: 'user', tone: colors.tealSoft, empty: 'Give someone at your shop a budget of their own.', add: 'Add someone' },
-  { kind: 'agent', title: 'AI agents', icon: 'bolt', tone: colors.tealSoft, empty: 'Let Claude or any AI agent pay, within limits you set.', add: 'New agent key' },
+const groups: {
+  kind: Kind
+  title: string
+  icon: IconName
+  tone: string
+  empty: string
+  add: string
+}[] = [
+  {
+    kind: 'allowance',
+    title: 'Allowances',
+    icon: 'sparkle',
+    tone: colors.coralSoft,
+    empty: 'Give someone dollars to spend, a day or a week at a time.',
+    add: 'Give one',
+  },
+  {
+    kind: 'team',
+    title: 'Your team',
+    icon: 'user',
+    tone: colors.tealSoft,
+    empty: 'Give someone at your shop a budget of their own.',
+    add: 'Add someone',
+  },
+  {
+    kind: 'agent',
+    title: 'AI agents',
+    icon: 'bolt',
+    tone: colors.tealSoft,
+    empty: 'Let Claude or any AI agent pay, within limits you set.',
+    add: 'New agent key',
+  },
 ]
 
 const statusLine = (key: SpendKey) => {
   if (key.status === 'invited') return 'Invite sent. Waiting for them to accept.'
-  if (key.status === 'accepted') return key.kind === 'agent' ? 'Ready to switch on.' : `${key.holder_name ?? 'They'} accepted. Switch it on.`
+  if (key.status === 'accepted')
+    return key.kind === 'agent'
+      ? 'Ready to switch on.'
+      : `${key.holder_name ?? 'They'} accepted. Switch it on.`
   if (key.status === 'frozen') return `Frozen · ${limitLine(key)}`
   return `${leftLine(key)} · ${limitLine(key)}`
 }
@@ -92,7 +132,8 @@ export default function Keys() {
         }
       >
         <Txt size={16} color={colors.onTint} style={styles.lead}>
-          Everything that spends your dollars gets its own key. Monad enforces each limit, and one tap freezes any key.
+          Everything that spends your dollars gets its own key. Monad enforces each limit, and one
+          tap freezes any key.
         </Txt>
 
         {error || problem ? (
@@ -168,7 +209,12 @@ export default function Keys() {
                 <Txt weight="bold" size={20}>
                   {group.title}
                 </Txt>
-                <Mini label={group.add} icon="plus" ink onPress={() => setMaking(making === group.kind ? null : group.kind)} />
+                <Mini
+                  label={group.add}
+                  icon="plus"
+                  ink
+                  onPress={() => setMaking(making === group.kind ? null : group.kind)}
+                />
               </View>
               {making === group.kind ? (
                 group.kind === 'agent' ? (
@@ -180,7 +226,12 @@ export default function Keys() {
                     }}
                   />
                 ) : (
-                  <InviteForm owner={owner} ownerName={profile.name} kind={group.kind} onMade={load} />
+                  <InviteForm
+                    owner={owner}
+                    ownerName={profile.name}
+                    kind={group.kind}
+                    onMade={load}
+                  />
                 )
               ) : null}
               {list && keys.length === 0 && making !== group.kind ? (
@@ -206,7 +257,12 @@ export default function Keys() {
                   </View>
                   <View style={keyStyles.actions}>
                     {k.status === 'accepted' ? (
-                      <Mini label="Switch on" ink busy={busy === k.id} onPress={() => void turnOn(k)} />
+                      <Mini
+                        label="Switch on"
+                        ink
+                        busy={busy === k.id}
+                        onPress={() => void turnOn(k)}
+                      />
                     ) : null}
                     {k.status === 'active' || k.status === 'frozen' ? (
                       <Mini
@@ -214,13 +270,21 @@ export default function Keys() {
                         icon="snow"
                         ink={k.status === 'frozen'}
                         busy={busy === k.id}
-                        onPress={() => void act(k.id, () => freeze(owner, k, k.status !== 'frozen', signTypedData))}
+                        onPress={() =>
+                          void act(k.id, () =>
+                            freeze(owner, k, k.status !== 'frozen', signTypedData),
+                          )
+                        }
                       />
                     ) : null}
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={`Remove ${k.name}`}
-                      onPress={() => void act(`rm-${k.id}`, () => removeKey(owner, k, signTypedData, signMessage))}
+                      onPress={() =>
+                        void act(`rm-${k.id}`, () =>
+                          removeKey(owner, k, signTypedData, signMessage),
+                        )
+                      }
                       style={styles.trash}
                     >
                       <Icon name="trash" size={16} />
@@ -233,8 +297,9 @@ export default function Keys() {
         })}
 
         <Txt size={13} color={colors.muted} style={styles.fine}>
-          Keys spend through Kova’s card contract on Monad: it holds each key’s daily limit and whether it’s frozen, and every
-          payment needs the key’s signature and Kova’s. Kova never holds your dollars.
+          Keys spend through Kova’s card contract on Monad: it holds each key’s daily limit and
+          whether it’s frozen, and every payment needs the key’s signature and Kova’s. Kova never
+          holds your dollars.
         </Txt>
       </ScrollView>
     </Screen>
@@ -273,14 +338,29 @@ function InviteForm({
           </Txt>
         </View>
         <View style={keyStyles.actions}>
-          <Mini label="Share" icon="share" ink onPress={() => void shareLink(`${ownerName || 'Someone'} gave you ${kind === 'team' ? 'a budget' : 'an allowance'} on Kova`, link)} />
+          <Mini
+            label="Share"
+            icon="share"
+            ink
+            onPress={() =>
+              void shareLink(
+                `${ownerName || 'Someone'} gave you ${kind === 'team' ? 'a budget' : 'an allowance'} on Kova`,
+                link,
+              )
+            }
+          />
           <Mini label="Copy" icon="copy" onPress={() => void copyAndTell(link)} />
         </View>
       </View>
     )
   return (
     <View style={keyStyles.form}>
-      <Field label="Who’s it for?" value={name} onChange={setName} placeholder={kind === 'team' ? 'Tobi at the till' : 'Mum'} />
+      <Field
+        label="Who’s it for?"
+        value={name}
+        onChange={setName}
+        placeholder={kind === 'team' ? 'Tobi at the till' : 'Mum'}
+      />
       <View style={styles.twoUp}>
         <View style={{ flex: 1 }}>
           <Field label="Up to" value={limit} onChange={setLimit} money />
@@ -315,7 +395,14 @@ function InviteForm({
           if (!name.trim() || !limit) return setProblem('Say who it’s for and how much.')
           setBusy(true)
           setProblem(null)
-          inviteSomeone(owner, { kind, name, limit, period, days: kind === 'team' ? 90 : 30, ownerName })
+          inviteSomeone(owner, {
+            kind,
+            name,
+            limit,
+            period,
+            days: kind === 'team' ? 90 : 30,
+            ownerName,
+          })
             .then((made) => {
               setLink(`${shareWebUrl.replace(/\/$/, '')}/a/${made.code}`)
               onMade()
@@ -379,12 +466,26 @@ const styles = StyleSheet.create({
   section: { gap: 10, marginTop: 8 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   frozen: { opacity: 0.7, borderStyle: 'dashed' },
-  trash: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.sunken },
+  trash: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.sunken,
+  },
   code: { padding: 12, borderRadius: 14, backgroundColor: colors.ink },
   token: { borderWidth: 2, borderColor: colors.tealDeep, backgroundColor: '#E5EFEF' },
   twoUp: { flexDirection: 'row', gap: 10, alignItems: 'flex-end' },
   periods: { flexDirection: 'row', gap: 6 },
-  period: { height: 46, paddingHorizontal: 14, borderRadius: 23, borderWidth: 2, borderColor: colors.ink, justifyContent: 'center' },
+  period: {
+    height: 46,
+    paddingHorizontal: 14,
+    borderRadius: 23,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    justifyContent: 'center',
+  },
   periodOn: { backgroundColor: colors.ink },
   fine: { marginTop: 10, lineHeight: 18 },
 })

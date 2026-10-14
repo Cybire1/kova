@@ -29,7 +29,9 @@ import {
  */
 
 const MAX_TEXT = 60_000
-const text = (value: string) => ({ content: [{ type: 'text' as const, text: value.slice(0, MAX_TEXT) }] })
+const text = (value: string) => ({
+  content: [{ type: 'text' as const, text: value.slice(0, MAX_TEXT) }],
+})
 
 function said(payment: KeyPaymentRow): string {
   const amount = `$${formatAmount(payment.amount)}`
@@ -77,9 +79,13 @@ function serverFor(key: KeyRow): McpServer {
       if (!isAddress(to)) return text('That isn’t a wallet address. Nothing was paid.')
       limit(`agent-pay:${key.id}`, 60, 60_000, 'Too many payments this minute.')
       try {
-        return text(said(await agentPay(key, { to: getAddress(to), amount: parseAmount(amount), note })))
+        return text(
+          said(await agentPay(key, { to: getAddress(to), amount: parseAmount(amount), note })),
+        )
       } catch (error) {
-        return text(`${error instanceof Error ? error.message : 'It didn’t go through.'} Nothing was paid.`)
+        return text(
+          `${error instanceof Error ? error.message : 'It didn’t go through.'} Nothing was paid.`,
+        )
       }
     },
   )
@@ -99,7 +105,9 @@ function serverFor(key: KeyRow): McpServer {
       try {
         return text(said(await agentPayCharge(key, id)))
       } catch (error) {
-        return text(`${error instanceof Error ? error.message : 'It didn’t go through.'} Nothing was paid.`)
+        return text(
+          `${error instanceof Error ? error.message : 'It didn’t go through.'} Nothing was paid.`,
+        )
       }
     },
   )
@@ -108,7 +116,8 @@ function serverFor(key: KeyRow): McpServer {
     'kova_payment',
     {
       title: 'Check a payment',
-      description: 'Looks up one of this key’s payments by id: whether its owner approved it yet, and whether it paid.',
+      description:
+        'Looks up one of this key’s payments by id: whether its owner approved it yet, and whether it paid.',
       inputSchema: { payment_id: z.string() },
     },
     async ({ payment_id }) => {
@@ -151,13 +160,20 @@ mcpRoutes.all('/mcp', async (c) => {
     key = await agentForToken(header.startsWith('Bearer ') ? header.slice(7).trim() : undefined)
   } catch (error) {
     if (error instanceof KovaError)
-      return c.json({ jsonrpc: '2.0', id: null, error: { code: -32001, message: error.message } }, 401, {
-        'WWW-Authenticate': 'Bearer realm="kova", error="invalid_token"',
-      })
+      return c.json(
+        { jsonrpc: '2.0', id: null, error: { code: -32001, message: error.message } },
+        401,
+        {
+          'WWW-Authenticate': 'Bearer realm="kova", error="invalid_token"',
+        },
+      )
     throw error
   }
   const server = serverFor(key)
-  const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true })
+  const transport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  })
   await server.connect(transport)
   try {
     return await transport.handleRequest(c.req.raw)

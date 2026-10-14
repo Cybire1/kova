@@ -55,5 +55,9 @@ export function keyApprovalMessage(input: {
 
 /** Cancelling a key nobody has switched on yet (an invite, or an agent not yet linked). */
 export function keyRemoveMessage(input: { owner: Address; keyId: string }): string {
-  return ['Kova: remove this key', `Key: ${input.keyId}`, `Wallet: ${getAddress(input.owner)}`].join('\n')
+  return [
+    'Kova: remove this key',
+    `Key: ${input.keyId}`,
+    `Wallet: ${getAddress(input.owner)}`,
+  ].join('\n')
 }

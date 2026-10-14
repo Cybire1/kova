@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { network, settlementToken } from '../chain.js'
 import { KovaError } from '../errors.js'
 import { clientIp, limit } from '../limits.js'
+import { cardContract } from '../services/cards.js'
 import {
   acceptInvite,
   activateKey,
@@ -12,9 +13,9 @@ import {
   agentPay,
   agentPayCharge,
   agentsReady,
+  answerApproval,
   approvalMessageFor,
   approvalsFor,
-  answerApproval,
   chargeIdFrom,
   completePayment,
   createAgent,
@@ -36,7 +37,6 @@ import {
   setFrozen,
   updatePlan,
 } from '../services/spend-keys.js'
-import { cardContract } from '../services/cards.js'
 
 /**
  * Spending keys: allowances, team budgets and AI agents (services/spend-keys.ts).
@@ -69,9 +69,13 @@ const hex = z.string().refine((v) => isHex(v), 'Expected hex')
 const addr = z.string().refine((v) => isAddress(v), 'Expected an address')
 const money = z.string().regex(/^\d{1,7}(\.\d{1,6})?$/, 'Expected dollars, like 30 or 12.50')
 
-const bodyOf = async <T extends z.ZodTypeAny>(c: { req: { json: () => Promise<unknown> } }, shape: T): Promise<z.infer<T>> => {
+const bodyOf = async <T extends z.ZodTypeAny>(
+  c: { req: { json: () => Promise<unknown> } },
+  shape: T,
+): Promise<z.infer<T>> => {
   const parsed = shape.safeParse(await c.req.json().catch(() => ({})))
-  if (!parsed.success) throw new KovaError('invalid_request', 'Invalid request body', { issues: parsed.error.issues })
+  if (!parsed.success)
+    throw new KovaError('invalid_request', 'Invalid request body', { issues: parsed.error.issues })
   return parsed.data
 }
 
@@ -101,7 +105,11 @@ const agentBody = z.object({
 })
 
 const permitBody = z
-  .object({ value: z.string().regex(/^\d+$/), deadline: z.coerce.number().int().positive(), signature: hex })
+  .object({
+    value: z.string().regex(/^\d+$/),
+    deadline: z.coerce.number().int().positive(),
+    signature: hex,
+  })
   .nullable()
 
 const agentFrom = (c: { req: { header: (name: string) => string | undefined } }) => {
@@ -117,7 +125,11 @@ export const spendKeyRoutes = new Hono()
       agents_ready: agentsReady(),
       contract: cardContract,
       chain_id: network.chainId,
-      token: { address: settlementToken.address, symbol: settlementToken.symbol, domain: settlementToken.domain },
+      token: {
+        address: settlementToken.address,
+        symbol: settlementToken.symbol,
+        domain: settlementToken.domain,
+      },
     }),
   )
   .get('/wallets/:address/keys', async (c) => {
@@ -144,8 +156,18 @@ export const spendKeyRoutes = new Hono()
   .post('/wallets/:address/key-invites', async (c) => {
     const owner = wallet(c.req.param('address'))
     const body = await bodyOf(c, inviteBody)
-    limit(`key-invite:${owner.toLowerCase()}`, 20, 3_600_000, 'That’s a lot of invites in an hour. Try again later.')
-    limit(`key-invite-ip:${clientIp(c)}`, 60, 3_600_000, 'That’s a lot of invites from here. Try again later.')
+    limit(
+      `key-invite:${owner.toLowerCase()}`,
+      20,
+      3_600_000,
+      'That’s a lot of invites in an hour. Try again later.',
+    )
+    limit(
+      `key-invite-ip:${clientIp(c)}`,
+      60,
+      3_600_000,
+      'That’s a lot of invites from here. Try again later.',
+    )
     const { row, code } = await createInvite(owner, {
       kind: body.kind,
       label: body.name,
@@ -159,7 +181,12 @@ export const spendKeyRoutes = new Hono()
   .post('/wallets/:address/agents', async (c) => {
     const owner = wallet(c.req.param('address'))
     const body = await bodyOf(c, agentBody)
-    limit(`key-agent:${owner.toLowerCase()}`, 20, 3_600_000, 'That’s a lot of agent keys in an hour. Try again later.')
+    limit(
+      `key-agent:${owner.toLowerCase()}`,
+      20,
+      3_600_000,
+      'That’s a lot of agent keys in an hour. Try again later.',
+    )
     const row = await createAgent(owner, {
       label: body.name,
       limit: parseAmount(body.limit),
@@ -182,7 +209,11 @@ export const spendKeyRoutes = new Hono()
     const { row: updated, token } = await activateKey(row, {
       holderSignature: body.holder_signature as Hex,
       permit: body.permit
-        ? { value: BigInt(body.permit.value), deadline: BigInt(body.permit.deadline), signature: body.permit.signature as Hex }
+        ? {
+            value: BigInt(body.permit.value),
+            deadline: BigInt(body.permit.deadline),
+            signature: body.permit.signature as Hex,
+          }
         : null,
     })
     return c.json({ ...(await serializeKey(updated, { chain: true })), token })
@@ -193,7 +224,14 @@ export const spendKeyRoutes = new Hono()
   })
   .post('/wallets/:address/keys/:id/freeze', async (c) => {
     const row = await ownedKey(wallet(c.req.param('address')), c.req.param('id'))
-    const body = await bodyOf(c, z.object({ frozen: z.boolean(), deadline: z.coerce.number().int().positive(), holder_signature: hex }))
+    const body = await bodyOf(
+      c,
+      z.object({
+        frozen: z.boolean(),
+        deadline: z.coerce.number().int().positive(),
+        holder_signature: hex,
+      }),
+    )
     const updated = await setFrozen(row, {
       frozen: body.frozen,
       deadline: BigInt(body.deadline),
@@ -207,7 +245,10 @@ export const spendKeyRoutes = new Hono()
   })
   .post('/wallets/:address/keys/:id/remove', async (c) => {
     const row = await ownedKey(wallet(c.req.param('address')), c.req.param('id'))
-    const body = await bodyOf(c, z.object({ deadline: z.coerce.number().int().positive().optional(), signature: hex }))
+    const body = await bodyOf(
+      c,
+      z.object({ deadline: z.coerce.number().int().positive().optional(), signature: hex }),
+    )
     const updated = await removeKey(row, {
       deadline: body.deadline ? BigInt(body.deadline) : undefined,
       signature: body.signature as Hex,
@@ -218,8 +259,19 @@ export const spendKeyRoutes = new Hono()
     const address = wallet(c.req.param('address'))
     const { given, received } = await keysOf(address)
     const keys = [...given, ...received]
-    const rows = await paymentsOf(keys.map((k) => k.id), 50)
-    return c.json({ object: 'list', data: rows.map((p) => serializePayment(p, keys.find((k) => k.id === p.walletKeyId))) })
+    const rows = await paymentsOf(
+      keys.map((k) => k.id),
+      50,
+    )
+    return c.json({
+      object: 'list',
+      data: rows.map((p) =>
+        serializePayment(
+          p,
+          keys.find((k) => k.id === p.walletKeyId),
+        ),
+      ),
+    })
   })
   .get('/wallets/:address/approvals', async (c) => {
     const address = wallet(c.req.param('address'))
@@ -235,7 +287,10 @@ export const spendKeyRoutes = new Hono()
   })
   .post('/wallets/:address/approvals/:id', async (c) => {
     const owner = wallet(c.req.param('address'))
-    const body = await bodyOf(c, z.object({ decision: z.enum(['approve', 'decline']), signature: hex }))
+    const body = await bodyOf(
+      c,
+      z.object({ decision: z.enum(['approve', 'decline']), signature: hex }),
+    )
     const payment = await answerApproval({
       owner,
       paymentId: c.req.param('id'),
@@ -256,7 +311,12 @@ export const spendKeyRoutes = new Hono()
         claim_deadline: z.coerce.number().int().positive(),
       }),
     )
-    limit(`key-accept-ip:${clientIp(c)}`, 30, 3_600_000, 'Too many tries from here. Try again later.')
+    limit(
+      `key-accept-ip:${clientIp(c)}`,
+      30,
+      3_600_000,
+      'Too many tries from here. Try again later.',
+    )
     const row = await acceptInvite(c.req.param('code'), {
       holder: getAddress(body.holder),
       holderName: body.holder_name,
@@ -281,7 +341,8 @@ export const spendKeyRoutes = new Hono()
     )
     limit(`key-pay:${row.id}`, 30, 60_000, 'Too many payments this minute.')
     const charge = body.charge ? chargeIdFrom(body.charge) : null
-    if (body.charge && !charge) throw new KovaError('invalid_request', 'That isn’t a Kova charge or pay link.')
+    if (body.charge && !charge)
+      throw new KovaError('invalid_request', 'That isn’t a Kova charge or pay link.')
     const { payment, typedData } = await preparePayment(row, {
       holder: getAddress(body.holder),
       to: body.to ? getAddress(body.to) : undefined,
@@ -293,7 +354,9 @@ export const spendKeyRoutes = new Hono()
       {
         ...serializePayment(payment, row),
         // What the key signs: KovaCard's Payment, bigints as strings.
-        typed_data: JSON.parse(JSON.stringify(typedData, (_k, v) => (typeof v === 'bigint' ? v.toString() : v))),
+        typed_data: JSON.parse(
+          JSON.stringify(typedData, (_k, v) => (typeof v === 'bigint' ? v.toString() : v)),
+        ),
       },
       201,
     )
@@ -303,16 +366,29 @@ export const spendKeyRoutes = new Hono()
     if (!payment) throw new KovaError('not_found', 'No such payment.')
     const body = await bodyOf(c, z.object({ signature: hex }))
     const done = await completePayment(payment, body.signature as Hex)
-    if (done.status !== 'paid') throw new KovaError('policy_declined', done.reason ?? 'It didn’t go through. No money moved.')
+    if (done.status !== 'paid')
+      throw new KovaError('policy_declined', done.reason ?? 'It didn’t go through. No money moved.')
     return c.json(serializePayment(done))
   })
   // ── An agent's own endpoints ─────────────────────────────────────────────────────────────
   .get('/agent/status', async (c) => c.json(await describeAgent(await agentFrom(c))))
   .post('/agent/pay', async (c) => {
     const key = await agentFrom(c)
-    const body = await bodyOf(c, z.object({ to: addr, amount: money, note: z.string().max(200).optional() }))
+    const body = await bodyOf(
+      c,
+      z.object({ to: addr, amount: money, note: z.string().max(200).optional() }),
+    )
     limit(`agent-pay:${key.id}`, 60, 60_000, 'Too many payments this minute.')
-    return c.json(serializePayment(await agentPay(key, { to: getAddress(body.to), amount: parseAmount(body.amount), note: body.note }), key))
+    return c.json(
+      serializePayment(
+        await agentPay(key, {
+          to: getAddress(body.to),
+          amount: parseAmount(body.amount),
+          note: body.note,
+        }),
+        key,
+      ),
+    )
   })
   .post('/agent/pay_charge', async (c) => {
     const key = await agentFrom(c)
@@ -325,7 +401,8 @@ export const spendKeyRoutes = new Hono()
   .get('/agent/payments/:id', async (c) => {
     const key = await agentFrom(c)
     const payment = await paymentRow(c.req.param('id'))
-    if (!payment || payment.walletKeyId !== key.id) throw new KovaError('not_found', 'No such payment for this key.')
+    if (!payment || payment.walletKeyId !== key.id)
+      throw new KovaError('not_found', 'No such payment for this key.')
     return c.json(serializePayment(payment, key))
   })
   .get('/agent/history', async (c) => {
@@ -333,4 +410,3 @@ export const spendKeyRoutes = new Hono()
     const rows = await paymentsOf([key.id], 20)
     return c.json({ object: 'list', data: rows.map((p) => serializePayment(p, key)) })
   })
-

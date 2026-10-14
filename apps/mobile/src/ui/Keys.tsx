@@ -74,7 +74,11 @@ export function Mini({
       accessibilityLabel={label}
       disabled={busy}
       onPress={onPress}
-      style={({ pressed }) => [styles.mini, ink && styles.miniInk, (pressed || busy) && { opacity: 0.6 }]}
+      style={({ pressed }) => [
+        styles.mini,
+        ink && styles.miniInk,
+        (pressed || busy) && { opacity: 0.6 },
+      ]}
     >
       {busy ? (
         <ActivityIndicator size="small" color={ink ? colors.white : colors.ink} />
@@ -200,7 +204,9 @@ export function Received({ spendKey, onDone }: { spendKey: SpendKey; onDone?: ()
             {limitLine(spendKey)}
           </Txt>
         </View>
-        {spendKey.frozen ? null : <Mini label={open ? 'Close' : 'Spend'} onPress={() => setOpen(!open)} />}
+        {spendKey.frozen ? null : (
+          <Mini label={open ? 'Close' : 'Spend'} onPress={() => setOpen(!open)} />
+        )}
       </View>
       {open ? (
         done ? (
@@ -209,7 +215,12 @@ export function Received({ spendKey, onDone }: { spendKey: SpendKey; onDone?: ()
           </Txt>
         ) : (
           <View style={styles.form}>
-            <Field label="Pay" value={to} onChange={(v) => setTo(v.trim())} placeholder="0x… their Kova address" />
+            <Field
+              label="Pay"
+              value={to}
+              onChange={(v) => setTo(v.trim())}
+              placeholder="0x… their Kova address"
+            />
             <Field label="How much" value={amount} onChange={setAmount} placeholder="0.00" money />
             {problem ? (
               <Txt size={13} color={colors.danger}>
@@ -217,10 +228,16 @@ export function Received({ spendKey, onDone }: { spendKey: SpendKey; onDone?: ()
               </Txt>
             ) : null}
             <Mini
-              label={busy ? 'Paying…' : `Pay from ${from}’s ${spendKey.kind === 'team' ? 'budget' : 'allowance'}`}
+              label={
+                busy
+                  ? 'Paying…'
+                  : `Pay from ${from}’s ${spendKey.kind === 'team' ? 'budget' : 'allowance'}`
+              }
               ink
               busy={busy}
-              onPress={() => (isAddress(to) && amount ? pay() : setProblem('Add who to pay and how much.'))}
+              onPress={() =>
+                isAddress(to) && amount ? pay() : setProblem('Add who to pay and how much.')
+              }
             />
           </View>
         )

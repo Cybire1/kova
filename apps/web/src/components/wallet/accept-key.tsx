@@ -49,19 +49,22 @@ export function AcceptKey({ code }: { code: string }) {
           </p>
           <ul className="w-facts">
             <li className="w-fact">
-              <Icon name="key" size={16} /> Your phone makes its own key. Nobody else can spend with it.
+              <Icon name="key" size={16} /> Your phone makes its own key. Nobody else can spend with
+              it.
             </li>
             <li className="w-fact">
               <Icon name="lock" size={16} /> {from} can freeze it any time, in one tap.
             </li>
             <li className="w-fact">
-              <Icon name="clock" size={16} /> Until {new Date(invite.ends_at).toLocaleDateString([], { day: 'numeric', month: 'short' })}
+              <Icon name="clock" size={16} /> Until{' '}
+              {new Date(invite.ends_at).toLocaleDateString([], { day: 'numeric', month: 'short' })}
             </li>
           </ul>
           {accepted || mine || invite.status === 'accepted' || invite.status === 'active' ? (
             <div className="w-accept-done">
               <strong>
-                <Icon name="check" size={18} /> {invite.status === 'active' ? 'It’s on' : 'Accepted'}
+                <Icon name="check" size={18} />{' '}
+                {invite.status === 'active' ? 'It’s on' : 'Accepted'}
               </strong>
               <span>
                 {invite.status === 'active'
@@ -88,7 +91,9 @@ export function AcceptKey({ code }: { code: string }) {
                 setProblem(null)
                 accept(code, profile.address as Address, profile.name, signMessage)
                   .then(() => setAccepted(true))
-                  .catch((e: unknown) => setProblem(e instanceof Error ? e.message : 'That didn’t go through.'))
+                  .catch((e: unknown) =>
+                    setProblem(e instanceof Error ? e.message : 'That didn’t go through.'),
+                  )
                   .finally(() => setBusy(false))
               }}
             >

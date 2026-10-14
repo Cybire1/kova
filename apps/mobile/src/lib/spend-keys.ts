@@ -98,11 +98,19 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
 
 export const listKeys = (wallet: Address) => api<KeysList>(`wallets/${wallet}/keys`)
 
-export const keyPayments = (wallet: Address) => api<{ data: KeyPayment[] }>(`wallets/${wallet}/key-payments`)
+export const keyPayments = (wallet: Address) =>
+  api<{ data: KeyPayment[] }>(`wallets/${wallet}/key-payments`)
 
 export function inviteSomeone(
   owner: Address,
-  input: { kind: 'allowance' | 'team'; name: string; limit: string; period: 'day' | 'week'; days: number; ownerName?: string },
+  input: {
+    kind: 'allowance' | 'team'
+    name: string
+    limit: string
+    period: 'day' | 'week'
+    days: number
+    ownerName?: string
+  },
 ) {
   return api<SpendKey & { code: string; path: string }>(`wallets/${owner}/key-invites`, {
     kind: input.kind,
@@ -116,7 +124,14 @@ export function inviteSomeone(
 
 export function newAgent(
   owner: Address,
-  input: { name: string; limit: string; period: 'day' | 'week'; perPayment: string; askAbove: string; days: number },
+  input: {
+    name: string
+    limit: string
+    period: 'day' | 'week'
+    perPayment: string
+    askAbove: string
+    days: number
+  },
 ) {
   return api<SpendKey>(`wallets/${owner}/agents`, {
     name: input.name,
@@ -137,7 +152,12 @@ interface LinkPlan {
   daily_limit: string
   nonce: string
   deadline: number
-  permit: { needed: boolean; nonce: string; value: string; token: { address: Address; domain: { name: string; version: string } } }
+  permit: {
+    needed: boolean
+    nonce: string
+    value: string
+    token: { address: Address; domain: { name: string; version: string } }
+  }
 }
 
 /**
@@ -145,7 +165,11 @@ interface LinkPlan {
  * first time, a permit that lets the contract draw on the wallet for payments both the key and
  * Kova sign. An agent's key comes back with its token, shown once.
  */
-export async function switchOn(owner: Address, key: SpendKey, sign: Sign): Promise<SpendKey & { token: string | null }> {
+export async function switchOn(
+  owner: Address,
+  key: SpendKey,
+  sign: Sign,
+): Promise<SpendKey & { token: string | null }> {
   const plan = await api<LinkPlan>(`wallets/${owner}/keys/${key.id}/link`)
   const deadline = BigInt(plan.deadline)
   const holderSignature = await sign(
@@ -170,7 +194,9 @@ export async function switchOn(owner: Address, key: SpendKey, sign: Sign): Promi
     : null
   return api(`wallets/${owner}/keys/${key.id}/activate`, {
     holder_signature: holderSignature,
-    permit: permit ? { value: maxUint256.toString(), deadline: plan.deadline, signature: permit } : null,
+    permit: permit
+      ? { value: maxUint256.toString(), deadline: plan.deadline, signature: permit }
+      : null,
   })
 }
 
@@ -186,7 +212,12 @@ interface UpdatePlan {
 }
 
 /** Freezes a key (Kova stops cosigning at once, Monad follows) or unfreezes it. */
-export async function freeze(owner: Address, key: SpendKey, frozen: boolean, sign: Sign): Promise<SpendKey> {
+export async function freeze(
+  owner: Address,
+  key: SpendKey,
+  frozen: boolean,
+  sign: Sign,
+): Promise<SpendKey> {
   const plan = await api<UpdatePlan>(`wallets/${owner}/keys/${key.id}/freeze?frozen=${frozen}`)
   const signature = await sign(
     updateTypedData(plan.chain_id, plan.contract, {
@@ -198,15 +229,32 @@ export async function freeze(owner: Address, key: SpendKey, frozen: boolean, sig
       deadline: BigInt(plan.deadline),
     }) as TypedDataDefinition,
   )
-  return api(`wallets/${owner}/keys/${key.id}/freeze`, { frozen, deadline: plan.deadline, holder_signature: signature })
+  return api(`wallets/${owner}/keys/${key.id}/freeze`, {
+    frozen,
+    deadline: plan.deadline,
+    holder_signature: signature,
+  })
 }
 
 type RemovePlan =
-  | { on_chain: true; contract: Address; chain_id: number; holder: Address; card: Address; nonce: string; deadline: number }
+  | {
+      on_chain: true
+      contract: Address
+      chain_id: number
+      holder: Address
+      card: Address
+      nonce: string
+      deadline: number
+    }
   | { on_chain: false; message: string }
 
 /** Removes a key for good: unlinked on Monad if it was on, or simply cancelled if it wasn't. */
-export async function removeKey(owner: Address, key: SpendKey, sign: Sign, signMessage: SignMessage): Promise<void> {
+export async function removeKey(
+  owner: Address,
+  key: SpendKey,
+  sign: Sign,
+  signMessage: SignMessage,
+): Promise<void> {
   const plan = await api<RemovePlan>(`wallets/${owner}/keys/${key.id}/remove`)
   if (plan.on_chain) {
     const signature = await sign(
@@ -220,20 +268,34 @@ export async function removeKey(owner: Address, key: SpendKey, sign: Sign, signM
     await api(`wallets/${owner}/keys/${key.id}/remove`, { deadline: plan.deadline, signature })
     return
   }
-  await api(`wallets/${owner}/keys/${key.id}/remove`, { signature: await signMessage(plan.message) })
+  await api(`wallets/${owner}/keys/${key.id}/remove`, {
+    signature: await signMessage(plan.message),
+  })
 }
 
 /** The owner's yes or no to an agent's payment, signed exactly as Kova shows it. */
-export async function answer(owner: Address, payment: KeyPayment, decision: 'approve' | 'decline', signMessage: SignMessage) {
+export async function answer(
+  owner: Address,
+  payment: KeyPayment,
+  decision: 'approve' | 'decline',
+  signMessage: SignMessage,
+) {
   const message = decision === 'approve' ? payment.approve_message : payment.decline_message
   if (!message) throw new Error('This payment can’t be answered here.')
-  return api<KeyPayment>(`wallets/${owner}/approvals/${payment.id}`, { decision, signature: await signMessage(message) })
+  return api<KeyPayment>(`wallets/${owner}/approvals/${payment.id}`, {
+    decision,
+    signature: await signMessage(message),
+  })
 }
 
-export const inviteInfo = (code: string) => api<KeyInvite>(`key-invites/${encodeURIComponent(code)}`)
+export const inviteInfo = (code: string) =>
+  api<KeyInvite>(`key-invites/${encodeURIComponent(code)}`)
 
 /** The key an allowance or budget spends with, made from the holder's wallet signature. */
-async function deviceKey(input: { keyId: string; owner: Address; holder: Address }, signMessage: SignMessage) {
+async function deviceKey(
+  input: { keyId: string; owner: Address; holder: Address },
+  signMessage: SignMessage,
+) {
   const signature = await signMessage(spendKeyMessage(input))
   return privateKeyToAccount(spendKeyFromSignature(signature))
 }
@@ -242,12 +304,21 @@ async function deviceKey(input: { keyId: string; owner: Address; holder: Address
  * Accepts an invite: this wallet makes the key (from its own signature) and the key signs that it
  * may be linked to the owner's wallet. It spends nothing until the owner switches it on.
  */
-export async function accept(code: string, holder: Address, holderName: string, signMessage: SignMessage) {
+export async function accept(
+  code: string,
+  holder: Address,
+  holderName: string,
+  signMessage: SignMessage,
+) {
   const invite = await inviteInfo(code)
   const key = await deviceKey({ keyId: invite.id, owner: invite.owner, holder }, signMessage)
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 7 * 24 * 3600)
   const claim = await key.signTypedData(
-    claimTypedData(invite.chain_id, invite.contract, { card: key.address, holder: invite.owner, deadline }) as never,
+    claimTypedData(invite.chain_id, invite.contract, {
+      card: key.address,
+      holder: invite.owner,
+      deadline,
+    }) as never,
   )
   return api<SpendKey>(`key-invites/${encodeURIComponent(code)}/accept`, {
     holder,
@@ -259,7 +330,10 @@ export async function accept(code: string, holder: Address, holderName: string, 
 }
 
 interface Prepared extends KeyPayment {
-  typed_data: { domain: { chainId: number; verifyingContract: Address }; message: { card: Address; to: Address; amount: string; memo: Hex; deadline: string } }
+  typed_data: {
+    domain: { chainId: number; verifyingContract: Address }
+    message: { card: Address; to: Address; amount: string; memo: Hex; deadline: string }
+  }
 }
 
 /** Spends from an allowance or budget: Kova checks it may, the key signs, Kova cosigns and pays. */
@@ -273,13 +347,17 @@ export async function spendFrom(
   const account = await deviceKey({ keyId: key.id, owner: key.owner, holder }, signMessage)
   const m = prepared.typed_data.message
   const signature = await account.signTypedData(
-    paymentTypedData(prepared.typed_data.domain.chainId, prepared.typed_data.domain.verifyingContract, {
-      card: getAddress(m.card),
-      to: getAddress(m.to),
-      amount: BigInt(m.amount),
-      memo: m.memo,
-      deadline: BigInt(m.deadline),
-    }) as never,
+    paymentTypedData(
+      prepared.typed_data.domain.chainId,
+      prepared.typed_data.domain.verifyingContract,
+      {
+        card: getAddress(m.card),
+        to: getAddress(m.to),
+        amount: BigInt(m.amount),
+        memo: m.memo,
+        deadline: BigInt(m.deadline),
+      },
+    ) as never,
   )
   return api<KeyPayment>(`key-payments/${prepared.id}/complete`, { signature })
 }
