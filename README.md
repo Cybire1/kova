@@ -7,7 +7,7 @@ gas, so nobody needs a crypto token, a seed phrase or an exchange to pay or get 
 
 - **Try it free, in a minute:** [mykova.app/try](https://mykova.app/try) (Monad testnet, $5 of test dollars a day)
 - **Live on Monad mainnet:** [mykova.app](https://mykova.app)
-- **iPhone:** [TestFlight](https://testflight.apple.com/join/RPEhxUWv)
+- **iPhone:** join the beta at [mykova.app/iphone](https://mykova.app/iphone), and the TestFlight invite comes by email
 - **Built for:** Monad Metropolis, Track 02: Consumer Products & Payments
 - **Demo videos:** the product demo, the Agora cross-border cut and the Chainlink CRE run are linked in the submission (sources in [`film/`](film))
 - **Licence:** [MIT](LICENSE)

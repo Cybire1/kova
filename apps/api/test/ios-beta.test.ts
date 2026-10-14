@@ -21,7 +21,10 @@ afterEach(() => {
 
 const someone = () => `beta-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`
 
-function join(payload: unknown, ip = `10.0.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`) {
+function join(
+  payload: unknown,
+  ip = `10.0.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`,
+) {
   return app.request('/v1/public/ios-beta', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
@@ -56,11 +59,15 @@ describe('the iPhone beta waitlist', () => {
 
   it('keeps the list for Kova’s team only', async () => {
     config.KOVA_ADMIN_SECRET = undefined
-    expect((await app.request('/v1/ios-beta.csv', { headers: { 'x-kova-admin': SECRET } })).status).toBe(404)
+    expect(
+      (await app.request('/v1/ios-beta.csv', { headers: { 'x-kova-admin': SECRET } })).status,
+    ).toBe(404)
 
     config.KOVA_ADMIN_SECRET = SECRET
     expect((await app.request('/v1/ios-beta.csv')).status).toBe(404)
-    expect((await app.request('/v1/ios-beta.csv', { headers: { 'x-kova-admin': `${SECRET}x` } })).status).toBe(404)
+    expect(
+      (await app.request('/v1/ios-beta.csv', { headers: { 'x-kova-admin': `${SECRET}x` } })).status,
+    ).toBe(404)
   })
 
   it('exports the list as CSV and marks people invited', async () => {
@@ -72,7 +79,11 @@ describe('the iPhone beta waitlist', () => {
     expect(before.status).toBe(200)
     expect(before.headers.get('content-type')).toContain('text/csv')
     const row = (await before.text()).split('\n').find((line) => line.startsWith(email))
-    expect(row).toMatch(new RegExp(`^${email.replace(/[.]/g, '\\.')},"Tunde, from Lagos",Nigeria,home,\\d{4}-\\d\\d-\\d\\dT[^,]+,$`))
+    expect(row).toMatch(
+      new RegExp(
+        `^${email.replace(/[.]/g, '\\.')},"Tunde, from Lagos",Nigeria,home,\\d{4}-\\d\\d-\\d\\dT[^,]+,$`,
+      ),
+    )
 
     const invited = await app.request('/v1/ios-beta/invited', {
       method: 'POST',
@@ -81,8 +92,12 @@ describe('the iPhone beta waitlist', () => {
     })
     expect(await invited.json()).toMatchObject({ marked: 1 })
 
-    const after = await (await app.request('/v1/ios-beta.csv', { headers: { 'x-kova-admin': SECRET } })).text()
-    expect(after.split('\n').find((line) => line.startsWith(email))).toMatch(/,\d{4}-\d\d-\d\dT[^,]+Z$/)
+    const after = await (
+      await app.request('/v1/ios-beta.csv', { headers: { 'x-kova-admin': SECRET } })
+    ).text()
+    expect(after.split('\n').find((line) => line.startsWith(email))).toMatch(
+      /,\d{4}-\d\d-\d\dT[^,]+Z$/,
+    )
     expect(await (await join({ email })).json()).toMatchObject({ status: 'already', invited: true })
   })
 })

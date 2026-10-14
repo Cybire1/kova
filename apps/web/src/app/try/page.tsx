@@ -59,6 +59,7 @@ export default async function TryPage(props: {
   const params = await props.searchParams
   const ref = cleanRef(typeof params.ref === 'string' ? params.ref : null)
   const mainnet = process.env.KOVA_NETWORK === 'mainnet'
+  const iphone = mainnet ? '/iphone' : 'https://mykova.app/iphone'
 
   return (
     <main className="gr-page gr-try">
@@ -70,12 +71,14 @@ export default async function TryPage(props: {
           initialRef={ref}
           count={countTryStep}
           testnet={`${TESTNET_SITE}/try?ref=mainnet`}
+          iphone={iphone}
         />
       ) : (
         <TryChecklist
           initialRef={ref}
           count={countTryStep}
           bakery={await bakery(bakerySlug(params.stall))}
+          iphone={iphone}
         />
       )}
     </main>

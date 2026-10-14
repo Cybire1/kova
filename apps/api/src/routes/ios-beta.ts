@@ -29,7 +29,11 @@ const joinBody = z.object({
 })
 const invitedBody = z.object({ emails: z.array(email).min(1).max(1000) })
 
-async function body<T>(c: { req: { json: () => Promise<unknown> } }, shape: z.ZodType<T>, message: string): Promise<T> {
+async function body<T>(
+  c: { req: { json: () => Promise<unknown> } },
+  shape: z.ZodType<T>,
+  message: string,
+): Promise<T> {
   const parsed = shape.safeParse(await c.req.json().catch(() => ({})))
   if (!parsed.success) throw new KovaError('invalid_request', message)
   return parsed.data
@@ -42,7 +46,8 @@ function admin(c: { req: { header: (name: string) => string | undefined } }) {
   if (!secret || !given) throw new KovaError('not_found', 'No such endpoint')
   const a = Buffer.from(given)
   const b = Buffer.from(secret)
-  if (a.length !== b.length || !timingSafeEqual(a, b)) throw new KovaError('not_found', 'No such endpoint')
+  if (a.length !== b.length || !timingSafeEqual(a, b))
+    throw new KovaError('not_found', 'No such endpoint')
 }
 
 const csvCell = (value: string | null) => {
@@ -53,10 +58,17 @@ const csvCell = (value: string | null) => {
 export const iosBetaRoutes = new Hono()
   .post('/public/ios-beta', async (c) => {
     const input = await body(c, joinBody, 'Enter an email address, like you@example.com.')
-    limit(`ios-beta-ip:${clientIp(c)}`, 10, 3_600_000, 'That’s a lot of sign-ups from here. Try again in a while.')
+    limit(
+      `ios-beta-ip:${clientIp(c)}`,
+      10,
+      3_600_000,
+      'That’s a lot of sign-ups from here. Try again in a while.',
+    )
     const name = input.name || null
     const country = input.country || null
-    const existing = await db.query.iosBetaRequests.findFirst({ where: eq(schema.iosBetaRequests.email, input.email) })
+    const existing = await db.query.iosBetaRequests.findFirst({
+      where: eq(schema.iosBetaRequests.email, input.email),
+    })
     if (existing) {
       // A second sign-up fills in what the first left out, and changes nothing else.
       if ((name && !existing.name) || (country && !existing.country))
@@ -64,22 +76,47 @@ export const iosBetaRoutes = new Hono()
           .update(schema.iosBetaRequests)
           .set({ name: existing.name ?? name, country: existing.country ?? country })
           .where(eq(schema.iosBetaRequests.id, existing.id))
-      return c.json({ object: 'ios_beta_request', status: 'already', invited: existing.invitedAt !== null })
+      return c.json({
+        object: 'ios_beta_request',
+        status: 'already',
+        invited: existing.invitedAt !== null,
+      })
     }
     const inserted = await db
       .insert(schema.iosBetaRequests)
-      .values({ id: uuidv7(), email: input.email, name, country, source: input.source ?? 'iphone-page' })
+      .values({
+        id: uuidv7(),
+        email: input.email,
+        name,
+        country,
+        source: input.source ?? 'iphone-page',
+      })
       .onConflictDoNothing()
       .returning({ id: schema.iosBetaRequests.id })
-    return c.json({ object: 'ios_beta_request', status: inserted.length ? 'joined' : 'already', invited: false })
+    return c.json({
+      object: 'ios_beta_request',
+      status: inserted.length ? 'joined' : 'already',
+      invited: false,
+    })
   })
   .get('/ios-beta.csv', async (c) => {
     admin(c)
-    const rows = await db.query.iosBetaRequests.findMany({ orderBy: asc(schema.iosBetaRequests.createdAt) })
+    const rows = await db.query.iosBetaRequests.findMany({
+      orderBy: asc(schema.iosBetaRequests.createdAt),
+    })
     const lines = [
       'email,name,country,source,created_at,invited_at',
       ...rows.map((r) =>
-        [r.email, r.name, r.country, r.source, r.createdAt.toISOString(), r.invitedAt?.toISOString() ?? null].map(csvCell).join(','),
+        [
+          r.email,
+          r.name,
+          r.country,
+          r.source,
+          r.createdAt.toISOString(),
+          r.invitedAt?.toISOString() ?? null,
+        ]
+          .map(csvCell)
+          .join(','),
       ),
     ]
     return c.body(`${lines.join('\n')}\n`, 200, {
