@@ -41,22 +41,22 @@ const manrope = Promise.all(
 
 const s = (seconds: number) => Math.round(seconds * FPS)
 
-export const CRE_DURATION = 79
+export const CRE_DURATION = 58
 
 const TX = '0xb5f7efae050b65bb84c8a54d67b430cfb44ca3247bf66ae0ef6e830bb9004130'
 const RATES = '0xb5322DC6d6AA938C50859f0f0e2DF7b6Da4C9e8e'
 
 /** Voice lines and where they start (seconds); captions show the same words. */
 const VO = [
-  { id: 'hook', at: 0.5, text: 'This is Kova’s exchange-rate workflow on Chainlink CRE. Every 15 minutes, it writes the rates Kova shows people to Monad.' },
-  { id: 'how', at: 9.6, text: 'Each node fetches two independent rate sources, and drops any currency where they disagree by more than 2%. The network agrees on the median, signs it into a report, and writes it to our KovaRates contract.' },
-  { id: 'run', at: 24.0, text: 'Here’s a real run with the CRE CLI, broadcasting to Monad testnet.' },
-  { id: 'steps', at: 30.3, text: 'The cron trigger fires. Both sources answer. Consensus takes the median of every rate. Then the signed report is written on Monad.' },
-  { id: 'scan', at: 44.4, text: 'On Monadscan, the transaction succeeded: Chainlink’s forwarder delivered the report to KovaRates.' },
-  { id: 'logs', at: 51.9, text: 'KovaRates logged the new rates, and the forwarder confirms the report was processed.' },
-  { id: 'api', at: 58.0, text: 'Kova’s API reads the contract, and serves the same rates, from that same report.' },
-  { id: 'app', at: 64.5, text: 'In the app, Lucía sees $0.50 as about €0.44, at the Chainlink rate.' },
-  { id: 'close', at: 72.0, text: 'Kova rates: Chainlink CRE, on Monad. Try Kova at mykova.app.' },
+  { id: 'hook', at: 3.0, text: 'This is Kova’s exchange-rate workflow on Chainlink CRE. Every 15 minutes, it writes the rates Kova shows people to Monad.' },
+  { id: 'how', at: -1, text: 'Each node fetches two independent rate sources, and drops any currency where they disagree by more than 2%. The network agrees on the median, signs it into a report, and writes it to our KovaRates contract.' },
+  { id: 'run', at: -1, text: 'Here’s a real run with the CRE CLI, broadcasting to Monad testnet.' },
+  { id: 'steps', at: 11.5, text: 'The cron trigger fires. Both sources answer. Consensus takes the median of every rate. Then the signed report is written on Monad.' },
+  { id: 'scan', at: 24.4, text: 'On Monadscan, the transaction succeeded: Chainlink’s forwarder delivered the report to KovaRates.' },
+  { id: 'logs', at: 31.9, text: 'KovaRates logged the new rates, and the forwarder confirms the report was processed.' },
+  { id: 'api', at: 38.0, text: 'Kova’s API reads the contract, and serves the same rates, from that same report.' },
+  { id: 'app', at: 44.5, text: 'In the app, Lucía sees $0.50 as about €0.44, at the Chainlink rate.' },
+  { id: 'close', at: 52.0, text: 'Kova rates: Chainlink CRE, on Monad. Try Kova at mykova.app.' },
 ] as const
 const line = (id: (typeof VO)[number]['id']) => VO.find((v) => v.id === id)?.text ?? ''
 
@@ -145,9 +145,6 @@ function Title() {
         <div style={{ fontWeight: 800, fontSize: 120, lineHeight: 0.98, letterSpacing: -5, color: C.ink }}>
           Kova rates<span style={{ color: C.coral }}>.</span>
         </div>
-      </Fade>
-      <Fade>
-        <div style={{ width: 1180, fontWeight: 600, fontSize: 40, lineHeight: 1.35, color: C.muted }}>{line('hook')}</div>
       </Fade>
       <Fade>
         <div style={{ display: 'flex', gap: 14 }}>
@@ -242,47 +239,44 @@ export function CreFilm() {
 
   return (
     <AbsoluteFill style={{ background: C.paper }}>
-      <Scene from={0} to={9.2}>
+      <Scene from={0} to={2.5}>
         <Title />
-      </Scene>
-      <Scene from={9.2} to={23.5}>
-        <How />
       </Scene>
 
       {/* The real run, at its own pace, holding (paused) on the line where the report is written. */}
-      <Scene from={23.5} to={41} bg={C.ink}>
+      <Scene from={2.5} to={21} bg={C.ink}>
         <Terminal src="run-to-write" />
         <Sequence from={s(8.9)}>
           <div style={{ position: 'absolute', right: 100, top: 44, fontFamily: 'Manrope', fontWeight: 800, fontSize: 22, color: C.ink, background: C.coral, borderRadius: 999, padding: '6px 16px' }}>Paused to read</div>
         </Sequence>
-        <Sequence durationInFrames={s(6.8)}>
-          <Band eyebrow="Real run" text={line('run')} />
+        <Sequence durationInFrames={s(9)}>
+          <Band eyebrow="Real run · CRE CLI" text={line('hook')} />
         </Sequence>
-        <Sequence from={s(6.8)}>
+        <Sequence from={s(9)}>
           <Band eyebrow="CRE CLI" text={line('steps')}>
             <Steps from={0} />
           </Band>
         </Sequence>
       </Scene>
       {/* The end of the same run: its result is the transaction hash. */}
-      <Scene from={41} to={44} bg={C.ink}>
+      <Scene from={21} to={24} bg={C.ink}>
         <Terminal src="broadcast-steps" startFrom={9} />
         <Band eyebrow="Result" text={`The workflow returns the transaction: ${TX.slice(0, 10)}…${TX.slice(-8)}`} />
       </Scene>
 
-      <Scene from={44} to={51.5}>
+      <Scene from={24} to={31.5}>
         <Explorer src="scan-tx" caption={`${line('scan')} Block 70,829,073.`} />
       </Scene>
-      <Scene from={51.5} to={57.5}>
+      <Scene from={31.5} to={37.5}>
         <Explorer src="scan-logs" caption={line('logs')} />
       </Scene>
 
-      <Scene from={57.5} to={64} bg={C.ink}>
+      <Scene from={37.5} to={44} bg={C.ink}>
         <Terminal src="api" height={902} />
         <Band eyebrow="Kova API" text={line('api')} />
       </Scene>
 
-      <Scene from={64} to={71.5}>
+      <Scene from={44} to={51.5}>
         {/* The link page plays, then holds on its rate line while the voice reads it. */}
         <Sequence durationInFrames={s(3.4)}>
           <Phone src="claim" x={300} />
@@ -309,16 +303,16 @@ export function CreFilm() {
         </div>
       </Scene>
 
-      <Scene from={71.5} to={CRE_DURATION}>
+      <Scene from={51.5} to={CRE_DURATION}>
         <End />
       </Scene>
 
-      {VO.map((v) => (
+      {VO.filter((v) => v.at >= 0).map((v) => (
         <Sequence key={v.id} from={s(v.at)}>
           <Html5Audio src={staticFile(`cre/vo-${v.id}.mp3`)} />
         </Sequence>
       ))}
-      <Html5Audio src={staticFile('demo/score.mp3')} volume={0.1} />
+      <Html5Audio src={staticFile('demo/score.mp3')} volume={(f) => 0.1 * interpolate(f, [s(CRE_DURATION - 2), s(CRE_DURATION)], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })} />
     </AbsoluteFill>
   )
 }
