@@ -1145,3 +1145,102 @@ export const nairaTopUps = pgTable(
   },
   (t) => [uniqueIndex('naira_top_ups_reference_idx').on(t.reference), index('naira_top_ups_wallet_idx').on(t.walletAddress, t.createdAt)],
 )
+
+// --- Money in, card and savings (partners) ------------------------------------------------------
+
+/**
+ * Someone asking for a feature that waits on a partner (a US account number, the dollar card,
+ * savings) before Kova has that partner's key: one row per wallet, network and feature, so Kova
+ * knows who to switch on first.
+ */
+export const moneyAccessRequests = pgTable(
+  'money_access_requests',
+  {
+    id: id(),
+    /** Lowercase. */
+    wallet: address('wallet').notNull(),
+    network: network('network').notNull(),
+    /** us_account, dollar_card or savings. */
+    feature: text('feature').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('money_access_requests_idx').on(t.wallet, t.network, t.feature)],
+)
+
+/**
+ * A wallet's US account number: a Bridge virtual account whose USD deposits (ACH or wire) Bridge
+ * converts and sends to the wallet's Aurora Intents deposit address, which turns them into AUSD on
+ * Monad. Bridge asks each person to pass its KYC first, so a row starts at the KYC step.
+ */
+export const usAccounts = pgTable(
+  'us_accounts',
+  {
+    id: id(),
+    /** Lowercase. */
+    wallet: address('wallet').notNull(),
+    network: network('network').notNull(),
+    provider: text('provider').notNull().default('bridge'),
+    customerId: text('customer_id'),
+    kycLinkId: text('kyc_link_id'),
+    kycLink: text('kyc_link'),
+    tosLink: text('tos_link'),
+    /** not_started, under_review, approved, rejected (Bridge's words, kept as they come). */
+    kycStatus: text('kyc_status').notNull().default('not_started'),
+    virtualAccountId: text('virtual_account_id'),
+    /** Where Bridge sends what arrives: the wallet's own EVM deposit address. */
+    depositAddress: text('deposit_address'),
+    /** bank_name, account_number, routing_number, beneficiary_name, beneficiary_address. */
+    details: jsonb('details'),
+    /** kyc, active or closed. */
+    status: text('status').notNull().default('kyc'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('us_accounts_wallet_idx').on(t.wallet, t.network)],
+)
+
+/**
+ * A dollar card (virtual first), issued by a card partner. The card's number never touches Kova's
+ * database: the partner shows it in its own embedded frame. Kova keeps the token, the last four,
+ * the limit and whether it's frozen.
+ */
+export const dollarCards = pgTable(
+  'dollar_cards',
+  {
+    id: id(),
+    /** Lowercase. */
+    wallet: address('wallet').notNull(),
+    network: network('network').notNull(),
+    provider: text('provider').notNull().default('lithic'),
+    providerCardToken: text('provider_card_token').notNull(),
+    lastFour: text('last_four').notNull(),
+    expMonth: text('exp_month'),
+    expYear: text('exp_year'),
+    /** open, paused or closed (the partner's states). */
+    state: text('state').notNull().default('open'),
+    /** The most it spends in a day, in base units. */
+    dailyLimit: amount('daily_limit').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('dollar_cards_token_idx').on(t.providerCardToken), index('dollar_cards_wallet_idx').on(t.wallet, t.network)],
+)
+
+/** Each move into or out of savings, so "earned" is what the vault holds less what went in. */
+export const savingsMoves = pgTable(
+  'savings_moves',
+  {
+    id: id(),
+    /** Lowercase. */
+    wallet: address('wallet').notNull(),
+    network: network('network').notNull(),
+    vault: address('vault').notNull(),
+    /** in or out. */
+    kind: text('kind').notNull(),
+    /** Dollars moved, in base units. */
+    assets: amount('assets').notNull(),
+    txHash: text('tx_hash').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('savings_moves_tx_idx').on(t.txHash), index('savings_moves_wallet_idx').on(t.wallet, t.network)],
+)

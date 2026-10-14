@@ -15,6 +15,7 @@ import { insightRoutes } from './routes/insights.js'
 import { intentRoutes } from './routes/intents.js'
 import { orderRoutes } from './routes/orders.js'
 import { rateRoutes } from './routes/rates.js'
+import { moneyRoutes } from './routes/money.js'
 import { reportRoutes } from './routes/reports.js'
 import { stallRoutes } from './routes/stalls.js'
 import { terminalRoutes } from './routes/terminals.js'
@@ -55,6 +56,7 @@ app.route('/v1', insightRoutes)
 // middleware covers all of /v1 (reports asks for an API key).
 app.route('/v1', walletRoutes)
 app.route('/v1', nairaRoutes)
+app.route('/v1', moneyRoutes)
 app.route('/v1', linkRoutes)
 app.route('/v1', takingsRoutes)
 app.route('/v1', statsRoutes)

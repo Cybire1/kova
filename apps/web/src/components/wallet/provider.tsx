@@ -257,6 +257,11 @@ interface WalletValue {
   addTestDollars: () => Promise<bigint>
   /** Signs a message with this wallet, such as Kova's shop sign-in (EIP-4361). Moves no money. */
   signMessage: (message: string) => Promise<`0x${string}`>
+  /**
+   * The wallet's signing account for typed data that moves `amount` (savings in and out): from the
+   * open session when it covers it, else after the passkey, like a payment.
+   */
+  signingAccount: (amount: bigint) => Promise<LocalAccount>
   /** Locks the wallet now: the next payment asks for the passkey. */
   lock: () => void
   setName: (name: string) => void
@@ -1199,6 +1204,8 @@ export function WalletProvider({
     [unlock],
   )
 
+  const signingAccount = useCallback((amount: bigint) => unlock(amount), [unlock])
+
   const lock = useCallback(() => endSession(), [])
 
   const setName = useCallback(
@@ -1587,6 +1594,7 @@ export function WalletProvider({
       cashOutNaira,
       addTestDollars,
       signMessage,
+      signingAccount,
       lock,
       setName,
       setCurrency,
@@ -1630,6 +1638,7 @@ export function WalletProvider({
       cashOutNaira,
       addTestDollars,
       signMessage,
+      signingAccount,
       lock,
       setName,
       setCurrency,

@@ -6,6 +6,7 @@ import { Art, Icon } from '@/components/brand'
 import { formatUsd } from '@/lib/wallet/money'
 import { ScreenHead } from './activity'
 import { NairaRow } from './naira'
+import { FromAbroadRow } from './money'
 import { useWallet } from './provider'
 
 type Stage =
@@ -32,6 +33,7 @@ export function AddMoney() {
           </span>
         </div>
         <NairaRow href="/wallet/add/naira" title="From your bank, in naira" detail="Bank transfer, card or USSD, with Paystack" />
+        <FromAbroadRow />
         <CardOrBank />
         {chainDeposits ? <FromAnotherChain /> : null}
         <Link href="/wallet/receive" className="pill pill-block" data-tone="ink">
@@ -115,6 +117,7 @@ export function AddMoney() {
           </span>
         </button>
         <NairaRow href="/wallet/add/naira" title="From your bank, in naira" detail="Bank transfer, card or USSD, with Paystack" />
+        <FromAbroadRow />
         {chainDeposits ? <FromAnotherChain /> : null}
       </div>
     </div>
