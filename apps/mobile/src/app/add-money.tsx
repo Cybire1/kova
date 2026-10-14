@@ -1,8 +1,9 @@
 import * as Haptics from 'expo-haptics'
 import * as WebBrowser from 'expo-web-browser'
 import { router } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
+import { naira } from '@/lib/api'
 import { topUpLink } from '@/lib/chain'
 import { chainDeposits, isTestnet } from '@/lib/config'
 import { formatUsd } from '@/lib/money'
@@ -24,6 +25,11 @@ export default function AddMoney() {
   const [problem, setProblem] = useState<string | null>(null)
 
   const [cardNote, setCardNote] = useState<string | null>(null)
+  // Naira through Paystack: on wherever this server has it, testnet included (Paystack's test mode).
+  const [nairaOn, setNairaOn] = useState(false)
+  useEffect(() => {
+    void naira.info().then((info) => setNairaOn(info.enabled))
+  }, [])
 
   /** Ramp's hosted checkout, in the in-app browser; it sends AUSD on Monad to this wallet. */
   const cardOrBank = async () => {
@@ -96,8 +102,23 @@ export default function AddMoney() {
         ) : null}
       </Rise>
       {/* Card or bank (Ramp) buys AUSD on Monad mainnet; on testnet it would be a dead end. */}
-      {stage !== 'done' && (!isTestnet || chainDeposits) ? (
+      {stage !== 'done' && (!isTestnet || chainDeposits || nairaOn) ? (
         <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+          {nairaOn ? (
+          <Sticker radius={24} onPress={() => router.push('/add-naira')} accessibilityLabel="From your bank, in naira" style={{ height: 66, marginBottom: 12 }}>
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Txt weight="semi" size={16}>
+                  From your bank, in naira
+                </Txt>
+                <Txt size={13} color={colors.muted}>
+                  Bank transfer, card or USSD, with Paystack
+                </Txt>
+              </View>
+              <Icon name="arrow" size={20} />
+            </View>
+          </Sticker>
+          ) : null}
           {isTestnet ? null : (
           <Sticker radius={24} onPress={() => void cardOrBank()} accessibilityLabel="Card or bank" style={{ height: 66, marginBottom: 12 }}>
             <View style={styles.row}>

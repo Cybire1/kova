@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Art, Icon } from '@/components/brand'
 import { formatUsd } from '@/lib/wallet/money'
 import { ScreenHead } from './activity'
+import { NairaRow } from './naira'
 import { useWallet } from './provider'
 
 type Settings = { live: boolean; config: Record<string, unknown> | null }
@@ -74,6 +75,7 @@ export function CashOut() {
             ? `${formatUsd(stage.amount)} went to Ramp Network on Monad. They pay it out to you; banks usually take minutes to a day.`
             : 'Sell dollars for money in your account, with Ramp Network. Kova sends the dollars for you, gas-free, and your passkey approves it.'}
         </p>
+        <NairaRow href="/wallet/cash-out/naira" title="To a Nigerian bank, in naira" detail="Any bank, at today’s rate, with Paystack" />
         <dl className="w-review-card">
           <div className="w-review-row">
             <dt>Available</dt>

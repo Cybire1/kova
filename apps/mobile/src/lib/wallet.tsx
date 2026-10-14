@@ -9,7 +9,7 @@ import { AppState } from 'react-native'
 import { type Address, getAddress, hexToBytes, isAddress, isAddressEqual, type LocalAccount, type TypedDataDefinition } from 'viem'
 import { generatePrivateKey } from 'viem/accounts'
 import { type Checkout, demoSignIn } from './api'
-import { claimLink, fundFromFaucet, getBalance, incomingSince, type PaymentLink, payCharge, recordLink, sendMoney } from './chain'
+import { type CashOutToPay, claimLink, fundFromFaucet, getBalance, incomingSince, type PaymentLink, payCashOut, payCharge, recordLink, sendMoney } from './chain'
 import { passkeyDomain } from './config'
 import { signOfflinePayment } from './offline-core'
 import { offlineArrival, offlineEntryId } from './offline-store'
@@ -149,6 +149,8 @@ interface Wallet {
   addMoney: () => Promise<void>
   /** `signer`: one of this wallet's one-time addresses pays instead (private dollars), and the wallet never shows. */
   payCheckout: (checkout: Checkout, options?: { signer?: LocalAccount }) => Promise<Entry>
+  /** Cashes out to a Nigerian bank: signs the quote's exact transfer to Kova's treasury; Kova pays the naira (app/cash-out.tsx). */
+  cashOutNaira: (cashOut: CashOutToPay) => Promise<CashOutToPay>
   /**
    * Sends dollars to a person. `privately`: to a fresh one-time address made from their published
    * key, checked against their own signature first; Monad shows the amount, but not who got it.
@@ -410,14 +412,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           const fromTakings = !fromLink && (await isTakingsAddress(t.from))
           const name = t.faucet
             ? 'Test dollars'
-            : refund
+            : t.naira === 'top_up'
+              ? 'Added from your bank'
+              : t.naira === 'cash_out_refund'
+                ? 'Cash-out returned'
+                : refund
               ? 'Refund'
               : fromTakings
                 ? 'Private takings'
                 : (fromLink?.name ?? nameFor(t.from) ?? `${t.from.slice(0, 6)}…${t.from.slice(-4)}`)
           await record({
             id: newId(),
-            kind: t.faucet ? 'added' : 'received',
+            kind: t.faucet || t.naira === 'top_up' ? 'added' : 'received',
             amount: t.amount.toString(),
             name,
             detail:
@@ -618,6 +624,30 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       await record(entry)
       void refresh()
       return entry
+    },
+    [unlock, record, refresh],
+  )
+
+  const cashOutNaira = useCallback(
+    async (cashOut: CashOutToPay) => {
+      const amount = BigInt(cashOut.pay.value)
+      const account = await unlock(amount)
+      const paid = await payCashOut(account, cashOut)
+      spend(amount)
+      if (paid.tx_hash)
+        await record({
+          id: newId(),
+          kind: 'sent',
+          amount: cashOut.pay.value,
+          name: `Cash out to ${cashOut.bank_name}`,
+          detail: `${cashOut.naira} to ••••${cashOut.account_last4}`,
+          ...(cashOut.pay.to ? { address: getAddress(cashOut.pay.to) } : {}),
+          txHash: paid.tx_hash,
+          ms: paid.ms,
+          at: Date.now(),
+        })
+      void refresh()
+      return paid
     },
     [unlock, record, refresh],
   )
@@ -944,6 +974,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setCurrency,
     addMoney,
     payCheckout,
+    cashOutNaira,
     send,
     makeLink,
     signOffline,

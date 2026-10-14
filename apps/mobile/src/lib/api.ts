@@ -760,3 +760,60 @@ export const tableLinkFor = (slug: string, table: string) => `${stallLinkFor(slu
 
 /** The printable table poster, on the web. */
 export const posterLinkFor = (slug: string) => `${webUrl}/s/${slug}/poster`
+
+// --- naira (the API's routes/naira.ts) -----------------------------------------------------
+
+export interface NairaInfo {
+  enabled: boolean
+  test_mode?: boolean
+  rate_source?: 'chainlink' | 'table'
+  market_rate?: string
+  cash_out_rate?: string
+  top_up_rate?: string
+}
+
+export interface NairaBank {
+  name: string
+  code: string
+}
+
+export interface NairaQuote {
+  naira: string
+  rate: string
+  fee: string
+  rate_source: 'chainlink' | 'table'
+}
+
+export interface NairaTopUp {
+  reference: string
+  amount: string
+  naira: string
+  status: 'initialized' | 'paid' | 'settled' | 'failed'
+  tx_url: string | null
+  failure: string | null
+  test_mode: boolean
+}
+
+export const naira = {
+  info: () => request<NairaInfo>('/v1/naira').catch((): NairaInfo => ({ enabled: false })),
+  banks: () => request<{ data: NairaBank[] }>('/v1/naira/banks').then((r) => r.data),
+  accountName: (accountNumber: string, bankCode: string) =>
+    request<{ account_name: string }>('/v1/naira/account', {
+      method: 'POST',
+      body: JSON.stringify({ account_number: accountNumber, bank_code: bankCode }),
+    }).then((r) => r.account_name),
+  quote: (dollars: string, direction: 'in' | 'out') =>
+    request<NairaQuote>(`/v1/naira/quote?amount=${dollars}&direction=${direction}`),
+  cashOut: (wallet: string, input: { amount: string; bankCode: string; accountNumber: string }) =>
+    request<import('./chain').CashOutToPay>(`/v1/wallets/${wallet}/cash-outs`, {
+      method: 'POST',
+      body: JSON.stringify({ amount: input.amount, bank_code: input.bankCode, account_number: input.accountNumber }),
+    }),
+  cashOutStatus: (id: string) => request<import('./chain').CashOutToPay>(`/v1/cash-outs/${id}`),
+  topUp: (wallet: string, input: { amount: string; email: string; returnUrl: string }) =>
+    request<NairaTopUp & { url: string; fee: string }>(`/v1/wallets/${wallet}/naira-top-ups`, {
+      method: 'POST',
+      body: JSON.stringify({ amount: input.amount, email: input.email, return_url: input.returnUrl }),
+    }),
+  verifyTopUp: (reference: string) => request<NairaTopUp>(`/v1/naira-top-ups/${reference}/verify`, { method: 'POST' }),
+}

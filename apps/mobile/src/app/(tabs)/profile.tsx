@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import QRCode from 'react-native-qrcode-svg'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as WebBrowser from 'expo-web-browser'
+import { naira } from '@/lib/api'
 import { isTestnet, network, webUrl } from '@/lib/config'
 import { personLink } from '@/lib/links'
 import { currencyInfo, type DisplayCurrency, formatUsd } from '@/lib/money'
@@ -151,6 +152,9 @@ export default function Profile() {
         </View>
       </Sticker>
       )}
+
+      {/* Naira through Paystack: dollars to any Nigerian bank account (app/cash-out.tsx). */}
+      <NairaRow />
 
       {/* Dollars people sent privately, waiting at one-time addresses only this wallet can open. */}
       <PrivateRow />
@@ -430,6 +434,7 @@ function PrivateRow() {
 
 const styles = StyleSheet.create({
   cashOut: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18 },
+  nairaBadge: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.tealDeep, alignItems: 'center', justifyContent: 'center' },
   pass: { marginTop: 16, borderRadius: 28, backgroundColor: colors.ink },
   passTop: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, paddingBottom: 16 },
   ring: { borderRadius: 31, borderWidth: 3, borderColor: colors.yellow, padding: 2 },
@@ -523,3 +528,32 @@ const styles = StyleSheet.create({
   confirm: { alignSelf: 'stretch', borderRadius: 22, borderWidth: 2, borderColor: colors.ink, padding: 16, backgroundColor: colors.surface },
   small: { flex: 1, height: 40, borderRadius: 20, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
 })
+
+/** Cash out to naira, when this server has naira on. */
+function NairaRow() {
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    void naira.info().then((info) => setOn(info.enabled))
+  }, [])
+  if (!on) return null
+  return (
+    <Sticker radius={24} accessibilityLabel="Cash out to naira" onPress={() => router.push('/cash-out')} style={{ height: 62, marginTop: 14 }}>
+      <View style={[styles.cashOut, { gap: 14 }]}>
+        <View style={styles.nairaBadge}>
+          <Txt weight="bold" size={15} color={colors.white}>
+            ₦
+          </Txt>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Txt weight="semi" size={16}>
+            Cash out to naira
+          </Txt>
+          <Txt size={13} color={colors.muted}>
+            To any Nigerian bank, with Paystack
+          </Txt>
+        </View>
+        <Icon name="arrow" size={20} />
+      </View>
+    </Sticker>
+  )
+}

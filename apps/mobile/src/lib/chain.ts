@@ -185,6 +185,8 @@ export interface Incoming {
   kind: 'payment' | 'refund' | 'payout' | null
   /** Test dollars from the testnet faucet, not from a person. */
   faucet: boolean
+  /** Dollars from Kova's treasury for naira: a top-up landing, or a cash-out's dollars coming back. */
+  naira: 'top_up' | 'cash_out_refund' | null
   /** The sender's private note, still sealed, and the authorization nonce it is bound to. */
   note: { sealed: SealedNote; auth_nonce: Hex } | null
 }
@@ -197,6 +199,7 @@ interface IndexedTransfer {
   block: string
   kind: Incoming['kind']
   faucet: boolean
+  naira?: Incoming['naira']
   note?: Incoming['note']
 }
 
@@ -219,6 +222,7 @@ export async function incomingSince(
         block: BigInt(t.block),
         kind: t.kind,
         faucet: t.faucet,
+        naira: t.naira ?? null,
         note: t.note ?? null,
       })),
   }
@@ -320,4 +324,52 @@ export async function claimLink(link: PaymentLink, key: Hex, to: Address): Promi
     `/v1/public/links/${encodeURIComponent(link.id)}/claim`,
     toSignedAuthorization(settlementToken.address, authorization, signature),
   )
+}
+
+// --- naira ---------------------------------------------------------------------------------
+
+/** A naira cash-out, as Kova quotes it (POST /v1/wallets/:address/cash-outs): what to sign, and how it went. */
+export interface CashOutToPay {
+  id: string
+  amount: string
+  naira: string
+  rate: string
+  fee: string
+  bank_name: string
+  account_name?: string
+  account_last4: string
+  status: 'quoted' | 'received' | 'paying' | 'paid' | 'failed' | 'expired'
+  failure: string | null
+  tx_hash: string | null
+  tx_url: string | null
+  refund_tx_url: string | null
+  test_mode: boolean
+  expires_at: string
+  pay: { token: string; to: string | null; value: string; nonce: Hex; valid_before: number }
+}
+
+/**
+ * Signs exactly the transfer a cash-out asks for (its dollars, to Kova's treasury, with the
+ * cash-out's own nonce) and hands it to Kova, which relays it to Monad, paying the gas, and pays
+ * the naira out.
+ */
+export async function payCashOut(account: LocalAccount, cashOut: CashOutToPay): Promise<CashOutToPay & { ms: number }> {
+  if (!cashOut.pay.to) throw new Error('Cashing out to naira isn’t switched on yet.')
+  const started = Date.now()
+  const token = tokenByAddress(networkId, cashOut.pay.token as Address)
+  if (!token) throw new Error('This cash-out asks for a token Kova doesn’t use. Nothing moved.')
+  const authorization = {
+    from: account.address,
+    to: cashOut.pay.to as Address,
+    value: BigInt(cashOut.pay.value),
+    validAfter: 0n,
+    validBefore: BigInt(cashOut.pay.valid_before),
+    nonce: cashOut.pay.nonce,
+  }
+  const signature = await account.signTypedData(transferAuthorizationTypedData(token, network.chainId, authorization))
+  const paid = await kova<CashOutToPay>(
+    `/v1/cash-outs/${cashOut.id}/pay`,
+    toSignedAuthorization(token.address, authorization, signature),
+  )
+  return { ...paid, ms: Date.now() - started }
 }

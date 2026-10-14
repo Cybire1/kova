@@ -23,10 +23,12 @@ import { ussdRoutes } from './routes/ussd.js'
 import { startDemo } from './services/demo.js'
 import { walletRoutes } from './routes/wallet.js'
 import { linkRoutes } from './routes/links.js'
+import { nairaRoutes } from './routes/naira.js'
 import { takingsRoutes } from './routes/takings.js'
 import { statsRoutes } from './routes/stats.js'
 import { webhookRoutes } from './routes/webhooks.js'
 import { expireStaleIntents } from './services/intents.js'
+import { checkPayingCashOuts, retryTopUps } from './services/naira.js'
 import { rateBook } from './services/rates.js'
 import { expireTrips } from './services/travel.js'
 import { startAnnouncer } from './workers/announcer.js'
@@ -52,6 +54,7 @@ app.route('/v1', insightRoutes)
 // Public: wallets are addresses and prove themselves by signing. Mounted before any router whose
 // middleware covers all of /v1 (reports asks for an API key).
 app.route('/v1', walletRoutes)
+app.route('/v1', nairaRoutes)
 app.route('/v1', linkRoutes)
 app.route('/v1', takingsRoutes)
 app.route('/v1', statsRoutes)
@@ -82,6 +85,11 @@ if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js
   // Rates change every 15 minutes at most; keep Kova Travel's copy fresh without waiting for a request.
   void rateBook()
   setInterval(() => void rateBook(), 5 * 60_000)
+  // Naira: follow bank transfers Paystack hasn't confirmed yet, and send dollars a top-up still owes.
+  setInterval(() => {
+    void checkPayingCashOuts().catch((error) => console.error('[naira] cash-outs', error))
+    void retryTopUps().catch((error) => console.error('[naira] top-ups', error))
+  }, 60_000)
 
   serve({ fetch: app.fetch, port: config.PORT }, (info) => {
     console.log(
