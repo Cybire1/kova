@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { Brand, NavIcon, type NavIconName } from '@/components/brand'
 import { useWallet } from './provider'
@@ -19,6 +19,9 @@ import { Welcome } from './welcome'
 export function WalletShell({ children }: { children: React.ReactNode }) {
   const { status, tickPrivate } = useWallet()
   const path = usePathname()
+  // Back from Paystack with a naira top-up: its result shows even where no wallet is open (an in-app browser).
+  const params = useSearchParams()
+  const nairaReturn = path === '/wallet/add/naira' && Boolean(params.get('reference') ?? params.get('trxref'))
   const sheet = path.startsWith('/wallet/send')
   const inner = status === 'ready' && path !== '/wallet' && !sheet
 
@@ -47,7 +50,7 @@ export function WalletShell({ children }: { children: React.ReactNode }) {
       <main className="w-main">
         {status === 'loading' ? (
           <div className="w-loading" aria-busy="true" />
-        ) : status === 'none' ? (
+        ) : status === 'none' && !nairaReturn ? (
           <Welcome forShop={path.startsWith('/wallet/shop')} />
         ) : (
           children

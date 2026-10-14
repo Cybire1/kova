@@ -530,7 +530,7 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
 
 /** Back from Paystack: Kova checks the payment and sends the dollars. */
 function TopUpReturn({ reference }: { reference: string }) {
-  const { refresh } = useWallet()
+  const { profile, refresh } = useWallet()
   const [topUp, setTopUp] = useState<TopUp | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
   const tries = useRef(0)
@@ -539,11 +539,11 @@ function TopUpReturn({ reference }: { reference: string }) {
     try {
       const checked = await json<TopUp>(`/api/naira/naira-top-ups/${reference}/verify`, { method: 'POST' })
       setTopUp(checked)
-      if (checked.status === 'settled') void refresh()
+      if (checked.status === 'settled' && profile) void refresh()
     } catch (e) {
       setProblem(e instanceof Error ? e.message : 'Kova couldn’t check the payment yet.')
     }
-  }, [reference, refresh])
+  }, [profile, reference, refresh])
 
   useEffect(() => {
     void verify()
