@@ -118,6 +118,9 @@ export default function Card() {
                 Try again
               </Txt>
             </Pressable>
+            <View style={{ alignSelf: 'stretch' }}>
+              <DollarCardRow />
+            </View>
           </>
         ) : (
           <ActivityIndicator color={colors.ink} />

@@ -53,6 +53,7 @@ app.route('/v1', insightRoutes)
 // Public: wallets are addresses and prove themselves by signing. Mounted before any router whose
 // middleware covers all of /v1 (reports asks for an API key).
 app.route('/v1', walletRoutes)
+app.route('/v1', moneyRoutes)
 app.route('/v1', linkRoutes)
 app.route('/v1', takingsRoutes)
 app.route('/v1', statsRoutes)
@@ -62,7 +63,6 @@ app.route('/v1', demoRoutes)
 app.route('/v1', rateRoutes)
 app.route('/v1', webhookRoutes)
 app.route('/v1', reportRoutes)
-app.route('/v1', moneyRoutes)
 
 if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js')) {
   await runMigrations(config.DATABASE_URL)

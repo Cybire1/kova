@@ -278,13 +278,14 @@ export function FromAbroadRow() {
 }
 
 const tiles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 12, marginHorizontal: 20, marginTop: 14 },
+  row: { flexDirection: 'row', gap: 12, marginTop: 12 },
   tile: {
     flex: 1,
     minHeight: 104,
     justifyContent: 'flex-end',
     gap: 2,
     padding: 14,
+    paddingTop: 54,
     borderWidth: 2,
     borderColor: colors.ink,
     borderRadius: 24,
