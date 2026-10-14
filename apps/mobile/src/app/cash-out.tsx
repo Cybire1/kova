@@ -330,7 +330,7 @@ export default function CashOutScreen() {
             </View>
             <View style={styles.facts}>
               <Fact label="You send" value={`$${quote.amount}`} hint={`From your balance on ${chainName}`} />
-              <Fact label="Rate" value={`₦${quote.rate} per dollar`} hint={info?.rate_source === 'chainlink' ? 'Chainlink rate on Monad, less 1%' : 'Market rate, less 1%'} />
+              <Fact label="Rate" value={`₦${Number(quote.rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per dollar`} hint={info?.rate_source === 'chainlink' ? 'Chainlink rate on Monad, less 1%' : 'Market rate, less 1%'} />
               <Fact label="Bank fee" value={quote.fee} hint="Taken from the naira" />
               <Fact label="Network fee" value="$0.00, Kova covers it" />
               <Fact label="Arrives" value="In minutes" hint="If the bank can’t take it, your dollars come back" last />

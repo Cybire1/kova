@@ -191,7 +191,7 @@ export default function AddNaira() {
               </Txt>
             </View>
             <View style={styles.facts}>
-              <Fact label="Rate" value={`₦${quote.rate} per dollar`} hint={quote.rate_source === 'chainlink' ? 'Chainlink rate on Monad, plus 1%' : 'Market rate, plus 1%'} />
+              <Fact label="Rate" value={`₦${Number(quote.rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per dollar`} hint={quote.rate_source === 'chainlink' ? 'Chainlink rate on Monad, plus 1%' : 'Market rate, plus 1%'} />
               <Fact label="Paystack’s fee" value={quote.fee} hint="Included in what you pay" />
               <Fact label="Arrives" value="In seconds, on Monad" last />
             </View>
