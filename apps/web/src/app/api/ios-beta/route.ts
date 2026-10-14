@@ -1,7 +1,7 @@
 import { ApiError, kovaPublic } from '@/lib/api'
 
 /**
- * The iPhone beta's waitlist (the API's routes/ios-beta.ts), from the /iphone page and the cards
+ * The iPhone beta's waitlist (the API's routes/ios-beta.ts), from the /waitlist page and the cards
  * that lead to it: an email, a name if they gave one, and where they signed up from.
  */
 const SOURCES = new Set(['iphone-page', 'home', 'try'])

@@ -19,7 +19,7 @@ export default async function Landing() {
   const signedIn = Boolean(await getSession())
   const mainnet = process.env.KOVA_NETWORK === 'mainnet'
   // One waitlist: the test network's site sends people to mykova.app's.
-  const iphone = mainnet ? '/iphone' : 'https://mykova.app/iphone'
+  const iphone = mainnet ? '/waitlist' : 'https://mykova.app/waitlist'
   return (
     <div className="lp">
       <header className="lp-nav">

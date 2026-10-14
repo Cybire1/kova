@@ -59,7 +59,7 @@ export default async function TryPage(props: {
   const params = await props.searchParams
   const ref = cleanRef(typeof params.ref === 'string' ? params.ref : null)
   const mainnet = process.env.KOVA_NETWORK === 'mainnet'
-  const iphone = mainnet ? '/iphone' : 'https://mykova.app/iphone'
+  const iphone = mainnet ? '/waitlist' : 'https://mykova.app/waitlist'
 
   return (
     <main className="gr-page gr-try">
