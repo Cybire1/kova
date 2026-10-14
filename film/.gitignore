@@ -8,3 +8,6 @@ public/audio/score.wav
 public/os/live
 # Raw simulator captures; the trimmed frames used by the films are kept
 public/shop/app/*-raw
+# Raw takes for the demo video (screen recordings, screencast frames); the cut clips live in public/demo
+demo/raw
+demo/vo
