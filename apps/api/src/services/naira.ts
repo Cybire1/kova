@@ -115,6 +115,7 @@ export const cashOutNonce = (row: Pick<CashOutRow, 'id'>) => encodeMemo({ kind: 
 
 export function serializeCashOut(row: CashOutRow) {
   const expired = row.status === 'quoted' && row.expiresAt < new Date()
+  // 'refunding' is internal: to the wallet it has failed, and its dollars are on their way back.
   return {
     object: 'cash_out',
     id: row.id,
@@ -126,7 +127,7 @@ export function serializeCashOut(row: CashOutRow) {
     bank_name: row.bankName,
     account_name: row.accountName,
     account_last4: row.accountNumber.slice(-4),
-    status: expired ? 'expired' : row.status,
+    status: expired ? 'expired' : row.status === 'refunding' ? 'failed' : row.status,
     /** What the wallet signs: exactly this transfer, to Kova's treasury, with this nonce. */
     pay: {
       token: getAddress(settlementToken.address),
@@ -222,17 +223,23 @@ async function sendDollars(to: Address, amount: bigint): Promise<Hex> {
   return receipt.transactionHash
 }
 
-/** The bank transfer failed: the dollars go back to the wallet. */
+/**
+ * The bank transfer failed: the dollars go back to the wallet. If the treasury can't send them
+ * right now, the cash-out stays 'refunding' and the background job tries again until it can.
+ */
 async function refundCashOut(row: CashOutRow, why: string): Promise<CashOutRow> {
   if (row.refundTxHash) return updateCashOut(row, { status: 'failed' })
   try {
     const hash = await sendDollars(getAddress(row.walletAddress), row.amount)
     return updateCashOut(row, { status: 'failed', refundTxHash: hash, failure: `${why} Your dollars went back to your wallet.` })
   } catch (error) {
-    console.error('[naira] refund failed', row.id, error)
-    return updateCashOut(row, { status: 'failed', failure: `${why} Kova is sending your dollars back.` })
+    console.error('[naira] refund failed; retrying later', row.id, error instanceof Error ? error.message : error)
+    return updateCashOut(row, { status: 'refunding', failure: `${why} Kova is sending your dollars back.` })
   }
 }
+
+/** The part of a failure that says why, without what happened to the dollars after. */
+const whyOf = (failure: string | null) => (failure ?? 'The bank transfer didn’t go through.').replace(/ Kova is sending your dollars back\.$/, '')
 
 /**
  * The wallet signed the transfer: check it is exactly this cash-out's, relay it to Monad, and pay
@@ -304,6 +311,9 @@ export async function checkPayingCashOuts(): Promise<void> {
     limit: 10,
   })
   for (const row of stuck) await payOut(row)
+  // Refunds the treasury couldn't send at the time.
+  const owed = await db.query.cashOuts.findMany({ where: eq(schema.cashOuts.status, 'refunding'), limit: 10 })
+  for (const row of owed) await refundCashOut(row, whyOf(row.failure))
   await db
     .update(schema.cashOuts)
     .set({ status: 'expired', updatedAt: new Date() })

@@ -1098,7 +1098,7 @@ export const cashOuts = pgTable(
     accountName: text('account_name').notNull(),
     /** Paystack's transfer recipient for the account, made when the naira is sent. */
     recipientCode: text('recipient_code'),
-    /** quoted | received | paying | paid | failed | expired */
+    /** quoted | received | paying | paid | refunding | failed | expired */
     status: text('status').notNull().default('quoted'),
     /** The wallet's transfer of the dollars to Kova's treasury, on Monad. */
     txHash: text('tx_hash'),
