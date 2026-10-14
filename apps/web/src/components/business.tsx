@@ -4,7 +4,7 @@ import type { NetworkId } from '@kova/monad'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-import { isAddress } from 'viem'
+import { getAddress, isAddress } from 'viem'
 import {
   type Business,
   businessApi,
@@ -20,6 +20,7 @@ import {
   type Team,
 } from '@/lib/business'
 import { passkeyDomain, passkeyHome } from '@/lib/passkey'
+import { balanceOf } from '@/lib/wallet/chain'
 import {
   displayCurrencies,
   formatLocal,
@@ -85,6 +86,20 @@ function useOwner(shop: BusinessShop) {
         ? `This browser’s wallet (${short(wallet.address)}) isn’t the one that owns ${shop.name}.`
         : null
   return { wallet: mine ? wallet : null, blocked }
+}
+
+/** What the wallet is short of for `needed` dollars, said plainly, or null when it covers it. */
+async function shortfall(
+  shop: BusinessShop,
+  owner: WebWallet,
+  needed: number,
+): Promise<string | null> {
+  const held = await balanceOf(shop.network, getAddress(owner.address)).catch(() => null)
+  if (held === null) return null
+  const have = Number(held) / 1e6
+  return have + 1e-9 < needed
+    ? `${shop.name}’s wallet has ${usd(have)}, and this needs ${usd(needed)}. Add money first, so nobody is paid halfway.`
+    : null
 }
 
 function Problem({ text }: { text: string | null }) {
@@ -199,7 +214,8 @@ function ReachChip({ reach }: { reach: Reach | undefined }) {
 
 function LineIcon({ line }: { line: LineState | undefined }) {
   if (!line || line.state === 'waiting') return <span className="biz-line-icon">·</span>
-  if (line.state === 'paying') return <span className="spinner biz-line-spin" role="img" aria-label="Paying" />
+  if (line.state === 'paying')
+    return <span className="spinner biz-line-spin" role="img" aria-label="Paying" />
   if (line.state === 'paid')
     return (
       <span className="biz-line-icon biz-line-paid">
@@ -307,6 +323,9 @@ export function PayrollPanel({
     setProblem(null)
     setBusy(true)
     try {
+      // Before anything is signed: the wallet has to cover everyone, or nobody is half-paid.
+      const short = await shortfall(shop, owner.wallet, total)
+      if (short) return setProblem(short)
       const run = await businessApi.startRun(
         label.trim() || `${monthName()} salary`,
         included.map((p) => ({
@@ -722,6 +741,8 @@ export function SuppliersPanel({
     if (!amountOk(amount)) return setProblem('How much? In dollars, like 120 or 45.50.')
     setBusy(true)
     try {
+      const short = await shortfall(shop, owner.wallet, Number(amount))
+      if (short) return setProblem(short)
       const result = await paySupplier({
         owner: owner.wallet,
         network: shop.network,

@@ -79,6 +79,8 @@ export default function Suppliers() {
   const pay = async (supplier: Supplier) => {
     setProblem(null)
     if (!amountOk(amount)) return setProblem('How much? In dollars, like 120 or 45.50.')
+    if (wallet.balance !== null && Number(wallet.balance) / 1e6 + 1e-9 < Number(amount))
+      return setProblem(`${shop.name}’s wallet has ${usd(Number(wallet.balance) / 1e6)}, and this needs ${usd(amount)}. Add money first.`)
     setBusy(true)
     try {
       const result = await paySupplier({ approve: wallet.approve, supplier, amount: Number(amount).toFixed(2), note })

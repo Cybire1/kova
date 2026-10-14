@@ -93,6 +93,9 @@ export default function Payroll() {
   const pay = async () => {
     if (!included.length) return
     setProblem(null)
+    // Before anything is signed: the wallet has to cover everyone, or nobody is half-paid.
+    if (wallet.balance !== null && Number(wallet.balance) / 1e6 + 1e-9 < total)
+      return setProblem(`${shop.name}’s wallet has ${usd(Number(wallet.balance) / 1e6)}, and this needs ${usd(total)}. Add money first, so nobody is paid halfway.`)
     setBusy(true)
     try {
       const run = await startPayrollRun(
