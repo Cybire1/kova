@@ -18,6 +18,7 @@
     "menu:read": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.monad src/scripts/read-menu.ts",
     "mainnet:check": "tsx --env-file=.env.mainnet src/scripts/mainnet-check.ts",
     "check:private": "tsx src/scripts/private-check.ts",
+    "check:naira": "tsx --env-file-if-exists=.env src/scripts/naira-check.ts",
     "check:offline": "tsx src/scripts/offline-check.ts"
   },
   "dependencies": {
