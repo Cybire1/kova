@@ -173,10 +173,12 @@ export async function serializeKey(row: KeyRow, options: { chain?: boolean } = {
     spentSince(row.id, periodStart(row)),
     spentSince(row.id, periodStart({ period: KEY_DAY })),
   ])
-  const chain =
+  const read =
     options.chain && row.keyAddress && (row.status === 'active' || row.status === 'frozen')
       ? await onChainCard(getAddress(row.keyAddress)).catch(() => null)
       : null
+  // Only a key Monad knows as this owner's says anything about what it has left.
+  const chain = read && isAddressEqual(read.holder, row.ownerAddress as Address) ? read : null
   const left = row.spendLimit > spent ? row.spendLimit - spent : 0n
   const rules = row.rules
   return {
