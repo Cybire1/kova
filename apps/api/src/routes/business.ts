@@ -409,16 +409,21 @@ export const businessRoutes = new Hono()
     const merchant = c.get('merchant')
     const uuid = decodeId('payrollPerson', c.req.param('id'))
     if (!uuid) throw new KovaError('not_found', 'No such person.')
+    const mine = await db.query.payrollPeople.findFirst({
+      where: and(
+        eq(schema.payrollPeople.id, uuid),
+        eq(schema.payrollPeople.merchantId, merchant.id),
+      ),
+    })
+    if (!mine) throw new KovaError('not_found', 'No such person.')
     // Their past pay stays in the book under their name; only the person row goes.
     await db
       .update(schema.payrollPayments)
       .set({ personId: null })
-      .where(eq(schema.payrollPayments.personId, uuid))
+      .where(eq(schema.payrollPayments.personId, mine.id))
     const gone = await db
       .delete(schema.payrollPeople)
-      .where(
-        and(eq(schema.payrollPeople.id, uuid), eq(schema.payrollPeople.merchantId, merchant.id)),
-      )
+      .where(eq(schema.payrollPeople.id, mine.id))
       .returning({ id: schema.payrollPeople.id })
     if (!gone.length) throw new KovaError('not_found', 'No such person.')
     return c.json({ deleted: true })
@@ -509,6 +514,10 @@ export const businessRoutes = new Hono()
     if (!isHash(input.tx_hash))
       throw new KovaError('invalid_request', 'tx_hash isn’t a transaction hash.')
     const to = wallet(input.stealth_address)
+    const used = await db.query.payrollPayments.findFirst({
+      where: eq(schema.payrollPayments.txHash, input.tx_hash),
+    })
+    if (used) throw new KovaError('conflict', 'That transaction already paid someone in the book.')
     await confirmTransfer(merchant, input.tx_hash, to, row.amount)
     const [paid] = await db
       .update(schema.payrollPayments)
