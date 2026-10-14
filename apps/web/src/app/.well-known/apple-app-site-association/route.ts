@@ -25,7 +25,7 @@ export function GET() {
     webcredentials: { apps },
     applinks: {
       details: [
-        { appIDs: apps, components: [{ '/': '/pay/*' }, { '/': '/s/*' }, { '/': '/to/*' }, { '/': '/o' }] },
+        { appIDs: apps, components: [{ '/': '/pay/*' }, { '/': '/s/*' }, { '/': '/to/*' }, { '/': '/o' }, { '/': '/a/*' }] },
       ],
     },
   })
