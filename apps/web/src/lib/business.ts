@@ -4,7 +4,7 @@ import type { LocalAccount } from 'viem/accounts'
 import { openKovaPasskey, openSigningSession, passkeyProblem } from '@/lib/passkey'
 import { sendMoney } from '@/lib/wallet/chain'
 import { fetchPrivateKey, privatePayment } from '@/lib/wallet/private'
-import { sessionAccount } from '@/lib/wallet/session'
+import { sessionAccount, spend } from '@/lib/wallet/session'
 import type { WebWallet } from '@/lib/wallet/takings'
 
 /**
@@ -177,13 +177,17 @@ export async function reachOf(wallets: string[]): Promise<Record<string, Reach>>
 }
 
 /**
- * The owner's wallet, opened for one job: a session this tab already has, or the passkey asked
- * once. `done` ends what this opened, which zeroes the key.
+ * The owner's wallet, opened for one job worth `amount`: a session this tab already has, when its
+ * limits cover that much (and the spend is counted against it), or the passkey asked once. `done`
+ * ends what this opened, which zeroes the key.
  */
-async function openOwner(owner: WebWallet): Promise<{ account: LocalAccount; done: () => void }> {
-  const open = sessionAccount(0n)
+async function openOwner(
+  owner: WebWallet,
+  amount: bigint,
+): Promise<{ account: LocalAccount; done: (spent: bigint) => void }> {
+  const open = sessionAccount(amount)
   if (open && isAddressEqual(open.address, getAddress(owner.address)))
-    return { account: open, done: () => {} }
+    return { account: open, done: (spent) => spent > 0n && spend(spent) }
   const asserted = await openKovaPasskey(owner.passkey).catch((error) => {
     throw new Error(passkeyProblem(error))
   })
@@ -216,9 +220,13 @@ export async function payPayroll(options: {
   onLine: (payment: string, state: LineState) => void
 }): Promise<void> {
   const { owner, network, business, run, wallets, onLine } = options
-  const { account, done } = await openOwner(owner)
+  const queue = run.payments.filter((p) => p.status === 'pending')
+  const { account, done } = await openOwner(
+    owner,
+    queue.reduce((sum, p) => sum + parseAmount(p.amount), 0n),
+  )
+  let paid = 0n
   try {
-    const queue = run.payments.filter((p) => p.status === 'pending')
     const work = async (p: PayrollPayment) => {
       onLine(p.id, { state: 'paying' })
       try {
@@ -248,6 +256,7 @@ export async function payPayroll(options: {
           stealth_address: made.address,
           tx_hash: moved.hash,
         })
+        paid += parseAmount(p.amount)
         onLine(p.id, { state: 'paid', ms: moved.ms, explorer: moved.explorer })
       } catch (error) {
         const why =
@@ -258,7 +267,7 @@ export async function payPayroll(options: {
     }
     for (let i = 0; i < queue.length; i += 2) await Promise.all(queue.slice(i, i + 2).map(work))
   } finally {
-    done()
+    done(paid)
   }
 }
 
@@ -271,14 +280,17 @@ export async function paySupplier(options: {
   note?: string
 }): Promise<{ payment: SupplierPayment; ms: number }> {
   const { owner, network, supplier, amount, note } = options
-  const { account, done } = await openOwner(owner)
+  const value = parseAmount(amount)
+  const { account, done } = await openOwner(owner, value)
+  let spent = 0n
   try {
     const moved = await sendMoney(
       network,
       account,
       getAddress(supplier.wallet_address as Address),
-      parseAmount(amount),
+      value,
     )
+    spent = value
     const payment = await businessApi.recordSupplierPayment(supplier.id, {
       amount,
       tx_hash: moved.hash,
@@ -286,6 +298,6 @@ export async function paySupplier(options: {
     })
     return { payment, ms: moved.ms }
   } finally {
-    done()
+    done(spent)
   }
 }
