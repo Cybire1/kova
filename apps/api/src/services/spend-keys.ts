@@ -467,14 +467,14 @@ export async function createAgent(
 
 /** Finds the agent a bearer token belongs to. Only the hash is stored; the prefix finds the row. */
 export async function agentForToken(token: string | undefined): Promise<KeyRow> {
-  if (!token || !token.startsWith('kova_agent_') || token.length < 40)
+  if (!token?.startsWith('kova_agent_') || token.length < 40)
     throw new KovaError('unauthorized', 'Send this agent key’s token as a Bearer token.')
   const row = await db.query.walletKeys.findFirst({
     where: eq(schema.walletKeys.tokenPrefix, token.slice(0, TOKEN_PREFIX)),
   })
   const expected = Buffer.from(row?.tokenHash ?? '0'.repeat(64), 'hex')
   const given = Buffer.from(sha256(token), 'hex')
-  if (!row || row.kind !== 'agent' || !timingSafeEqual(expected, given) || row.status === 'removed')
+  if (row?.kind !== 'agent' || !timingSafeEqual(expected, given) || row.status === 'removed')
     throw new KovaError(
       'unauthorized',
       'This agent key isn’t valid any more. Its owner can make a new one.',
@@ -975,7 +975,7 @@ export async function completePayment(
 ): Promise<KeyPaymentRow> {
   const { contract } = requireKeys()
   const row = await keyRow(payment.walletKeyId)
-  if (!row || !row.keyAddress) throw new KovaError('not_found', 'No such key.')
+  if (!row?.keyAddress) throw new KovaError('not_found', 'No such key.')
   if (payment.status !== 'prepared')
     throw new KovaError('conflict', `This payment is ${payment.status}.`)
   if ((payment.deadline ?? 0) <= nowS() + 3)

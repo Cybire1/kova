@@ -343,18 +343,20 @@ function InviteForm({
             required
           />
         </label>
-        <div className="w-filters" role="group" aria-label="Every">
+        <fieldset className="w-filters w-keyform-period">
+          <legend className="sr-only">Every</legend>
           {(['day', 'week'] as const).map((p) => (
             <button
               key={p}
               type="button"
               className={`w-filter${period === p ? ' w-filter-on' : ''}`}
+              aria-pressed={period === p}
               onClick={() => setPeriod(p)}
             >
               a {p}
             </button>
           ))}
-        </div>
+        </fieldset>
       </div>
       <label>
         <span>For</span>

@@ -5256,3 +5256,10 @@ button.w-chip-private:disabled {
   gap: 0.625rem;
   text-align: left;
 }
+
+.w-keyform-period {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
