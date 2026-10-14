@@ -197,7 +197,7 @@ export interface IndexedTransfer {
   amount_base: string
   tx_hash: string
   block: string
-  kind: 'payment' | 'refund' | 'payout' | null
+  kind: 'payment' | 'refund' | 'payout' | 'cashout' | null
   shop: { name: string; reference: string | null } | null
   faucet: boolean
   /** Dollars from Kova's treasury for naira: a top-up landing, or a cash-out's dollars coming back. */

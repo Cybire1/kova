@@ -1364,13 +1364,19 @@ export function WalletProvider({
           kind: paid ? 'paid' : 'sent',
           amount: t.amount_base,
           name:
-            note?.name ?? t.shop?.name ?? (link ? 'Link' : null) ?? nameFor(t.to) ?? short(t.to),
+            note?.name ??
+            t.shop?.name ??
+            (link ? 'Link' : null) ??
+            (t.kind === 'cashout' ? 'Cash out to naira' : null) ??
+            nameFor(t.to) ??
+            short(t.to),
           detail:
             note?.detail ??
             sealed ??
             (locked
               ? 'Private note'
-              : (t.shop?.reference ?? (paid ? 'Scan to pay' : link ? 'Sent as a link' : 'Sent'))),
+              : (t.shop?.reference ??
+                (paid ? 'Scan to pay' : link ? 'Sent as a link' : t.kind === 'cashout' ? 'To a Nigerian bank' : 'Sent'))),
           ...secret,
           ...(link ? { link: true } : {}),
           address: t.to,
