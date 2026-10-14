@@ -9,7 +9,7 @@ import {
   stealthMetaAddress,
 } from '@kova/monad'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { type Address, getAddress, isAddress, isAddressEqual, type LocalAccount } from 'viem'
+import { type Address, getAddress, isAddress, isAddressEqual, type LocalAccount, type TypedDataDefinition } from 'viem'
 import { generatePrivateKey } from 'viem/accounts'
 import {
   createKovaPasskey,
@@ -262,6 +262,8 @@ interface WalletValue {
    * open session when it covers it, else after the passkey, like a payment.
    */
   signingAccount: (amount: bigint) => Promise<LocalAccount>
+  /** Signs EIP-712 typed data with this wallet: a key's link, a freeze, a permit. Moves no money itself. */
+  signTypedData: (typedData: TypedDataDefinition) => Promise<`0x${string}`>
   /** Locks the wallet now: the next payment asks for the passkey. */
   lock: () => void
   setName: (name: string) => void
@@ -1205,6 +1207,10 @@ export function WalletProvider({
   )
 
   const signingAccount = useCallback((amount: bigint) => unlock(amount), [unlock])
+  const signTypedData = useCallback(
+    async (typedData: TypedDataDefinition) => (await unlock(0n)).signTypedData(typedData as never),
+    [unlock],
+  )
 
   const lock = useCallback(() => endSession(), [])
 
@@ -1595,6 +1601,7 @@ export function WalletProvider({
       addTestDollars,
       signMessage,
       signingAccount,
+      signTypedData,
       lock,
       setName,
       setCurrency,
@@ -1639,6 +1646,7 @@ export function WalletProvider({
       addTestDollars,
       signMessage,
       signingAccount,
+      signTypedData,
       lock,
       setName,
       setCurrency,

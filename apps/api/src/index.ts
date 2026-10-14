@@ -7,6 +7,8 @@ import { config } from './config.js'
 import { errorHandler } from './errors.js'
 import { accountRoutes } from './routes/account.js'
 import { cardRoutes, cardTapRoutes } from './routes/cards.js'
+import { mcpRoutes } from './routes/mcp.js'
+import { spendKeyRoutes } from './routes/spend-keys.js'
 import { demoRoutes } from './routes/demo.js'
 import { catalogRoutes } from './routes/catalog.js'
 import { checkoutRoutes } from './routes/checkout.js'
@@ -43,6 +45,8 @@ app.onError(errorHandler)
 app.notFound((c) => c.json({ error: { code: 'not_found', message: 'No such endpoint' } }, 404))
 
 app.route('/health', healthRoutes)
+// An AI agent pays with its Kova key over MCP (Bearer token).
+app.route('/', mcpRoutes)
 app.route('/v1/checkout', checkoutRoutes)
 app.route('/v1/payment_intents', intentRoutes)
 app.route('/v1/terminals', terminalRoutes)
@@ -64,6 +68,7 @@ app.route('/v1', businessRoutes)
 app.route('/v1', statsRoutes)
 app.route('/v1', ussdRoutes)
 app.route('/v1', cardRoutes)
+app.route('/v1', spendKeyRoutes)
 app.route('/v1', demoRoutes)
 app.route('/v1', rateRoutes)
 app.route('/v1', webhookRoutes)

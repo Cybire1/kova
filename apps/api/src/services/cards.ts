@@ -560,17 +560,25 @@ export async function completeTap(
 // ── Sending ─────────────────────────────────────────────────────────────────────────────────
 
 /** Relays a KovaCard call, turning the contract's refusals into words a person can act on. */
-async function sendCard(contract: Address, data: Hex): Promise<TransactionReceipt> {
+export async function sendCard(contract: Address, data: Hex): Promise<TransactionReceipt> {
   let receipt: TransactionReceipt
   try {
     receipt = await sendFromRelayer(contract, data, { maxGas: CARD_GAS })
   } catch (error) {
+    if (relayerIsDry(error instanceof RefusedEstimate ? error.cause : error))
+      throw new KovaError('chain_error', 'Kova’s relayer is out of gas for a moment. Nothing moved. Try again shortly.')
     if (error instanceof RefusedEstimate) throw explainCardRefusal(error.cause)
     throw error
   }
   if (receipt.status !== 'success')
     throw new KovaError('chain_error', 'Monad refused this. No money moved.', { tx_hash: receipt.transactionHash })
   return receipt
+}
+
+/** The relayer itself can't pay the gas: Kova's problem, not the wallet's. */
+function relayerIsDry(cause: unknown): boolean {
+  const text = cause instanceof Error ? `${cause.message} ${(cause as { details?: string }).details ?? ''}` : String(cause)
+  return /signer had insufficient balance|insufficient funds for gas/i.test(text)
 }
 
 function explainCardRefusal(cause: unknown): KovaError {

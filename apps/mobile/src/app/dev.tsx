@@ -1,12 +1,13 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Image, Share, View } from 'react-native'
+import type { Address } from 'viem'
 import { checkStealthAddress, personalStealthKeysMessage, stealthKeysFromSignature, stealthMetaAddress, stealthRegistrationMessage } from '@kova/monad'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { createCharge, createItem, getCatalog, getCheckout, listOrders, lookupBarcode, ringUp, setOrderStatus, type StealthReceipt, updateStall, uploadImage } from '@/lib/api'
 import { addPayrollPerson, addSupplier, listPayrollPeople, startPayrollRun } from '@/lib/api'
 import { payPayroll, reachOf } from '@/lib/business'
-import { apiUrl } from '@/lib/config'
+import { apiUrl, shareWebUrl } from '@/lib/config'
 import { finishTap, forgetDevCard, linkCard, readTap } from '@/lib/card'
 import type { DisplayCurrency } from '@/lib/money'
 import { type Mode, usePrefs } from '@/lib/prefs'
@@ -16,6 +17,14 @@ import { publishReceivingKey } from '@/lib/private-core'
 import { clearOffline } from '@/lib/offline-store'
 import { usePrivate } from '@/lib/private'
 import { useStall } from '@/lib/stall'
+import {
+  accept as acceptKey,
+  freeze as freezeKey,
+  inviteSomeone,
+  listKeys,
+  newAgent,
+  switchOn,
+} from '@/lib/spend-keys'
 import { save } from '@/lib/storage'
 import { useTakings } from '@/lib/takings'
 import { viewFrom } from '@/lib/takings-core'
@@ -214,6 +223,16 @@ export default function Dev() {
     unstash?: string
     /** 1: act as if there's no signal (until 0). */
     offline?: string
+    /** Keys through the real flow: allowance | team | agent | accept | on | freeze | unfreeze. */
+    keys?: string
+    /** Who an allowance or budget is for. */
+    for?: string
+    /** day or week. */
+    period?: string
+    /** An invite's code, to accept it on this wallet. */
+    code?: string
+    /** A key's id, to switch on, freeze or unfreeze it. */
+    key?: string
   }>()
   const wallet = useWallet()
   const prefs = usePrefs()
@@ -306,7 +325,9 @@ export default function Dev() {
         if (params.offline === '1' || params.offline === '0') {
           await offlineRef.current.force(params.offline === '1')
           const o = offlineRef.current
-          console.log(`[dev] ${params.offline === '1' ? 'offline on purpose' : 'back online'}: ${o.items.length} offline payments, ${o.waiting.length} waiting`)
+          console.log(
+            `[dev] ${params.offline === '1' ? 'offline on purpose' : 'back online'}: ${o.items.length} offline payments, ${o.waiting.length} waiting`,
+          )
         }
         if (params.fund) {
           setStep('funding')
@@ -376,7 +397,8 @@ export default function Dev() {
         if (params.order) {
           setStep(`marking the newest order ${params.order}`)
           const [newest] = await listOrders('open', 1)
-          if (newest) await setOrderStatus(newest.id, params.order as Parameters<typeof setOrderStatus>[1])
+          if (newest)
+            await setOrderStatus(newest.id, params.order as Parameters<typeof setOrderStatus>[1])
         }
         if (params.till) await save('kova.till.mode', params.till)
         if (params.sell) {
@@ -411,6 +433,48 @@ export default function Dev() {
           )
           return router.replace('/(tabs)/card')
         }
+        // keys=allowance|team&for=Mum&limit=30&period=week: an invite through the real flow (its link is
+        // logged); keys=agent&for=Claude&limit=20: an agent's key, switched on with this wallet (the token
+        // is logged); keys=accept&code=<code>: accepts an invite on this wallet; keys=on|freeze|unfreeze&key=<id>.
+        if (params.keys && wallet.profile) {
+          const owner = wallet.profile.address as Address
+          setStep(`keys: ${params.keys}`)
+          if (params.keys === 'allowance' || params.keys === 'team') {
+            const made = await inviteSomeone(owner, {
+              kind: params.keys,
+              name: params.for || (params.keys === 'team' ? 'Tobi at the till' : 'Mum'),
+              limit: params.limit || '30',
+              period: params.period === 'day' ? 'day' : 'week',
+              days: 30,
+              ownerName: wallet.profile.name,
+            })
+            console.log(`[dev] invite link ${shareWebUrl.replace(/\/$/, '')}/a/${made.code}`)
+          }
+          if (params.keys === 'agent') {
+            const made = await newAgent(owner, {
+              name: params.for || 'Claude',
+              limit: params.limit || '20',
+              period: 'day',
+              perPayment: '5',
+              askAbove: '1',
+              days: 30,
+            })
+            const on = await switchOn(owner, made, wallet.signTypedData)
+            console.log(`[dev] agent key ${made.id} on; token ${on.token}`)
+          }
+          if (params.keys === 'accept' && params.code)
+            await acceptKey(params.code, owner, wallet.profile.name, wallet.signMessage)
+          if (
+            (params.keys === 'on' || params.keys === 'freeze' || params.keys === 'unfreeze') &&
+            params.key
+          ) {
+            const key = (await listKeys(owner)).data.find((k) => k.id === params.key)
+            if (key && params.keys === 'on') await switchOn(owner, key, wallet.signTypedData)
+            if (key && params.keys !== 'on')
+              await freezeKey(owner, key, params.keys === 'freeze', wallet.signTypedData)
+          }
+          return router.replace((params.to as never) || '/keys')
+        }
         // tapcard=<charge>: taps the software card on this till for that charge, as a customer would.
         if (params.tapcard) {
           setStep('tapping a card')
@@ -424,13 +488,18 @@ export default function Dev() {
           console.log('[dev] private takings keys forgotten on this phone')
         } else if (params.takings || params.move || params.books) {
           setStep('opening private takings')
-          for (let i = 0; i < 100 && !takingsRef.current.ready; i++) await new Promise((r) => setTimeout(r, 200))
+          for (let i = 0; i < 100 && !takingsRef.current.ready; i++)
+            await new Promise((r) => setTimeout(r, 200))
           await takingsRef.current.refresh()
         }
         if (params.takings && params.takings !== 'forget') {
           setStep(`private takings ${params.takings}`)
           const t = takingsRef.current
-          const ok = await (params.takings === 'off' ? t.turnOff() : params.takings === 'open' ? t.openHere() : t.turnOn())
+          const ok = await (params.takings === 'off'
+            ? t.turnOff()
+            : params.takings === 'open'
+              ? t.openHere()
+              : t.turnOn())
           console.log(`[dev] private takings ${params.takings}: ${ok ? 'done' : 'failed'}`)
         }
         if (params.charge) {
@@ -449,19 +518,25 @@ export default function Dev() {
           const entry = await wallet.payCheckout(await getCheckout(params.pay))
           return router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })
         }
-        if (params.payfrom === 'private' || params.payfrom === 'balance') privateRef.current.setSource(params.payfrom)
+        if (params.payfrom === 'private' || params.payfrom === 'balance')
+          privateRef.current.setSource(params.payfrom)
         if (params.private === 'setup') {
           setStep('making private-receiving keys')
           const ok = await privateRef.current.setUp()
-          console.log(`[dev] private receiving: ${ok ? 'keys on this phone, Kova has the public half' : `not set up (${privateRef.current.problem?.text ?? 'unknown'})`}`)
+          console.log(
+            `[dev] private receiving: ${ok ? 'keys on this phone, Kova has the public half' : `not set up (${privateRef.current.problem?.text ?? 'unknown'})`}`,
+          )
         }
         if (params.private === 'look' || params.movein) {
           setStep('looking for private payments')
-          for (let i = 0; i < 50 && !privateRef.current.ready; i++) await new Promise((r) => setTimeout(r, 100))
+          for (let i = 0; i < 50 && !privateRef.current.ready; i++)
+            await new Promise((r) => setTimeout(r, 100))
           await privateRef.current.refresh()
           await new Promise((r) => setTimeout(r, 300))
           const p = privateRef.current
-          console.log(`[dev] private payments: ${p.receipts.length} found, ${p.waiting} base units waiting at ${p.waitingCount}`)
+          console.log(
+            `[dev] private payments: ${p.receipts.length} found, ${p.waiting} base units waiting at ${p.waitingCount}`,
+          )
         }
         if (params.biz === 'seed') {
           setStep('filling the business book')
@@ -522,7 +597,9 @@ export default function Dev() {
             undefined,
             { privately: params.private === '1' },
           )
-          console.log(`[dev] sent ${entry.amount} base units ${entry.privately ? `privately to ${entry.oneTime}` : `to ${entry.address}`}: ${entry.txHash}`)
+          console.log(
+            `[dev] sent ${entry.amount} base units ${entry.privately ? `privately to ${entry.oneTime}` : `to ${entry.address}`}: ${entry.txHash}`,
+          )
           return router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })
         }
         router.replace((params.to as never) || '/')
@@ -531,20 +608,24 @@ export default function Dev() {
         // On the screen it was asked from, so it shows the move as it happens.
         if (params.movein)
           setTimeout(() => {
-            void privateRef.current.moveIn().then((outcome) =>
-              console.log(
-                `[dev] moved in ${outcome ? `${outcome.count} for ${outcome.amount} base units in ${outcome.ms}ms, ${outcome.failed} failed${outcome.reason ? ` (${outcome.reason})` : ''}, ${outcome.empty} empty: ${outcome.moved.map((m) => m.txHash).join(', ')}` : `nothing (${privateRef.current.problem?.text ?? 'no private dollars waiting'})`}`,
-              ),
-            )
+            void privateRef.current
+              .moveIn()
+              .then((outcome) =>
+                console.log(
+                  `[dev] moved in ${outcome ? `${outcome.count} for ${outcome.amount} base units in ${outcome.ms}ms, ${outcome.failed} failed${outcome.reason ? ` (${outcome.reason})` : ''}, ${outcome.empty} empty: ${outcome.moved.map((m) => m.txHash).join(', ')}` : `nothing (${privateRef.current.problem?.text ?? 'no private dollars waiting'})`}`,
+                ),
+              )
           }, 1500)
         // On the screen it was asked from, so the card shows the move as it happens.
         if (params.move)
           setTimeout(() => {
-            void takingsRef.current.move().then((outcome) =>
-              console.log(
-                `[dev] moved ${outcome ? `${outcome.count} for ${outcome.amount} base units in ${outcome.ms}ms, ${outcome.failed} failed${outcome.reason ? ` (${outcome.reason})` : ''}, ${outcome.empty} empty` : 'nothing'}`,
-              ),
-            )
+            void takingsRef.current
+              .move()
+              .then((outcome) =>
+                console.log(
+                  `[dev] moved ${outcome ? `${outcome.count} for ${outcome.amount} base units in ${outcome.ms}ms, ${outcome.failed} failed${outcome.reason ? ` (${outcome.reason})` : ''}, ${outcome.empty} empty` : 'nothing'}`,
+                ),
+              )
           }, 1500)
         if (params.books) {
           const name = stall.owned?.name ?? 'My shop'
@@ -554,11 +635,20 @@ export default function Dev() {
             // sales among everyone's. Logged without the key.
             const [fragment = ''] = link.split('#')[1]?.split('&') ?? []
             const view = viewFrom(decodeURIComponent(fragment))
-            const all = await fetch(`${apiUrl}/v1/public/stealth/announcements?limit=1000`).then((r) => r.json() as Promise<{ data: StealthReceipt[] }>)
-            const opens = all.data.filter(
-              (a) => checkStealthAddress(view, { ephemeralPublicKey: a.ephemeral_public_key, viewTag: a.view_tag, stealthAddress: a.stealth_address }) !== null,
+            const all = await fetch(`${apiUrl}/v1/public/stealth/announcements?limit=1000`).then(
+              (r) => r.json() as Promise<{ data: StealthReceipt[] }>,
             )
-            console.log(`[dev] accountant view ${link.split('#')[0]}#kova-view:… opens ${opens.length} of ${all.data.length} sales on Kova`)
+            const opens = all.data.filter(
+              (a) =>
+                checkStealthAddress(view, {
+                  ephemeralPublicKey: a.ephemeral_public_key,
+                  viewTag: a.view_tag,
+                  stealthAddress: a.stealth_address,
+                }) !== null,
+            )
+            console.log(
+              `[dev] accountant view ${link.split('#')[0]}#kova-view:… opens ${opens.length} of ${all.data.length} sales on Kova`,
+            )
             setTimeout(() => void Share.share({ message: booksMessage(name, link) }), 1200)
           }
         }
