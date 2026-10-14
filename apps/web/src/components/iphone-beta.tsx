@@ -7,7 +7,7 @@ import { Icon, Pill } from '@/components/brand'
 import '@/styles/iphone.css'
 
 /**
- * Kova for iPhone, while it's in TestFlight: people leave their email, and Kova's team sends each
+ * Kova for iOS, while it's in TestFlight: people leave their email, and Kova's team sends each
  * one a TestFlight invite. The form posts to /api/ios-beta, which passes it to Kova's API.
  */
 
@@ -131,7 +131,7 @@ export function BetaForm({ source, id = 'join' }: { source: BetaSource; id?: str
         </label>
       </div>
       <Pill type="submit" icon="arrow" tone="coral" disabled={state.kind === 'sending'}>
-        {state.kind === 'sending' ? 'Joining…' : 'Join the iPhone beta'}
+        {state.kind === 'sending' ? 'Joining…' : 'Join the iOS beta'}
       </Pill>
       {state.kind === 'error' ? (
         <p className="form-error" role="alert">
@@ -148,15 +148,15 @@ export function IphoneCard({ href, compact }: { href: string; compact?: boolean 
     <>
       <div className="ip-card-copy">
         <p className="ip-card-kicker">
-          <Icon name="terminal" size={16} /> Kova for iPhone · Beta
+          <Icon name="terminal" size={16} /> Kova for iOS · Beta
         </p>
-        <h2 className="ip-card-title">Get Kova for iPhone</h2>
+        <h2 className="ip-card-title">Get Kova for iOS</h2>
         <p className="ip-card-body">
           Pay with no signal, send privately, and put a limit on every card. Join the beta and we’ll
           send your TestFlight invite.
         </p>
         <span className="ip-card-cta">
-          Join the iPhone beta <Icon name="arrow" size={16} />
+          Join the iOS beta <Icon name="arrow" size={16} />
         </span>
       </div>
       <div className="ip-card-phones" aria-hidden="true">

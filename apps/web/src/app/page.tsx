@@ -29,7 +29,7 @@ export default async function Landing() {
           <a href="#shops">For shops</a>
           <a href="#people">For people</a>
           <a href="#developers">Developers</a>
-          <a href={iphone}>iPhone</a>
+          <a href={iphone}>iOS</a>
         </nav>
         <div className="lp-nav-actions">
           {signedIn ? null : (
@@ -127,8 +127,8 @@ export default async function Landing() {
         </article>
       </section>
 
-      {/* Kova for iPhone, in beta ------------------------------------------------------------ */}
-      <section className="lp-iphone" aria-label="Kova for iPhone">
+      {/* Kova for iOS, in beta ------------------------------------------------------------ */}
+      <section className="lp-iphone" aria-label="Kova for iOS">
         <IphoneCard href={iphone} />
       </section>
 
@@ -236,7 +236,7 @@ export default async function Landing() {
         <nav aria-label="Footer">
           <Link href="/wallet">Open Kova</Link>
           <Link href="/try?ref=site">Try Kova in a minute</Link>
-          <a href={iphone}>Kova for iPhone</a>
+          <a href={iphone}>Kova for iOS</a>
           <Link href="/stats">Kova, live</Link>
           <Link href="/wallet/shop?go=open">Open a shop</Link>
           <Link href="/signin">Shop sign-in with email or a key</Link>

@@ -5,9 +5,9 @@ import { redirect } from 'next/navigation'
 import { Brand, Icon, Pill } from '@/components/brand'
 import { BetaForm, PhoneShot } from '@/components/iphone-beta'
 
-const TITLE = 'Kova for iPhone · Join the beta'
+const TITLE = 'Kova for iOS · Join the beta'
 const DESCRIPTION =
-  'A dollar account you open with Face ID. It pays with no signal, sends privately and puts a limit on every card. Join the iPhone beta on TestFlight.'
+  'A dollar account you open with Face ID. It pays with no signal, sends privately and puts a limit on every card. Join the iOS beta on TestFlight.'
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -68,7 +68,7 @@ export default async function IphonePage() {
       <section className="ip-hero">
         <div className="ip-copy">
           <p className="ip-kicker">
-            <span className="ip-live" aria-hidden="true" /> Kova for iPhone · Beta on TestFlight
+            <span className="ip-live" aria-hidden="true" /> Kova for iOS · Beta on TestFlight
           </p>
           <h1 className="ip-title">
             Your dollars,
@@ -139,7 +139,7 @@ export default async function IphonePage() {
             <span className="ip-step-n">2</span>
             <h3>Get your TestFlight invite</h3>
             <p>
-              Apple emails it to you from TestFlight, Apple’s own app for trying iPhone apps early.
+              Apple emails it to you from TestFlight, Apple’s own app for trying iOS apps early.
             </p>
           </li>
           <li>
@@ -155,13 +155,13 @@ export default async function IphonePage() {
       </section>
 
       <section className="ip-close">
-        <h2>Be one of the first with Kova on iPhone</h2>
+        <h2>Be one of the first with Kova on iOS</h2>
         <BetaForm source="iphone-page" id="join-again" />
       </section>
 
       <footer className="lp-foot">
         <Brand />
-        <p>Kova for iPhone is in beta on TestFlight. Built on Monad.</p>
+        <p>Kova for iOS is in beta on TestFlight. Built on Monad.</p>
         <nav aria-label="Footer">
           <Link href="/">Kova</Link>
           <Link href="/try?ref=iphone">Try Kova in a minute</Link>
