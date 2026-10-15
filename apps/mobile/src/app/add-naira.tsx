@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store'
 import * as WebBrowser from 'expo-web-browser'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { KeyboardAvoidingView, Pressable, StyleSheet, TextInput, View } from 'react-native'
-import { naira, type NairaInfo, type NairaQuote, type NairaTopUp } from '@/lib/api'
+import { type NairaInfo, type NairaQuote, type NairaTopUp, naira } from '@/lib/api'
 import { shareWebUrl } from '@/lib/config'
 import { applyKey, groupTyped, type Key, toBase } from '@/lib/money'
 import { colors, fonts } from '@/lib/theme'
@@ -38,17 +38,17 @@ export default function AddNaira() {
 
   // Development only, for films and screenshots: ?amount=10&email=ada@example.com&step=pay
   const dev = useLocalSearchParams<{ amount?: string; email?: string; step?: string }>()
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, from the dev link
   useEffect(() => {
     void naira.info().then(setInfo)
     void SecureStore.getItemAsync(EMAIL).then((saved) => saved && setEmail(saved))
     if (__DEV__ && dev.amount) setTyped(dev.amount)
     if (__DEV__ && dev.email) setEmail(dev.email)
-    // biome-ignore lint/correctness/useExhaustiveDependencies: once, from the dev link
   }, [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the dev link's one step
   useEffect(() => {
     if (__DEV__ && dev.step === 'pay' && quote && step === 'amount') setStep('pay')
-    // biome-ignore lint/correctness/useExhaustiveDependencies: the dev link's one step
   }, [quote])
 
   const onKey = useCallback((key: Key) => setTyped((v) => applyKey(v, key, 2)), [])
@@ -91,7 +91,11 @@ export default function AddNaira() {
       setStep('checking')
       let checked = await naira.verifyTopUp(started.reference)
       setTopUp(checked)
-      for (let i = 0; i < 15 && (checked.status === 'initialized' || checked.status === 'paid'); i++) {
+      for (
+        let i = 0;
+        i < 15 && (checked.status === 'initialized' || checked.status === 'paid');
+        i++
+      ) {
         await wait(3000)
         checked = await naira.verifyTopUp(started.reference)
         setTopUp(checked)
@@ -102,7 +106,9 @@ export default function AddNaira() {
       }
       setStep('done')
     } catch (error) {
-      setProblem(error instanceof Error ? error.message : 'Paystack didn’t open. Nothing was charged.')
+      setProblem(
+        error instanceof Error ? error.message : 'Paystack didn’t open. Nothing was charged.',
+      )
       setStep('pay')
     } finally {
       setBusy(false)
@@ -173,7 +179,11 @@ export default function AddNaira() {
             <View style={{ flex: 1 }} />
             <Keypad onKey={onKey} />
             <View style={{ marginTop: 14 }}>
-              <PillButton label="Continue" disabled={!quote || outside} onPress={() => setStep('pay')} />
+              <PillButton
+                label="Continue"
+                disabled={!quote || outside}
+                onPress={() => setStep('pay')}
+              />
             </View>
           </View>
         ) : null}
@@ -192,7 +202,15 @@ export default function AddNaira() {
               </Txt>
             </View>
             <View style={styles.facts}>
-              <Fact label="Rate" value={`₦${Number(quote.rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per dollar`} hint={quote.rate_source === 'chainlink' ? 'Chainlink rate on Monad, plus 1%' : 'Market rate, plus 1%'} />
+              <Fact
+                label="Rate"
+                value={`₦${Number(quote.rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per dollar`}
+                hint={
+                  quote.rate_source === 'chainlink'
+                    ? 'Chainlink rate on Monad, plus 1%'
+                    : 'Market rate, plus 1%'
+                }
+              />
               <Fact label="Paystack’s fee" value={quote.fee} hint="Included in what you pay" />
               <Fact label="Arrives" value="In seconds, on Monad" last />
             </View>
@@ -232,24 +250,39 @@ export default function AddNaira() {
             {settled ? <CoinRain width={360} height={300} /> : null}
             <Kovi pose={settled ? 'cheer' : failed ? 'oops' : 'ride'} size={150} />
             <Txt weight="bold" size={26} style={{ textAlign: 'center' }}>
-              {settled ? 'Money’s in.' : failed ? 'Paystack didn’t take it' : step === 'checking' ? 'Checking with Paystack…' : 'Waiting for Paystack'}
+              {settled
+                ? 'Money’s in.'
+                : failed
+                  ? 'Paystack didn’t take it'
+                  : step === 'checking'
+                    ? 'Checking with Paystack…'
+                    : 'Waiting for Paystack'}
             </Txt>
             <Txt color={colors.onTint} style={{ textAlign: 'center' }}>
               {settled
                 ? `$${topUp?.amount} landed in your wallet, for ${topUp?.naira}.`
                 : failed
                   ? (topUp?.failure ?? 'No naira was taken. Try again.')
-                  : (topUp?.failure ?? 'As soon as Paystack confirms your naira, the dollars land here.')}
+                  : (topUp?.failure ??
+                    'As soon as Paystack confirms your naira, the dollars land here.')}
             </Txt>
             {topUp?.tx_url ? (
-              <Pressable onPress={() => void WebBrowser.openBrowserAsync(topUp.tx_url as string)} accessibilityRole="link">
+              <Pressable
+                onPress={() => void WebBrowser.openBrowserAsync(topUp.tx_url as string)}
+                accessibilityRole="link"
+              >
                 <Txt weight="semi" size={14} color={colors.tealDeep}>
                   See the transfer on Monad
                 </Txt>
               </Pressable>
             ) : null}
             <View style={{ alignSelf: 'stretch', marginTop: 8 }}>
-              <PillButton label="Done" icon="check" disabled={step === 'checking'} onPress={() => router.back()} />
+              <PillButton
+                label="Done"
+                icon="check"
+                disabled={step === 'checking'}
+                onPress={() => router.back()}
+              />
             </View>
           </View>
         ) : null}
@@ -258,7 +291,17 @@ export default function AddNaira() {
   )
 }
 
-function Fact({ label, value, hint, last }: { label: string; value: string; hint?: string; last?: boolean }) {
+function Fact({
+  label,
+  value,
+  hint,
+  last,
+}: {
+  label: string
+  value: string
+  hint?: string
+  last?: boolean
+}) {
   return (
     <View style={[styles.fact, !last && styles.rule]}>
       <Txt size={14} color={colors.muted}>
@@ -281,10 +324,33 @@ function Fact({ label, value, hint, last }: { label: string; value: string; hint
 const styles = StyleSheet.create({
   flow: { flex: 1, paddingHorizontal: 20, paddingBottom: 12 },
   route: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
-  naira: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.tealDeep, alignItems: 'center', justifyContent: 'center' },
-  typed: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', marginTop: 28 },
-  pills: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  pill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: colors.tealSoft },
+  naira: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.tealDeep,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  typed: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    marginTop: 28,
+  },
+  pills: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  pill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: colors.tealSoft,
+  },
   input: {
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -297,7 +363,14 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   rule: { borderBottomWidth: 1, borderBottomColor: colors.sunken },
-  facts: { marginTop: 16, borderRadius: 20, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, paddingHorizontal: 14 },
+  facts: {
+    marginTop: 16,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+  },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
   done: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 28 },
 })

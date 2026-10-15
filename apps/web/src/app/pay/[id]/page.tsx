@@ -95,8 +95,10 @@ export default async function PayPage(context: { params: Promise<{ id: string }>
           ) : null}
           {c.order?.reward ? (
             <p className="pay-reward-help">
-              {Number(c.amount) === 0 ? 'It’s on the house. You still approve it, so you get a receipt.' : 'Your stamp card took it off.'} Pay with
-              the wallet that holds the card.
+              {Number(c.amount) === 0
+                ? 'It’s on the house. You still approve it, so you get a receipt.'
+                : 'Your stamp card took it off.'}{' '}
+              Pay with the wallet that holds the card.
             </p>
           ) : null}
           <Pill href={`kova://pay/${c.id}`} icon="tap" tone="coral" wide>

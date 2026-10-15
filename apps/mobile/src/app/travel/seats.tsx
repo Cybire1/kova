@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getSeatMaps, type SeatCell, type SeatMap } from '@/lib/api'
-import { useTravel } from '@/lib/travel'
 import { colors } from '@/lib/theme'
+import { useTravel } from '@/lib/travel'
 import { Kovi } from '@/ui/art'
 import { Header, PillButton, Txt } from '@/ui/primitives'
 import { dollars } from '@/ui/StallParts'
@@ -30,7 +30,10 @@ export default function Seats() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flight?.offer.id])
 
-  const segments = useMemo(() => flight?.offer.slices.flatMap((s) => s.segments) ?? [], [flight?.offer.slices])
+  const segments = useMemo(
+    () => flight?.offer.slices.flatMap((s) => s.segments) ?? [],
+    [flight?.offer.slices],
+  )
   if (!flight) return <Redirect href="/travel" />
 
   const map = maps?.[segment]
@@ -39,7 +42,9 @@ export default function Seats() {
   const key = passenger && map ? `${passenger.id}:${map.segment_id}` : ''
   const mine = flight.seats[key]
   const takenBy = (designator: string) =>
-    Object.entries(flight.seats).find(([k, s]) => k.endsWith(`:${map?.segment_id}`) && s.designator === designator && k !== key)
+    Object.entries(flight.seats).find(
+      ([k, s]) => k.endsWith(`:${map?.segment_id}`) && s.designator === designator && k !== key,
+    )
 
   const pick = (seat: Seat) => {
     if (!passenger || !map) return
@@ -50,14 +55,25 @@ export default function Seats() {
       if (!d.flight) return d
       const seats = { ...d.flight.seats }
       if (seats[key]?.designator === seat.designator) delete seats[key]
-      else seats[key] = { serviceId: service.id, designator: seat.designator, passengerId: passenger.id, segmentId: map.segment_id, price: service.price }
+      else
+        seats[key] = {
+          serviceId: service.id,
+          designator: seat.designator,
+          passengerId: passenger.id,
+          segmentId: map.segment_id,
+          price: service.price,
+        }
       return { flight: { ...d.flight, seats } }
     })
   }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.paper, paddingTop: 8 }}>
-      <Header title="Choose seats" subtitle={seg ? `${seg.from.iata} to ${seg.to.iata}, ${seg.flight}` : undefined} backIcon="close" />
+      <Header
+        title="Choose seats"
+        subtitle={seg ? `${seg.from.iata} to ${seg.to.iata}, ${seg.flight}` : undefined}
+        backIcon="close"
+      />
       {maps === null && !problem ? (
         <ActivityIndicator color={colors.ink} style={{ marginTop: 40 }} />
       ) : !maps?.length ? (
@@ -66,18 +82,32 @@ export default function Seats() {
           <Txt weight="semi" size={18} style={{ marginTop: 8 }}>
             No seat map for this flight
           </Txt>
-          <Txt size={15} color={colors.muted} style={{ textAlign: 'center', marginTop: 4, lineHeight: 21 }}>
+          <Txt
+            size={15}
+            color={colors.muted}
+            style={{ textAlign: 'center', marginTop: 4, lineHeight: 21 }}
+          >
             {problem ?? 'The airline gives out seats at check-in instead.'}
           </Txt>
         </View>
       ) : (
         <>
           {maps.length > 1 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabs}
+            >
               {maps.map((m, i) => {
                 const g = segments.find((x) => x.id === m.segment_id)
                 return (
-                  <Pressable key={m.id} accessibilityRole="tab" accessibilityState={{ selected: i === segment }} onPress={() => setSegment(i)} style={[styles.tab, i === segment && styles.tabOn]}>
+                  <Pressable
+                    key={m.id}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: i === segment }}
+                    onPress={() => setSegment(i)}
+                    style={[styles.tab, i === segment && styles.tabOn]}
+                  >
                     <Txt weight="semi" size={14} color={i === segment ? colors.white : colors.ink}>
                       {g ? `${g.from.iata} to ${g.to.iata}` : `Flight ${i + 1}`}
                     </Txt>
@@ -87,12 +117,26 @@ export default function Seats() {
             </ScrollView>
           ) : null}
           {flight.offer.passengers.length > 1 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabs}
+            >
               {flight.offer.passengers.map((p, i) => {
                 const chosen = map ? flight.seats[`${p.id}:${map.segment_id}`] : undefined
                 return (
-                  <Pressable key={p.id} accessibilityRole="tab" accessibilityState={{ selected: i === traveller }} onPress={() => setTraveller(i)} style={[styles.tab, i === traveller && styles.tabOn]}>
-                    <Txt weight="semi" size={14} color={i === traveller ? colors.white : colors.ink}>
+                  <Pressable
+                    key={p.id}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: i === traveller }}
+                    onPress={() => setTraveller(i)}
+                    style={[styles.tab, i === traveller && styles.tabOn]}
+                  >
+                    <Txt
+                      weight="semi"
+                      size={14}
+                      color={i === traveller ? colors.white : colors.ink}
+                    >
                       Traveller {i + 1}
                       {chosen ? `, ${chosen.designator}` : ''}
                     </Txt>
@@ -109,10 +153,15 @@ export default function Seats() {
             <Legend style={styles.seatTaken} label="Taken" />
           </View>
 
-          <ScrollView contentContainerStyle={{ alignItems: 'center', paddingBottom: 140, paddingTop: 8 }}>
+          <ScrollView
+            contentContainerStyle={{ alignItems: 'center', paddingBottom: 140, paddingTop: 8 }}
+          >
             <View style={styles.fuselage}>
               {map?.rows.map((row, r) => {
-                const number = row.flat().find((c): c is Seat => c.kind === 'seat')?.designator.replace(/[A-Z]+$/, '')
+                const number = row
+                  .flat()
+                  .find((c): c is Seat => c.kind === 'seat')
+                  ?.designator.replace(/[A-Z]+$/, '')
                 const exit = row.every((section) => section.every((c) => c.kind !== 'seat'))
                 if (exit) return <View key={`r${r}`} style={styles.exitRow} />
                 return (
@@ -121,20 +170,35 @@ export default function Seats() {
                       {number ?? ''}
                     </Txt>
                     {row.map((section, s) => (
-                      <View key={`s${s}`} style={[styles.section, s < row.length - 1 && styles.aisle]}>
+                      <View
+                        key={`s${s}`}
+                        style={[styles.section, s < row.length - 1 && styles.aisle]}
+                      >
                         {section.map((cell, c) => {
-                          if (cell.kind !== 'seat') return <View key={`c${c}`} style={styles.cell} />
-                          const service = passenger ? cell.services.find((x) => x.passenger_id === passenger.id) : undefined
+                          if (cell.kind !== 'seat')
+                            return <View key={`c${c}`} style={styles.cell} />
+                          const service = passenger
+                            ? cell.services.find((x) => x.passenger_id === passenger.id)
+                            : undefined
                           const other = takenBy(cell.designator)
                           const on = mine?.designator === cell.designator
                           const free = service && Number(service.price.usd) === 0
-                          const style = on ? styles.seatMine : !service || other ? styles.seatTaken : free ? styles.seatFree : styles.seatPaid
+                          const style = on
+                            ? styles.seatMine
+                            : !service || other
+                              ? styles.seatTaken
+                              : free
+                                ? styles.seatFree
+                                : styles.seatPaid
                           return (
                             <Pressable
                               key={cell.designator}
                               accessibilityRole="button"
                               accessibilityLabel={`Seat ${cell.designator}${service ? `, ${free ? 'free' : dollars(service.price.usd)}` : ', taken'}`}
-                              accessibilityState={{ selected: on, disabled: !service || Boolean(other) }}
+                              accessibilityState={{
+                                selected: on,
+                                disabled: !service || Boolean(other),
+                              }}
                               disabled={!service || Boolean(other)}
                               onPress={() => pick(cell)}
                               style={[styles.cell, styles.seat, style]}
@@ -161,7 +225,9 @@ export default function Seats() {
             {passenger ? `Traveller ${traveller + 1}` : 'Seats'}
           </Txt>
           <Txt weight="bold" size={20}>
-            {mine ? `${mine.designator}, ${Number(mine.price.usd) === 0 ? 'free' : dollars(mine.price.usd)}` : 'No seat yet'}
+            {mine
+              ? `${mine.designator}, ${Number(mine.price.usd) === 0 ? 'free' : dollars(mine.price.usd)}`
+              : 'No seat yet'}
           </Txt>
         </View>
         <View style={{ width: 150 }}>
@@ -188,11 +254,25 @@ const CELL = 34
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   tabs: { gap: 8, paddingHorizontal: 20, paddingVertical: 6 },
-  tab: { height: 36, paddingHorizontal: 14, borderRadius: 18, borderWidth: 2, borderColor: colors.ink, justifyContent: 'center' },
+  tab: {
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    justifyContent: 'center',
+  },
   tabOn: { backgroundColor: colors.ink },
   legend: { flexDirection: 'row', justifyContent: 'center', gap: 14, paddingVertical: 10 },
   legendSwatch: { width: 16, height: 16, borderRadius: 5, borderWidth: 2 },
-  fuselage: { paddingVertical: 18, paddingHorizontal: 14, borderRadius: 60, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface },
+  fuselage: {
+    paddingVertical: 18,
+    paddingHorizontal: 14,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
   row: { flexDirection: 'row', alignItems: 'center', marginVertical: 3 },
   rowNo: { width: 22, textAlign: 'center' },
   exitRow: { height: 14 },

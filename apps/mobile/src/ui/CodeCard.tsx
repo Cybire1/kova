@@ -10,7 +10,13 @@ export function CodeCard({ value, size = 220 }: { value: string; size?: number }
     <View style={{ alignItems: 'center', paddingTop: 44 }}>
       <Sticker radius={32} style={{ width: size + 48, height: size + 48 }}>
         <View style={styles.inner}>
-          <QRCode value={value} size={size} color={colors.ink} backgroundColor={colors.surface} ecl="M" />
+          <QRCode
+            value={value}
+            size={size}
+            color={colors.ink}
+            backgroundColor={colors.surface}
+            ecl="M"
+          />
         </View>
       </Sticker>
       <View style={styles.peek} pointerEvents="none">

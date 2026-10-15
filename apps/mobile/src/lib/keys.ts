@@ -11,7 +11,9 @@ import type { LocalAccount } from 'viem'
  * account of that seed (m/44'/60'/0'/0/0). Nothing here is ever stored: the key lives in a
  * signing session, in memory, and is zeroed when the session ends.
  */
-export async function openSigningSession(prfOutput: Uint8Array): Promise<{ session: Secp256k1SigningSession; account: LocalAccount }> {
+export async function openSigningSession(
+  prfOutput: Uint8Array,
+): Promise<{ session: Secp256k1SigningSession; account: LocalAccount }> {
   if (prfOutput.length !== 32) throw new Error('This passkey didn’t give Kova a key. Try again.')
   const seed = await mnemonicToSeed(entropyToMnemonic(prfOutput, wordlist))
   const node = HDKey.fromMasterSeed(seed).derive("m/44'/60'/0'/0/0")

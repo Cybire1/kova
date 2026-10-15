@@ -1,22 +1,42 @@
+import {
+  checkStealthAddress,
+  personalStealthKeysMessage,
+  stealthKeysFromSignature,
+  stealthMetaAddress,
+  stealthRegistrationMessage,
+} from '@kova/monad'
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Image, Share, View } from 'react-native'
 import type { Address } from 'viem'
-import { checkStealthAddress, personalStealthKeysMessage, stealthKeysFromSignature, stealthMetaAddress, stealthRegistrationMessage } from '@kova/monad'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { createCharge, createItem, getCatalog, getCheckout, listOrders, lookupBarcode, ringUp, setOrderStatus, type StealthReceipt, updateStall, uploadImage } from '@/lib/api'
-import { addPayrollPerson, addSupplier, listPayrollPeople, startPayrollRun } from '@/lib/api'
+import {
+  addPayrollPerson,
+  addSupplier,
+  createCharge,
+  createItem,
+  getCatalog,
+  getCheckout,
+  listOrders,
+  listPayrollPeople,
+  lookupBarcode,
+  ringUp,
+  type StealthReceipt,
+  setOrderStatus,
+  startPayrollRun,
+  updateStall,
+  uploadImage,
+} from '@/lib/api'
 import { payPayroll, reachOf } from '@/lib/business'
-import { apiUrl, shareWebUrl } from '@/lib/config'
 import { finishTap, forgetDevCard, linkCard, readTap } from '@/lib/card'
-import type { DisplayCurrency } from '@/lib/money'
-import { type Mode, usePrefs } from '@/lib/prefs'
+import { apiUrl, shareWebUrl } from '@/lib/config'
 import { stashWallet, unstashWallet } from '@/lib/dev-slots'
+import type { DisplayCurrency } from '@/lib/money'
 import { useOffline } from '@/lib/offline'
-import { publishReceivingKey } from '@/lib/private-core'
 import { clearOffline } from '@/lib/offline-store'
+import { type Mode, usePrefs } from '@/lib/prefs'
 import { explainedKey, usePrivate } from '@/lib/private'
-import { useStall } from '@/lib/stall'
+import { publishReceivingKey } from '@/lib/private-core'
 import {
   accept as acceptKey,
   freeze as freezeKey,
@@ -25,6 +45,7 @@ import {
   newAgent,
   switchOn,
 } from '@/lib/spend-keys'
+import { useStall } from '@/lib/stall'
 import { remove, save } from '@/lib/storage'
 import { useTakings } from '@/lib/takings'
 import { viewFrom } from '@/lib/takings-core'
@@ -518,7 +539,8 @@ export default function Dev() {
           return router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })
         }
         // The first private arrival explains itself once per wallet: forget that, to see it again.
-        if (params.private === 'unexplain' && wallet.profile) await remove(explainedKey(wallet.profile.address))
+        if (params.private === 'unexplain' && wallet.profile)
+          await remove(explainedKey(wallet.profile.address))
         if (params.private === 'setup') {
           setStep('making private-receiving keys')
           const ok = await privateRef.current.setUp()
@@ -549,13 +571,33 @@ export default function Dev() {
           for (const [name, amount, receives] of people) {
             const person = privateKeyToAccount(generatePrivateKey())
             if (receives) {
-              const meta = stealthMetaAddress(stealthKeysFromSignature(await person.signMessage({ message: personalStealthKeysMessage(person.address) })))
-              await publishReceivingKey(person.address, meta, await person.signMessage({ message: stealthRegistrationMessage(person.address, meta) }))
+              const meta = stealthMetaAddress(
+                stealthKeysFromSignature(
+                  await person.signMessage({ message: personalStealthKeysMessage(person.address) }),
+                ),
+              )
+              await publishReceivingKey(
+                person.address,
+                meta,
+                await person.signMessage({
+                  message: stealthRegistrationMessage(person.address, meta),
+                }),
+              )
             }
             await addPayrollPerson({ name, wallet_address: person.address, amount })
           }
-          await addSupplier({ name: 'Lisbon Coffee Roasters', wallet_address: privateKeyToAccount(generatePrivateKey()).address, country: 'Portugal', currency: 'EUR' })
-          await addSupplier({ name: 'Shenzhen Parts Co', wallet_address: privateKeyToAccount(generatePrivateKey()).address, country: 'China', currency: 'USD' })
+          await addSupplier({
+            name: 'Lisbon Coffee Roasters',
+            wallet_address: privateKeyToAccount(generatePrivateKey()).address,
+            country: 'Portugal',
+            currency: 'EUR',
+          })
+          await addSupplier({
+            name: 'Shenzhen Parts Co',
+            wallet_address: privateKeyToAccount(generatePrivateKey()).address,
+            country: 'China',
+            currency: 'USD',
+          })
           console.log('[dev] business book filled: 4 people, 2 suppliers')
         }
         if (params.biz === 'pay') {
@@ -574,17 +616,27 @@ export default function Dev() {
           const paying = people.filter((p) => reach[p.wallet_address.toLowerCase()] === 'private')
           const run = await startPayrollRun(
             'October salary',
-            paying.map((p) => ({ person: p.id, name: p.name, amount: params.amount || p.amount || '0.05' })),
+            paying.map((p) => ({
+              person: p.id,
+              name: p.name,
+              amount: params.amount || p.amount || '0.05',
+            })),
           )
           const wallets = Object.fromEntries(
-            run.payments.map((payment) => [payment.id, paying.find((p) => p.id === payment.person)?.wallet_address ?? '']),
+            run.payments.map((payment) => [
+              payment.id,
+              paying.find((p) => p.id === payment.person)?.wallet_address ?? '',
+            ]),
           )
           await payPayroll({
             approve: wallet.approve,
             business: stall.owned?.name ?? 'My shop',
             run,
             wallets,
-            onLine: (id, line) => console.log(`[dev] payroll ${id}: ${line.state}${line.state === 'failed' ? ` (${line.why})` : line.state === 'paid' ? ` in ${line.ms}ms ${line.explorer}` : ''}`),
+            onLine: (id, line) =>
+              console.log(
+                `[dev] payroll ${id}: ${line.state}${line.state === 'failed' ? ` (${line.why})` : line.state === 'paid' ? ` in ${line.ms}ms ${line.explorer}` : ''}`,
+              ),
           })
           return router.replace({ pathname: '/terminal/payroll-run', params: { id: run.id } })
         }

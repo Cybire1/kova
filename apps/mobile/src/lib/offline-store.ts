@@ -51,7 +51,9 @@ let owner: string | null = null
 let items: OfflineItem[] = []
 let loading: Promise<void> = Promise.resolve()
 const listeners = new Set<() => void>()
-const notify = () => listeners.forEach((listener) => listener())
+const notify = () => {
+  for (const listener of listeners) listener()
+}
 
 /** Opens this wallet's offline payments (or none, signed out). */
 export function openOfflineStore(address: Address | null): Promise<void> {
@@ -60,7 +62,10 @@ export function openOfflineStore(address: Address | null): Promise<void> {
   owner = next
   items = []
   notify()
-  if (!next) return (loading = Promise.resolve())
+  if (!next) {
+    loading = Promise.resolve()
+    return loading
+  }
   loading = load<OfflineItem[]>(key(next), []).then((saved) => {
     if (owner !== next) return
     items = Array.isArray(saved) ? saved : []
@@ -121,12 +126,22 @@ export const offlineEntryId = (id: Hex) => `offline-${id.slice(2, 18)}`
  * its sender and nonce, through Kova's status): the payment, now marked settled, or null when it's
  * new money. It already had its arrival screen when its code was scanned.
  */
-export async function offlineArrival(from: Address, amount: bigint, hash: Hex): Promise<OfflineItem | null> {
+export async function offlineArrival(
+  from: Address,
+  amount: bigint,
+  hash: Hex,
+): Promise<OfflineItem | null> {
   await offlineReady()
   const lower = hash.toLowerCase()
   const known = items.find((i) => i.direction === 'in' && i.txHash?.toLowerCase() === lower)
   if (known) return known
-  const candidates = items.filter((i) => i.direction === 'in' && !i.txHash && isAddressEqual(i.from, from) && BigInt(i.amount) === amount)
+  const candidates = items.filter(
+    (i) =>
+      i.direction === 'in' &&
+      !i.txHash &&
+      isAddressEqual(i.from, from) &&
+      BigInt(i.amount) === amount,
+  )
   for (const c of candidates) {
     const status = await offlineStatus(c.from, c.nonce)
     if (status?.status === 'settled' && status.txHash?.toLowerCase() === lower) {

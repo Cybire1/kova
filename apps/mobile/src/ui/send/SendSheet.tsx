@@ -2,11 +2,27 @@ import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native'
-import Animated, { FadeInLeft, FadeInRight, FadeIn } from 'react-native-reanimated'
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native'
+import Animated, { FadeIn, FadeInLeft, FadeInRight } from 'react-native-reanimated'
 import { type Address, getAddress, isAddressEqual } from 'viem'
 import { parseScanned } from '@/lib/links'
-import { applyKey, currencyInfo, type DisplayCurrency, displayCurrencies, formatLocal, formatUsd, groupTyped, toBase } from '@/lib/money'
+import {
+  applyKey,
+  currencyInfo,
+  type DisplayCurrency,
+  displayCurrencies,
+  formatLocal,
+  formatUsd,
+  groupTyped,
+  toBase,
+} from '@/lib/money'
 import { useOffline } from '@/lib/offline'
 import { OFFLINE_MAX } from '@/lib/offline-core'
 import { usePrivate } from '@/lib/private'
@@ -22,8 +38,15 @@ import { EnvelopeBadge } from '../LinkParts'
 import { Bob, Burst } from '../motion'
 import { NameSheet } from '../NameSheet'
 import { OfflineNotice } from '../Offline'
+import {
+  PayDetails,
+  SendPrivately,
+  SentPrivately,
+  spendLabel,
+  TopUpLine,
+  usePaymentRoute,
+} from '../Private'
 import { PillButton, TextLink, Txt } from '../primitives'
-import { PayDetails, SendPrivately, SentPrivately, spendLabel, TopUpLine, usePaymentRoute } from '../Private'
 import { Stage as KoviStage } from '../Stage'
 import { ArcRoute, type Leg } from './ArcRoute'
 import { SlideToSend } from './SlideToSend'
@@ -94,7 +117,10 @@ export function SendSheet({ payee }: { payee?: Payee }) {
   const saved = to ? contacts.find((c) => isAddressEqual(c.address, to.address))?.name : undefined
   const name = to ? (saved && !isUnnamed(saved) ? saved : to.name) || short(to.address) : ''
   const first = name.split(' ')[0]
-  const theirs = to && (displayCurrencies as readonly string[]).includes(to.currency ?? '') ? (to.currency as DisplayCurrency) : null
+  const theirs =
+    to && (displayCurrencies as readonly string[]).includes(to.currency ?? '')
+      ? (to.currency as DisplayCurrency)
+      : null
   const local = theirs && theirs !== 'USD' ? theirs : null
   const typedDollars = typed === '' ? 0 : Number(typed)
   const amount = typedDollars > 0 ? toBase(typedDollars.toFixed(2)) : 0n
@@ -107,7 +133,13 @@ export function SendSheet({ payee }: { payee?: Payee }) {
   // Where it comes from, by the privacy router. Private dollars only go out privately, to someone who
   // can receive that way; a private send spends them first. When the balance is short and they cover
   // it, that's how this send goes, privately.
-  const { route, choose, choosable } = usePaymentRoute({ amount, balance, direct: !viaCode && reach === 'yes', privateFirst: privately, paying: busy })
+  const { route, choose, choosable } = usePaymentRoute({
+    amount,
+    balance,
+    direct: !viaCode && reach === 'yes',
+    privateFirst: privately,
+    paying: busy,
+  })
   const fromPrivate = !viaCode && route.from === 'private'
   const forced = fromPrivate && !privately
   const sendPrivately = !viaCode && (privately || forced) && reach === 'yes'
@@ -166,9 +198,12 @@ export function SendSheet({ payee }: { payee?: Payee }) {
       if (!/cancel/i.test(message)) {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
         // The connection went: look again, and if Kova really is out of reach this becomes a code.
-        const lost = !viaCode && /network request failed|unreachable|timed? ?out|aborted/i.test(message)
+        const lost =
+          !viaCode && /network request failed|unreachable|timed? ?out|aborted/i.test(message)
         if (lost) void net.checkNow()
-        setProblem(lost ? 'No connection. If it stays down, slide again to pay with a code.' : message)
+        setProblem(
+          lost ? 'No connection. If it stays down, slide again to pay with a code.' : message,
+        )
       }
     }
   }
@@ -261,7 +296,13 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           </View>
 
           <View style={styles.entry}>
-            <Txt weight="semi" size={64} style={[styles.big, typed === '' && { color: '#B4B9B8' }]} numberOfLines={1} adjustsFontSizeToFit>
+            <Txt
+              weight="semi"
+              size={64}
+              style={[styles.big, typed === '' && { color: '#B4B9B8' }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
               ${groupTyped(typed)}
             </Txt>
             <View style={styles.subRow}>
@@ -296,18 +337,18 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                 </Txt>
               </View>
             ) : (
-            <View style={styles.note}>
-              <Icon name="lock" size={15} color={colors.muted} />
-              <TextInput
-                value={note}
-                onChangeText={setNote}
-                placeholder="Private note"
-                placeholderTextColor="#8C9799"
-                maxLength={60}
-                accessibilityLabel="Private note, only you and them can read it"
-                style={styles.noteInput}
-              />
-            </View>
+              <View style={styles.note}>
+                <Icon name="lock" size={15} color={colors.muted} />
+                <TextInput
+                  value={note}
+                  onChangeText={setNote}
+                  placeholder="Private note"
+                  placeholderTextColor="#8C9799"
+                  maxLength={60}
+                  accessibilityLabel="Private note, only you and them can read it"
+                  style={styles.noteInput}
+                />
+              </View>
             )}
           </View>
           <Keypad onKey={(key) => setTyped((v) => applyKey(v, key))} size={56} />
@@ -318,21 +359,41 @@ export function SendSheet({ payee }: { payee?: Payee }) {
               onPress={() => moveTo('review')}
             />
           </View>
-          <NameSheet person={naming ? { address: to.address, name } : null} onClose={() => setNaming(false)} />
+          <NameSheet
+            person={naming ? { address: to.address, name } : null}
+            onClose={() => setNaming(false)}
+          />
         </Animated.View>
       ) : null}
 
       {step === 'review' && to && profile ? (
         <Animated.View key="review" entering={enter} style={pad}>
           <View style={styles.top}>
-            <Round icon="back" label="Change the amount" onPress={() => moveTo('amount')} disabled={busy} />
+            <Round
+              icon="back"
+              label="Change the amount"
+              onPress={() => moveTo('amount')}
+              disabled={busy}
+            />
             <Txt weight="semi" size={17} style={{ flex: 1 }}>
-              {viaCode ? (busy ? `Signing for ${first}` : 'Check and sign') : busy ? `Sending to ${first}` : 'Check and send'}
+              {viaCode
+                ? busy
+                  ? `Signing for ${first}`
+                  : 'Check and sign'
+                : busy
+                  ? `Sending to ${first}`
+                  : 'Check and send'}
             </Txt>
           </View>
 
           <View style={{ marginTop: 18 }}>
-            <ArcRoute width={inner} you={{ name: profile.name, id: profile.address }} them={{ name, id: to.address }} leg={leg} privately={sendPrivately} />
+            <ArcRoute
+              width={inner}
+              you={{ name: profile.name, id: profile.address }}
+              them={{ name, id: to.address }}
+              leg={leg}
+              privately={sendPrivately}
+            />
           </View>
 
           <View style={styles.sums}>
@@ -349,7 +410,12 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           <View style={styles.facts}>
             <Fact label="Fee" value="$0.00, Kova covers it" />
             {viaCode ? (
-              <Fact label="Settles" value="When a phone is online" icon="clock" hint="On Monad · good for 7 days" />
+              <Fact
+                label="Settles"
+                value="When a phone is online"
+                icon="clock"
+                hint="On Monad · good for 7 days"
+              />
             ) : (
               <Fact label="Arrives" value="In about a second" icon="bolt" />
             )}
@@ -365,7 +431,13 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                 label="Note"
                 value={note.trim()}
                 icon="lock"
-                hint={reaches === null ? 'Sealing…' : reaches ? `Sealed: only you and ${first} can read it` : `Sealed for you; ${first} can’t get private notes yet`}
+                hint={
+                  reaches === null
+                    ? 'Sealing…'
+                    : reaches
+                      ? `Sealed: only you and ${first} can read it`
+                      : `Sealed for you; ${first} can’t get private notes yet`
+                }
               />
             ) : null}
           </View>
@@ -383,18 +455,31 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                 fromPrivate={fromPrivate}
               />
               {forced ? (
-                <Txt size={12} color={colors.onTint} style={{ marginTop: -4, marginLeft: 4, lineHeight: 17 }}>
+                <Txt
+                  size={12}
+                  color={colors.onTint}
+                  style={{ marginTop: -4, marginLeft: 4, lineHeight: 17 }}
+                >
                   This one goes privately, from your private dollars.
                 </Txt>
               ) : null}
               <TopUpLine route={route} />
-              {choosable ? <PayDetails amount={amount} balance={balance} route={route} onChoose={choose} disabled={busy} /> : null}
+              {choosable ? (
+                <PayDetails
+                  amount={amount}
+                  balance={balance}
+                  route={route}
+                  onChoose={choose}
+                  disabled={busy}
+                />
+              ) : null}
             </View>
           ) : reach === 'untrusted' ? (
             <View style={styles.untrusted}>
               <Icon name="info" size={16} color={colors.muted} />
               <Txt size={13} color={colors.muted} style={{ flex: 1, lineHeight: 18 }}>
-                Kova gave a private key for {isUnnamed(name) ? 'them' : first} that they didn’t sign, so this send can’t be private.
+                Kova gave a private key for {isUnnamed(name) ? 'them' : first} that they didn’t
+                sign, so this send can’t be private.
               </Txt>
             </View>
           ) : reach === 'no' && privately ? (
@@ -402,7 +487,8 @@ export function SendSheet({ payee }: { payee?: Payee }) {
             <View style={styles.untrusted}>
               <Icon name="lock" size={16} color={colors.muted} />
               <Txt size={13} color={colors.muted} style={{ flex: 1, lineHeight: 18 }}>
-                {isUnnamed(name) ? 'They' : first} can’t receive privately yet, so Monad will show who gets this one.
+                {isUnnamed(name) ? 'They' : first} can’t receive privately yet, so Monad will show
+                who gets this one.
               </Txt>
             </View>
           ) : null}
@@ -427,7 +513,12 @@ export function SendSheet({ payee }: { payee?: Payee }) {
               {spendLabel(dollars.spending)}
             </Txt>
           ) : over ? (
-            <Txt weight="medium" size={14} color={colors.danger} style={{ textAlign: 'center', marginBottom: 10 }}>
+            <Txt
+              weight="medium"
+              size={14}
+              color={colors.danger}
+              style={{ textAlign: 'center', marginBottom: 10 }}
+            >
               {overCap
                 ? 'One code carries $100 at most. Send less.'
                 : viaCode
@@ -437,19 +528,31 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           ) : null}
 
           <SlideToSend
-            label={problem ? 'Slide to try again' : viaCode ? `Slide to sign ${formatUsd(amount)}` : `Slide to send ${formatUsd(amount)}${sendPrivately ? ' privately' : ''}`}
+            label={
+              problem
+                ? 'Slide to try again'
+                : viaCode
+                  ? `Slide to sign ${formatUsd(amount)}`
+                  : `Slide to send ${formatUsd(amount)}${sendPrivately ? ' privately' : ''}`
+            }
             busy={busy}
             disabled={over || amount === 0n || checking}
             onSend={go}
           />
           <Txt size={12} color={colors.muted} style={{ textAlign: 'center', marginTop: 10 }}>
-            {viaCode ? 'Face ID confirms it. Once they have the code, it’s theirs to settle.' : 'Face ID confirms it. Payments on Monad can’t be undone.'}
+            {viaCode
+              ? 'Face ID confirms it. Once they have the code, it’s theirs to settle.'
+              : 'Face ID confirms it. Payments on Monad can’t be undone.'}
           </Txt>
         </Animated.View>
       ) : null}
 
       {step === 'sent' && to && entry ? (
-        <Animated.View key="sent" entering={FadeIn.duration(320)} style={[pad, { alignItems: 'center', paddingTop: 22 }]}>
+        <Animated.View
+          key="sent"
+          entering={FadeIn.duration(320)}
+          style={[pad, { alignItems: 'center', paddingTop: 22 }]}
+        >
           <KoviStage pose="cheer" size={150} />
           <Burst
             spots={[
@@ -469,7 +572,9 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           <View style={styles.time}>
             <Icon name="bolt" size={16} color={colors.white} />
             <Txt weight="semi" size={14} color={colors.white}>
-              {entry.ms ? `Arrived in ${(entry.ms / 1000).toFixed(2)} s on Monad` : 'Arrived on Monad'}
+              {entry.ms
+                ? `Arrived in ${(entry.ms / 1000).toFixed(2)} s on Monad`
+                : 'Arrived on Monad'}
             </Txt>
           </View>
           {entry.privately && entry.oneTime ? (
@@ -512,22 +617,45 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
 
   const people = useMemo(() => {
     const lastWith = (a: Address) => activity.find((e) => e.address && isAddressEqual(e.address, a))
-    return contacts.map((c) => ({ ...c, last: lastWith(c.address) })).sort((x, y) => (y.last?.at ?? 0) - (x.last?.at ?? 0))
+    return contacts
+      .map((c) => ({ ...c, last: lastWith(c.address) }))
+      .sort((x, y) => (y.last?.at ?? 0) - (x.last?.at ?? 0))
   }, [contacts, activity])
 
   const query = text.trim().toLowerCase()
-  const shown = query ? people.filter((p) => p.name.toLowerCase().includes(query) || p.address.toLowerCase().includes(query)) : people
+  const shown = query
+    ? people.filter(
+        (p) => p.name.toLowerCase().includes(query) || p.address.toLowerCase().includes(query),
+      )
+    : people
   const direct = query ? parseScanned(text) : null
 
   const go = (value: string) => {
     const scanned = parseScanned(value)
     if (!scanned) return setProblem('That isn’t a Kova link or a wallet address.')
-    if (scanned.kind === 'offline') return router.replace({ pathname: '/o', params: { code: scanned.code } })
-    if (scanned.kind === 'charge') return router.replace({ pathname: '/pay/[id]', params: { id: scanned.id } })
-    if (scanned.kind === 'pair') return router.replace({ pathname: '/terminal/setup', params: { code: scanned.code } })
-    if (scanned.kind === 'claim') return router.replace({ pathname: '/c/[id]', params: { id: scanned.id, ...(scanned.key ? { key: scanned.key } : {}) } })
-    if (scanned.kind === 'stall') return router.replace({ pathname: '/s/[slug]', params: { slug: scanned.slug, ...(scanned.table ? { table: scanned.table } : {}) } })
-    onPick({ address: getAddress(scanned.address), name: scanned.name, currency: scanned.currency, amount: scanned.amount, note: scanned.note })
+    if (scanned.kind === 'offline')
+      return router.replace({ pathname: '/o', params: { code: scanned.code } })
+    if (scanned.kind === 'charge')
+      return router.replace({ pathname: '/pay/[id]', params: { id: scanned.id } })
+    if (scanned.kind === 'pair')
+      return router.replace({ pathname: '/terminal/setup', params: { code: scanned.code } })
+    if (scanned.kind === 'claim')
+      return router.replace({
+        pathname: '/c/[id]',
+        params: { id: scanned.id, ...(scanned.key ? { key: scanned.key } : {}) },
+      })
+    if (scanned.kind === 'stall')
+      return router.replace({
+        pathname: '/s/[slug]',
+        params: { slug: scanned.slug, ...(scanned.table ? { table: scanned.table } : {}) },
+      })
+    onPick({
+      address: getAddress(scanned.address),
+      name: scanned.name,
+      currency: scanned.currency,
+      amount: scanned.amount,
+      note: scanned.note,
+    })
   }
 
   const paste = async () => {
@@ -582,13 +710,22 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
         )}
       </View>
       {problem ? (
-        <Txt weight="medium" size={14} color={colors.danger} style={{ marginTop: 8, marginLeft: 6 }}>
+        <Txt
+          weight="medium"
+          size={14}
+          color={colors.danger}
+          style={{ marginTop: 8, marginLeft: 6 }}
+        >
           {problem}
         </Txt>
       ) : null}
 
       {direct && direct.kind === 'person' ? (
-        <Pressable accessibilityRole="button" onPress={() => go(text)} style={({ pressed }) => [styles.direct, pressed && { transform: [{ scale: 0.98 }] }]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => go(text)}
+          style={({ pressed }) => [styles.direct, pressed && { transform: [{ scale: 0.98 }] }]}
+        >
           <Avatar name={direct.name ?? direct.address} id={direct.address} size={48} />
           <View style={{ flex: 1 }}>
             <Txt weight="semi" size={16} color={colors.white}>
@@ -605,7 +742,11 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
       ) : null}
 
       {direct && direct.kind === 'offline' ? (
-        <Pressable accessibilityRole="button" onPress={() => go(text)} style={({ pressed }) => [styles.direct, pressed && { transform: [{ scale: 0.98 }] }]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => go(text)}
+          style={({ pressed }) => [styles.direct, pressed && { transform: [{ scale: 0.98 }] }]}
+        >
           <View style={styles.directBadge}>
             <Icon name="qr" size={24} />
           </View>
@@ -624,7 +765,11 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
       ) : null}
 
       {direct && direct.kind === 'claim' ? (
-        <Pressable accessibilityRole="button" onPress={() => go(text)} style={({ pressed }) => [styles.direct, pressed && { transform: [{ scale: 0.98 }] }]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => go(text)}
+          style={({ pressed }) => [styles.direct, pressed && { transform: [{ scale: 0.98 }] }]}
+        >
           <View style={styles.directBadge}>
             <EnvelopeBadge size={34} />
           </View>
@@ -658,7 +803,12 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
               For anyone, even without Kova
             </Txt>
           </View>
-          <Pressable accessibilityRole="button" hitSlop={6} onPress={() => router.replace('/links')} style={styles.yourLinks}>
+          <Pressable
+            accessibilityRole="button"
+            hitSlop={6}
+            onPress={() => router.replace('/links')}
+            style={styles.yourLinks}
+          >
             <Txt weight="semi" size={13}>
               Your links
             </Txt>
@@ -674,14 +824,23 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
           <Txt weight="semi" size={18}>
             Send your first payment
           </Txt>
-          <Txt size={14} color={colors.muted} style={{ textAlign: 'center', marginTop: 4, lineHeight: 20 }}>
+          <Txt
+            size={14}
+            color={colors.muted}
+            style={{ textAlign: 'center', marginTop: 4, lineHeight: 20 }}
+          >
             Scan a friend’s Kova code or paste their link. They’ll be saved here for next time.
           </Txt>
         </View>
       ) : null}
 
       {!query && people.length > 3 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -SIDE, marginTop: 20 }} contentContainerStyle={{ paddingHorizontal: SIDE, gap: 12 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginHorizontal: -SIDE, marginTop: 20 }}
+          contentContainerStyle={{ paddingHorizontal: SIDE, gap: 12 }}
+        >
           {people.slice(0, 8).map((p) => (
             <Pressable
               key={p.address}
@@ -707,7 +866,11 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
             {query ? `Matches (${shown.length})` : 'Everyone'}
           </Txt>
           <View style={styles.list}>
-            <ScrollView style={{ maxHeight: 64 * 4.5 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+            <ScrollView
+              style={{ maxHeight: 64 * 4.5 }}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+            >
               {shown.map((p, i) => (
                 <Pressable
                   key={p.address}
@@ -716,7 +879,11 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
                   accessibilityHint="Hold to rename"
                   onPress={() => onPick({ address: p.address, name: p.name, currency: p.currency })}
                   onLongPress={() => setNaming(p)}
-                  style={({ pressed }) => [styles.row, i < shown.length - 1 && styles.rule, pressed && { backgroundColor: colors.sunken }]}
+                  style={({ pressed }) => [
+                    styles.row,
+                    i < shown.length - 1 && styles.rule,
+                    pressed && { backgroundColor: colors.sunken },
+                  ]}
                 >
                   <Avatar name={p.name} id={p.address} size={42} />
                   <View style={{ flex: 1 }}>
@@ -755,10 +922,22 @@ function ago(at: number) {
 function story(last: Entry | undefined) {
   if (!last) return 'No payments yet'
   const amount = formatUsd(BigInt(last.amount))
-  return last.kind === 'sent' || last.kind === 'paid' ? `You sent ${amount} · ${ago(last.at)}` : `Paid you ${amount} · ${ago(last.at)}`
+  return last.kind === 'sent' || last.kind === 'paid'
+    ? `You sent ${amount} · ${ago(last.at)}`
+    : `Paid you ${amount} · ${ago(last.at)}`
 }
 
-function Fact({ label, value, hint, icon }: { label: string; value: string; hint?: string; icon?: IconName }) {
+function Fact({
+  label,
+  value,
+  hint,
+  icon,
+}: {
+  label: string
+  value: string
+  hint?: string
+  icon?: IconName
+}) {
   return (
     <View style={styles.fact}>
       <Txt size={15} color={colors.muted}>
@@ -766,7 +945,9 @@ function Fact({ label, value, hint, icon }: { label: string; value: string; hint
       </Txt>
       <View style={{ flexShrink: 1, alignItems: 'flex-end' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          {icon ? <Icon name={icon} size={15} color={icon === 'bolt' ? colors.coral : colors.ink} /> : null}
+          {icon ? (
+            <Icon name={icon} size={15} color={icon === 'bolt' ? colors.coral : colors.ink} />
+          ) : null}
           <Txt weight="semi" size={15} numberOfLines={1}>
             {value}
           </Txt>
@@ -781,7 +962,17 @@ function Fact({ label, value, hint, icon }: { label: string; value: string; hint
   )
 }
 
-function Round({ icon, label, onPress, disabled }: { icon: IconName; label: string; onPress: () => void; disabled?: boolean }) {
+function Round({
+  icon,
+  label,
+  onPress,
+  disabled,
+}: {
+  icon: IconName
+  label: string
+  onPress: () => void
+  disabled?: boolean
+}) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -792,21 +983,39 @@ function Round({ icon, label, onPress, disabled }: { icon: IconName; label: stri
         void Haptics.selectionAsync()
         onPress()
       }}
-      style={({ pressed }) => [styles.round, disabled && { opacity: 0.35 }, pressed && { transform: [{ scale: 0.92 }] }]}
+      style={({ pressed }) => [
+        styles.round,
+        disabled && { opacity: 0.35 },
+        pressed && { transform: [{ scale: 0.92 }] },
+      ]}
     >
       <Icon name={icon} size={20} />
     </Pressable>
   )
 }
 
-function FieldButton({ icon, label, onPress, solid }: { icon: IconName; label: string; onPress: () => void; solid?: boolean }) {
+function FieldButton({
+  icon,
+  label,
+  onPress,
+  solid,
+}: {
+  icon: IconName
+  label: string
+  onPress: () => void
+  solid?: boolean
+}) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       hitSlop={6}
       onPress={onPress}
-      style={({ pressed }) => [styles.fieldButton, solid && { backgroundColor: colors.coral }, pressed && { transform: [{ scale: 0.94 }] }]}
+      style={({ pressed }) => [
+        styles.fieldButton,
+        solid && { backgroundColor: colors.coral },
+        pressed && { transform: [{ scale: 0.94 }] },
+      ]}
     >
       <Icon name={icon} size={18} color={solid ? colors.white : colors.ink} />
     </Pressable>
@@ -816,7 +1025,16 @@ function FieldButton({ icon, label, onPress, solid }: { icon: IconName; label: s
 const styles = StyleSheet.create({
   sheet: { backgroundColor: colors.paper },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 24 },
-  round: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  round: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   whoRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   pen: {
     position: 'absolute',
@@ -833,8 +1051,20 @@ const styles = StyleSheet.create({
   },
   entry: { alignItems: 'center', paddingTop: 18, paddingBottom: 14 },
   big: { letterSpacing: -2 },
-  subRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 2 },
-  pill: { height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: colors.sunken, justifyContent: 'center' },
+  subRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
+  pill: {
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    backgroundColor: colors.sunken,
+    justifyContent: 'center',
+  },
   note: {
     marginTop: 14,
     width: 240,
@@ -850,15 +1080,78 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   noteInput: { flex: 1, height: '100%', fontFamily: fonts.medium, fontSize: 15, color: colors.ink },
-  offlineTag: { marginTop: 14, height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  offlineWho: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, paddingRight: 14, borderRadius: 20, backgroundColor: colors.sunken },
-  offlineWhoIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  offlineTag: {
+    marginTop: 14,
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: colors.ink,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  offlineWho: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 10,
+    paddingRight: 14,
+    borderRadius: 20,
+    backgroundColor: colors.sunken,
+  },
+  offlineWhoIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   sums: { alignItems: 'center', marginTop: 4 },
-  facts: { marginTop: 18, marginBottom: 16, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, paddingHorizontal: 16, paddingVertical: 6 },
-  fact: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingVertical: 9 },
-  problem: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12, padding: 12, borderRadius: 16, backgroundColor: colors.coralSoft },
-  untrusted: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12, paddingHorizontal: 4 },
-  time: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: colors.ink },
+  facts: {
+    marginTop: 18,
+    marginBottom: 16,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  fact: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 9,
+  },
+  problem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: colors.coralSoft,
+  },
+  untrusted: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  time: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 14,
+    height: 34,
+    paddingHorizontal: 14,
+    borderRadius: 17,
+    backgroundColor: colors.ink,
+  },
   field: {
     marginTop: 14,
     height: 50,
@@ -873,9 +1166,31 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   input: { flex: 1, height: '100%', fontFamily: fonts.medium, fontSize: 16, color: colors.ink },
-  fieldButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.sunken, alignItems: 'center', justifyContent: 'center' },
-  direct: { marginTop: 12, borderRadius: 24, backgroundColor: colors.ink, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  directBadge: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  fieldButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.sunken,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  direct: {
+    marginTop: 12,
+    borderRadius: 24,
+    backgroundColor: colors.ink,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  directBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   asLink: {
     marginTop: 12,
     borderRadius: 22,
@@ -889,11 +1204,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  yourLinks: { height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.sunken, justifyContent: 'center' },
-  directGo: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  yourLinks: {
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: colors.sunken,
+    justifyContent: 'center',
+  },
+  directGo: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   section: { marginTop: 20, marginBottom: 8, marginLeft: 4 },
   recent: { width: 68, alignItems: 'center', gap: 6 },
-  list: { borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, overflow: 'hidden' },
+  list: {
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, height: 56 },
   rule: { borderBottomWidth: 1, borderColor: colors.sunken },
   empty: { alignItems: 'center', paddingTop: 18, paddingHorizontal: 12 },

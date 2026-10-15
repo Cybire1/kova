@@ -3,7 +3,17 @@ import * as Haptics from 'expo-haptics'
 import { router, useFocusEffect } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Switch, useWindowDimensions, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  Switch,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { type CatalogItem, posterLinkFor, stallLinkFor, updateItem, updateStall } from '@/lib/api'
 import { useCatalog } from '@/lib/catalog'
@@ -36,7 +46,9 @@ function OwnerStall() {
   const [refreshing, setRefreshing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
-  const saving = useRef<Partial<Record<'table_count' | 'loyalty_every', ReturnType<typeof setTimeout>>>>({})
+  const saving = useRef<
+    Partial<Record<'table_count' | 'loyalty_every', ReturnType<typeof setTimeout>>>
+  >({})
 
   useEffect(
     () => () => {
@@ -77,8 +89,13 @@ function OwnerStall() {
 
   const soldOut = async (item: CatalogItem, value: boolean) => {
     void Haptics.selectionAsync()
-    patch({ ...stall, items: stall.items.map((i) => (i.id === item.id ? { ...i, sold_out: value } : i)) })
-    catalog.setItems((list) => list?.map((i) => (i.id === item.id ? { ...i, sold_out: value } : i)) ?? list)
+    patch({
+      ...stall,
+      items: stall.items.map((i) => (i.id === item.id ? { ...i, sold_out: value } : i)),
+    })
+    catalog.setItems(
+      (list) => list?.map((i) => (i.id === item.id ? { ...i, sold_out: value } : i)) ?? list,
+    )
     try {
       await updateItem(item.id, { sold_out: value })
     } catch (error) {
@@ -123,7 +140,12 @@ function OwnerStall() {
     >
       {/* The sign: the awning runs up under the status bar, like the canopy over a real stall. */}
       <View style={{ height: insets.top + 64, justifyContent: 'flex-end', overflow: 'hidden' }}>
-        <Awning width={width} height={insets.top + 64} stripe={30} tone={stall.open ? 'coral' : 'teal'} />
+        <Awning
+          width={width}
+          height={insets.top + 64}
+          stripe={30}
+          tone={stall.open ? 'coral' : 'teal'}
+        />
         <View style={{ position: 'absolute', top: insets.top + 12, left: 16 }}>
           <WalletBack />
         </View>
@@ -143,18 +165,30 @@ function OwnerStall() {
           <Pressable
             accessibilityRole="switch"
             accessibilityState={{ checked: stall.open }}
-            accessibilityLabel={stall.open ? 'Open. Tap to close the stall' : 'Closed. Tap to open the stall'}
+            accessibilityLabel={
+              stall.open ? 'Open. Tap to close the stall' : 'Closed. Tap to open the stall'
+            }
             onPress={toggleOpen}
-            style={[styles.openSwitch, { backgroundColor: stall.open ? colors.tealSoft : colors.sunken }]}
+            style={[
+              styles.openSwitch,
+              { backgroundColor: stall.open ? colors.tealSoft : colors.sunken },
+            ]}
           >
-            <View style={[styles.openKnob, { backgroundColor: stall.open ? colors.teal : colors.muted }]} />
+            <View
+              style={[
+                styles.openKnob,
+                { backgroundColor: stall.open ? colors.teal : colors.muted },
+              ]}
+            />
             <Txt weight="bold" size={14}>
               {stall.open ? 'Open' : 'Closed'}
             </Txt>
           </Pressable>
         </View>
         <Txt size={14} color={colors.muted} style={{ marginTop: 10, lineHeight: 20 }}>
-          {stall.open ? 'People can order and pay now. Payments land in your wallet, in dollars.' : 'Closed. People can still see your stall, but can’t order until you open it.'}
+          {stall.open
+            ? 'People can order and pay now. Payments land in your wallet, in dollars.'
+            : 'Closed. People can still see your stall, but can’t order until you open it.'}
         </Txt>
         <Pressable
           accessibilityRole="button"
@@ -175,13 +209,28 @@ function OwnerStall() {
       </View>
 
       <View style={styles.shareRow}>
-        <ShareTile icon="scan" label="Show QR" onPress={() => router.push('/terminal/share')} tone={colors.tealSoft} />
+        <ShareTile
+          icon="scan"
+          label="Show QR"
+          onPress={() => router.push('/terminal/share')}
+          tone={colors.tealSoft}
+        />
         <ShareTile icon="share" label="Share link" onPress={share} tone={colors.coralSoft} />
-        <ShareTile icon="print" label="Poster" onPress={() => void WebBrowser.openBrowserAsync(posterLinkFor(stall.slug))} tone={colors.surface} />
+        <ShareTile
+          icon="print"
+          label="Poster"
+          onPress={() => void WebBrowser.openBrowserAsync(posterLinkFor(stall.slug))}
+          tone={colors.surface}
+        />
       </View>
 
       {problem ? (
-        <Txt weight="medium" size={14} color={colors.danger} style={{ marginHorizontal: 20, marginTop: 10 }}>
+        <Txt
+          weight="medium"
+          size={14}
+          color={colors.danger}
+          style={{ marginHorizontal: 20, marginTop: 10 }}
+        >
           {problem}
         </Txt>
       ) : null}
@@ -198,7 +247,12 @@ function OwnerStall() {
       </View>
       <View style={styles.list}>
         <View style={[styles.setting, styles.rowRule]}>
-          <View style={[styles.settingIcon, { backgroundColor: tables ? colors.coralSoft : colors.sunken }]}>
+          <View
+            style={[
+              styles.settingIcon,
+              { backgroundColor: tables ? colors.coralSoft : colors.sunken },
+            ]}
+          >
             <Icon name="grid" size={20} />
           </View>
           <View style={{ flex: 1 }}>
@@ -206,7 +260,9 @@ function OwnerStall() {
               Tables
             </Txt>
             <Txt size={13} color={colors.muted} style={{ lineHeight: 18 }}>
-              {tables ? `${tables} ${tables === 1 ? 'table' : 'tables'}, each with its own code. Orders show the table.` : 'Off. People collect at the counter.'}
+              {tables
+                ? `${tables} ${tables === 1 ? 'table' : 'tables'}, each with its own code. Orders show the table.`
+                : 'Off. People collect at the counter.'}
             </Txt>
           </View>
           <Dial
@@ -236,7 +292,12 @@ function OwnerStall() {
           </Pressable>
         ) : null}
         <View style={styles.setting}>
-          <View style={[styles.settingIcon, { backgroundColor: every ? colors.tealSoft : colors.sunken }]}>
+          <View
+            style={[
+              styles.settingIcon,
+              { backgroundColor: every ? colors.tealSoft : colors.sunken },
+            ]}
+          >
             <Icon name="sparkle" size={20} />
           </View>
           <View style={{ flex: 1 }}>
@@ -244,7 +305,9 @@ function OwnerStall() {
               Stamp card
             </Txt>
             <Txt size={13} color={colors.muted} style={{ lineHeight: 18 }}>
-              {every ? `After ${every} paid orders, the next one’s cheapest item is free.` : 'Off. Reward regulars with a free item.'}
+              {every
+                ? `After ${every} paid orders, the next one’s cheapest item is free.`
+                : 'Off. Reward regulars with a free item.'}
             </Txt>
           </View>
           <Dial
@@ -254,9 +317,15 @@ function OwnerStall() {
           />
         </View>
         {every ? (
-          <View style={styles.stampPreview} accessibilityLabel={`A stamp card of ${every}, then one free`}>
+          <View
+            style={styles.stampPreview}
+            accessibilityLabel={`A stamp card of ${every}, then one free`}
+          >
             {Array.from({ length: every }, (_, i) => i + 1).map((n) => (
-              <View key={n} style={[styles.stampDot, n <= Math.ceil(every / 2) && styles.stampDotOn]}>
+              <View
+                key={n}
+                style={[styles.stampDot, n <= Math.ceil(every / 2) && styles.stampDotOn]}
+              >
                 {n <= Math.ceil(every / 2) ? <Coin size={16} /> : null}
               </View>
             ))}
@@ -276,10 +345,17 @@ function OwnerStall() {
             On your stall
           </Txt>
           <Txt size={13} color={colors.muted}>
-            {items.length === 0 ? 'Nothing yet' : `${items.length} ${items.length === 1 ? 'item' : 'items'}, as buyers see them`}
+            {items.length === 0
+              ? 'Nothing yet'
+              : `${items.length} ${items.length === 1 ? 'item' : 'items'}, as buyers see them`}
           </Txt>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Add an item" onPress={() => router.push('/terminal/item')} style={styles.addButton}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add an item"
+          onPress={() => router.push('/terminal/item')}
+          style={styles.addButton}
+        >
           <Icon name="plus" size={18} color={colors.white} strokeWidth={2.4} />
           <Txt weight="semi" size={15} color={colors.white}>
             Add
@@ -293,17 +369,30 @@ function OwnerStall() {
           <Txt weight="semi" size={19} style={{ marginTop: 4, textAlign: 'center' }}>
             Put something on the counter
           </Txt>
-          <Txt size={15} color={colors.muted} style={{ marginTop: 4, textAlign: 'center', lineHeight: 21 }}>
-            Add items one by one with a photo and a price, or photograph your menu board and Kova fills it in.
+          <Txt
+            size={15}
+            color={colors.muted}
+            style={{ marginTop: 4, textAlign: 'center', lineHeight: 21 }}
+          >
+            Add items one by one with a photo and a price, or photograph your menu board and Kova
+            fills it in.
           </Txt>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-            <Pressable accessibilityRole="button" onPress={() => router.push('/terminal/item')} style={styles.bigChoice}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/terminal/item')}
+              style={styles.bigChoice}
+            >
               <Icon name="camera" size={22} />
               <Txt weight="semi" size={15}>
                 Add an item
               </Txt>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => router.push('/terminal/snap')} style={[styles.bigChoice, { backgroundColor: colors.tealSoft }]}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/terminal/snap')}
+              style={[styles.bigChoice, { backgroundColor: colors.tealSoft }]}
+            >
               <Icon name="sparkle" size={22} />
               <Txt weight="semi" size={15}>
                 Snap your menu
@@ -314,9 +403,19 @@ function OwnerStall() {
       ) : (
         <View style={styles.list}>
           {items.map((item, i) => (
-            <ItemRow key={item.id} item={item} last={i === items.length - 1} onSoldOut={(v) => void soldOut(item, v)} currency={shop.currency} />
+            <ItemRow
+              key={item.id}
+              item={item}
+              last={i === items.length - 1}
+              onSoldOut={(v) => void soldOut(item, v)}
+              currency={shop.currency}
+            />
           ))}
-          <Pressable accessibilityRole="button" onPress={() => router.push('/terminal/snap')} style={styles.snapRow}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/terminal/snap')}
+            style={styles.snapRow}
+          >
             <View style={[styles.snapIcon]}>
               <Icon name="sparkle" size={18} />
             </View>
@@ -347,7 +446,12 @@ function OwnerStall() {
           </View>
           <View style={styles.list}>
             {tillOnly.map((item, i) => (
-              <ItemRow key={item.id} item={item} last={i === tillOnly.length - 1} currency={shop.currency} />
+              <ItemRow
+                key={item.id}
+                item={item}
+                last={i === tillOnly.length - 1}
+                currency={shop.currency}
+              />
             ))}
           </View>
         </>
@@ -356,7 +460,17 @@ function OwnerStall() {
   )
 }
 
-function ItemRow({ item, last, onSoldOut, currency }: { item: CatalogItem; last: boolean; onSoldOut?: (v: boolean) => void; currency: ReturnType<typeof useShop>['currency'] }) {
+function ItemRow({
+  item,
+  last,
+  onSoldOut,
+  currency,
+}: {
+  item: CatalogItem
+  last: boolean
+  onSoldOut?: (v: boolean) => void
+  currency: ReturnType<typeof useShop>['currency']
+}) {
   const local = about(item.price, currency)
   return (
     <Pressable
@@ -392,7 +506,9 @@ function ItemRow({ item, last, onSoldOut, currency }: { item: CatalogItem; last:
             value={!item.sold_out}
             onValueChange={(inStock) => onSoldOut(!inStock)}
             trackColor={{ true: colors.teal, false: colors.sunken }}
-            accessibilityLabel={item.sold_out ? `${item.name} is sold out` : `${item.name} is in stock`}
+            accessibilityLabel={
+              item.sold_out ? `${item.name} is sold out` : `${item.name} is in stock`
+            }
           />
           <Txt size={11} color={colors.muted}>
             {item.sold_out ? 'Sold out' : 'In stock'}
@@ -406,27 +522,63 @@ function ItemRow({ item, last, onSoldOut, currency }: { item: CatalogItem; last:
 }
 
 /** Fewer, how many (or Off), more: for a setting where none means off. */
-function Dial({ value, name, onChange }: { value: number; name: string; onChange: (n: number) => void }) {
+function Dial({
+  value,
+  name,
+  onChange,
+}: {
+  value: number
+  name: string
+  onChange: (n: number) => void
+}) {
   const step = (n: number) => {
     void Haptics.selectionAsync()
     onChange(n)
   }
   return (
     <View style={styles.dial}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Fewer ${name}`} hitSlop={6} disabled={!value} onPress={() => step(value - 1)} style={[styles.dialKey, !value && { opacity: 0.3 }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Fewer ${name}`}
+        hitSlop={6}
+        disabled={!value}
+        onPress={() => step(value - 1)}
+        style={[styles.dialKey, !value && { opacity: 0.3 }]}
+      >
         <Icon name="minus" size={15} strokeWidth={2.2} />
       </Pressable>
-      <Txt weight="bold" size={value ? 15 : 13} style={{ minWidth: 28, textAlign: 'center' }} accessibilityLiveRegion="polite">
+      <Txt
+        weight="bold"
+        size={value ? 15 : 13}
+        style={{ minWidth: 28, textAlign: 'center' }}
+        accessibilityLiveRegion="polite"
+      >
         {value || 'Off'}
       </Txt>
-      <Pressable accessibilityRole="button" accessibilityLabel={`More ${name}`} hitSlop={6} onPress={() => step(value + 1)} style={styles.dialKey}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`More ${name}`}
+        hitSlop={6}
+        onPress={() => step(value + 1)}
+        style={styles.dialKey}
+      >
         <Icon name="plus" size={15} strokeWidth={2.2} />
       </Pressable>
     </View>
   )
 }
 
-function ShareTile({ icon, label, onPress, tone }: { icon: IconName; label: string; onPress: () => void; tone: string }) {
+function ShareTile({
+  icon,
+  label,
+  onPress,
+  tone,
+}: {
+  icon: IconName
+  label: string
+  onPress: () => void
+  tone: string
+}) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -434,7 +586,11 @@ function ShareTile({ icon, label, onPress, tone }: { icon: IconName; label: stri
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         onPress()
       }}
-      style={({ pressed }) => [styles.shareTile, { backgroundColor: tone }, pressed && { transform: [{ scale: 0.96 }] }]}
+      style={({ pressed }) => [
+        styles.shareTile,
+        { backgroundColor: tone },
+        pressed && { transform: [{ scale: 0.96 }] },
+      ]}
     >
       <View style={styles.shareIcon}>
         <Icon name={icon} size={20} />
@@ -455,13 +611,18 @@ function ShopMenu() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.paper }}
-      contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: shopDockClearance + insets.bottom }}
+      contentContainerStyle={{
+        paddingTop: insets.top + 8,
+        paddingHorizontal: 20,
+        paddingBottom: shopDockClearance + insets.bottom,
+      }}
     >
       <Txt weight="bold" size={32} style={{ letterSpacing: -1 }}>
         Menu
       </Txt>
       <Txt size={14} color={colors.muted} style={{ marginTop: 4, lineHeight: 20 }}>
-        Everything {shop.name} sells. Only the phone that opened the shop, or the Kova dashboard, can change it.
+        Everything {shop.name} sells. Only the phone that opened the shop, or the Kova dashboard,
+        can change it.
       </Txt>
       {catalog.items === null ? (
         <ActivityIndicator color={colors.ink} style={{ marginTop: 30 }} />
@@ -540,21 +701,119 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  shareIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center' },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginTop: 28, marginBottom: 10 },
-  addButton: { height: 40, paddingHorizontal: 16, borderRadius: 20, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  list: { marginHorizontal: 20, borderRadius: 24, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  shareIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 28,
+    marginBottom: 10,
+  },
+  addButton: {
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: colors.ink,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  list: {
+    marginHorizontal: 20,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
   rowRule: { borderBottomWidth: 1, borderColor: colors.sunken },
-  barcodeTag: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3, alignSelf: 'flex-start', paddingHorizontal: 7, height: 20, borderRadius: 10, backgroundColor: colors.sunken },
-  snapRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 12, borderTopWidth: 2, borderColor: colors.sunken, backgroundColor: colors.paper },
-  snapIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.tealSoft, alignItems: 'center', justifyContent: 'center' },
-  setting: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 12 },
-  settingIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  dial: { flexDirection: 'row', alignItems: 'center', height: 36, paddingHorizontal: 1, borderRadius: 18, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.white },
+  barcodeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 3,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 7,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.sunken,
+  },
+  snapRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderTopWidth: 2,
+    borderColor: colors.sunken,
+    backgroundColor: colors.paper,
+  },
+  snapIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.tealSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  setting: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  settingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dial: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 36,
+    paddingHorizontal: 1,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.white,
+  },
   dialKey: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  stampPreview: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingBottom: 12, marginTop: -2 },
-  stampDot: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: colors.ink, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
+  stampPreview: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    marginTop: -2,
+  },
+  stampDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: colors.ink,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   stampDotOn: { borderWidth: 0 },
   stampDotFree: { borderStyle: 'solid', backgroundColor: colors.coral },
   firstItems: { alignItems: 'center', paddingHorizontal: 28, paddingTop: 12 },
@@ -569,5 +828,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  soldChip: { height: 26, paddingHorizontal: 10, borderRadius: 13, backgroundColor: colors.sunken, justifyContent: 'center' },
+  soldChip: {
+    height: 26,
+    paddingHorizontal: 10,
+    borderRadius: 13,
+    backgroundColor: colors.sunken,
+    justifyContent: 'center',
+  },
 })

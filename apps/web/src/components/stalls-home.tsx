@@ -12,15 +12,25 @@ import { PageHead } from './shell'
 type Filter = 'hand' | 'waiting' | 'done'
 
 const paid = (o: Order) => o.payment_status === 'paid'
-const waiting = (o: Order) => o.payment_status === 'requires_payment' || o.payment_status === 'processing'
-const summary = (o: Order) => o.lines.map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name)).join(', ')
+const waiting = (o: Order) =>
+  o.payment_status === 'requires_payment' || o.payment_status === 'processing'
+const summary = (o: Order) =>
+  o.lines.map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name)).join(', ')
 
 /**
  * The stalls a shop runs, and the orders coming in from them. Orders that are paid but not yet
  * handed over sit at the top until someone taps Collected. Ready tells the buyer's phone (it
  * lights up and chimes), so nobody needs a buzzer; a table order says which table to bring it to.
  */
-export function StallsHome({ stalls, initialOrders, catalogueSize }: { stalls: Stall[]; initialOrders: Order[]; catalogueSize: number }) {
+export function StallsHome({
+  stalls,
+  initialOrders,
+  catalogueSize,
+}: {
+  stalls: Stall[]
+  initialOrders: Order[]
+  catalogueSize: number
+}) {
   const [orders, setOrders] = useState(initialOrders)
   const [filter, setFilter] = useState<Filter>('hand')
   const [copied, setCopied] = useState<string | null>(null)
@@ -43,7 +53,11 @@ export function StallsHome({ stalls, initialOrders, catalogueSize }: { stalls: S
   const shown = lists[filter]
 
   const collect = (o: Order, collected: boolean) => {
-    setOrders((list) => list.map((x) => (x.id === o.id ? { ...x, collected_at: collected ? new Date().toISOString() : null } : x)))
+    setOrders((list) =>
+      list.map((x) =>
+        x.id === o.id ? { ...x, collected_at: collected ? new Date().toISOString() : null } : x,
+      ),
+    )
     start(async () => {
       await markCollected(o.id, collected)
     })
@@ -71,7 +85,10 @@ export function StallsHome({ stalls, initialOrders, catalogueSize }: { stalls: S
           <div className="stall-first-body">
             <Art name="kovi-wave" size={150} className="stall-first-kovi" />
             <h2>Open your first stall</h2>
-            <p>A stall is your menu on a link. Share it on WhatsApp, tape its QR code to your table, and people pay from their own phones, from anywhere, in dollars.</p>
+            <p>
+              A stall is your menu on a link. Share it on WhatsApp, tape its QR code to your table,
+              and people pay from their own phones, from anywhere, in dollars.
+            </p>
             <ol className="stall-steps">
               <li>Add what you sell, or snap a photo of your menu.</li>
               <li>Share the link, or print the table poster.</li>
@@ -87,7 +104,10 @@ export function StallsHome({ stalls, initialOrders, catalogueSize }: { stalls: S
 
   return (
     <>
-      <PageHead title="Stalls" sub={`${stalls.length} ${stalls.length === 1 ? 'stall' : 'stalls'}, ${catalogueSize} items in your catalogue`}>
+      <PageHead
+        title="Stalls"
+        sub={`${stalls.length} ${stalls.length === 1 ? 'stall' : 'stalls'}, ${catalogueSize} items in your catalogue`}
+      >
         <Pill href="/dashboard/catalogue" icon="tag" tone="light">
           Catalogue
         </Pill>
@@ -111,8 +131,11 @@ export function StallsHome({ stalls, initialOrders, catalogueSize }: { stalls: S
                 </div>
                 {s.tagline ? <p className="stall-card-line">{s.tagline}</p> : null}
                 <p className="stall-card-meta">
-                  {s.item_ids?.length ?? 0} {s.item_ids?.length === 1 ? 'item' : 'items'}, at /s/{s.slug}
-                  {s.table_count ? `, ${s.table_count} ${s.table_count === 1 ? 'table' : 'tables'}` : ''}
+                  {s.item_ids?.length ?? 0} {s.item_ids?.length === 1 ? 'item' : 'items'}, at /s/
+                  {s.slug}
+                  {s.table_count
+                    ? `, ${s.table_count} ${s.table_count === 1 ? 'table' : 'tables'}`
+                    : ''}
                   {s.loyalty_every ? `, stamp card of ${s.loyalty_every}` : ''}
                 </p>
                 <div className="stall-card-actions">
@@ -120,7 +143,8 @@ export function StallsHome({ stalls, initialOrders, catalogueSize }: { stalls: S
                     Edit stall
                   </Link>
                   <button type="button" className="mini" onClick={() => share(s)}>
-                    <Icon name={copied === s.id ? 'check' : 'copy'} size={14} /> {copied === s.id ? 'Link copied' : 'Copy link'}
+                    <Icon name={copied === s.id ? 'check' : 'copy'} size={14} />{' '}
+                    {copied === s.id ? 'Link copied' : 'Copy link'}
                   </button>
                   <a className="mini" href={`/s/${s.slug}/poster`} target="_blank" rel="noreferrer">
                     Poster
@@ -145,7 +169,13 @@ export function StallsHome({ stalls, initialOrders, catalogueSize }: { stalls: S
                 ['done', 'Done'],
               ] as [Filter, string][]
             ).map(([key, label]) => (
-              <button key={key} type="button" role="tab" aria-selected={filter === key} onClick={() => setFilter(key)}>
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={filter === key}
+                onClick={() => setFilter(key)}
+              >
                 {label}
                 {key !== 'done' && lists[key].length ? <span>{lists[key].length}</span> : null}
               </button>
@@ -153,14 +183,24 @@ export function StallsHome({ stalls, initialOrders, catalogueSize }: { stalls: S
           </div>
           {shown.length === 0 ? (
             <p className="orders-empty">
-              {filter === 'hand' ? 'Nothing waiting at the counter.' : filter === 'waiting' ? 'No unpaid orders.' : 'Nothing collected yet today.'}
+              {filter === 'hand'
+                ? 'Nothing waiting at the counter.'
+                : filter === 'waiting'
+                  ? 'No unpaid orders.'
+                  : 'Nothing collected yet today.'}
             </p>
           ) : (
             <ul className="order-list">
               {shown.map((o) => (
-                <li key={o.id} className="order" data-state={o.collected_at ? 'done' : paid(o) ? 'hand' : 'waiting'}>
+                <li
+                  key={o.id}
+                  className="order"
+                  data-state={o.collected_at ? 'done' : paid(o) ? 'hand' : 'waiting'}
+                >
                   <div className="order-top">
-                    <strong>{o.customer_name ?? (o.source === 'till' ? 'At the till' : 'No name given')}</strong>
+                    <strong>
+                      {o.customer_name ?? (o.source === 'till' ? 'At the till' : 'No name given')}
+                    </strong>
                     <span className="order-amount">{usd(o.amount ?? '0')}</span>
                   </div>
                   {o.table || o.reward || (o.status === 'ready' && !o.collected_at) ? (
@@ -170,7 +210,11 @@ export function StallsHome({ stalls, initialOrders, catalogueSize }: { stalls: S
                           <Icon name="stall" size={13} /> Table {o.table}
                         </span>
                       ) : null}
-                      {o.reward ? <span className="order-tag order-tag-stamp">Stamp card: {o.reward.name} free</span> : null}
+                      {o.reward ? (
+                        <span className="order-tag order-tag-stamp">
+                          Stamp card: {o.reward.name} free
+                        </span>
+                      ) : null}
                       {o.status === 'ready' && !o.collected_at ? (
                         <span className="order-tag order-tag-ready">
                           <Icon name="bell" size={13} /> Ready, they’ve been told
@@ -188,11 +232,19 @@ export function StallsHome({ stalls, initialOrders, catalogueSize }: { stalls: S
                     {paid(o) ? (
                       <span className="order-acts">
                         {o.collected_at || o.status === 'ready' ? null : (
-                          <button type="button" className="mini mini-coral" onClick={() => ready(o)}>
+                          <button
+                            type="button"
+                            className="mini mini-coral"
+                            onClick={() => ready(o)}
+                          >
                             <Icon name="bell" size={14} /> Ready
                           </button>
                         )}
-                        <button type="button" className={`mini${o.collected_at ? '' : ' mini-ink'}`} onClick={() => collect(o, !o.collected_at)}>
+                        <button
+                          type="button"
+                          className={`mini${o.collected_at ? '' : ' mini-ink'}`}
+                          onClick={() => collect(o, !o.collected_at)}
+                        >
                           {o.collected_at ? (
                             'Undo'
                           ) : (

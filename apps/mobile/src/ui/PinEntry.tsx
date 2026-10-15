@@ -1,7 +1,12 @@
 import * as Haptics from 'expo-haptics'
 import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated'
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated'
 import { colors } from '@/lib/theme'
 import { Keypad } from './Keypad'
 import { Txt } from './primitives'
@@ -41,13 +46,22 @@ export function PinEntry({
 
   return (
     <View style={{ gap: 22 }}>
-      <Animated.View style={[styles.dots, shaken]} accessibilityLabel={`${value.length} digits entered`}>
+      <Animated.View
+        style={[styles.dots, shaken]}
+        accessibilityLabel={`${value.length} digits entered`}
+      >
         {Array.from({ length: dots }, (_, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: dots are positions, not items
-          <View key={i} style={[styles.dot, i < value.length && styles.dotOn, error ? styles.dotError : null]} />
+          <View
+            key={i}
+            style={[styles.dot, i < value.length && styles.dotOn, error ? styles.dotError : null]}
+          />
         ))}
       </Animated.View>
-      <Txt size={14} color={error ? colors.danger : colors.muted} style={{ textAlign: 'center', minHeight: 20 }}>
+      <Txt
+        size={14}
+        color={error ? colors.danger : colors.muted}
+        style={{ textAlign: 'center', minHeight: 20 }}
+      >
         {error ?? ' '}
       </Txt>
       <Keypad

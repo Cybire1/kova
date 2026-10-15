@@ -15,9 +15,14 @@ export function CancelCharge({ id }: { id: string }) {
       </button>
     )
   return (
-    <div className="inline-confirm" role="group" aria-label="Cancel this charge">
+    <fieldset className="inline-confirm" aria-label="Cancel this charge">
       <span>{error ?? 'The code stops working. Nothing has been paid.'}</span>
-      <button type="button" className="mini" onClick={() => setConfirming(false)} disabled={pending}>
+      <button
+        type="button"
+        className="mini"
+        onClick={() => setConfirming(false)}
+        disabled={pending}
+      >
         Keep it
       </button>
       <button
@@ -33,6 +38,6 @@ export function CancelCharge({ id }: { id: string }) {
       >
         {pending ? 'Canceling' : 'Cancel charge'}
       </button>
-    </div>
+    </fieldset>
   )
 }

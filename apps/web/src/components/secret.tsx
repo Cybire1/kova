@@ -4,7 +4,15 @@ import { useState } from 'react'
 import { Icon } from './brand'
 
 /** A secret shown exactly once, with a copy button and a plain warning. */
-export function SecretReveal({ label, value, note }: { label: string; value: string; note?: string }) {
+export function SecretReveal({
+  label,
+  value,
+  note,
+}: {
+  label: string
+  value: string
+  note?: string
+}) {
   const [copied, setCopied] = useState(false)
   return (
     <div className="secret" role="status">
@@ -25,7 +33,10 @@ export function SecretReveal({ label, value, note }: { label: string; value: str
           <Icon name={copied ? 'check' : 'copy'} size={14} /> {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-      <p>{note ?? 'Copy it now and keep it somewhere safe. Kova only stores a hash, so it can’t show it again.'}</p>
+      <p>
+        {note ??
+          'Copy it now and keep it somewhere safe. Kova only stores a hash, so it can’t show it again.'}
+      </p>
     </div>
   )
 }

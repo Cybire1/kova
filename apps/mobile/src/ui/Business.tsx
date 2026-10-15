@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, TextInput, type TextInputProps, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  type TextInputProps,
+  View,
+} from 'react-native'
 import type { LineState, Reach } from '@/lib/business'
 import { colors, fonts } from '@/lib/theme'
 import { Icon, type IconName } from './Icon'
@@ -70,12 +77,22 @@ export function PayButton({
       accessibilityState={{ disabled: Boolean(disabled), busy: Boolean(busy) }}
       disabled={disabled || busy}
       onPress={onPress}
-      style={({ pressed }) => [styles.pay, (disabled || busy) && styles.payOff, pressed && { transform: [{ scale: 0.98 }] }]}
+      style={({ pressed }) => [
+        styles.pay,
+        (disabled || busy) && styles.payOff,
+        pressed && { transform: [{ scale: 0.98 }] },
+      ]}
     >
       <Txt weight="bold" size={16} numberOfLines={1} style={{ flexShrink: 1 }}>
         {label}
       </Txt>
-      <View style={styles.payCap}>{busy ? <ActivityIndicator color={colors.coralDeep} /> : <Icon name={icon} size={18} color={colors.coralDeep} />}</View>
+      <View style={styles.payCap}>
+        {busy ? (
+          <ActivityIndicator color={colors.coralDeep} />
+        ) : (
+          <Icon name={icon} size={18} color={colors.coralDeep} />
+        )}
+      </View>
     </Pressable>
   )
 }
@@ -134,7 +151,13 @@ export function Problem({ text }: { text: string | null }) {
 }
 
 export const businessStyles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
   rule: { borderTopWidth: 1, borderColor: colors.sunken },
   amount: {
     width: 104,
@@ -150,9 +173,27 @@ export const businessStyles = StyleSheet.create({
 })
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 24, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, overflow: 'hidden' },
-  sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 26, marginBottom: 10 },
-  avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  card: {
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 26,
+    marginBottom: 10,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   input: {
     height: 50,
     borderRadius: 16,
@@ -176,7 +217,27 @@ const styles = StyleSheet.create({
     backgroundColor: colors.coral,
   },
   payOff: { opacity: 0.45 },
-  payCap: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
-  lineIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  problem: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', padding: 12, borderRadius: 16, backgroundColor: colors.coralSoft },
+  payCap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lineIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  problem: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: colors.coralSoft,
+  },
 })

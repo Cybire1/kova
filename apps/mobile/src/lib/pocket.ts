@@ -40,7 +40,8 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   const json = (await response.json().catch(() => ({}))) as { error?: { message?: string } }
-  if (!response.ok) throw new Error(json.error?.message ?? `Kova is unreachable (${response.status})`)
+  if (!response.ok)
+    throw new Error(json.error?.message ?? `Kova is unreachable (${response.status})`)
   return json as T
 }
 
@@ -51,23 +52,48 @@ async function signed(sign: Signer, change: PocketChange) {
   return { signed_at: change.signedAt, signature: await sign(pocketMessage(change)) }
 }
 
-export const getPocket = (wallet: Address) => call<Pocket>('GET', `/v1/wallets/${wallet}/ussd-pocket`)
+export const getPocket = (wallet: Address) =>
+  call<Pocket>('GET', `/v1/wallets/${wallet}/ussd-pocket`)
 
-export async function setUpPocket(sign: Signer, wallet: Address, input: { phone: string; pin: string; cap: string }) {
-  const proof = await signed(sign, { action: 'setup', wallet, phone: input.phone, cap: base(input.cap), signedAt: now() })
+export async function setUpPocket(
+  sign: Signer,
+  wallet: Address,
+  input: { phone: string; pin: string; cap: string },
+) {
+  const proof = await signed(sign, {
+    action: 'setup',
+    wallet,
+    phone: input.phone,
+    cap: base(input.cap),
+    signedAt: now(),
+  })
   return call<Pocket>('PUT', `/v1/wallets/${wallet}/ussd-pocket`, { ...input, ...proof })
 }
 
 export const confirmCode = (wallet: Address, code: string) =>
   call<Pocket>('POST', `/v1/wallets/${wallet}/ussd-pocket/verify`, { code })
 
-export async function changePocket(sign: Signer, wallet: Address, input: { cap?: string; pin?: string }) {
-  const proof = await signed(sign, { action: 'update', wallet, cap: input.cap === undefined ? undefined : base(input.cap), signedAt: now() })
+export async function changePocket(
+  sign: Signer,
+  wallet: Address,
+  input: { cap?: string; pin?: string },
+) {
+  const proof = await signed(sign, {
+    action: 'update',
+    wallet,
+    cap: input.cap === undefined ? undefined : base(input.cap),
+    signedAt: now(),
+  })
   return call<Pocket>('PATCH', `/v1/wallets/${wallet}/ussd-pocket`, { ...input, ...proof })
 }
 
 export async function takeBack(sign: Signer, wallet: Address, amount: string) {
-  const proof = await signed(sign, { action: 'withdraw', wallet, amount: base(amount), signedAt: now() })
+  const proof = await signed(sign, {
+    action: 'withdraw',
+    wallet,
+    amount: base(amount),
+    signedAt: now(),
+  })
   return call<Pocket>('POST', `/v1/wallets/${wallet}/ussd-pocket/withdraw`, { amount, ...proof })
 }
 

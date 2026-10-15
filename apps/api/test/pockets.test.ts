@@ -24,7 +24,15 @@ describe('USSD pocket secrets', () => {
 describe('pocket messages and inputs', () => {
   it('signs exactly what changes, and nothing else', () => {
     const wallet = '0x00000000000000000000000000000000000000AA'
-    expect(pocketMessage({ action: 'setup', wallet, phone: '+254711000111', cap: 50_000_000n, signedAt: 1 })).toBe(
+    expect(
+      pocketMessage({
+        action: 'setup',
+        wallet,
+        phone: '+254711000111',
+        cap: 50_000_000n,
+        signedAt: 1,
+      }),
+    ).toBe(
       'Kova USSD pocket\nAction setup\nWallet 0x00000000000000000000000000000000000000aa\nPhone +254711000111\nCap 50000000\nSigned at 1',
     )
     expect(pocketMessage({ action: 'close', wallet, signedAt: 2 })).toBe(

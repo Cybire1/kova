@@ -1013,7 +1013,9 @@
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.4s var(--spring), background-color 0.3s var(--spring);
+  transition:
+    transform 0.4s var(--spring),
+    background-color 0.3s var(--spring);
 }
 
 .lp-again:hover {

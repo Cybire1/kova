@@ -34,8 +34,11 @@ async function pass(request: Request, method: 'GET' | 'POST', segments: string[]
     return Response.json({ error: 'No such naira endpoint.' }, { status: 404 })
   const query = new URL(request.url).search
   try {
-    const body = method === 'POST' ? JSON.stringify(await request.json().catch(() => ({}))) : undefined
-    return Response.json(await kovaPublic(`/v1/${path}${query}`, { method, ...(body ? { body } : {}) }))
+    const body =
+      method === 'POST' ? JSON.stringify(await request.json().catch(() => ({}))) : undefined
+    return Response.json(
+      await kovaPublic(`/v1/${path}${query}`, { method, ...(body ? { body } : {}) }),
+    )
   } catch (error) {
     if (error instanceof ApiError)
       return Response.json(

@@ -4,12 +4,11 @@
  * a session signs payments that Monad's tokens accept, and an ended session signs nothing.
  *   npm run check:mera
  */
-import { getToken } from '@kova/monad'
-import { mnemonicToAccount } from 'viem/accounts'
+import { getToken, transferAuthorizationTypedData } from '@kova/monad'
 import { entropyToMnemonic } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english.js'
 import { recoverTypedDataAddress } from 'viem'
-import { transferAuthorizationTypedData } from '@kova/monad'
+import { mnemonicToAccount } from 'viem/accounts'
 import { openSigningSession } from '../src/lib/keys'
 
 const assert = (ok: unknown, what: string) => {
@@ -24,7 +23,10 @@ async function main() {
   assert(a.account.address === b.account.address, 'the same passkey output opens the same account')
 
   const reference = mnemonicToAccount(entropyToMnemonic(prf, wordlist))
-  assert(a.account.address === reference.address, "it is Mera's derivation (BIP-39 entropy, m/44'/60'/0'/0/0)")
+  assert(
+    a.account.address === reference.address,
+    "it is Mera's derivation (BIP-39 entropy, m/44'/60'/0'/0/0)",
+  )
 
   const other = await openSigningSession(crypto.getRandomValues(new Uint8Array(32)))
   assert(other.account.address !== a.account.address, 'another passkey opens another account')
@@ -41,7 +43,10 @@ async function main() {
   const t = performance.now()
   const signature = await a.account.signTypedData(typed)
   const took = performance.now() - t
-  assert((await recoverTypedDataAddress({ ...typed, signature })) === a.account.address, `a session signs an AUSD payment without a prompt (${took.toFixed(0)}ms)`)
+  assert(
+    (await recoverTypedDataAddress({ ...typed, signature })) === a.account.address,
+    `a session signs an AUSD payment without a prompt (${took.toFixed(0)}ms)`,
+  )
 
   a.session.end()
   let refused = false

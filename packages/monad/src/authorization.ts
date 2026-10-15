@@ -76,7 +76,13 @@ export const eip3009Abi = [
 
 /** Agora's testnet faucet: requestFunds(recipient) sends 10,000 AUSD. */
 export const faucetAbi = [
-  { type: 'function', name: 'requestFunds', stateMutability: 'nonpayable', inputs: [{ name: 'recipient', type: 'address' }], outputs: [] },
+  {
+    type: 'function',
+    name: 'requestFunds',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'recipient', type: 'address' }],
+    outputs: [],
+  },
 ] as const
 
 export const transferAuthorizationTypes = {
@@ -103,9 +109,18 @@ export interface TransferAuthorization {
 }
 
 /** The EIP-712 payload a wallet signs to authorize one transfer of `token`. */
-export function transferAuthorizationTypedData(token: Token, chainId: number, message: TransferAuthorization) {
+export function transferAuthorizationTypedData(
+  token: Token,
+  chainId: number,
+  message: TransferAuthorization,
+) {
   return {
-    domain: { name: token.domain.name, version: token.domain.version, chainId, verifyingContract: token.address },
+    domain: {
+      name: token.domain.name,
+      version: token.domain.version,
+      chainId,
+      verifyingContract: token.address,
+    },
     types: transferAuthorizationTypes,
     primaryType: 'TransferWithAuthorization' as const,
     message,
@@ -124,7 +139,11 @@ export interface SignedAuthorization {
   signature: Hex
 }
 
-export function toSignedAuthorization(token: Address, authorization: TransferAuthorization, signature: Hex): SignedAuthorization {
+export function toSignedAuthorization(
+  token: Address,
+  authorization: TransferAuthorization,
+  signature: Hex,
+): SignedAuthorization {
   return {
     token,
     from: authorization.from,
@@ -140,25 +159,52 @@ export function toSignedAuthorization(token: Address, authorization: TransferAut
 const UINT = /^\d{1,78}$/
 
 /** Reads an authorization off the wire. Returns null for anything malformed rather than guessing. */
-export function parseSignedAuthorization(input: unknown): { token: Address; authorization: TransferAuthorization; signature: Hex } | null {
+export function parseSignedAuthorization(
+  input: unknown,
+): { token: Address; authorization: TransferAuthorization; signature: Hex } | null {
   if (!input || typeof input !== 'object') return null
   const a = input as Record<string, unknown>
-  const addr = (v: unknown) => (typeof v === 'string' && isAddress(v, { strict: false }) ? getAddress(v) : null)
-  const uint = (v: unknown) => (typeof v === 'string' && UINT.test(v) ? BigInt(v) : typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 ? BigInt(v) : null)
+  const addr = (v: unknown) =>
+    typeof v === 'string' && isAddress(v, { strict: false }) ? getAddress(v) : null
+  const uint = (v: unknown) =>
+    typeof v === 'string' && UINT.test(v)
+      ? BigInt(v)
+      : typeof v === 'number' && Number.isSafeInteger(v) && v >= 0
+        ? BigInt(v)
+        : null
   const token = addr(a.token)
   const from = addr(a.from)
   const to = addr(a.to)
   const value = uint(a.value)
   const validAfter = uint(a.validAfter)
   const validBefore = uint(a.validBefore)
-  const nonce = typeof a.nonce === 'string' && isHex(a.nonce) && a.nonce.length === 66 ? (a.nonce.toLowerCase() as Hex) : null
-  const signature = typeof a.signature === 'string' && isHex(a.signature) && a.signature.length === 132 ? (a.signature as Hex) : null
-  if (!token || !from || !to || value === null || validAfter === null || validBefore === null || !nonce || !signature) return null
+  const nonce =
+    typeof a.nonce === 'string' && isHex(a.nonce) && a.nonce.length === 66
+      ? (a.nonce.toLowerCase() as Hex)
+      : null
+  const signature =
+    typeof a.signature === 'string' && isHex(a.signature) && a.signature.length === 132
+      ? (a.signature as Hex)
+      : null
+  if (
+    !token ||
+    !from ||
+    !to ||
+    value === null ||
+    validAfter === null ||
+    validBefore === null ||
+    !nonce ||
+    !signature
+  )
+    return null
   return { token, authorization: { from, to, value, validAfter, validBefore, nonce }, signature }
 }
 
 /** The arguments of transferWithAuthorization(from, to, value, validAfter, validBefore, nonce, v, r, s). */
-export function transferWithAuthorizationArgs(authorization: TransferAuthorization, signature: Hex) {
+export function transferWithAuthorizationArgs(
+  authorization: TransferAuthorization,
+  signature: Hex,
+) {
   const { r, s, v, yParity } = parseSignature(signature)
   const recovery = Number(v ?? BigInt(yParity + 27))
   return [

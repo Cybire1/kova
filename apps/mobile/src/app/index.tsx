@@ -8,7 +8,8 @@ import { useWallet } from '@/lib/wallet'
 export default function Gate() {
   const { status } = useWallet()
   const { ready, mode } = usePrefs()
-  if (status === 'loading' || !ready) return <View style={{ flex: 1, backgroundColor: colors.paper }} />
+  if (status === 'loading' || !ready)
+    return <View style={{ flex: 1, backgroundColor: colors.paper }} />
   if (mode === 'terminal') return <Redirect href="/terminal" />
   if (status === 'none') return <Redirect href="/welcome" />
   return <Redirect href="/(tabs)" />

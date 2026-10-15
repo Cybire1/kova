@@ -7,7 +7,17 @@ import { Txt } from '../primitives'
 import { Sheet } from './Sheet'
 
 /** Airports and cities as you type, for a flight's ends or a hotel's city. */
-export function PlaceSheet({ visible, title, onClose, onPick }: { visible: boolean; title: string; onClose: () => void; onPick: (p: Place) => void }) {
+export function PlaceSheet({
+  visible,
+  title,
+  onClose,
+  onPick,
+}: {
+  visible: boolean
+  title: string
+  onClose: () => void
+  onPick: (p: Place) => void
+}) {
   const [query, setQuery] = useState('')
   const [places, setPlaces] = useState<Place[]>([])
   const [busy, setBusy] = useState(false)
@@ -57,7 +67,10 @@ export function PlaceSheet({ visible, title, onClose, onPick }: { visible: boole
           {problem}
         </Txt>
       ) : null}
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingVertical: 8 }}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingVertical: 8 }}
+      >
         {places.map((p) => (
           <Pressable
             key={`${p.type}:${p.iata}`}
@@ -99,6 +112,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   input: { flex: 1, fontFamily: fonts.medium, fontSize: 16, color: colors.ink },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 8, borderRadius: 16 },
-  badge: { width: 46, height: 32, borderRadius: 12, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+  },
+  badge: {
+    width: 46,
+    height: 32,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })

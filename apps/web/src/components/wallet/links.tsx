@@ -219,12 +219,7 @@ function Row({
           ) : (
             <>
               <CopyButton text={url} label="Copy link" />
-              <a
-                className="w-copy"
-                href={whatsapp}
-                target="_blank"
-                rel="noreferrer"
-              >
+              <a className="w-copy" href={whatsapp} target="_blank" rel="noreferrer">
                 <Icon name="whatsapp" size={15} /> WhatsApp
               </a>
               <button

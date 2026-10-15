@@ -3,16 +3,16 @@ import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, View } from 'react-native'
-import { type FlightOffer, type FlightSearch, searchFlights, type Slice } from '@/lib/api'
+import { type FlightOffer, type FlightSearch, type Slice, searchFlights } from '@/lib/api'
 import { formatLocal } from '@/lib/money'
-import { clock, day, hours, useTravel } from '@/lib/travel'
 import { colors } from '@/lib/theme'
+import { clock, day, hours, useTravel } from '@/lib/travel'
 import { useWallet } from '@/lib/wallet'
 import { Flyer } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Bob } from '@/ui/motion'
-import { Stage as KoviStage } from '@/ui/Stage'
 import { Header, Screen, Txt } from '@/ui/primitives'
+import { Stage as KoviStage } from '@/ui/Stage'
 import { dollars } from '@/ui/StallParts'
 
 type Sort = 'best' | 'cheapest' | 'fastest'
@@ -83,7 +83,10 @@ export default function Flights() {
 
   return (
     <Screen bg={colors.paper}>
-      <Header title={`${p.fromCity ?? search.from} to ${p.toCity ?? search.to}`} subtitle={subtitle} />
+      <Header
+        title={`${p.fromCity ?? search.from} to ${p.toCity ?? search.to}`}
+        subtitle={subtitle}
+      />
       {offers === null && !problem ? (
         <View style={styles.center}>
           <Bob distance={10}>
@@ -102,7 +105,11 @@ export default function Flights() {
           <Txt weight="semi" size={20} style={{ marginTop: 10 }}>
             No fares this time
           </Txt>
-          <Txt size={15} color={colors.muted} style={{ marginTop: 4, textAlign: 'center', lineHeight: 21 }}>
+          <Txt
+            size={15}
+            color={colors.muted}
+            style={{ marginTop: 4, textAlign: 'center', lineHeight: 21 }}
+          >
             {problem}
           </Txt>
         </View>
@@ -113,14 +120,26 @@ export default function Flights() {
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, gap: 12 }}
           ListHeaderComponent={
             <View style={styles.sorts}>
-              {best ? <Chip label="Best match" on={sort === 'best'} onPress={() => setSort('best')} icon /> : null}
+              {best ? (
+                <Chip
+                  label="Best match"
+                  on={sort === 'best'}
+                  onPress={() => setSort('best')}
+                  icon
+                />
+              ) : null}
               <Chip label="Cheapest" on={sort === 'cheapest'} onPress={() => setSort('cheapest')} />
               <Chip label="Fastest" on={sort === 'fastest'} onPress={() => setSort('fastest')} />
               <Chip label="Non-stop" on={nonstop} onPress={() => setNonstop((n) => !n)} />
             </View>
           }
           renderItem={({ item }) => (
-            <OfferCard offer={item} best={item.id === best} currency={profile?.currency ?? 'USD'} onPress={() => open(item)} />
+            <OfferCard
+              offer={item}
+              best={item.id === best}
+              currency={profile?.currency ?? 'USD'}
+              onPress={() => open(item)}
+            />
           )}
           ListEmptyComponent={
             <View style={[styles.center, { paddingTop: 40 }]}>
@@ -129,7 +148,9 @@ export default function Flights() {
                 {offers?.length ? 'No non-stop fares' : 'No fares on that day'}
               </Txt>
               <Txt size={15} color={colors.muted} style={{ marginTop: 4, textAlign: 'center' }}>
-                {offers?.length ? 'Allow a stop to see the rest.' : 'Try another date or a nearby airport.'}
+                {offers?.length
+                  ? 'Allow a stop to see the rest.'
+                  : 'Try another date or a nearby airport.'}
               </Txt>
             </View>
           }
@@ -139,7 +160,17 @@ export default function Flights() {
   )
 }
 
-function Chip({ label, on, onPress, icon }: { label: string; on: boolean; onPress: () => void; icon?: boolean }) {
+function Chip({
+  label,
+  on,
+  onPress,
+  icon,
+}: {
+  label: string
+  on: boolean
+  onPress: () => void
+  icon?: boolean
+}) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -158,7 +189,17 @@ function Chip({ label, on, onPress, icon }: { label: string; on: boolean; onPres
   )
 }
 
-export function OfferCard({ offer, best, currency, onPress }: { offer: FlightOffer; best?: boolean; currency: string; onPress?: () => void }) {
+export function OfferCard({
+  offer,
+  best,
+  currency,
+  onPress,
+}: {
+  offer: FlightOffer
+  best?: boolean
+  currency: string
+  onPress?: () => void
+}) {
   const local = currency !== 'USD' ? formatLocal(Number(offer.price.usd), currency as never) : null
   return (
     <Pressable
@@ -166,10 +207,24 @@ export function OfferCard({ offer, best, currency, onPress }: { offer: FlightOff
       accessibilityLabel={`${offer.owner.name}, ${dollars(offer.price.usd)}`}
       disabled={!onPress}
       onPress={onPress}
-      style={({ pressed }) => [styles.card, best && styles.cardBest, pressed && { transform: [{ scale: 0.99 }] }]}
+      style={({ pressed }) => [
+        styles.card,
+        best && styles.cardBest,
+        pressed && { transform: [{ scale: 0.99 }] },
+      ]}
     >
       <View style={styles.cardTop}>
-        <View style={styles.logo}>{offer.owner.logo ? <Image source={{ uri: offer.owner.logo }} style={{ width: 26, height: 26 }} contentFit="contain" /> : <Icon name="send" size={16} />}</View>
+        <View style={styles.logo}>
+          {offer.owner.logo ? (
+            <Image
+              source={{ uri: offer.owner.logo }}
+              style={{ width: 26, height: 26 }}
+              contentFit="contain"
+            />
+          ) : (
+            <Icon name="send" size={16} />
+          )}
+        </View>
         <Txt weight="semi" size={15} style={{ flex: 1 }} numberOfLines={1}>
           {offer.owner.name}
         </Txt>
@@ -190,7 +245,10 @@ export function OfferCard({ offer, best, currency, onPress }: { offer: FlightOff
       <View style={styles.tags}>
         {best ? <Tag label="Best match" tone={colors.coral} light /> : null}
         {offer.holdable ? <Tag label="Can be paid later" tone={colors.tealSoft} /> : null}
-        <Tag label={offer.bags.checked ? `${offer.bags.checked} checked bag` : 'Hand luggage only'} tone={colors.sunken} />
+        <Tag
+          label={offer.bags.checked ? `${offer.bags.checked} checked bag` : 'Hand luggage only'}
+          tone={colors.sunken}
+        />
         {offer.refundable ? <Tag label="Refundable" tone={colors.sunken} /> : null}
       </View>
     </Pressable>
@@ -216,15 +274,20 @@ export function SliceLine({ slice }: { slice: Slice }) {
           <View style={styles.trackDot} />
           <View style={styles.trackRule} />
           {Array.from({ length: slice.stops }, (_, i) => (
-            <View key={i} style={[styles.stopDot, { left: `${((i + 1) / (slice.stops + 1)) * 100}%` }]} />
+            <View
+              key={i}
+              style={[styles.stopDot, { left: `${((i + 1) / (slice.stops + 1)) * 100}%` }]}
+            />
           ))}
           <Icon name="send" size={14} />
         </View>
         <Txt size={12} color={slice.stops ? colors.coralDeep : colors.tealDeep} weight="semi">
-          {slice.stops === 0 ? 'Non-stop' : `${slice.stops} stop${slice.stops > 1 ? 's' : ''}, ${slice.segments
-            .slice(0, -1)
-            .map((g) => g.to.iata)
-            .join(', ')}`}
+          {slice.stops === 0
+            ? 'Non-stop'
+            : `${slice.stops} stop${slice.stops > 1 ? 's' : ''}, ${slice.segments
+                .slice(0, -1)
+                .map((g) => g.to.iata)
+                .join(', ')}`}
         </Txt>
       </View>
       <View style={{ alignItems: 'flex-end', minWidth: 58 }}>
@@ -252,18 +315,52 @@ function Tag({ label, tone, light }: { label: string; tone: string; light?: bool
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   sorts: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 8, paddingBottom: 4 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: 2, borderColor: colors.ink },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 38,
+    paddingHorizontal: 14,
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: colors.ink,
+  },
   chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
-  card: { padding: 14, gap: 12, borderRadius: 26, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface },
+  card: {
+    padding: 14,
+    gap: 12,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
   cardBest: { borderColor: colors.coral, borderWidth: 3, backgroundColor: colors.white },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logo: { width: 36, height: 36, borderRadius: 12, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.sunken, alignItems: 'center', justifyContent: 'center' },
+  logo: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.sunken,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   slice: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   track: { flex: 1, alignItems: 'center', gap: 3 },
   trackLine: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 4 },
   trackDot: { width: 7, height: 7, borderRadius: 4, borderWidth: 2, borderColor: colors.ink },
   trackRule: { flex: 1, height: 2, borderRadius: 1, backgroundColor: colors.ink },
-  stopDot: { position: 'absolute', width: 9, height: 9, borderRadius: 5, backgroundColor: colors.coral, borderWidth: 2, borderColor: colors.surface, marginLeft: -4 },
+  stopDot: {
+    position: 'absolute',
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: colors.coral,
+    borderWidth: 2,
+    borderColor: colors.surface,
+    marginLeft: -4,
+  },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   tag: { height: 26, paddingHorizontal: 10, borderRadius: 13, justifyContent: 'center' },
 })

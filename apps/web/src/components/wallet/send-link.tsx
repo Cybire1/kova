@@ -312,8 +312,8 @@ export function LinkSheet() {
                   {moving && route.from === 'top-up'
                     ? `${stepLine('moving', route.moving)} Kova covers every fee.`
                     : quick
-                    ? 'Your wallet is open, so this one needs no passkey.'
-                    : 'Your passkey approves it. The dollars wait in the link until someone claims them.'}
+                      ? 'Your wallet is open, so this one needs no passkey.'
+                      : 'Your passkey approves it. The dollars wait in the link until someone claims them.'}
                 </p>
               </div>
             ) : null}
@@ -370,8 +370,8 @@ export function LinkSheet() {
                   </a>
                 </div>
                 <p className="w-fine w-center">
-                  Anyone with this link can claim the dollars, so send it only to them. Not
-                  claimed? Take it back from Your links.
+                  Anyone with this link can claim the dollars, so send it only to them. Not claimed?
+                  Take it back from Your links.
                 </p>
                 <div className="lk-made-end">
                   <Link href="/wallet/links" className="textlink">

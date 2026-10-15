@@ -803,7 +803,10 @@ export const paymentLinks = pgTable(
     claimedAt: timestamp('claimed_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex('payment_links_address_idx').on(t.linkAddress), index('payment_links_sender_idx').on(t.senderAddress)],
+  (t) => [
+    uniqueIndex('payment_links_address_idx').on(t.linkAddress),
+    index('payment_links_sender_idx').on(t.senderAddress),
+  ],
 )
 
 // --- Kova Travel ---------------------------------------------------------------------------
@@ -1069,7 +1072,10 @@ export const cardTaps = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('card_taps_card_idx').on(t.cardAddress, t.createdAt), index('card_taps_intent_idx').on(t.intentId)],
+  (t) => [
+    index('card_taps_card_idx').on(t.cardAddress, t.createdAt),
+    index('card_taps_intent_idx').on(t.intentId),
+  ],
 )
 
 /**
@@ -1112,7 +1118,10 @@ export const cashOuts = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('cash_outs_wallet_idx').on(t.walletAddress, t.createdAt), uniqueIndex('cash_outs_tx_idx').on(t.txHash)],
+  (t) => [
+    index('cash_outs_wallet_idx').on(t.walletAddress, t.createdAt),
+    uniqueIndex('cash_outs_tx_idx').on(t.txHash),
+  ],
 )
 
 /**
@@ -1143,7 +1152,10 @@ export const nairaTopUps = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex('naira_top_ups_reference_idx').on(t.reference), index('naira_top_ups_wallet_idx').on(t.walletAddress, t.createdAt)],
+  (t) => [
+    uniqueIndex('naira_top_ups_reference_idx').on(t.reference),
+    index('naira_top_ups_wallet_idx').on(t.walletAddress, t.createdAt),
+  ],
 )
 
 // --- Money in, card and savings (partners) ------------------------------------------------------
@@ -1223,7 +1235,10 @@ export const dollarCards = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex('dollar_cards_token_idx').on(t.providerCardToken), index('dollar_cards_wallet_idx').on(t.wallet, t.network)],
+  (t) => [
+    uniqueIndex('dollar_cards_token_idx').on(t.providerCardToken),
+    index('dollar_cards_wallet_idx').on(t.wallet, t.network),
+  ],
 )
 
 /** Each move into or out of savings, so "earned" is what the vault holds less what went in. */
@@ -1242,7 +1257,10 @@ export const savingsMoves = pgTable(
     txHash: text('tx_hash').notNull(),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex('savings_moves_tx_idx').on(t.txHash), index('savings_moves_wallet_idx').on(t.wallet, t.network)],
+  (t) => [
+    uniqueIndex('savings_moves_tx_idx').on(t.txHash),
+    index('savings_moves_wallet_idx').on(t.wallet, t.network),
+  ],
 )
 
 // --- Kova for Business -----------------------------------------------------------------------------
@@ -1380,7 +1398,11 @@ export const walletKeys = pgTable(
     period: integer('period').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     /** An agent's rules: the most one payment can be, the line above which it asks, who it may pay. */
-    rules: jsonb('rules').$type<{ perPayment: string; approveAbove: string; payees: 'anyone' | string[] }>(),
+    rules: jsonb('rules').$type<{
+      perPayment: string
+      approveAbove: string
+      payees: 'anyone' | string[]
+    }>(),
     /** An agent's private key, sealed under KOVA_KEYS_MASTER_KEY. */
     sealedKey: text('sealed_key'),
     /** The start of an agent's token, to find it by; the whole token is only stored hashed. */

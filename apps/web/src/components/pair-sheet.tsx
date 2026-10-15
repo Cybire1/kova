@@ -42,11 +42,18 @@ export function PairSheet({
       const response = await fetch('/api/terminals/pairing', { method: 'POST' })
       const body = (await response.json()) as TerminalPairing & { error?: string }
       if (!response.ok) throw new Error(body.error ?? 'Could not create a code')
-      const { toString } = await import('qrcode')
-      const qr = await toString(body.link, { type: 'svg', margin: 0, color: { dark: '#0b1a1d', light: '#ffffff' } })
+      const { toString: toSvg } = await import('qrcode')
+      const qr = await toSvg(body.link, {
+        type: 'svg',
+        margin: 0,
+        color: { dark: '#0b1a1d', light: '#ffffff' },
+      })
       setState({ kind: 'code', pairing: body, qr })
     } catch (error) {
-      setState({ kind: 'problem', message: error instanceof Error ? error.message : 'Could not create a code' })
+      setState({
+        kind: 'problem',
+        message: error instanceof Error ? error.message : 'Could not create a code',
+      })
     }
   }, [])
 
@@ -84,9 +91,20 @@ export function PairSheet({
   }, [state.kind])
 
   return (
-    <div className="overlay" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    // biome-ignore lint/a11y/noStaticElementInteractions: a backdrop click is a mouse shortcut; Escape and the Close button close the sheet from the keyboard
+    <div
+      className="overlay"
+      role="presentation"
+      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+    >
       <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="pair-title">
-        <button ref={close} type="button" className="round sheet-close" aria-label="Close" onClick={onClose}>
+        <button
+          ref={close}
+          type="button"
+          className="round sheet-close"
+          aria-label="Close"
+          onClick={onClose}
+        >
           <Icon name="close" size={18} />
         </button>
 
@@ -94,7 +112,9 @@ export function PairSheet({
           <div className="sheet-done" aria-live="polite">
             <Art name="kovi-cheer" size={150} />
             <h2 id="pair-title">{state.terminal.name} is ready</h2>
-            <p className="sheet-lead">Payments it takes land on your dashboard the moment they settle.</p>
+            <p className="sheet-lead">
+              Payments it takes land on your dashboard the moment they settle.
+            </p>
             <Pill icon="check" onClick={onClose}>
               Done
             </Pill>
@@ -112,12 +132,17 @@ export function PairSheet({
             <div className="pairbox" aria-live="polite">
               {state.kind === 'code' ? (
                 <>
-                  {/* biome-ignore lint/security/noDangerouslySetInnerHtml: locally generated SVG */}
-                  <div className="qr" aria-label="Pairing QR code" dangerouslySetInnerHTML={{ __html: state.qr }} />
+                  <div
+                    className="qr"
+                    role="img"
+                    aria-label="Pairing QR code"
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: an SVG the qrcode package drew from our own link, not user HTML
+                    dangerouslySetInnerHTML={{ __html: state.qr }}
+                  />
                   <div>
                     {remaining(state.pairing.expires_at).s > 0 ? (
                       <>
-                        <div className="code" aria-label={`Code ${state.pairing.code}`}>
+                        <div className="code" role="img" aria-label={`Code ${state.pairing.code}`}>
                           {state.pairing.code
                             .replace('-', '')
                             .split('')

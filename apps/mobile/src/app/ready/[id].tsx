@@ -24,7 +24,10 @@ export default function OrderReady() {
   useEffect(() => {
     // Ding, ding: two taps a beat apart, like a bell on a counter.
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    const second = setTimeout(() => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy), 420)
+    const second = setTimeout(
+      () => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy),
+      420,
+    )
     getCheckout(id)
       .then(setCheckout)
       .catch(() => {})
@@ -34,7 +37,9 @@ export default function OrderReady() {
   const order = checkout?.order
   const table = order?.table ?? watched?.table ?? null
   const stall = order?.stall?.name ?? watched?.stall ?? checkout?.merchant_name ?? ''
-  const items = order ? order.lines.map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name)).join(', ') : (watched?.items ?? '')
+  const items = order
+    ? order.lines.map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name)).join(', ')
+    : (watched?.items ?? '')
   const status = order?.status === 'collected' ? 'collected' : 'ready'
   const copy = progressCopy('ready', table)
   const close = () => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))
@@ -64,7 +69,11 @@ export default function OrderReady() {
       </View>
 
       <Rise style={styles.copy}>
-        <Txt weight="bold" size={40} style={{ letterSpacing: -1.4, textAlign: 'center', lineHeight: 44 }}>
+        <Txt
+          weight="bold"
+          size={40}
+          style={{ letterSpacing: -1.4, textAlign: 'center', lineHeight: 44 }}
+        >
           {copy.title}
         </Txt>
         <Txt weight="medium" size={20} style={{ textAlign: 'center', marginTop: 8 }}>
@@ -75,13 +84,21 @@ export default function OrderReady() {
       <Rise delay={160} style={{ paddingHorizontal: 20 }}>
         <Sticker radius={26}>
           <View style={styles.ticket}>
-            <View style={[styles.where, { backgroundColor: table ? colors.coral : colors.surface }]}>
+            <View
+              style={[styles.where, { backgroundColor: table ? colors.coral : colors.surface }]}
+            >
               {table ? (
                 <>
                   <Txt weight="semi" size={11} color={colors.white} style={{ letterSpacing: 0.6 }}>
                     TABLE
                   </Txt>
-                  <Txt weight="bold" size={table.length > 3 ? 16 : 26} color={colors.white} numberOfLines={1} style={{ lineHeight: 30 }}>
+                  <Txt
+                    weight="bold"
+                    size={table.length > 3 ? 16 : 26}
+                    color={colors.white}
+                    numberOfLines={1}
+                    style={{ lineHeight: 30 }}
+                  >
                     {table}
                   </Txt>
                 </>
@@ -157,6 +174,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
-  progress: { paddingTop: 14, paddingBottom: 12, borderTopWidth: 2, borderColor: colors.sunken, borderStyle: 'dashed' },
+  progress: {
+    paddingTop: 14,
+    paddingBottom: 12,
+    borderTopWidth: 2,
+    borderColor: colors.sunken,
+    borderStyle: 'dashed',
+  },
   footer: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, marginTop: 'auto' },
 })

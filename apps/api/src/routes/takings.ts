@@ -1,5 +1,13 @@
 import { schema } from '@kova/db'
-import { eip3009Abi, explorerTxUrl, formatAmount, parseSignedAuthorization, parseStealthMetaAddress, STEALTH_SCHEME_ID, tokenByAddress } from '@kova/monad'
+import {
+  eip3009Abi,
+  explorerTxUrl,
+  formatAmount,
+  parseSignedAuthorization,
+  parseStealthMetaAddress,
+  STEALTH_SCHEME_ID,
+  tokenByAddress,
+} from '@kova/monad'
 import { and, asc, desc, eq, gt, inArray } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { type Address, getAddress, isAddressEqual } from 'viem'
@@ -25,11 +33,27 @@ const MAX_VALIDITY = 3600n
 /** Paid sales at one-time addresses, with what's needed to find and open each. */
 async function receipts(where: ReturnType<typeof and>, order: 'asc' | 'desc', limit: number) {
   const rows = await db
-    .select({ sale: schema.stealthPayments, intent: schema.paymentIntents, payment: schema.payments })
+    .select({
+      sale: schema.stealthPayments,
+      intent: schema.paymentIntents,
+      payment: schema.payments,
+    })
     .from(schema.stealthPayments)
     .innerJoin(schema.paymentIntents, eq(schema.paymentIntents.id, schema.stealthPayments.intentId))
-    .innerJoin(schema.payments, and(eq(schema.payments.intentId, schema.paymentIntents.id), eq(schema.payments.status, 'paid')))
-    .where(and(where, eq(schema.paymentIntents.status, 'paid'), eq(schema.stealthPayments.network, config.KOVA_NETWORK)))
+    .innerJoin(
+      schema.payments,
+      and(
+        eq(schema.payments.intentId, schema.paymentIntents.id),
+        eq(schema.payments.status, 'paid'),
+      ),
+    )
+    .where(
+      and(
+        where,
+        eq(schema.paymentIntents.status, 'paid'),
+        eq(schema.stealthPayments.network, config.KOVA_NETWORK),
+      ),
+    )
     .orderBy(order === 'asc' ? asc(schema.stealthPayments.id) : desc(schema.stealthPayments.id))
     .limit(limit)
   return rows.map(({ sale, intent, payment }) => ({
@@ -65,7 +89,11 @@ export const takingsRoutes = new Hono()
   /** Whether private takings are on, and every sale they've received. */
   .get('/private_takings', requireApiKey, async (c) => {
     const merchant = c.get('merchant')
-    const data = await receipts(and(eq(schema.stealthPayments.merchantId, merchant.id)), 'desc', 500)
+    const data = await receipts(
+      and(eq(schema.stealthPayments.merchantId, merchant.id)),
+      'desc',
+      500,
+    )
     return c.json({
       object: 'private_takings',
       enabled: Boolean(merchant.stealthMetaAddress),
@@ -76,20 +104,32 @@ export const takingsRoutes = new Hono()
 
   /** Turns private takings on: new charges pay one-time addresses derived from this meta-address. */
   .put('/private_takings', requireApiKey, requireMerchantKey, async (c) => {
-    const parsed = z.object({ meta_address: z.string() }).safeParse(await c.req.json().catch(() => ({})))
+    const parsed = z
+      .object({ meta_address: z.string() })
+      .safeParse(await c.req.json().catch(() => ({})))
     if (!parsed.success) throw new KovaError('invalid_request', 'Expected { meta_address }')
     try {
       parseStealthMetaAddress(parsed.data.meta_address)
     } catch {
       throw new KovaError('invalid_request', 'That isn’t a stealth meta-address (st:eth:0x…).')
     }
-    await db.update(schema.merchants).set({ stealthMetaAddress: parsed.data.meta_address, updatedAt: new Date() }).where(eq(schema.merchants.id, c.get('merchant').id))
-    return c.json({ object: 'private_takings', enabled: true, meta_address: parsed.data.meta_address })
+    await db
+      .update(schema.merchants)
+      .set({ stealthMetaAddress: parsed.data.meta_address, updatedAt: new Date() })
+      .where(eq(schema.merchants.id, c.get('merchant').id))
+    return c.json({
+      object: 'private_takings',
+      enabled: true,
+      meta_address: parsed.data.meta_address,
+    })
   })
 
   /** Turns them off for new charges. Sales already at one-time addresses stay the shop's to move. */
   .delete('/private_takings', requireApiKey, requireMerchantKey, async (c) => {
-    await db.update(schema.merchants).set({ stealthMetaAddress: null, updatedAt: new Date() }).where(eq(schema.merchants.id, c.get('merchant').id))
+    await db
+      .update(schema.merchants)
+      .set({ stealthMetaAddress: null, updatedAt: new Date() })
+      .where(eq(schema.merchants.id, c.get('merchant').id))
     return c.json({ object: 'private_takings', enabled: false, meta_address: null })
   })
 
@@ -99,20 +139,26 @@ export const takingsRoutes = new Hono()
    */
   .post('/private_takings/sweep', requireApiKey, async (c) => {
     const parsed = sweepBody.safeParse(await c.req.json().catch(() => ({})))
-    if (!parsed.success) throw new KovaError('invalid_request', 'Expected { authorizations: [...] }, at most 50')
+    if (!parsed.success)
+      throw new KovaError('invalid_request', 'Expected { authorizations: [...] }, at most 50')
     const merchant = c.get('merchant')
     const signed = parsed.data.authorizations.map((a) => {
       const s = parseSignedAuthorization(a)
       if (!s) throw new KovaError('invalid_request', 'Expected signed transfer authorizations.')
       const token = tokenByAddress(config.KOVA_NETWORK, s.token)
-      if (!token || !isAddressEqual(token.address, settlementToken.address)) throw new KovaError('invalid_request', 'Move the dollar the sales were paid in.')
+      if (!token || !isAddressEqual(token.address, settlementToken.address))
+        throw new KovaError('invalid_request', 'Move the dollar the sales were paid in.')
       const now = BigInt(Math.floor(Date.now() / 1000))
-      if (s.authorization.validBefore > now + MAX_VALIDITY) throw new KovaError('invalid_request', 'An approval to move can last an hour at most.')
+      if (s.authorization.validBefore > now + MAX_VALIDITY)
+        throw new KovaError('invalid_request', 'An approval to move can last an hour at most.')
       return { ...s, token }
     })
     const froms = signed.map((s) => s.authorization.from.toLowerCase())
     const owned = await db.query.stealthPayments.findMany({
-      where: and(eq(schema.stealthPayments.merchantId, merchant.id), inArray(schema.stealthPayments.stealthAddress, froms)),
+      where: and(
+        eq(schema.stealthPayments.merchantId, merchant.id),
+        inArray(schema.stealthPayments.stealthAddress, froms),
+      ),
     })
     const byAddress = new Map(owned.map((o) => [o.stealthAddress, o]))
     const results = []
@@ -122,17 +168,38 @@ export const takingsRoutes = new Hono()
         results.push({ from: s.authorization.from, error: 'Not one of this shop’s private sales.' })
         continue
       }
-      const held = await publicClient.readContract({ address: s.token.address, abi: eip3009Abi, functionName: 'balanceOf', args: [s.authorization.from] })
+      const held = await publicClient.readContract({
+        address: s.token.address,
+        abi: eip3009Abi,
+        functionName: 'balanceOf',
+        args: [s.authorization.from],
+      })
       if (held === 0n || s.authorization.value !== held) {
-        results.push({ from: s.authorization.from, error: held === 0n ? 'Already moved.' : 'Move everything the address holds.' })
+        results.push({
+          from: s.authorization.from,
+          error: held === 0n ? 'Already moved.' : 'Move everything the address holds.',
+        })
         continue
       }
       try {
         const { receipt, ms } = await relayAuthorization(s.token, s.authorization, s.signature)
-        await db.update(schema.stealthPayments).set({ sweptTx: receipt.transactionHash, sweptAt: new Date() }).where(eq(schema.stealthPayments.id, sale.id))
-        results.push({ from: s.authorization.from, to: s.authorization.to as Address, amount: formatAmount(held), tx_hash: receipt.transactionHash, explorer_url: explorerTxUrl(network, receipt.transactionHash), ms: Math.round(ms) })
+        await db
+          .update(schema.stealthPayments)
+          .set({ sweptTx: receipt.transactionHash, sweptAt: new Date() })
+          .where(eq(schema.stealthPayments.id, sale.id))
+        results.push({
+          from: s.authorization.from,
+          to: s.authorization.to as Address,
+          amount: formatAmount(held),
+          tx_hash: receipt.transactionHash,
+          explorer_url: explorerTxUrl(network, receipt.transactionHash),
+          ms: Math.round(ms),
+        })
       } catch (error) {
-        results.push({ from: s.authorization.from, error: error instanceof Error ? error.message : 'Could not move it.' })
+        results.push({
+          from: s.authorization.from,
+          error: error instanceof Error ? error.message : 'Could not move it.',
+        })
       }
     }
     return c.json({ object: 'list', data: results })
@@ -148,18 +215,32 @@ export const takingsRoutes = new Hono()
     // sends, in the order they happened (both tables use time-ordered ids). The cursor is the last
     // item's id, of either kind.
     const afterId = c.req.query('after')
-    const after = afterId ? (decodeId('stealthPayment', afterId) ?? decodeId('stealthAnnouncement', afterId)) : undefined
+    const after = afterId
+      ? (decodeId('stealthPayment', afterId) ?? decodeId('stealthAnnouncement', afterId))
+      : undefined
     if (afterId && !after) throw new KovaError('invalid_request', 'Unknown cursor')
     const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 500) || 500, 1), 1000)
-    const sales = await receipts(and(after ? gt(schema.stealthPayments.id, after) : undefined), 'asc', limit)
+    const sales = await receipts(
+      and(after ? gt(schema.stealthPayments.id, after) : undefined),
+      'asc',
+      limit,
+    )
     const sends = await db
       .select()
       .from(schema.stealthAnnouncements)
-      .where(and(eq(schema.stealthAnnouncements.network, config.KOVA_NETWORK), after ? gt(schema.stealthAnnouncements.id, after) : undefined))
+      .where(
+        and(
+          eq(schema.stealthAnnouncements.network, config.KOVA_NETWORK),
+          after ? gt(schema.stealthAnnouncements.id, after) : undefined,
+        ),
+      )
       .orderBy(asc(schema.stealthAnnouncements.id))
       .limit(limit)
     const items = [
-      ...sales.map(({ payment_intent: _pi, swept_tx: _s, swept_at: _sa, ...r }) => ({ ...r, uuid: decodeId('stealthPayment', r.id) ?? '' })),
+      ...sales.map(({ payment_intent: _pi, swept_tx: _s, swept_at: _sa, ...r }) => ({
+        ...r,
+        uuid: decodeId('stealthPayment', r.id) ?? '',
+      })),
       ...sends.map((a) => ({
         id: encodeId('stealthAnnouncement', a.id),
         uuid: a.id,

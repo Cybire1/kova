@@ -22,7 +22,9 @@ interface Live {
 
 let live: Live | null = null
 const listeners = new Set<() => void>()
-const notify = () => listeners.forEach((listener) => listener())
+const notify = () => {
+  for (const listener of listeners) listener()
+}
 
 export function startSession(session: Secp256k1SigningSession, account: LocalAccount) {
   endSession()

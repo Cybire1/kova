@@ -23,16 +23,22 @@ export default function Team() {
       void getBusiness()
         .then((b) => getTeamKeys(b.owner_address ?? b.settlement_address))
         .then(setTeam)
-        .catch((error) => setProblem(error instanceof Error ? error.message : 'Kova didn’t answer.'))
+        .catch((error) =>
+          setProblem(error instanceof Error ? error.message : 'Kova didn’t answer.'),
+        )
     }, [owned]),
   )
 
   return (
     <Screen edges={['top']}>
       <Header title="Team" subtitle={shop.name} />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 48 }}>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 48 }}
+      >
         <Problem text={problem} />
-        {!team && !problem && owned ? <ActivityIndicator color={colors.ink} style={{ marginTop: 60 }} /> : null}
+        {!team && !problem && owned ? (
+          <ActivityIndicator color={colors.ink} style={{ marginTop: 60 }} />
+        ) : null}
         {team?.data.length ? (
           <Card>
             {team.data.map((k, i) => {
@@ -51,11 +57,22 @@ export default function Team() {
                     </Txt>
                     {limit ? (
                       <View style={styles.bar}>
-                        <View style={[styles.fill, { width: `${Math.round(share * 100)}%`, backgroundColor: k.frozen ? colors.muted : colors.teal }]} />
+                        <View
+                          style={[
+                            styles.fill,
+                            {
+                              width: `${Math.round(share * 100)}%`,
+                              backgroundColor: k.frozen ? colors.muted : colors.teal,
+                            },
+                          ]}
+                        />
                       </View>
                     ) : null}
                   </View>
-                  <Chip label={k.frozen ? 'Frozen' : 'Active'} dot={k.frozen ? colors.coral : colors.tealLight} />
+                  <Chip
+                    label={k.frozen ? 'Frozen' : 'Active'}
+                    dot={k.frozen ? colors.coral : colors.tealLight}
+                  />
                 </View>
               )
             })}
@@ -64,13 +81,23 @@ export default function Team() {
           <View style={styles.empty}>
             <Kovi pose="key" size={130} />
             <Txt weight="bold" size={20} style={{ textAlign: 'center' }}>
-              {!owned ? 'The team belongs to the owner' : team && !team.available ? 'Team keys aren’t on this server yet' : 'No one on the team yet'}
+              {!owned
+                ? 'The team belongs to the owner'
+                : team && !team.available
+                  ? 'Team keys aren’t on this server yet'
+                  : 'No one on the team yet'}
             </Txt>
             <Txt size={15} color={colors.muted} style={{ textAlign: 'center', lineHeight: 21 }}>
-              Give someone a key in Keys: a daily budget, who they may pay, and a freeze that works at once. They show up here with what
-              they’ve spent today.
+              Give someone a key in Keys: a daily budget, who they may pay, and a freeze that works
+              at once. They show up here with what they’ve spent today.
             </Txt>
-            {owned ? <PillButton label="Add someone in Keys" icon="lock" onPress={() => router.push('/keys' as never)} /> : null}
+            {owned ? (
+              <PillButton
+                label="Add someone in Keys"
+                icon="lock"
+                onPress={() => router.push('/keys' as never)}
+              />
+            ) : null}
           </View>
         ) : null}
       </ScrollView>

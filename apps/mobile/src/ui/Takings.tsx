@@ -4,8 +4,8 @@ import { ActivityIndicator, Pressable, Share, StyleSheet, View } from 'react-nat
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated'
 import { isAddressEqual } from 'viem'
 import { formatUsd } from '@/lib/money'
-import { type MoveProgress, type PrivateSale, shortAddress } from '@/lib/takings-core'
 import { useTakings } from '@/lib/takings'
+import { type MoveProgress, type PrivateSale, shortAddress } from '@/lib/takings-core'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Kovi } from './art'
@@ -25,11 +25,14 @@ export function useHome() {
   const { settlesTo } = useTakings()
   const { profile } = useWallet()
   const yours = !settlesTo || (profile !== null && isAddressEqual(settlesTo, profile.address))
-  return yours ? { short: 'wallet', long: 'your wallet' } : { short: 'shop wallet', long: `the shop’s wallet, ${shortAddress(settlesTo)}` }
+  return yours
+    ? { short: 'wallet', long: 'your wallet' }
+    : { short: 'shop wallet', long: `the shop’s wallet, ${shortAddress(settlesTo)}` }
 }
 
 /** The last move, while it's still news: ten minutes, or until it's put away. */
-export const freshMove = <T extends { at: number }>(moved: T | null) => (moved && Date.now() - moved.at < 10 * 60_000 ? moved : null)
+export const freshMove = <T extends { at: number }>(moved: T | null) =>
+  moved && Date.now() - moved.at < 10 * 60_000 ? moved : null
 
 const progressLabel = (p: MoveProgress, home: string) =>
   p.step === 'unlocking'
@@ -53,9 +56,25 @@ export function PrivateBadge() {
 }
 
 /** A one-time address, shortened. Dashed when it doesn't exist yet. */
-export function AddressChip({ address, label, onInk, pending }: { address?: string; label?: string; onInk?: boolean; pending?: boolean }) {
+export function AddressChip({
+  address,
+  label,
+  onInk,
+  pending,
+}: {
+  address?: string
+  label?: string
+  onInk?: boolean
+  pending?: boolean
+}) {
   return (
-    <View style={[styles.chip, onInk ? styles.chipInk : styles.chipPaper, pending && styles.chipPending]}>
+    <View
+      style={[
+        styles.chip,
+        onInk ? styles.chipInk : styles.chipPaper,
+        pending && styles.chipPending,
+      ]}
+    >
       <Txt weight="semi" size={12} color={onInk ? colors.onInk : colors.onTint}>
         {label ?? (address ? shortAddress(address) : '')}
       </Txt>
@@ -68,10 +87,24 @@ export function TakingsState({ onInk }: { onInk?: boolean }) {
   const { enabled } = useTakings()
   return (
     <View
-      style={[styles.state, { backgroundColor: enabled ? colors.tealSoft : onInk ? 'rgba(255,255,255,0.14)' : colors.sunken }]}
+      style={[
+        styles.state,
+        {
+          backgroundColor: enabled
+            ? colors.tealSoft
+            : onInk
+              ? 'rgba(255,255,255,0.14)'
+              : colors.sunken,
+        },
+      ]}
       accessibilityLabel={enabled ? 'Private takings are on' : 'Private takings are off'}
     >
-      <View style={[styles.stateDot, { backgroundColor: enabled ? colors.teal : onInk ? colors.onInk : colors.muted }]} />
+      <View
+        style={[
+          styles.stateDot,
+          { backgroundColor: enabled ? colors.teal : onInk ? colors.onInk : colors.muted },
+        ]}
+      />
       <Txt weight="semi" size={12} color={enabled || !onInk ? colors.ink : colors.onInk}>
         {enabled ? 'On' : 'Off'}
       </Txt>
@@ -142,7 +175,8 @@ export function TakingsCard({
                 {formatUsd(moved.amount)}
               </Txt>
               <Txt size={15} color={colors.onInk}>
-                to {home.long} in {(moved.ms / 1000).toFixed(1)} s, from {moved.count} {moved.count === 1 ? 'address' : 'addresses'}
+                to {home.long} in {(moved.ms / 1000).toFixed(1)} s, from {moved.count}{' '}
+                {moved.count === 1 ? 'address' : 'addresses'}
               </Txt>
             </>
           ) : (
@@ -168,7 +202,11 @@ export function TakingsCard({
                 </Txt>
               </Pressable>
             ) : null}
-            <Pressable accessibilityRole="button" onPress={t.clearMoved} style={({ pressed }) => [styles.doneButton, pressed && { opacity: 0.8 }]}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={t.clearMoved}
+              style={({ pressed }) => [styles.doneButton, pressed && { opacity: 0.8 }]}
+            >
               <Txt weight="semi" size={14}>
                 Done
               </Txt>
@@ -177,12 +215,19 @@ export function TakingsCard({
         </Animated.View>
       ) : needsKeys ? (
         <View>
-          <Txt weight="bold" size={24} color={colors.white} style={[{ marginTop: 14, letterSpacing: -0.6 }, lead]}>
-            {t.unopened ? `${t.unopened} private ${t.unopened === 1 ? 'sale' : 'sales'} to open` : 'Keys not on this phone'}
+          <Txt
+            weight="bold"
+            size={24}
+            color={colors.white}
+            style={[{ marginTop: 14, letterSpacing: -0.6 }, lead]}
+          >
+            {t.unopened
+              ? `${t.unopened} private ${t.unopened === 1 ? 'sale' : 'sales'} to open`
+              : 'Keys not on this phone'}
           </Txt>
           <Txt size={14} color={colors.onInk} style={{ marginTop: 4, lineHeight: 20 }}>
-            Only your shop’s keys can find its private sales and move them. Your wallet makes them again with one signature, and they stay on
-            this phone.
+            Only your shop’s keys can find its private sales and move them. Your wallet makes them
+            again with one signature, and they stay on this phone.
           </Txt>
           <View style={{ marginTop: 14 }}>
             <PillButton
@@ -196,7 +241,14 @@ export function TakingsCard({
         </View>
       ) : waiting.length || t.progress ? (
         <View>
-          <Txt weight="bold" size={44} color={colors.white} style={[styles.amount, lead]} numberOfLines={1} adjustsFontSizeToFit>
+          <Txt
+            weight="bold"
+            size={44}
+            color={colors.white}
+            style={[styles.amount, lead]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {formatUsd(t.waiting)}
           </Txt>
           <Txt size={15} color={colors.onInk}>
@@ -206,11 +258,14 @@ export function TakingsCard({
             {waiting.slice(0, 2).map((s) => (
               <AddressChip key={s.stealth_address} address={s.stealth_address} onInk />
             ))}
-            {waiting.length > 2 ? <AddressChip label={`+${waiting.length - 2} more`} onInk /> : null}
+            {waiting.length > 2 ? (
+              <AddressChip label={`+${waiting.length - 2} more`} onInk />
+            ) : null}
           </View>
           {moved?.count ? (
             <Txt weight="medium" size={13} color={colors.tealLight} style={{ marginTop: 12 }}>
-              Moved {formatUsd(moved.amount)} in {(moved.ms / 1000).toFixed(1)} s. {moved.failed ? `${moved.failed} didn’t: ${moved.reason}` : ''}
+              Moved {formatUsd(moved.amount)} in {(moved.ms / 1000).toFixed(1)} s.{' '}
+              {moved.failed ? `${moved.failed} didn’t: ${moved.reason}` : ''}
             </Txt>
           ) : null}
           <View style={{ marginTop: 16 }}>
@@ -252,7 +307,8 @@ export function TakingsCard({
         // turned it on): those sales would never show here, so say so, and offer this phone's keys.
         <View style={styles.other}>
           <Txt weight="medium" size={13} color={colors.white} style={{ lineHeight: 18 }}>
-            New sales are going to keys this phone doesn’t hold, so it can’t see them. Use this phone’s keys for sales from now on.
+            New sales are going to keys this phone doesn’t hold, so it can’t see them. Use this
+            phone’s keys for sales from now on.
           </Txt>
           <Pressable
             accessibilityRole="button"
@@ -260,7 +316,11 @@ export function TakingsCard({
             onPress={() => void t.turnOn()}
             style={({ pressed }) => [styles.otherButton, pressed && { opacity: 0.8 }]}
           >
-            {t.working === 'on' ? <ActivityIndicator size="small" color={colors.ink} /> : <Icon name="lock" size={14} strokeWidth={2.4} />}
+            {t.working === 'on' ? (
+              <ActivityIndicator size="small" color={colors.ink} />
+            ) : (
+              <Icon name="lock" size={14} strokeWidth={2.4} />
+            )}
             <Txt weight="semi" size={13}>
               Use this phone’s keys
             </Txt>
@@ -268,7 +328,10 @@ export function TakingsCard({
         </View>
       ) : null}
 
-      {t.problem && (t.problem.during === 'move' || t.problem.during === 'open' || (t.problem.during === 'on' && t.otherKeys)) ? (
+      {t.problem &&
+      (t.problem.during === 'move' ||
+        t.problem.during === 'open' ||
+        (t.problem.during === 'on' && t.otherKeys)) ? (
         <View style={styles.problem}>
           <Icon name="info" size={16} color={colors.coralSoft} />
           <Txt weight="medium" size={13} color={colors.coralSoft} style={{ flex: 1 }}>
@@ -291,7 +354,8 @@ export function TakingsInvite() {
             Keep your takings private
           </Txt>
           <Txt size={14} color={colors.muted} style={{ marginTop: 4, lineHeight: 20 }}>
-            Every sale goes to its own address that only your shop can open. Nobody on Monad can add up your takings.
+            Every sale goes to its own address that only your shop can open. Nobody on Monad can add
+            up your takings.
           </Txt>
         </View>
         <Kovi pose="key" size={74} />
@@ -306,7 +370,11 @@ export function TakingsInvite() {
         }}
         style={({ pressed }) => [styles.inviteButton, pressed && { transform: [{ scale: 0.97 }] }]}
       >
-        {t.working === 'on' ? <ActivityIndicator color={colors.white} size="small" /> : <Icon name="lock" size={16} color={colors.white} />}
+        {t.working === 'on' ? (
+          <ActivityIndicator color={colors.white} size="small" />
+        ) : (
+          <Icon name="lock" size={16} color={colors.white} />
+        )}
         <Txt weight="semi" size={15} color={colors.white}>
           {t.working === 'on' ? 'Turning on…' : 'Turn on'}
         </Txt>
@@ -331,7 +399,12 @@ export function PrivateSaleRow({ sale, last }: { sale: PrivateSale; last?: boole
       onPress={() => void WebBrowser.openBrowserAsync(sale.explorer_url)}
       style={({ pressed }) => [styles.sale, !last && styles.saleRule, pressed && { opacity: 0.65 }]}
     >
-      <View style={[styles.saleIcon, { backgroundColor: sale.moved ? colors.tealSoft : colors.coralSoft }]}>
+      <View
+        style={[
+          styles.saleIcon,
+          { backgroundColor: sale.moved ? colors.tealSoft : colors.coralSoft },
+        ]}
+      >
         <Icon name={sale.moved ? 'check' : 'lock'} size={17} strokeWidth={2.3} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
@@ -414,14 +487,22 @@ export function AccountantCard({ shopName }: { shopName: string }) {
 export function SalesFlow({ sales }: { sales: PrivateSale[] }) {
   const home = useHome()
   const shown: { key: string; amount: string; address: string | null }[] = sales.length
-    ? sales.slice(0, 3).map((s) => ({ key: s.stealth_address, amount: formatUsd(s.base), address: s.stealth_address }))
+    ? sales.slice(0, 3).map((s) => ({
+        key: s.stealth_address,
+        amount: formatUsd(s.base),
+        address: s.stealth_address,
+      }))
     : [
         { key: 'a', amount: 'Sale', address: null },
         { key: 'b', amount: 'Sale', address: null },
         { key: 'c', amount: 'Sale', address: null },
       ]
   return (
-    <View style={styles.flow} accessible accessibilityLabel={`Each sale is paid to its own address, then moved to ${home.long}`}>
+    <View
+      style={styles.flow}
+      accessible
+      accessibilityLabel={`Each sale is paid to its own address, then moved to ${home.long}`}
+    >
       <View style={{ flex: 1, gap: 8 }}>
         {shown.map((s) => (
           <View key={s.key} style={styles.flowRow}>
@@ -431,7 +512,11 @@ export function SalesFlow({ sales }: { sales: PrivateSale[] }) {
               </Txt>
             </View>
             <View style={styles.flowDash} />
-            <AddressChip address={s.address ?? undefined} label={s.address ? undefined : 'its own address'} pending={!s.address} />
+            <AddressChip
+              address={s.address ?? undefined}
+              label={s.address ? undefined : 'its own address'}
+              pending={!s.address}
+            />
             <View style={styles.flowReach} />
           </View>
         ))}
@@ -458,14 +543,34 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: colors.sunken,
   },
-  chip: { height: 28, paddingHorizontal: 10, borderRadius: 14, justifyContent: 'center', borderWidth: 1.5 },
+  chip: {
+    height: 28,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    justifyContent: 'center',
+    borderWidth: 1.5,
+  },
   chipInk: { borderColor: 'rgba(255,255,255,0.28)' },
   chipPaper: { borderColor: colors.ink, backgroundColor: colors.surface },
   chipPending: { borderStyle: 'dashed' },
   card: { borderRadius: 28, backgroundColor: colors.ink, padding: 18, overflow: 'hidden' },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  lockDisc: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.coral, alignItems: 'center', justifyContent: 'center' },
-  state: { height: 26, paddingHorizontal: 10, borderRadius: 13, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  lockDisc: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  state: {
+    height: 26,
+    paddingHorizontal: 10,
+    borderRadius: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   stateDot: { width: 7, height: 7, borderRadius: 4 },
   amount: { marginTop: 12, letterSpacing: -1.6, lineHeight: 50 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
@@ -493,9 +598,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
   },
-  doneButton: { height: 44, paddingHorizontal: 22, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  doneButton: {
+    height: 44,
+    paddingHorizontal: 22,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   problem: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 12 },
-  other: { marginTop: 14, padding: 12, borderRadius: 16, backgroundColor: 'rgba(212,101,88,0.28)', gap: 10 },
+  other: {
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(212,101,88,0.28)',
+    gap: 10,
+  },
   otherButton: {
     alignSelf: 'flex-start',
     height: 34,
@@ -506,7 +624,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  invite: { borderRadius: 26, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, padding: 16, paddingBottom: 14 },
+  invite: {
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    padding: 16,
+    paddingBottom: 14,
+  },
   inviteTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   inviteButton: {
     marginTop: 12,
@@ -519,14 +644,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  sale: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 11 },
+  sale: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
   saleRule: { borderBottomWidth: 1, borderColor: colors.sunken },
-  saleIcon: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  saleIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   saleTop: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  books: { borderRadius: 24, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, padding: 14 },
+  books: {
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    padding: 14,
+  },
   booksTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  booksIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.tealSoft, alignItems: 'center', justifyContent: 'center' },
-  booksNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12, padding: 10, borderRadius: 14, backgroundColor: colors.tealSoft },
+  booksIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.tealSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  booksNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 12,
+    padding: 10,
+    borderRadius: 14,
+    backgroundColor: colors.tealSoft,
+  },
   flow: { flexDirection: 'row', alignItems: 'center' },
   flowRow: { flexDirection: 'row', alignItems: 'center' },
   flowSale: {
@@ -542,7 +702,13 @@ const styles = StyleSheet.create({
   },
   flowDash: { width: 10, height: 2, backgroundColor: colors.ink },
   flowReach: { flex: 1, minWidth: 8, height: 2, backgroundColor: colors.ink },
-  bracket: { width: 2, alignSelf: 'stretch', marginVertical: 13, borderRadius: 1, backgroundColor: colors.ink },
+  bracket: {
+    width: 2,
+    alignSelf: 'stretch',
+    marginVertical: 13,
+    borderRadius: 1,
+    backgroundColor: colors.ink,
+  },
   flowArrow: { width: 14, height: 2, backgroundColor: colors.ink },
   flowWallet: {
     width: 68,

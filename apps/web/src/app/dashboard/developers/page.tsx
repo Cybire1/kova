@@ -11,10 +11,14 @@ export default async function DevelopersPage() {
     kova<{ data: WebhookEndpoint[] }>('/v1/webhook_endpoints'),
     kova<{ data: KovaEvent[] }>('/v1/events?limit=15'),
   ])
-  const apiUrl = process.env.KOVA_PUBLIC_API_URL ?? process.env.KOVA_API_URL ?? 'http://localhost:4000'
+  const apiUrl =
+    process.env.KOVA_PUBLIC_API_URL ?? process.env.KOVA_API_URL ?? 'http://localhost:4000'
   return (
     <>
-      <PageHead title="Developers" sub="Take Kova payments from your own website, app or till software" />
+      <PageHead
+        title="Developers"
+        sub="Take Kova payments from your own website, app or till software"
+      />
       <div className="dev">
         <div className="stack">
           <Quickstart apiUrl={apiUrl} />

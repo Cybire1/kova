@@ -34,8 +34,15 @@ export async function stampsAt(merchantId: string, payer: string): Promise<numbe
 }
 
 /** A stall's card, as the buyer sees it. */
-export async function stampCard(stall: { merchantId: string; loyaltyEvery: number | null }, payer: string) {
+export async function stampCard(
+  stall: { merchantId: string; loyaltyEvery: number | null },
+  payer: string,
+) {
   if (!stall.loyaltyEvery) return null
   const stamps = await stampsAt(stall.merchantId, payer)
-  return { every: stall.loyaltyEvery, stamps: Math.min(stamps, stall.loyaltyEvery), ready: stamps >= stall.loyaltyEvery }
+  return {
+    every: stall.loyaltyEvery,
+    stamps: Math.min(stamps, stall.loyaltyEvery),
+    ready: stamps >= stall.loyaltyEvery,
+  }
 }

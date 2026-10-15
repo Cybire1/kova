@@ -1,6 +1,11 @@
 import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring } from 'react-native-reanimated'
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+} from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
 import { colors } from '@/lib/theme'
 import { Coin } from './art'
@@ -30,11 +35,17 @@ export function Envelope({
   const rise = Math.round(height * 0.42)
   const lift = useSharedValue(0)
   useEffect(() => {
-    lift.value = withDelay(delay, withSpring(open ? 1 : 0, { damping: 13, stiffness: 120, mass: 0.9 }))
+    lift.value = withDelay(
+      delay,
+      withSpring(open ? 1 : 0, { damping: 13, stiffness: 120, mass: 0.9 }),
+    )
   }, [open, delay, lift])
-  const card = useAnimatedStyle(() => ({ transform: [{ translateY: -lift.value * rise }, { rotate: `${-lift.value * 2.5}deg` }] }))
+  const card = useAnimatedStyle(() => ({
+    transform: [{ translateY: -lift.value * rise }, { rotate: `${-lift.value * 2.5}deg` }],
+  }))
 
-  const back = tone === 'coral' ? colors.coralDeep : tone === 'teal' ? colors.tealDeep : colors.muted
+  const back =
+    tone === 'coral' ? colors.coralDeep : tone === 'teal' ? colors.tealDeep : colors.muted
   const front = tone === 'coral' ? colors.coral : tone === 'teal' ? colors.teal : '#8A9596'
   const pocket = Math.round(height * 0.68)
   const notch = Math.round(pocket * 0.5)
@@ -45,15 +56,31 @@ export function Envelope({
   const path = `M1 1 L${width / 2} ${notch} L${w + 1} 1 V${h + 1 - r} Q${w + 1} ${h + 1} ${w + 1 - r} ${h + 1} H${1 + r} Q1 ${h + 1} 1 ${h + 1 - r} Z`
 
   return (
-    <View style={{ width, height: height + rise, justifyContent: 'flex-end' }} accessible accessibilityLabel={`An envelope with ${amount} in it`}>
+    <View
+      style={{ width, height: height + rise, justifyContent: 'flex-end' }}
+      accessible
+      accessibilityLabel={`An envelope with ${amount} in it`}
+    >
       <View style={[styles.back, { height, backgroundColor: back }]} />
-      <Animated.View style={[styles.card, { left: width * 0.09, right: width * 0.09, height: height * 0.86, bottom: height * 0.08 }, card]}>
+      <Animated.View
+        style={[
+          styles.card,
+          { left: width * 0.09, right: width * 0.09, height: height * 0.86, bottom: height * 0.08 },
+          card,
+        ]}
+      >
         {caption ? (
           <Txt weight="semi" size={13} color={colors.muted}>
             {caption}
           </Txt>
         ) : null}
-        <Txt weight="bold" size={Math.round(width * 0.17)} style={{ letterSpacing: -1.5 }} numberOfLines={1} adjustsFontSizeToFit>
+        <Txt
+          weight="bold"
+          size={Math.round(width * 0.17)}
+          style={{ letterSpacing: -1.5 }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
           {amount}
         </Txt>
       </Animated.View>
@@ -70,7 +97,13 @@ export function Envelope({
 }
 
 /** A small envelope for list rows, in the colour of where the link stands. */
-export function EnvelopeBadge({ size = 40, tone = 'coral' }: { size?: number; tone?: 'coral' | 'teal' | 'muted' }) {
+export function EnvelopeBadge({
+  size = 40,
+  tone = 'coral',
+}: {
+  size?: number
+  tone?: 'coral' | 'teal' | 'muted'
+}) {
   const h = Math.round(size * 0.72)
   const fill = tone === 'coral' ? colors.coral : tone === 'teal' ? colors.tealSoft : colors.sunken
   return (
@@ -82,7 +115,14 @@ export function EnvelopeBadge({ size = 40, tone = 'coral' }: { size?: number; to
           stroke={colors.ink}
           strokeWidth={2}
         />
-        <Path d={`M2 3 L${size / 2} ${h * 0.58} L${size - 2} 3`} fill="none" stroke={colors.ink} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        <Path
+          d={`M2 3 L${size / 2} ${h * 0.58} L${size - 2} 3`}
+          fill="none"
+          stroke={colors.ink}
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
       </Svg>
     </View>
   )
@@ -91,7 +131,11 @@ export function EnvelopeBadge({ size = 40, tone = 'coral' }: { size?: number; to
 /** The sender's note on a link: a slip of paper taped down. Unlike a private note, it isn't sealed. */
 export function NoteSlip({ text, caption }: { text: string; caption?: string }) {
   return (
-    <View style={styles.slipWrap} accessible accessibilityLabel={`Note: ${text}${caption ? `. ${caption}` : ''}`}>
+    <View
+      style={styles.slipWrap}
+      accessible
+      accessibilityLabel={`Note: ${text}${caption ? `. ${caption}` : ''}`}
+    >
       <View style={styles.slip}>
         <View style={styles.tape} />
         <Txt weight="semi" size={20} style={{ lineHeight: 26 }}>
@@ -108,7 +152,15 @@ export function NoteSlip({ text, caption }: { text: string; caption?: string }) 
 }
 
 const styles = StyleSheet.create({
-  back: { position: 'absolute', left: 0, right: 0, bottom: 0, borderRadius: 18, borderWidth: 2, borderColor: colors.ink },
+  back: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.ink,
+  },
   card: {
     position: 'absolute',
     borderRadius: 14,

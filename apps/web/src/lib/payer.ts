@@ -20,7 +20,10 @@ const readAddress = (key: string, pick: (value: unknown) => unknown): string | n
 
 /** The address whose stamps this browser shows, or null when no wallet has paid from here. */
 export function knownPayer(): string | null {
-  return readAddress(LAST_PAYER, (a) => a) ?? readAddress(PROFILE, (p) => (p as { address?: unknown })?.address)
+  return (
+    readAddress(LAST_PAYER, (a) => a) ??
+    readAddress(PROFILE, (p) => (p as { address?: unknown })?.address)
+  )
 }
 
 /** Remembers the wallet that just paid, so the shop's stamp card can show its stamps. */

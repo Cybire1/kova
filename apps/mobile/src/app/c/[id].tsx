@@ -1,7 +1,15 @@
 import * as Haptics from 'expo-haptics'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Linking, ScrollView, Share, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Linking,
+  ScrollView,
+  Share,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import Animated, { FadeIn } from 'react-native-reanimated'
 import { type Hex, isAddressEqual } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
@@ -70,13 +78,15 @@ export default function Claim() {
 
   // Your own link: this phone kept its key, so it can be shared again.
   useEffect(() => {
-    if (link && profile && isAddressEqual(link.sender_address, profile.address)) void linkKey(link.link_address).then(setKept)
+    if (link && profile && isAddressEqual(link.sender_address, profile.address))
+      void linkKey(link.link_address).then(setKept)
   }, [link, profile])
 
   // Development only: `autoclaim=1` presses the main button (claim, or take back your own link) once.
   const primary = useRef<(() => void) | null>(null)
   useEffect(() => {
-    if (!__DEV__ || params.autoclaim !== '1' || link?.status !== 'open' || autoDone.has(link.id)) return
+    if (!__DEV__ || params.autoclaim !== '1' || link?.status !== 'open' || autoDone.has(link.id))
+      return
     const timer = setTimeout(() => {
       if (autoDone.has(link.id)) return
       autoDone.add(link.id)
@@ -103,7 +113,11 @@ export default function Claim() {
           </Txt>
         </View>
         <View style={styles.footer}>
-          {failed === 'missing' ? <PillButton label="Done" icon="check" onPress={close} /> : <PillButton label="Try again" icon="arrow" onPress={() => void load()} />}
+          {failed === 'missing' ? (
+            <PillButton label="Done" icon="check" onPress={close} />
+          ) : (
+            <PillButton label="Try again" icon="arrow" onPress={() => void load()} />
+          )}
         </View>
       </Screen>
     )
@@ -125,8 +139,10 @@ export default function Claim() {
   const sender = link.sender_name?.trim() || short(link.sender_address)
   const first = sender.startsWith('0x') ? sender : sender.split(' ')[0]
   const mine = !!profile && isAddressEqual(link.sender_address, profile.address)
-  const local = profile && profile.currency !== 'USD' ? formatLocal(baseToNumber(base), profile.currency) : null
-  const claimedByMe = !!profile && !!link.claimed_by && isAddressEqual(link.claimed_by, profile.address)
+  const local =
+    profile && profile.currency !== 'USD' ? formatLocal(baseToNumber(base), profile.currency) : null
+  const claimedByMe =
+    !!profile && !!link.claimed_by && isAddressEqual(link.claimed_by, profile.address)
   // The key must be this link's: a mangled copy is caught here, before anything is signed.
   const keyFits = !!key && isAddressEqual(privateKeyToAccount(key).address, link.link_address)
 
@@ -139,7 +155,12 @@ export default function Claim() {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
       router.replace({
         pathname: '/received',
-        params: { amount: done.entry.amount, name: first, via: 'link', ...(link.note ? { note: link.note } : {}) },
+        params: {
+          amount: done.entry.amount,
+          name: first,
+          via: 'link',
+          ...(link.note ? { note: link.note } : {}),
+        },
       })
     } catch (error) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
@@ -163,7 +184,11 @@ export default function Claim() {
     }
   }
 
-  primary.current = mine ? () => void back() : keyFits && status === 'ready' ? () => void claim() : null
+  primary.current = mine
+    ? () => void back()
+    : keyFits && status === 'ready'
+      ? () => void claim()
+      : null
 
   // What the screen says, by where the link stands.
   const open = link.status === 'open'
@@ -202,17 +227,43 @@ export default function Claim() {
       <Header
         backIcon="close"
         onBack={close}
-        right={<Chip label={open ? (mine ? 'Waiting' : 'Waiting for you') : link.status === 'returned' ? 'Taken back' : 'Claimed'} dot={open ? colors.coral : colors.tealLight} />}
+        right={
+          <Chip
+            label={
+              open
+                ? mine
+                  ? 'Waiting'
+                  : 'Waiting for you'
+                : link.status === 'returned'
+                  ? 'Taken back'
+                  : 'Claimed'
+            }
+            dot={open ? colors.coral : colors.tealLight}
+          />
+        }
       />
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
         <View style={{ alignItems: 'center', marginTop: 18 }}>
-          <Envelope width={Math.min(260, width - 110)} amount={formatUsd(base)} caption={open ? (mine ? 'Not claimed yet' : `From ${first}`) : undefined} open={open || (claimedByMe && link.status === 'claimed')} delay={250} tone={tone} />
+          <Envelope
+            width={Math.min(260, width - 110)}
+            amount={formatUsd(base)}
+            caption={open ? (mine ? 'Not claimed yet' : `From ${first}`) : undefined}
+            open={open || (claimedByMe && link.status === 'claimed')}
+            delay={250}
+            tone={tone}
+          />
         </View>
         <Rise style={styles.copy} delay={120}>
           <Txt weight="medium" size={20}>
             {headline}
           </Txt>
-          <Txt weight="bold" size={56} style={{ letterSpacing: -2.2, opacity: open ? 1 : 0.5 }} numberOfLines={1} adjustsFontSizeToFit>
+          <Txt
+            weight="bold"
+            size={56}
+            style={{ letterSpacing: -2.2, opacity: open ? 1 : 0.5 }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {formatUsd(base)}
           </Txt>
           <Txt size={16} color={colors.onTint} style={{ textAlign: 'center' }}>
@@ -227,15 +278,26 @@ export default function Claim() {
         {open && !mine && !keyFits ? (
           <View style={styles.warn}>
             <Icon name="info" size={18} color={colors.danger} />
-            <Txt weight="medium" size={14} color={colors.danger} style={{ flex: 1, lineHeight: 19 }}>
-              This link is missing the part that claims it. Open the whole link from {first}’s message.
+            <Txt
+              weight="medium"
+              size={14}
+              color={colors.danger}
+              style={{ flex: 1, lineHeight: 19 }}
+            >
+              This link is missing the part that claims it. Open the whole link from {first}’s
+              message.
             </Txt>
           </View>
         ) : null}
         {problem ? (
           <Animated.View entering={FadeIn} style={styles.warn}>
             <Icon name="info" size={18} color={colors.danger} />
-            <Txt weight="medium" size={14} color={colors.danger} style={{ flex: 1, lineHeight: 19 }}>
+            <Txt
+              weight="medium"
+              size={14}
+              color={colors.danger}
+              style={{ flex: 1, lineHeight: 19 }}
+            >
               {problem}
             </Txt>
           </Animated.View>
@@ -245,14 +307,23 @@ export default function Claim() {
       <View style={styles.footer}>
         {open && !mine && status === 'none' ? (
           <>
-            <PillButton label="Make a Kova wallet to claim it" icon="arrow" onPress={() => router.replace('/welcome')} />
+            <PillButton
+              label="Make a Kova wallet to claim it"
+              icon="arrow"
+              onPress={() => router.replace('/welcome')}
+            />
             <Txt size={13} color={colors.onTint} style={styles.small}>
               It takes a minute. Then open this link again.
             </Txt>
           </>
         ) : open && !mine && key && keyFits ? (
           <>
-            <PillButton label={busy ? 'Claiming' : `Claim ${plainUsd(base)}`} icon="receive" loading={busy === 'claim'} onPress={() => void claim()} />
+            <PillButton
+              label={busy ? 'Claiming' : `Claim ${plainUsd(base)}`}
+              icon="receive"
+              loading={busy === 'claim'}
+              onPress={() => void claim()}
+            />
             <Txt size={13} color={colors.onTint} style={styles.small}>
               Lands in your Kova balance in about a second. No fee.
             </Txt>
@@ -263,13 +334,32 @@ export default function Claim() {
               <PillButton
                 label="Share it again"
                 icon="share"
-                onPress={() => void Share.share({ message: shareMessage(profile?.name ?? '', base, linkUrl(link.id, key), link.note) })}
+                onPress={() =>
+                  void Share.share({
+                    message: shareMessage(
+                      profile?.name ?? '',
+                      base,
+                      linkUrl(link.id, key),
+                      link.note,
+                    ),
+                  })
+                }
               />
             ) : null}
-            <PillButton label="Take it back" icon="receive" tone="white" loading={busy === 'back'} onPress={() => void back()} />
+            <PillButton
+              label="Take it back"
+              icon="receive"
+              tone="white"
+              loading={busy === 'back'}
+              onPress={() => void back()}
+            />
           </View>
         ) : claimedByMe || (mine && link.status === 'returned') ? (
-          <PillButton label="See your activity" icon="arrow" onPress={() => router.replace('/(tabs)/activity')} />
+          <PillButton
+            label="See your activity"
+            icon="arrow"
+            onPress={() => router.replace('/(tabs)/activity')}
+          />
         ) : (
           <PillButton label="Done" icon="check" onPress={close} />
         )}
@@ -288,7 +378,16 @@ const styles = StyleSheet.create({
   title: { marginTop: 10, textAlign: 'center', letterSpacing: -0.6 },
   body: { marginTop: 6, textAlign: 'center', lineHeight: 21 },
   copy: { alignItems: 'center', paddingHorizontal: 24, marginTop: 14 },
-  warn: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 20, marginTop: 18, padding: 12, borderRadius: 16, backgroundColor: colors.coralSoft },
+  warn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 20,
+    marginTop: 18,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: colors.coralSoft,
+  },
   footer: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
   small: { textAlign: 'center', marginTop: 10 },
 })

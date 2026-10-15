@@ -200,8 +200,7 @@
   border: 2px solid var(--ink);
   border-radius: 1.5rem;
   background:
-    radial-gradient(circle at 88% 12%, rgba(212, 101, 88, 0.55), transparent 42%),
-    var(--ink);
+    radial-gradient(circle at 88% 12%, rgba(212, 101, 88, 0.55), transparent 42%), var(--ink);
   color: var(--surface);
   align-content: space-between;
 }

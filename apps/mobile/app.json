@@ -58,10 +58,7 @@
         {
           "nfcPermission": "Kova reads Kova Cards to link them to your wallet and to take card payments at your till.",
           "includeNdefEntitlement": false,
-          "selectIdentifiers": [
-            "A0000009490148614C6F",
-            "481199130E9F01"
-          ]
+          "selectIdentifiers": ["A0000009490148614C6F", "481199130E9F01"]
         }
       ],
       "expo-web-browser",

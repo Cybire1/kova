@@ -58,7 +58,8 @@ export const requireApiKey = createMiddleware(async (c, next) => {
   if (!key || !constantTimeEqual(key.secretHash, hashSecret(secret)))
     throw new KovaError('unauthorized', 'Invalid API key')
   if (key.revokedAt) throw new KovaError('unauthorized', 'This API key was revoked')
-  if (key.expiresAt && key.expiresAt.getTime() <= Date.now()) throw new KovaError('unauthorized', 'This sign-in has expired')
+  if (key.expiresAt && key.expiresAt.getTime() <= Date.now())
+    throw new KovaError('unauthorized', 'This sign-in has expired')
 
   const merchant = await db.query.merchants.findFirst({
     where: eq(schema.merchants.id, key.merchantId),
@@ -71,9 +72,17 @@ export const requireApiKey = createMiddleware(async (c, next) => {
 
   // Fire-and-forget: last-used is for support, and must never slow down a payment.
   const now = new Date()
-  void db.update(schema.apiKeys).set({ lastUsedAt: now }).where(eq(schema.apiKeys.id, key.id)).catch(() => {})
+  void db
+    .update(schema.apiKeys)
+    .set({ lastUsedAt: now })
+    .where(eq(schema.apiKeys.id, key.id))
+    .catch(() => {})
   if (key.terminalId)
-    void db.update(schema.terminals).set({ lastSeenAt: now }).where(eq(schema.terminals.id, key.terminalId)).catch(() => {})
+    void db
+      .update(schema.terminals)
+      .set({ lastSeenAt: now })
+      .where(eq(schema.terminals.id, key.terminalId))
+      .catch(() => {})
 
   await next()
 })
@@ -83,6 +92,7 @@ export const requireApiKey = createMiddleware(async (c, next) => {
  * payments into the shop's account, but cannot pair more phones or remove the real ones.
  */
 export const requireMerchantKey = createMiddleware(async (c, next) => {
-  if (c.get('apiKey').terminalId) throw new KovaError('forbidden', 'A terminal key cannot manage terminals')
+  if (c.get('apiKey').terminalId)
+    throw new KovaError('forbidden', 'A terminal key cannot manage terminals')
   await next()
 })

@@ -57,7 +57,12 @@ export function serializePlace(p: Places) {
     longitude: p.longitude ?? null,
     airports:
       p.type === 'city'
-        ? (p.airports ?? []).map((a) => ({ iata: a.iata_code, name: a.name, latitude: a.latitude, longitude: a.longitude }))
+        ? (p.airports ?? []).map((a) => ({
+            iata: a.iata_code,
+            name: a.name,
+            latitude: a.latitude,
+            longitude: a.longitude,
+          }))
         : [],
   }
 }
@@ -65,7 +70,8 @@ export function serializePlace(p: Places) {
 // --- flights -------------------------------------------------------------------------------
 
 /** A slice starts and ends at an airport or a whole city; either way, name the city. */
-const cityOf = (place: { name: string; city_name?: string | null }) => ('city_name' in place && place.city_name) || place.name
+const cityOf = (place: { name: string; city_name?: string | null }) =>
+  ('city_name' in place && place.city_name) || place.name
 
 /** Checked and carry-on bags included in the fare, for the first passenger on the first segment. */
 function bagsIncluded(offer: Pick<Offer, 'slices'>) {
@@ -87,13 +93,23 @@ export function serializeOffer(offer: Omit<Offer, 'available_services'>) {
     expires_at: offer.expires_at,
     /** The airline can hold this fare, so it can be paid later (by someone else, too). */
     holdable: !req.requires_instant_payment,
-    hold_until: req.requires_instant_payment ? null : (req.price_guarantee_expires_at ?? req.payment_required_by),
-    owner: { name: offer.owner.name, iata: offer.owner.iata_code, logo: offer.owner.logo_symbol_url ?? null },
+    hold_until: req.requires_instant_payment
+      ? null
+      : (req.price_guarantee_expires_at ?? req.payment_required_by),
+    owner: {
+      name: offer.owner.name,
+      iata: offer.owner.iata_code,
+      logo: offer.owner.logo_symbol_url ?? null,
+    },
     cabin: offer.slices[0]?.segments[0]?.passengers[0]?.cabin_class_marketing_name ?? null,
     bags: bagsIncluded(offer),
     refundable: Boolean(offer.conditions.refund_before_departure?.allowed),
     changeable: Boolean(offer.conditions.change_before_departure?.allowed),
-    passengers: offer.passengers.map((p) => ({ id: p.id, type: p.type ?? 'adult', age: p.age ?? null })),
+    passengers: offer.passengers.map((p) => ({
+      id: p.id,
+      type: p.type ?? 'adult',
+      age: p.age ?? null,
+    })),
     slices: offer.slices.map((s) => ({
       id: s.id,
       from: { iata: s.origin.iata_code, city: cityOf(s.origin), name: s.origin.name },
@@ -109,8 +125,15 @@ export function serializeOffer(offer: Omit<Offer, 'available_services'>) {
         departs: g.departing_at,
         arrives: g.arriving_at,
         minutes: minutes(g.duration),
-        carrier: { name: g.marketing_carrier.name, iata: g.marketing_carrier.iata_code, logo: g.marketing_carrier.logo_symbol_url ?? null },
-        operated_by: g.operating_carrier.iata_code !== g.marketing_carrier.iata_code ? g.operating_carrier.name : null,
+        carrier: {
+          name: g.marketing_carrier.name,
+          iata: g.marketing_carrier.iata_code,
+          logo: g.marketing_carrier.logo_symbol_url ?? null,
+        },
+        operated_by:
+          g.operating_carrier.iata_code !== g.marketing_carrier.iata_code
+            ? g.operating_carrier.name
+            : null,
         flight: `${g.marketing_carrier.iata_code}${g.marketing_carrier_flight_number}`,
         aircraft: g.aircraft?.name ?? null,
       })),
@@ -158,7 +181,13 @@ export function serializeSeatMap(map: SeatMap) {
             const price = money(s.total_amount, s.total_currency)
             return price ? [{ id: s.id, passenger_id: s.passenger_id, price }] : []
           })
-          return { kind: 'seat', designator: el.designator, name: el.name ?? null, available: services.length > 0, services }
+          return {
+            kind: 'seat',
+            designator: el.designator,
+            name: el.name ?? null,
+            available: services.length > 0,
+            services,
+          }
         }),
       ),
     ),
@@ -173,14 +202,32 @@ export function describeOffer(o: OfferView, rank: { cheapest: number; fastest: n
   const part = (iso: string | null) => {
     if (!iso) return 'unknown time'
     const h = Number(iso.slice(11, 13))
-    return h < 6 ? 'early morning' : h < 12 ? 'morning' : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'late night'
+    return h < 6
+      ? 'early morning'
+      : h < 12
+        ? 'morning'
+        : h < 17
+          ? 'afternoon'
+          : h < 21
+            ? 'evening'
+            : 'late night'
   }
   const legs = o.slices.map(
     (s, i) =>
       `${i === 0 ? 'Outbound' : 'Return'}: ${s.stops === 0 ? 'non-stop' : `${s.stops} stop${s.stops > 1 ? 's' : ''}`}, leaves in the ${part(s.departs)}, arrives in the ${part(s.arrives)}`,
   )
-  const price = rank.cheapest === 0 ? 'the cheapest' : rank.cheapest < 3 ? 'one of the cheapest' : 'not among the cheapest'
-  const speed = rank.fastest === 0 ? 'the fastest' : rank.fastest < 3 ? 'one of the fastest' : 'slower than others'
+  const price =
+    rank.cheapest === 0
+      ? 'the cheapest'
+      : rank.cheapest < 3
+        ? 'one of the cheapest'
+        : 'not among the cheapest'
+  const speed =
+    rank.fastest === 0
+      ? 'the fastest'
+      : rank.fastest < 3
+        ? 'one of the fastest'
+        : 'slower than others'
   return `${o.owner.name}. ${legs.join('. ')}. It is ${price} and ${speed}. ${o.bags.checked ? 'Checked bag included' : 'No checked bag included'}. ${o.refundable ? 'Refundable' : 'Not refundable'}.`
 }
 
@@ -197,7 +244,10 @@ const boards: Record<StaysRate['board_type'], string> = {
 export function cancellationText(rate: Pick<StaysRate, 'cancellation_timeline'>) {
   const first = rate.cancellation_timeline[0]
   if (!first) return 'Non-refundable'
-  const date = new Date(first.before).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  const date = new Date(first.before).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+  })
   return Number(first.refund_amount) > 0 ? `Free cancellation until ${date}` : 'Non-refundable'
 }
 
@@ -236,7 +286,9 @@ export function serializeRate(rate: StaysRate) {
 }
 
 export function serializeSearchResult(r: StaysSearchResult) {
-  const cheapest = r.cheapest_rate_total_amount ? money(r.cheapest_rate_total_amount, r.cheapest_rate_currency) : null
+  const cheapest = r.cheapest_rate_total_amount
+    ? money(r.cheapest_rate_total_amount, r.cheapest_rate_currency)
+    : null
   return {
     id: r.id,
     check_in: r.check_in_date,

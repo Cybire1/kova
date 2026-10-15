@@ -1,9 +1,24 @@
 import { type StealthKeys, stealthKeysMessage, stealthMetaAddress } from '@kova/monad'
 import * as Haptics from 'expo-haptics'
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { AppState } from 'react-native'
 import { type Address, getAddress, isAddressEqual } from 'viem'
-import { getOwnedShop, getPrivateTakings, type PrivateTakings, turnOffPrivateTakings, turnOnPrivateTakings } from './api'
+import {
+  getOwnedShop,
+  getPrivateTakings,
+  type PrivateTakings,
+  turnOffPrivateTakings,
+  turnOnPrivateTakings,
+} from './api'
 import { formatUsd } from './money'
 import { useStall } from './stall'
 import {
@@ -17,7 +32,14 @@ import {
   viewFrom,
   waitingIn,
 } from './takings-core'
-import { foundFor, keepTakingsKeys, readSpendingKey, readTakingsView, rememberFound, type SavedView } from './takings-store'
+import {
+  foundFor,
+  keepTakingsKeys,
+  readSpendingKey,
+  readTakingsView,
+  rememberFound,
+  type SavedView,
+} from './takings-store'
 import { useWallet } from './wallet'
 
 /**
@@ -75,7 +97,8 @@ export function useTakings(): Takings {
   return value
 }
 
-const words = (error: unknown) => (error instanceof Error && error.message ? error.message : 'That didn’t work. Try again.')
+const words = (error: unknown) =>
+  error instanceof Error && error.message ? error.message : 'That didn’t work. Try again.'
 
 export function TakingsProvider({ children }: { children: ReactNode }) {
   const wallet = useWallet()
@@ -112,8 +135,12 @@ export function TakingsProvider({ children }: { children: ReactNode }) {
     const gen = generation.current
     const run: Promise<void> = (async () => {
       try {
-        const [next, shop] = await Promise.all([getPrivateTakings(), live.current.settlesTo ? null : getOwnedShop().catch(() => null)])
-        if (gen === generation.current && shop?.settlement_address) setSettlesTo(getAddress(shop.settlement_address))
+        const [next, shop] = await Promise.all([
+          getPrivateTakings(),
+          live.current.settlesTo ? null : getOwnedShop().catch(() => null),
+        ])
+        if (gen === generation.current && shop?.settlement_address)
+          setSettlesTo(getAddress(shop.settlement_address))
         const keys = live.current.saved
         // Sales show as they're found, the waiting ones first, so a long history doesn't hold up the total.
         const show = (found: PrivateSale[]) => {
@@ -121,7 +148,9 @@ export function TakingsProvider({ children }: { children: ReactNode }) {
           setSales(found)
           setReply(next)
         }
-        const found = keys ? await findSales(viewFrom(keys.view), next.receipts, await foundFor(keys.meta), show) : null
+        const found = keys
+          ? await findSales(viewFrom(keys.view), next.receipts, await foundFor(keys.meta), show)
+          : null
         if (keys && found?.found.length) await rememberFound(keys.meta, found.found)
         show(found?.sales ?? [])
       } catch (error) {
@@ -191,10 +220,17 @@ export function TakingsProvider({ children }: { children: ReactNode }) {
     async (total: bigint): Promise<StealthKeys> => {
       const { saved: view, shopId: shop, settlesTo, wallet: signer } = live.current
       if (view && shop) {
-        const yours = !settlesTo || !signer.profile || isAddressEqual(settlesTo, signer.profile.address)
-        const spending = await readSpendingKey(shop, `Move ${formatUsd(total)} to ${yours ? 'your wallet' : 'the shop’s wallet'}`)
+        const yours =
+          !settlesTo || !signer.profile || isAddressEqual(settlesTo, signer.profile.address)
+        const spending = await readSpendingKey(
+          shop,
+          `Move ${formatUsd(total)} to ${yours ? 'your wallet' : 'the shop’s wallet'}`,
+        )
         if (spending) {
-          const keys = { spendingPrivateKey: spending, viewingPrivateKey: viewFrom(view.view).viewingPrivateKey }
+          const keys = {
+            spendingPrivateKey: spending,
+            viewingPrivateKey: viewFrom(view.view).viewingPrivateKey,
+          }
           if (stealthMetaAddress(keys) === view.meta) return keys
         }
       }
@@ -268,7 +304,11 @@ export function TakingsProvider({ children }: { children: ReactNode }) {
       const to = live.current.settlesTo ?? getAddress((await getOwnedShop()).settlement_address)
       const outcome = await moveSales({ keys, sales: pending, to, onProgress: setProgress })
       setMoved({ ...outcome, at: Date.now() })
-      void Haptics.notificationAsync(outcome.count && !outcome.failed ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning)
+      void Haptics.notificationAsync(
+        outcome.count && !outcome.failed
+          ? Haptics.NotificationFeedbackType.Success
+          : Haptics.NotificationFeedbackType.Warning,
+      )
       void live.current.wallet.refresh()
       await reload()
       return outcome
@@ -282,7 +322,10 @@ export function TakingsProvider({ children }: { children: ReactNode }) {
     }
   }, [spendingKeys, reload])
 
-  const addresses = useMemo(() => new Set(sales.map((s) => s.stealth_address.toLowerCase())), [sales])
+  const addresses = useMemo(
+    () => new Set(sales.map((s) => s.stealth_address.toLowerCase())),
+    [sales],
+  )
   const { amount: waiting, count: waitingCount } = useMemo(() => waitingIn(sales), [sales])
   const published = reply?.meta_address ?? null
 

@@ -194,7 +194,13 @@ export function ReceiptTerminal({ amount, width = 240 }: { amount: string; width
         <Txt weight="bold" size={Math.round(width / 26)} color={colors.ink}>
           PAID
         </Txt>
-        <Txt weight="bold" size={Math.round(width / 18)} numberOfLines={1} adjustsFontSizeToFit color={colors.ink}>
+        <Txt
+          weight="bold"
+          size={Math.round(width / 18)}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          color={colors.ink}
+        >
           {amount}
         </Txt>
       </View>
@@ -207,7 +213,15 @@ export function ReceiptTerminal({ amount, width = 240 }: { amount: string; width
  * Frozen, it is the frosted card with Kovi asleep on top; the painted card bodies were
  * measured so text lands on them.
  */
-export function CardArt({ width = 300, last4, frozen }: { width?: number; last4: string; frozen?: boolean }) {
+export function CardArt({
+  width = 300,
+  last4,
+  frozen,
+}: {
+  width?: number
+  last4: string
+  frozen?: boolean
+}) {
   if (frozen) {
     // Frosted card: body 749×355 at (225, 349) inside a 1200×760 image, Kovi and snow above.
     const bodyW = width * 0.84
@@ -221,7 +235,12 @@ export function CardArt({ width = 300, last4, frozen }: { width?: number; last4:
         <Txt
           weight="semi"
           size={Math.round(bodyW * 0.052)}
-          style={{ position: 'absolute', left: left + 48 * s, top: (704 - 78) * s, letterSpacing: 3 }}
+          style={{
+            position: 'absolute',
+            left: left + 48 * s,
+            top: (704 - 78) * s,
+            letterSpacing: 3,
+          }}
         >
           •••• {last4}
         </Txt>
@@ -241,7 +260,12 @@ export function CardArt({ width = 300, last4, frozen }: { width?: number; last4:
       <Txt
         weight="semi"
         size={Math.round(width * 0.058)}
-        style={{ position: 'absolute', left: 76 * s, top: 638 * s - width * 0.14, letterSpacing: 3 }}
+        style={{
+          position: 'absolute',
+          left: 76 * s,
+          top: 638 * s - width * 0.14,
+          letterSpacing: 3,
+        }}
       >
         •••• {last4}
       </Txt>
@@ -264,7 +288,13 @@ function hash(text: string) {
  * same person always looks the same, whatever they are called), else from their name.
  */
 export function Avatar({ name, id, size = 56 }: { name: string; id?: string; size?: number }) {
-  return <Art source={art.faces[hash(id || name || '?') % art.faces.length]} width={size} height={size} />
+  return (
+    <Art
+      source={art.faces[hash(id || name || '?') % art.faces.length]}
+      width={size}
+      height={size}
+    />
+  )
 }
 
 /** A merchant's badge: a little shop front, for payments to businesses. */

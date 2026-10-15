@@ -15,7 +15,13 @@ import { StampCard } from './stamp-card'
  * One stall, end to end: its sign, what it sells and in what order, how people find it, and a
  * live phone showing exactly what a buyer sees. Every change saves as it is made.
  */
-export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { stall: StallDetail; catalogue: CatalogItem[] }) {
+export function StallEditor({
+  stall: initial,
+  catalogue: initialCatalogue,
+}: {
+  stall: StallDetail
+  catalogue: CatalogItem[]
+}) {
   const [stall, setStall] = useState(initial)
   const [catalogue, setCatalogue] = useState(initialCatalogue)
   const [onStall, setOnStall] = useState<string[]>(initial.items.map((i) => i.id))
@@ -46,8 +52,12 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
 
   useEffect(() => {
     if (!origin) return
-    void import('qrcode').then(({ toString }) =>
-      toString(`${origin}/s/${stall.slug}`, { type: 'svg', margin: 0, color: { dark: '#0b1a1d', light: '#ffffff' } }).then(setQr),
+    void import('qrcode').then(({ toString: toSvg }) =>
+      toSvg(`${origin}/s/${stall.slug}`, {
+        type: 'svg',
+        margin: 0,
+        color: { dark: '#0b1a1d', light: '#ffffff' },
+      }).then(setQr),
     )
   }, [origin, stall.slug])
 
@@ -114,7 +124,13 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
             </p>
           </div>
           <label className="switch switch-big">
-            <input type="checkbox" checked={stall.open} onChange={(e) => save({ open: e.target.checked }, e.target.checked ? 'Open for orders' : 'Closed')} />
+            <input
+              type="checkbox"
+              checked={stall.open}
+              onChange={(e) =>
+                save({ open: e.target.checked }, e.target.checked ? 'Open for orders' : 'Closed')
+              }
+            />
             <span aria-hidden="true" />
             <span className="switch-text">{stall.open ? 'Open for orders' : 'Closed'}</span>
           </label>
@@ -126,7 +142,17 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
             <label className="field-label" htmlFor="st-name">
               Name
             </label>
-            <input id="st-name" value={name} onChange={(e) => setName(e.target.value)} onBlur={() => name.trim() && name.trim() !== stall.name && save({ name: name.trim() }, 'Name saved')} maxLength={60} />
+            <input
+              id="st-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() =>
+                name.trim() &&
+                name.trim() !== stall.name &&
+                save({ name: name.trim() }, 'Name saved')
+              }
+              maxLength={60}
+            />
             <label className="field-label" htmlFor="st-tag">
               A line about it
             </label>
@@ -134,7 +160,10 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
               id="st-tag"
               value={tagline}
               onChange={(e) => setTagline(e.target.value)}
-              onBlur={() => tagline.trim() !== (stall.tagline ?? '') && save({ tagline: tagline.trim() || null }, 'Saved')}
+              onBlur={() =>
+                tagline.trim() !== (stall.tagline ?? '') &&
+                save({ tagline: tagline.trim() || null }, 'Saved')
+              }
               maxLength={120}
               placeholder="Fresh every morning, round the corner"
             />
@@ -155,7 +184,11 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
               {items.map((item, i) => (
                 <li key={item.id} data-soldout={item.sold_out ? 'true' : undefined}>
                   <ItemFace item={item} size={48} />
-                  <button type="button" className="stall-item-text" onClick={() => setEditing(item)}>
+                  <button
+                    type="button"
+                    className="stall-item-text"
+                    onClick={() => setEditing(item)}
+                  >
                     <strong>{item.name}</strong>
                     <span>
                       {usd(item.price)}
@@ -163,13 +196,31 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
                     </span>
                   </button>
                   <span className="stall-item-moves">
-                    <button type="button" className="round" aria-label={`Move ${item.name} up`} disabled={i === 0 || pending} onClick={() => move(item.id, -1)}>
+                    <button
+                      type="button"
+                      className="round"
+                      aria-label={`Move ${item.name} up`}
+                      disabled={i === 0 || pending}
+                      onClick={() => move(item.id, -1)}
+                    >
                       <Icon name="up" size={16} />
                     </button>
-                    <button type="button" className="round round-flip" aria-label={`Move ${item.name} down`} disabled={i === items.length - 1 || pending} onClick={() => move(item.id, 1)}>
+                    <button
+                      type="button"
+                      className="round round-flip"
+                      aria-label={`Move ${item.name} down`}
+                      disabled={i === items.length - 1 || pending}
+                      onClick={() => move(item.id, 1)}
+                    >
                       <Icon name="up" size={16} />
                     </button>
-                    <button type="button" className="round" aria-label={`Take ${item.name} off this stall`} disabled={pending} onClick={() => setItems(onStall.filter((x) => x !== item.id))}>
+                    <button
+                      type="button"
+                      className="round"
+                      aria-label={`Take ${item.name} off this stall`}
+                      disabled={pending}
+                      onClick={() => setItems(onStall.filter((x) => x !== item.id))}
+                    >
                       <Icon name="close" size={16} />
                     </button>
                   </span>
@@ -183,7 +234,13 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
                 <p className="field-label">From your catalogue</p>
                 <div className="chips-add">
                   {offStall.map((item) => (
-                    <button key={item.id} type="button" className="chip-add" disabled={pending} onClick={() => setItems([...onStall, item.id])}>
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="chip-add"
+                      disabled={pending}
+                      onClick={() => setItems([...onStall, item.id])}
+                    >
                       <Icon name="plus" size={14} /> {item.name} <span>{usd(item.price)}</span>
                     </button>
                   ))}
@@ -205,13 +262,21 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
           <div className="setting-head">
             <div>
               <h2>Tables</h2>
-              <p>Each table gets its own QR code. The order says which table it’s for, and the buyer’s phone tells them when it’s ready. No buzzers.</p>
+              <p>
+                Each table gets its own QR code. The order says which table it’s for, and the
+                buyer’s phone tells them when it’s ready. No buzzers.
+              </p>
             </div>
             <label className="switch">
               <input
                 type="checkbox"
                 checked={Boolean(stall.table_count)}
-                onChange={(e) => save({ table_count: e.target.checked ? tables : null }, e.target.checked ? 'Table ordering on' : 'Counter only')}
+                onChange={(e) =>
+                  save(
+                    { table_count: e.target.checked ? tables : null },
+                    e.target.checked ? 'Table ordering on' : 'Counter only',
+                  )
+                }
                 aria-label="Order from the table"
               />
               <span aria-hidden="true" />
@@ -223,12 +288,23 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
                 <span className="field-label" id="st-tables">
                   How many tables
                 </span>
+                {/* biome-ignore lint/a11y/useSemanticElements: an inline stepper beside its label; a <fieldset> is a block form group */}
                 <span className="stepper" role="group" aria-labelledby="st-tables">
-                  <button type="button" aria-label="One table fewer" disabled={tables <= 1} onClick={() => setTables((n) => Math.max(1, n - 1))}>
+                  <button
+                    type="button"
+                    aria-label="One table fewer"
+                    disabled={tables <= 1}
+                    onClick={() => setTables((n) => Math.max(1, n - 1))}
+                  >
                     −
                   </button>
                   <span aria-live="polite">{tables}</span>
-                  <button type="button" aria-label="One table more" disabled={tables >= 200} onClick={() => setTables((n) => Math.min(200, n + 1))}>
+                  <button
+                    type="button"
+                    aria-label="One table more"
+                    disabled={tables >= 200}
+                    onClick={() => setTables((n) => Math.min(200, n + 1))}
+                  >
                     +
                   </button>
                 </span>
@@ -241,10 +317,20 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
                 {tables > 12 ? <li className="setting-tables-more">+{tables - 12}</li> : null}
               </ul>
               <div className="row-actions">
-                <a className="mini mini-ink" href={`/s/${stall.slug}/poster?tables=1`} target="_blank" rel="noreferrer">
+                <a
+                  className="mini mini-ink"
+                  href={`/s/${stall.slug}/poster?tables=1`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <Icon name="download" size={14} /> Print table cards
                 </a>
-                <a className="mini" href={`/s/${stall.slug}?table=1`} target="_blank" rel="noreferrer">
+                <a
+                  className="mini"
+                  href={`/s/${stall.slug}?table=1`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <Icon name="external" size={14} /> Try table 1
                 </a>
               </div>
@@ -258,13 +344,21 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
           <div className="setting-head">
             <div>
               <h2>Stamp card</h2>
-              <p>Every paid order is a stamp. When the card is full, the cheapest thing on the next order is free. No sign-up: the wallet a buyer pays with is their card.</p>
+              <p>
+                Every paid order is a stamp. When the card is full, the cheapest thing on the next
+                order is free. No sign-up: the wallet a buyer pays with is their card.
+              </p>
             </div>
             <label className="switch">
               <input
                 type="checkbox"
                 checked={Boolean(stall.loyalty_every)}
-                onChange={(e) => save({ loyalty_every: e.target.checked ? every : null }, e.target.checked ? 'Stamp card on' : 'Stamp card off')}
+                onChange={(e) =>
+                  save(
+                    { loyalty_every: e.target.checked ? every : null },
+                    e.target.checked ? 'Stamp card on' : 'Stamp card off',
+                  )
+                }
                 aria-label="Stamp card"
               />
               <span aria-hidden="true" />
@@ -276,21 +370,41 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
                 <span className="field-label" id="st-every">
                   Stamps to fill it
                 </span>
+                {/* biome-ignore lint/a11y/useSemanticElements: an inline stepper beside its label; a <fieldset> is a block form group */}
                 <span className="stepper" role="group" aria-labelledby="st-every">
-                  <button type="button" aria-label="One stamp fewer" disabled={every <= 2} onClick={() => setEvery((n) => Math.max(2, n - 1))}>
+                  <button
+                    type="button"
+                    aria-label="One stamp fewer"
+                    disabled={every <= 2}
+                    onClick={() => setEvery((n) => Math.max(2, n - 1))}
+                  >
                     −
                   </button>
                   <span aria-live="polite">{every}</span>
-                  <button type="button" aria-label="One stamp more" disabled={every >= 20} onClick={() => setEvery((n) => Math.min(20, n + 1))}>
+                  <button
+                    type="button"
+                    aria-label="One stamp more"
+                    disabled={every >= 20}
+                    onClick={() => setEvery((n) => Math.min(20, n + 1))}
+                  >
                     +
                   </button>
                 </span>
               </div>
               <div className="setting-preview">
                 <p className="field-label">What a regular sees</p>
-                <StampCard every={every} stamps={Math.max(1, every - 2)} ready={false} known shop={stall.name} />
+                <StampCard
+                  every={every}
+                  stamps={Math.max(1, every - 2)}
+                  ready={false}
+                  known
+                  shop={stall.name}
+                />
               </div>
-              <p className="field-help">The free item is still paid through Kova, at $0.00, so it shows in your payments like any order.</p>
+              <p className="field-help">
+                The free item is still paid through Kova, at $0.00, so it shows in your payments
+                like any order.
+              </p>
             </div>
           ) : (
             <p className="setting-off">Off: no stamps, everyone pays full price.</p>
@@ -300,16 +414,35 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
         <section className="card card-pad editor-section" aria-label="Share it">
           <h2>Share it</h2>
           <div className="share">
-            {/* biome-ignore lint/security/noDangerouslySetInnerHtml: locally generated SVG */}
-            {qr ? <div className="qr share-qr" dangerouslySetInnerHTML={{ __html: qr }} /> : <div className="qr share-qr" />}
+            {qr ? (
+              <div
+                className="qr share-qr"
+                role="img"
+                aria-label="QR code for the shop's link"
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: an SVG the qrcode package drew from our own link, not user HTML
+                dangerouslySetInnerHTML={{ __html: qr }}
+              />
+            ) : (
+              <div className="qr share-qr" />
+            )}
             <div className="share-actions">
               <div className="field-value">
                 <code>{url}</code>
-                <button type="button" className="round" aria-label="Copy the stall link" onClick={copy}>
+                <button
+                  type="button"
+                  className="round"
+                  aria-label="Copy the stall link"
+                  onClick={copy}
+                >
                   <Icon name={copied ? 'check' : 'copy'} size={16} />
                 </button>
               </div>
-              <a className="mini mini-ink" href={`/s/${stall.slug}/poster`} target="_blank" rel="noreferrer">
+              <a
+                className="mini mini-ink"
+                href={`/s/${stall.slug}/poster`}
+                target="_blank"
+                rel="noreferrer"
+              >
                 Print the table poster
               </a>
               <a className="mini" href={whatsapp} target="_blank" rel="noreferrer">
@@ -325,11 +458,17 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
         <section className="editor-danger">
           {closing ? (
             <div className="inline-confirm">
-              <span>Close {stall.name} for good? Its link stops working. Your catalogue stays.</span>
+              <span>
+                Close {stall.name} for good? Its link stops working. Your catalogue stays.
+              </span>
               <button type="button" className="mini" onClick={() => setClosing(false)}>
                 Keep it
               </button>
-              <button type="button" className="mini mini-danger" onClick={() => start(() => closeStallForGood(stall.id))}>
+              <button
+                type="button"
+                className="mini mini-danger"
+                onClick={() => start(() => closeStallForGood(stall.id))}
+              >
                 Close for good
               </button>
             </div>
@@ -344,7 +483,11 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
       <aside className="editor-preview" aria-label="What buyers see">
         <p>What buyers see</p>
         <div className="preview-phone">
-          <iframe key={preview} src={`/s/${stall.slug}?preview=1`} title={`${stall.name} preview`} />
+          <iframe
+            key={preview}
+            src={`/s/${stall.slug}?preview=1`}
+            title={`${stall.name} preview`}
+          />
         </div>
       </aside>
 
@@ -354,7 +497,11 @@ export function StallEditor({ stall: initial, catalogue: initialCatalogue }: { s
           stallId={stall.id}
           onClose={() => setEditing(null)}
           onSaved={(item) => {
-            setCatalogue((list) => (list.some((i) => i.id === item.id) ? list.map((i) => (i.id === item.id ? item : i)) : [...list, item]))
+            setCatalogue((list) =>
+              list.some((i) => i.id === item.id)
+                ? list.map((i) => (i.id === item.id ? item : i))
+                : [...list, item],
+            )
             if (!onStall.includes(item.id)) setOnStall((ids) => [...ids, item.id])
             setEditing(null)
             setPreview((n) => n + 1)

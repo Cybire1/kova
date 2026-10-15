@@ -18,7 +18,10 @@ async function main() {
   const api = `http://localhost:${config.PORT}`
 
   const open = await db.query.paymentIntents.findMany({
-    where: and(eq(schema.paymentIntents.status, 'requires_payment'), eq(schema.paymentIntents.network, 'testnet')),
+    where: and(
+      eq(schema.paymentIntents.status, 'requires_payment'),
+      eq(schema.paymentIntents.network, 'testnet'),
+    ),
   })
   const payable = open.filter((intent) => intent.expiresAt.getTime() > Date.now())
   if (payable.length === 0) {
@@ -31,7 +34,9 @@ async function main() {
   for (const intent of payable) {
     const checkout = await getCheckout(api, encodeId('paymentIntent', intent.id))
     const paid = await pay(api, checkout, customer)
-    console.log(`${intent.reference ?? checkout.id}: ${paid.status} in ${paid.roundTripMs}ms  ${paid.payment.explorer_url}`)
+    console.log(
+      `${intent.reference ?? checkout.id}: ${paid.status} in ${paid.roundTripMs}ms  ${paid.payment.explorer_url}`,
+    )
   }
   process.exit(0)
 }

@@ -1,4 +1,17 @@
-import { type Address, bytesToHex, bytesToString, concat, getAddress, type Hex, hexToBytes, isAddressEqual, keccak256, recoverTypedDataAddress, stringToBytes, toHex } from 'viem'
+import {
+  type Address,
+  bytesToHex,
+  bytesToString,
+  concat,
+  getAddress,
+  type Hex,
+  hexToBytes,
+  isAddressEqual,
+  keccak256,
+  recoverTypedDataAddress,
+  stringToBytes,
+  toHex,
+} from 'viem'
 import { type TransferAuthorization, transferAuthorizationTypedData } from './authorization.js'
 import { networkByChainId } from './networks.js'
 import { tokenByAddress } from './tokens.js'
@@ -76,7 +89,8 @@ const chars = (text: string, max: number) => [...text.trim()].slice(0, max).join
 
 /** The payment as a short, URL-safe code: what the QR holds and what follows the # in its link. */
 export function encodeOfflinePayment(p: OfflinePayment): string {
-  if (p.authorization.validAfter !== 0n) throw new Error('An offline payment is valid from the moment it is signed.')
+  if (p.authorization.validAfter !== 0n)
+    throw new Error('An offline payment is valid from the moment it is signed.')
   const name = p.name ? stringToBytes(chars(p.name, OFFLINE_NAME_MAX)) : new Uint8Array(0)
   const bytes = hexToBytes(
     concat([
@@ -118,8 +132,17 @@ export function decodeOfflinePayment(code: string): OfflinePayment | null {
     const validBefore = BigInt(take(8))
     const nonce = take(32)
     const signature = take(65)
-    const name = bytes.length > FIXED ? chars(bytesToString(bytes.slice(FIXED)), OFFLINE_NAME_MAX) || null : null
-    return { chainId, token, authorization: { from, to, value, validAfter: 0n, validBefore, nonce }, signature, name }
+    const name =
+      bytes.length > FIXED
+        ? chars(bytesToString(bytes.slice(FIXED)), OFFLINE_NAME_MAX) || null
+        : null
+    return {
+      chainId,
+      token,
+      authorization: { from, to, value, validAfter: 0n, validBefore, nonce },
+      signature,
+      name,
+    }
   } catch {
     return null
   }
@@ -127,14 +150,26 @@ export function decodeOfflinePayment(code: string): OfflinePayment | null {
 
 export type OfflineCheck =
   | { ok: true }
-  | { ok: false; reason: 'unknown-network' | 'unknown-token' | 'bad-signature' | 'expired' | 'too-large' | 'zero' }
+  | {
+      ok: false
+      reason:
+        | 'unknown-network'
+        | 'unknown-token'
+        | 'bad-signature'
+        | 'expired'
+        | 'too-large'
+        | 'zero'
+    }
 
 /**
  * Whether a payment is genuinely the sender's and still usable, checked with no network: the
  * signature recovers to its sender, its dollar is one Kova knows, it isn't empty, over the cap or
  * past its time. Whether the sender still holds the money is only known once it's settled.
  */
-export async function verifyOfflinePayment(p: OfflinePayment, now = BigInt(Math.floor(Date.now() / 1000))): Promise<OfflineCheck> {
+export async function verifyOfflinePayment(
+  p: OfflinePayment,
+  now = BigInt(Math.floor(Date.now() / 1000)),
+): Promise<OfflineCheck> {
   let network: ReturnType<typeof networkByChainId>
   try {
     network = networkByChainId(p.chainId)
@@ -146,8 +181,12 @@ export async function verifyOfflinePayment(p: OfflinePayment, now = BigInt(Math.
   if (p.authorization.value === 0n) return { ok: false, reason: 'zero' }
   if (p.authorization.value > OFFLINE_MAX) return { ok: false, reason: 'too-large' }
   if (p.authorization.validBefore <= now) return { ok: false, reason: 'expired' }
-  const signer = await recoverTypedDataAddress({ ...transferAuthorizationTypedData(token, p.chainId, p.authorization), signature: p.signature }).catch(() => null)
-  if (!signer || !isAddressEqual(signer, p.authorization.from)) return { ok: false, reason: 'bad-signature' }
+  const signer = await recoverTypedDataAddress({
+    ...transferAuthorizationTypedData(token, p.chainId, p.authorization),
+    signature: p.signature,
+  }).catch(() => null)
+  if (!signer || !isAddressEqual(signer, p.authorization.from))
+    return { ok: false, reason: 'bad-signature' }
   return { ok: true }
 }
 

@@ -27,14 +27,31 @@ import { Txt } from './primitives'
  */
 
 /** When each beat lands, in ms from the screen appearing. */
-export const beats = { seal: 380, open: 760, letter: 1020, copy: 1180, note: 1420, kovi: 1500 } as const
+export const beats = {
+  seal: 380,
+  open: 760,
+  letter: 1020,
+  copy: 1180,
+  note: 1420,
+  kovi: 1500,
+} as const
 
 /**
  * The envelope, teal (money arriving), with a coral seal over its flap. `amount` and `from` are on
  * the card inside. The seal pulses and breaks with a ripple, the flap folds up behind the card, and
  * the card rises out with a few sparkles.
  */
-export function SealedEnvelope({ width, amount, from, to }: { width: number; amount: string; from: string; to?: string }) {
+export function SealedEnvelope({
+  width,
+  amount,
+  from,
+  to,
+}: {
+  width: number
+  amount: string
+  from: string
+  to?: string
+}) {
   const still = useReducedMotion()
   const height = Math.round(width * 0.62)
   const flapH = Math.round(height * 0.56)
@@ -53,12 +70,25 @@ export function SealedEnvelope({ width, amount, from, to }: { width: number; amo
     drop.value = withSpring(1, { damping: 14, stiffness: 140 })
     seal.value = withDelay(
       beats.seal,
-      withSequence(withTiming(1.16, { duration: 150 }), withTiming(1, { duration: 130 }), withDelay(60, withTiming(0, { duration: 170 }))),
+      withSequence(
+        withTiming(1.16, { duration: 150 }),
+        withTiming(1, { duration: 130 }),
+        withDelay(60, withTiming(0, { duration: 170 })),
+      ),
     )
-    ripple.value = withDelay(beats.seal + 300, withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) }))
-    flap.value = withDelay(beats.open, withTiming(1, { duration: 380, easing: Easing.inOut(Easing.cubic) }))
+    ripple.value = withDelay(
+      beats.seal + 300,
+      withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) }),
+    )
+    flap.value = withDelay(
+      beats.open,
+      withTiming(1, { duration: 380, easing: Easing.inOut(Easing.cubic) }),
+    )
     lift.value = withDelay(beats.letter, withSpring(1, { damping: 12, stiffness: 105, mass: 0.9 }))
-    const tap = setTimeout(() => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), beats.seal)
+    const tap = setTimeout(
+      () => void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
+      beats.seal,
+    )
     return () => clearTimeout(tap)
   }, [still, drop, seal, ripple, flap, lift])
 
@@ -68,8 +98,13 @@ export function SealedEnvelope({ width, amount, from, to }: { width: number; amo
   }))
   const flapFront = useFlap(flap, flapH, true)
   const flapBack = useFlap(flap, flapH, false)
-  const card = useAnimatedStyle(() => ({ transform: [{ translateY: -lift.value * rise }, { rotate: `${-lift.value * 2}deg` }] }))
-  const sealStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, seal.value * 1.4), transform: [{ scale: seal.value }] }))
+  const card = useAnimatedStyle(() => ({
+    transform: [{ translateY: -lift.value * rise }, { rotate: `${-lift.value * 2}deg` }],
+  }))
+  const sealStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, seal.value * 1.4),
+    transform: [{ scale: seal.value }],
+  }))
   const labelStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, flap.value * 2) }))
   const rippleStyle = useAnimatedStyle(() => ({
     opacity: ripple.value > 0 && ripple.value < 1 ? 0.8 * (1 - ripple.value) : 0,
@@ -95,17 +130,38 @@ export function SealedEnvelope({ width, amount, from, to }: { width: number; amo
       {/* The back of the envelope. */}
       <View style={[styles.back, { top: head, height }]} />
       {/* The flap, opened: folded up behind the card. */}
-      <Animated.View style={[styles.flap, { top: head, height: flapH }, flapBack]} pointerEvents="none">
+      <Animated.View
+        style={[styles.flap, { top: head, height: flapH }, flapBack]}
+        pointerEvents="none"
+      >
         <Svg width={width} height={flapH + 6}>
-          <Path d={flapPath} fill={colors.tealDeep} stroke={colors.ink} strokeWidth={2} strokeLinejoin="round" />
+          <Path
+            d={flapPath}
+            fill={colors.tealDeep}
+            stroke={colors.ink}
+            strokeWidth={2}
+            strokeLinejoin="round"
+          />
         </Svg>
       </Animated.View>
       {/* The card inside. */}
-      <Animated.View style={[styles.card, { top: cardTop, left: width * 0.08, right: width * 0.08, height: height * 0.84 }, card]}>
+      <Animated.View
+        style={[
+          styles.card,
+          { top: cardTop, left: width * 0.08, right: width * 0.08, height: height * 0.84 },
+          card,
+        ]}
+      >
         <Txt weight="semi" size={13} color={colors.muted} numberOfLines={1}>
           From {from}
         </Txt>
-        <Txt weight="bold" size={Math.round(width * 0.16)} style={{ letterSpacing: -1.5 }} numberOfLines={1} adjustsFontSizeToFit>
+        <Txt
+          weight="bold"
+          size={Math.round(width * 0.16)}
+          style={{ letterSpacing: -1.5 }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
           {amount}
         </Txt>
         <View style={styles.cardLock}>
@@ -116,14 +172,26 @@ export function SealedEnvelope({ width, amount, from, to }: { width: number; amo
         </View>
       </Animated.View>
       {/* The front. */}
-      <View style={{ position: 'absolute', left: 0, top: head, width, height }} pointerEvents="none">
+      <View
+        style={{ position: 'absolute', left: 0, top: head, width, height }}
+        pointerEvents="none"
+      >
         <Svg width={width} height={height}>
-          <Path d={frontPath} fill={colors.teal} stroke={colors.ink} strokeWidth={2} strokeLinejoin="round" />
+          <Path
+            d={frontPath}
+            fill={colors.teal}
+            stroke={colors.ink}
+            strokeWidth={2}
+            strokeLinejoin="round"
+          />
         </Svg>
       </View>
       {/* Addressed to you, and opened here: your keys are the only ones that open it. It shows once
           the seal over it has broken. */}
-      <Animated.View style={[styles.label, { top: head + height * 0.66, width }, labelStyle]} pointerEvents="none">
+      <Animated.View
+        style={[styles.label, { top: head + height * 0.66, width }, labelStyle]}
+        pointerEvents="none"
+      >
         {to ? (
           <Txt weight="bold" size={16} color={colors.white} numberOfLines={1}>
             For {to}
@@ -134,22 +202,61 @@ export function SealedEnvelope({ width, amount, from, to }: { width: number; amo
         </Txt>
       </Animated.View>
       {/* The flap, shut, with the seal on its tip. */}
-      <Animated.View style={[styles.flap, { top: head, height: flapH }, flapFront]} pointerEvents="none">
+      <Animated.View
+        style={[styles.flap, { top: head, height: flapH }, flapFront]}
+        pointerEvents="none"
+      >
         <Svg width={width} height={flapH + 6}>
-          <Path d={flapPath} fill={colors.tealLight} stroke={colors.ink} strokeWidth={2} strokeLinejoin="round" />
+          <Path
+            d={flapPath}
+            fill={colors.tealLight}
+            stroke={colors.ink}
+            strokeWidth={2}
+            strokeLinejoin="round"
+          />
         </Svg>
       </Animated.View>
-      <Animated.View style={[styles.ripple, { top: sealTop, left: width / 2 - 26 }, rippleStyle]} pointerEvents="none" />
-      <Animated.View style={[styles.seal, { top: sealTop, left: width / 2 - 26 }, sealStyle]} pointerEvents="none">
+      <Animated.View
+        style={[styles.ripple, { top: sealTop, left: width / 2 - 26 }, rippleStyle]}
+        pointerEvents="none"
+      />
+      <Animated.View
+        style={[styles.seal, { top: sealTop, left: width / 2 - 26 }, sealStyle]}
+        pointerEvents="none"
+      >
         <Icon name="lock" size={22} color={colors.white} strokeWidth={2.4} />
       </Animated.View>
       {still ? null : (
         <Burst
           spots={[
-            { x: width * 0.06, y: head - rise * 0.55, size: 22, fill: colors.yellow, delay: beats.letter + 160 },
-            { x: width * 0.95, y: head - rise * 0.8, size: 26, fill: colors.white, delay: beats.letter + 260 },
-            { x: width * 0.9, y: head + height * 0.2, size: 16, fill: colors.yellow, delay: beats.letter + 380 },
-            { x: width * 0.03, y: head + height * 0.12, size: 14, fill: colors.white, delay: beats.letter + 470 },
+            {
+              x: width * 0.06,
+              y: head - rise * 0.55,
+              size: 22,
+              fill: colors.yellow,
+              delay: beats.letter + 160,
+            },
+            {
+              x: width * 0.95,
+              y: head - rise * 0.8,
+              size: 26,
+              fill: colors.white,
+              delay: beats.letter + 260,
+            },
+            {
+              x: width * 0.9,
+              y: head + height * 0.2,
+              size: 16,
+              fill: colors.yellow,
+              delay: beats.letter + 380,
+            },
+            {
+              x: width * 0.03,
+              y: head + height * 0.12,
+              size: 14,
+              fill: colors.white,
+              delay: beats.letter + 470,
+            },
           ]}
         />
       )}
@@ -164,7 +271,11 @@ export function SealedEnvelope({ width, amount, from, to }: { width: number; amo
 function useFlap(flap: SharedValue<number>, height: number, front: boolean) {
   return useAnimatedStyle(() => ({
     opacity: front ? (flap.value < 0.5 ? 1 : 0) : flap.value >= 0.5 ? 1 : 0,
-    transform: [{ translateY: -height / 2 }, { scaleY: 1 - 2 * flap.value }, { translateY: height / 2 }],
+    transform: [
+      { translateY: -height / 2 },
+      { scaleY: 1 - 2 * flap.value },
+      { translateY: height / 2 },
+    ],
   }))
 }
 
@@ -177,7 +288,11 @@ const CIPHER = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789#%&'
 export function useDecoded(text: string, delay: number, ms = 700) {
   const still = useReducedMotion()
   const scramble = (keep: number) =>
-    [...text].map((c, i) => (i < keep || c === ' ' ? c : (CIPHER[Math.floor(Math.random() * CIPHER.length)] ?? c))).join('')
+    [...text]
+      .map((c, i) =>
+        i < keep || c === ' ' ? c : (CIPHER[Math.floor(Math.random() * CIPHER.length)] ?? c),
+      )
+      .join('')
   const [shown, setShown] = useState(() => (still ? text : scramble(0)))
   useEffect(() => {
     if (still) return setShown(text)
@@ -207,10 +322,22 @@ export function useDecoded(text: string, delay: number, ms = 700) {
 }
 
 /** The sender's note, sealed in the payment, decoding as it's opened: a slip of paper taped down, with a lock. */
-export function DecodedNote({ text, caption, delay }: { text: string; caption: string; delay: number }) {
+export function DecodedNote({
+  text,
+  caption,
+  delay,
+}: {
+  text: string
+  caption: string
+  delay: number
+}) {
   const shown = useDecoded(text, delay)
   return (
-    <View style={styles.slipWrap} accessible accessibilityLabel={`Private note: ${text}. ${caption}`}>
+    <View
+      style={styles.slipWrap}
+      accessible
+      accessibilityLabel={`Private note: ${text}. ${caption}`}
+    >
       <View style={styles.slip}>
         <View style={styles.tape} />
         <View style={styles.slipLock}>
@@ -234,7 +361,15 @@ export function DecodedNote({ text, caption, delay }: { text: string; caption: s
  * Kovi, peeking over the edge of the sheet below him with a whisper. Put him just before that
  * sheet, so it hides him until he rises, and the sheet's top edge is the edge he holds.
  */
-export function PeekingKovi({ width = 150, whisper, style }: { width?: number; whisper: string; style?: StyleProp<ViewStyle> }) {
+export function PeekingKovi({
+  width = 150,
+  whisper,
+  style,
+}: {
+  width?: number
+  whisper: string
+  style?: StyleProp<ViewStyle>
+}) {
   const still = useReducedMotion()
   const up = useSharedValue(still ? 1 : 0)
   const said = useSharedValue(still ? 1 : 0)
@@ -245,8 +380,14 @@ export function PeekingKovi({ width = 150, whisper, style }: { width?: number; w
   }, [still, up, said])
   const edge = Math.round((width / 2) * peekEdge)
   // Two points low, so the edge drawn under his hands stays behind the sheet's own edge.
-  const rising = useAnimatedStyle(() => ({ opacity: up.value > 0.02 ? 1 : 0, transform: [{ translateY: 2 + (1 - up.value) * edge * 1.1 }] }))
-  const bubble = useAnimatedStyle(() => ({ opacity: Math.min(1, said.value * 1.4), transform: [{ scale: 0.6 + said.value * 0.4 }] }))
+  const rising = useAnimatedStyle(() => ({
+    opacity: up.value > 0.02 ? 1 : 0,
+    transform: [{ translateY: 2 + (1 - up.value) * edge * 1.1 }],
+  }))
+  const bubble = useAnimatedStyle(() => ({
+    opacity: Math.min(1, said.value * 1.4),
+    transform: [{ scale: 0.6 + said.value * 0.4 }],
+  }))
   return (
     <View pointerEvents="none" style={[{ height: edge, width, alignSelf: 'center' }, style]}>
       <Animated.View style={[{ position: 'absolute', top: 0, left: 0 }, rising]}>
@@ -263,7 +404,15 @@ export function PeekingKovi({ width = 150, whisper, style }: { width?: number; w
 }
 
 /** The sheet under the moment, sliding up from below as the envelope opens; there already with Reduce Motion on. */
-export function SlideUp({ at, children, style }: { at: number; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+export function SlideUp({
+  at,
+  children,
+  style,
+}: {
+  at: number
+  children: ReactNode
+  style?: StyleProp<ViewStyle>
+}) {
   const still = useReducedMotion()
   const v = useSharedValue(still ? 1 : 0)
   useEffect(() => {
@@ -275,19 +424,38 @@ export function SlideUp({ at, children, style }: { at: number; children: ReactNo
 }
 
 /** Content that rises in on a beat, or is simply there with Reduce Motion on. */
-export function OnBeat({ at, children, style }: { at: number; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+export function OnBeat({
+  at,
+  children,
+  style,
+}: {
+  at: number
+  children: ReactNode
+  style?: StyleProp<ViewStyle>
+}) {
   const still = useReducedMotion()
   const v = useSharedValue(still ? 1 : 0)
   useEffect(() => {
     if (still) return
     v.value = withDelay(at, withTiming(1, { duration: 420, easing: Easing.out(Easing.cubic) }))
   }, [still, at, v])
-  const anim = useAnimatedStyle(() => ({ opacity: v.value, transform: [{ translateY: (1 - v.value) * 14 }] }))
+  const anim = useAnimatedStyle(() => ({
+    opacity: v.value,
+    transform: [{ translateY: (1 - v.value) * 14 }],
+  }))
   return <Animated.View style={[anim, style]}>{children}</Animated.View>
 }
 
 const styles = StyleSheet.create({
-  back: { position: 'absolute', left: 0, right: 0, borderRadius: 18, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.tealDeep },
+  back: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.tealDeep,
+  },
   flap: { position: 'absolute', left: 0, right: 0 },
   label: { position: 'absolute', left: 0, alignItems: 'center', gap: 1, paddingHorizontal: 16 },
   card: {
@@ -302,7 +470,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   cardLock: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  ripple: { position: 'absolute', width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: colors.coral },
+  ripple: {
+    position: 'absolute',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: colors.coral,
+  },
   seal: {
     position: 'absolute',
     width: 52,

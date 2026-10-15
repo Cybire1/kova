@@ -6,12 +6,22 @@
  */
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { createCharge, getCheckout, setDeviceKey } from '../src/lib/api'
-import { fundFromFaucet, getBalance, incomingSince, payCharge, publicClient, sendMoney } from '../src/lib/chain'
+import {
+  fundFromFaucet,
+  getBalance,
+  incomingSince,
+  payCharge,
+  publicClient,
+  sendMoney,
+} from '../src/lib/chain'
 import { formatUsd } from '../src/lib/money'
 
 async function main() {
   const key = process.env.KOVA_API_KEY
-  if (!key) throw new Error('set KOVA_API_KEY to a merchant key on the API under test (pnpm setup:dev prints one)')
+  if (!key)
+    throw new Error(
+      'set KOVA_API_KEY to a merchant key on the API under test (pnpm setup:dev prints one)',
+    )
   setDeviceKey(key)
 
   const maya = privateKeyToAccount(generatePrivateKey())
@@ -19,11 +29,15 @@ async function main() {
 
   let t = Date.now()
   await fundFromFaucet(maya.address)
-  console.log(`funded ${maya.address}: ${formatUsd(await getBalance(maya.address))} (${Date.now() - t}ms)`)
+  console.log(
+    `funded ${maya.address}: ${formatUsd(await getBalance(maya.address))} (${Date.now() - t}ms)`,
+  )
 
   const charge = await createCharge('4.60', { reference: 'wallet e2e' })
   const checkout = await getCheckout(charge.id)
-  console.log(`checkout ${checkout.id}: ${checkout.amount} ${checkout.currency} to ${checkout.merchant_name} (${checkout.status})`)
+  console.log(
+    `checkout ${checkout.id}: ${checkout.amount} ${checkout.currency} to ${checkout.merchant_name} (${checkout.status})`,
+  )
   const paid = await payCharge(maya, checkout)
   const after = await getCheckout(charge.id)
   console.log(`paid the charge in ${paid.ms}ms → ${after.status}`)
@@ -38,9 +52,15 @@ async function main() {
     seen = (await incomingSince(tunde.address, 0n)).transfers
     if (seen.length === 0) await new Promise((r) => setTimeout(r, 300))
   }
-  console.log(`tunde sees ${seen.length} incoming after ${Date.now() - t}ms: ${seen.map((x) => formatUsd(x.amount)).join(', ')}`)
-  console.log(`maya ${formatUsd(await getBalance(maya.address))}, tunde ${formatUsd(await getBalance(tunde.address))}`)
-  console.log(`maya holds ${await publicClient.getBalance({ address: maya.address })} MON (Kova paid every fee)`)
+  console.log(
+    `tunde sees ${seen.length} incoming after ${Date.now() - t}ms: ${seen.map((x) => formatUsd(x.amount)).join(', ')}`,
+  )
+  console.log(
+    `maya ${formatUsd(await getBalance(maya.address))}, tunde ${formatUsd(await getBalance(tunde.address))}`,
+  )
+  console.log(
+    `maya holds ${await publicClient.getBalance({ address: maya.address })} MON (Kova paid every fee)`,
+  )
   if (after.status !== 'paid' || seen.length !== 1) process.exit(1)
 }
 

@@ -55,11 +55,21 @@ export function ShopDock({ state, navigation }: BottomTabBarProps) {
       >
         <View style={[styles.tab, focused && styles.tabOn]}>
           {tab.icon === 'shop' ? (
-            <View style={[styles.badgeRing, { borderColor: focused ? colors.yellow : 'rgba(255,255,255,0.45)' }]}>
+            <View
+              style={[
+                styles.badgeRing,
+                { borderColor: focused ? colors.yellow : 'rgba(255,255,255,0.45)' },
+              ]}
+            >
               <ShopBadge size={focused ? 28 : 26} />
             </View>
           ) : (
-            <NavIcon name={tab.icon} active={focused} size={26} color={focused ? colors.ink : 'rgba(255,255,255,0.66)'} />
+            <NavIcon
+              name={tab.icon}
+              active={focused}
+              size={26}
+              color={focused ? colors.ink : 'rgba(255,255,255,0.66)'}
+            />
           )}
         </View>
         {count ? (
@@ -76,8 +86,16 @@ export function ShopDock({ state, navigation }: BottomTabBarProps) {
   const till = state.routes.findIndex((r) => r.name === 'index')
   const onTill = state.index === till
   return (
-    <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { top: undefined, height: H + bottom + 40 }]}>
-      <Svg pointerEvents="none" width={width} height={H + bottom + 40} style={StyleSheet.absoluteFill}>
+    <View
+      pointerEvents="box-none"
+      style={[StyleSheet.absoluteFill, { top: undefined, height: H + bottom + 40 }]}
+    >
+      <Svg
+        pointerEvents="none"
+        width={width}
+        height={H + bottom + 40}
+        style={StyleSheet.absoluteFill}
+      >
         <Defs>
           <LinearGradient id="shopfade" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={colors.paper} stopOpacity={0} />
@@ -99,7 +117,11 @@ export function ShopDock({ state, navigation }: BottomTabBarProps) {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
             go('index', route.key, onTill)
           }}
-          style={({ pressed }) => [styles.charge, onTill && styles.chargeOn, pressed && { transform: [{ scale: 0.95 }] }]}
+          style={({ pressed }) => [
+            styles.charge,
+            onTill && styles.chargeOn,
+            pressed && { transform: [{ scale: 0.95 }] },
+          ]}
           hitSlop={4}
         >
           <NavIcon name="charge" size={22} color={colors.white} />

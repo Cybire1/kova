@@ -92,7 +92,8 @@ function scalar(bytes: Hex): bigint {
 }
 
 const toKey = (k: bigint): Hex => `0x${k.toString(16).padStart(64, '0')}`
-const compressed = (privateKey: Hex): Hex => bytesToHex(secp256k1.getPublicKey(hexToBytes(privateKey), true))
+const compressed = (privateKey: Hex): Hex =>
+  bytesToHex(secp256k1.getPublicKey(hexToBytes(privateKey), true))
 
 /** The stealth keys behind a signature of stealthKeysMessage(shop): spending from r, viewing from s. */
 export function stealthKeysFromSignature(signature: Hex): StealthKeys {
@@ -101,8 +102,12 @@ export function stealthKeysFromSignature(signature: Hex): StealthKeys {
   const r = bytesToHex(sig.slice(0, 32))
   const s = bytesToHex(sig.slice(32, 64))
   return {
-    spendingPrivateKey: toKey(scalar(concat([r, bytesToHex(stringToBytes('kova:stealth:spending'))]))),
-    viewingPrivateKey: toKey(scalar(concat([s, bytesToHex(stringToBytes('kova:stealth:viewing'))]))),
+    spendingPrivateKey: toKey(
+      scalar(concat([r, bytesToHex(stringToBytes('kova:stealth:spending'))])),
+    ),
+    viewingPrivateKey: toKey(
+      scalar(concat([s, bytesToHex(stringToBytes('kova:stealth:viewing'))])),
+    ),
   }
 }
 
@@ -112,7 +117,10 @@ export function stealthMetaAddress(keys: StealthKeys): string {
 }
 
 /** The two public keys in a meta-address, checked to be points on the curve. */
-export function parseStealthMetaAddress(meta: string): { spendingPublicKey: Hex; viewingPublicKey: Hex } {
+export function parseStealthMetaAddress(meta: string): {
+  spendingPublicKey: Hex
+  viewingPublicKey: Hex
+} {
   if (!meta.startsWith(META_PREFIX) || meta.length !== META_PREFIX.length + 132)
     throw new Error('Not a stealth meta-address')
   const spendingPublicKey = `0x${meta.slice(META_PREFIX.length, META_PREFIX.length + 66)}` as Hex
@@ -124,16 +132,24 @@ export function parseStealthMetaAddress(meta: string): { spendingPublicKey: Hex;
 
 /** keccak256 of the compressed shared point, as ERC-5564 scheme 1 hashes it. */
 function hashedSecret(privateKey: Hex, publicKey: Hex): Hex {
-  return keccak256(bytesToHex(secp256k1.getSharedSecret(hexToBytes(privateKey), hexToBytes(publicKey), true)))
+  return keccak256(
+    bytesToHex(secp256k1.getSharedSecret(hexToBytes(privateKey), hexToBytes(publicKey), true)),
+  )
 }
 
-const addressOf = (point: InstanceType<typeof Point>): Address => publicKeyToAddress(bytesToHex(point.toRawBytes(false)))
+const addressOf = (point: InstanceType<typeof Point>): Address =>
+  publicKeyToAddress(bytesToHex(point.toRawBytes(false)))
 
 /** A fresh one-time address for a meta-address, and what its owner needs to find it. */
-export function generateStealthAddress(meta: string, ephemeralPrivateKey: Hex = generatePrivateKey()): StealthAnnouncement {
+export function generateStealthAddress(
+  meta: string,
+  ephemeralPrivateKey: Hex = generatePrivateKey(),
+): StealthAnnouncement {
   const { spendingPublicKey, viewingPublicKey } = parseStealthMetaAddress(meta)
   const secret = hashedSecret(ephemeralPrivateKey, viewingPublicKey)
-  const stealth = Point.fromHex(spendingPublicKey.slice(2)).add(Point.BASE.multiply(BigInt(secret) % N))
+  const stealth = Point.fromHex(spendingPublicKey.slice(2)).add(
+    Point.BASE.multiply(BigInt(secret) % N),
+  )
   return {
     stealthAddress: addressOf(stealth),
     ephemeralPublicKey: compressed(ephemeralPrivateKey),
@@ -148,12 +164,20 @@ export function generateStealthAddress(meta: string, ephemeralPrivateKey: Hex = 
  */
 export function checkStealthAddress(
   view: { viewingPrivateKey: Hex; spendingPublicKey: Hex },
-  announcement: Pick<StealthAnnouncement, 'ephemeralPublicKey' | 'viewTag'> & { stealthAddress?: Address },
+  announcement: Pick<StealthAnnouncement, 'ephemeralPublicKey' | 'viewTag'> & {
+    stealthAddress?: Address
+  },
 ): Address | null {
   const secret = hashedSecret(view.viewingPrivateKey, announcement.ephemeralPublicKey)
   if (`0x${secret.slice(2, 4)}` !== announcement.viewTag.toLowerCase()) return null
-  const address = addressOf(Point.fromHex(view.spendingPublicKey.slice(2)).add(Point.BASE.multiply(BigInt(secret) % N)))
-  if (announcement.stealthAddress && address.toLowerCase() !== announcement.stealthAddress.toLowerCase()) return null
+  const address = addressOf(
+    Point.fromHex(view.spendingPublicKey.slice(2)).add(Point.BASE.multiply(BigInt(secret) % N)),
+  )
+  if (
+    announcement.stealthAddress &&
+    address.toLowerCase() !== announcement.stealthAddress.toLowerCase()
+  )
+    return null
   return address
 }
 
@@ -168,8 +192,12 @@ export function stealthViewKey(keys: StealthKeys): string {
   return `${VIEW_PREFIX}${keys.viewingPrivateKey.slice(2)}${compressed(keys.spendingPrivateKey).slice(2)}`
 }
 
-export function parseStealthViewKey(view: string): { viewingPrivateKey: Hex; spendingPublicKey: Hex } {
-  if (!view.startsWith(VIEW_PREFIX) || view.length !== VIEW_PREFIX.length + 64 + 66) throw new Error('Not a Kova view key')
+export function parseStealthViewKey(view: string): {
+  viewingPrivateKey: Hex
+  spendingPublicKey: Hex
+} {
+  if (!view.startsWith(VIEW_PREFIX) || view.length !== VIEW_PREFIX.length + 64 + 66)
+    throw new Error('Not a Kova view key')
   const viewingPrivateKey = `0x${view.slice(VIEW_PREFIX.length, VIEW_PREFIX.length + 64)}` as Hex
   const spendingPublicKey = `0x${view.slice(VIEW_PREFIX.length + 64)}` as Hex
   Point.fromHex(spendingPublicKey.slice(2))
@@ -218,11 +246,24 @@ const TRANSFER_SELECTOR: Hex = '0xe3ee160e'
  * An announcement's metadata, as ERC-5564 lays it out for a token: the view tag, the function that
  * moved the funds, the token and the amount; then, when there is one, the sealed memo.
  */
-export function stealthMetadata(input: { viewTag: Hex; token: Address; amount: bigint; sealed?: Hex | null }): Hex {
-  return concat([input.viewTag, TRANSFER_SELECTOR, input.token, toHex(input.amount, { size: 32 }), ...(input.sealed ? [input.sealed] : [])])
+export function stealthMetadata(input: {
+  viewTag: Hex
+  token: Address
+  amount: bigint
+  sealed?: Hex | null
+}): Hex {
+  return concat([
+    input.viewTag,
+    TRANSFER_SELECTOR,
+    input.token,
+    toHex(input.amount, { size: 32 }),
+    ...(input.sealed ? [input.sealed] : []),
+  ])
 }
 
-export function parseStealthMetadata(metadata: Hex): { viewTag: Hex; selector: Hex; token: Address; amount: bigint; sealed: Hex | null } | null {
+export function parseStealthMetadata(
+  metadata: Hex,
+): { viewTag: Hex; selector: Hex; token: Address; amount: bigint; sealed: Hex | null } | null {
   if (size(metadata) < 57) return null
   return {
     viewTag: slice(metadata, 0, 1),
@@ -272,11 +313,13 @@ function cleanMemo(raw: unknown): StealthMemo {
   if (typeof m.name === 'string' && m.name.trim()) memo.name = chars(m.name, MEMO_NAME_MAX)
   if (typeof m.note === 'string' && m.note.trim()) memo.note = chars(m.note, NOTE_MAX)
   if (m.kind === 'send' || m.kind === 'change') memo.kind = m.kind
-  if (typeof m.proof === 'string' && /^0x[0-9a-fA-F]{130}$/.test(m.proof)) memo.proof = m.proof as Hex
+  if (typeof m.proof === 'string' && /^0x[0-9a-fA-F]{130}$/.test(m.proof))
+    memo.proof = m.proof as Hex
   return memo
 }
 
-const memoKey = (shared: Uint8Array) => hexToBytes(keccak256(concat([bytesToHex(shared), MEMO_LABEL])))
+const memoKey = (shared: Uint8Array) =>
+  hexToBytes(keccak256(concat([bytesToHex(shared), MEMO_LABEL])))
 
 /** Sealed to the shared secret, bound to the one-time address (as associated data). */
 function sealMemo(shared: Uint8Array, stealthAddress: Address, memo: StealthMemo): Hex {
@@ -293,11 +336,19 @@ export interface StealthPayment extends StealthAnnouncement {
 }
 
 /** A fresh one-time address for a meta-address, as generateStealthAddress, with the memo sealed for its owner. */
-export function generateStealthPayment(meta: string, memo?: StealthMemo | null, ephemeralPrivateKey: Hex = generatePrivateKey()): StealthPayment {
+export function generateStealthPayment(
+  meta: string,
+  memo?: StealthMemo | null,
+  ephemeralPrivateKey: Hex = generatePrivateKey(),
+): StealthPayment {
   const { viewingPublicKey } = parseStealthMetaAddress(meta)
   const announcement = generateStealthAddress(meta, ephemeralPrivateKey)
   if (!memo) return { ...announcement, sealed: null }
-  const shared = secp256k1.getSharedSecret(hexToBytes(ephemeralPrivateKey), hexToBytes(viewingPublicKey), true)
+  const shared = secp256k1.getSharedSecret(
+    hexToBytes(ephemeralPrivateKey),
+    hexToBytes(viewingPublicKey),
+    true,
+  )
   return { ...announcement, sealed: sealMemo(shared, announcement.stealthAddress, memo) }
 }
 
@@ -309,9 +360,18 @@ export function openStealthMemo(
   if (!payment.sealed) return null
   try {
     const bytes = hexToBytes(payment.sealed)
-    if (bytes[0] !== MEMO_VERSION || bytes.length < 41 || bytes.length > SEALED_MEMO_MAX) return null
-    const shared = secp256k1.getSharedSecret(hexToBytes(viewingPrivateKey), hexToBytes(payment.ephemeralPublicKey), true)
-    const body = xchacha20poly1305(memoKey(shared), bytes.slice(1, 25), hexToBytes(payment.stealthAddress)).decrypt(bytes.slice(25))
+    if (bytes[0] !== MEMO_VERSION || bytes.length < 41 || bytes.length > SEALED_MEMO_MAX)
+      return null
+    const shared = secp256k1.getSharedSecret(
+      hexToBytes(viewingPrivateKey),
+      hexToBytes(payment.ephemeralPublicKey),
+      true,
+    )
+    const body = xchacha20poly1305(
+      memoKey(shared),
+      bytes.slice(1, 25),
+      hexToBytes(payment.stealthAddress),
+    ).decrypt(bytes.slice(25))
     return cleanMemo(JSON.parse(bytesToString(body)))
   } catch {
     return null
@@ -326,13 +386,22 @@ export function openStealthMemo(
 export async function stealthSender(
   memo: StealthMemo | null,
   payment: { stealthAddress: Address; from?: Address | null },
-): Promise<{ address: Address; name: string | null; proven: 'chain' | 'signed' | 'claimed' } | null> {
+): Promise<{
+  address: Address
+  name: string | null
+  proven: 'chain' | 'signed' | 'claimed'
+} | null> {
   const name = memo?.name ?? null
   if (memo?.from) {
-    if (payment.from && isAddressEqual(payment.from, memo.from)) return { address: memo.from, name, proven: 'chain' }
+    if (payment.from && isAddressEqual(payment.from, memo.from))
+      return { address: memo.from, name, proven: 'chain' }
     if (memo.proof) {
-      const signer = await recoverMessageAddress({ message: stealthMemoMessage(payment.stealthAddress), signature: memo.proof }).catch(() => null)
-      if (signer && isAddressEqual(signer, memo.from)) return { address: memo.from, name, proven: 'signed' }
+      const signer = await recoverMessageAddress({
+        message: stealthMemoMessage(payment.stealthAddress),
+        signature: memo.proof,
+      }).catch(() => null)
+      if (signer && isAddressEqual(signer, memo.from))
+        return { address: memo.from, name, proven: 'signed' }
     }
     return { address: memo.from, name, proven: 'claimed' }
   }

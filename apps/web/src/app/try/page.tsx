@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Brand } from '@/components/brand'
 import { type Bakery, TryChecklist, TryMainnet } from '@/components/try-checklist'
-import { type PublicStall } from '@/lib/api'
+import type { PublicStall } from '@/lib/api'
 import { cleanRef, TESTNET_SITE, TRY_STALL } from '@/lib/growth'
 import '@/styles/growth.css'
 import { countTryStep } from './actions'

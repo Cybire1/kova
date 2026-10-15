@@ -23,7 +23,9 @@ export default function ChangePin() {
   useEffect(() => {
     if (!profile) return
     void listCards(profile.address)
-      .then((list) => setCard(list.data.find((c) => c.address.toLowerCase() === address?.toLowerCase()) ?? null))
+      .then((list) =>
+        setCard(list.data.find((c) => c.address.toLowerCase() === address?.toLowerCase()) ?? null),
+      )
       .catch(() => setProblem('Kova is unreachable. Try again in a moment.'))
   }, [profile, address])
 
@@ -65,13 +67,19 @@ export default function ChangePin() {
 
   return (
     <Screen bg={colors.paper}>
-      <Header title={card ? `Card •••• ${card.last_four}` : 'Card PIN'} backIcon="close" onBack={() => router.back()} />
+      <Header
+        title={card ? `Card •••• ${card.last_four}` : 'Card PIN'}
+        backIcon="close"
+        onBack={() => router.back()}
+      />
       <Rise style={[styles.copy, { marginTop: 8 }]}>
         <Txt weight="semi" size={32} style={styles.title}>
           {step === 'confirm' ? 'Once more, to be sure.' : 'Choose a new PIN.'}
         </Txt>
         <Txt size={16} color={colors.muted} style={styles.body}>
-          {step === 'confirm' ? 'Enter the same four digits again.' : 'Four digits, not a run and not one digit repeated.'}
+          {step === 'confirm'
+            ? 'Enter the same four digits again.'
+            : 'Four digits, not a run and not one digit repeated.'}
         </Txt>
       </Rise>
       <View style={{ marginTop: 'auto', paddingBottom: 16 }}>

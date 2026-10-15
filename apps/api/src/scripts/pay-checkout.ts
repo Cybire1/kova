@@ -9,17 +9,21 @@
 import { fund, getCheckout, newCustomer, pay } from './customer.js'
 
 async function main() {
-  const [id, api = process.env.KOVA_API_URL ?? `http://localhost:${process.env.PORT ?? 4000}`] = process.argv.slice(2)
+  const [id, api = process.env.KOVA_API_URL ?? `http://localhost:${process.env.PORT ?? 4000}`] =
+    process.argv.slice(2)
   if (!id) throw new Error('usage: pay:checkout <checkout id> [api url]')
 
   const checkout = await getCheckout(api, id)
-  if (checkout.status !== 'requires_payment') throw new Error(`checkout ${id} is ${checkout.status}`)
+  if (checkout.status !== 'requires_payment')
+    throw new Error(`checkout ${id} is ${checkout.status}`)
   if (checkout.network !== 'testnet') throw new Error('pay:checkout is testnet only')
 
   const customer = newCustomer()
   await fund(api, customer.address)
   const paid = await pay(api, checkout, customer)
-  console.log(`${paid.status}: ${checkout.amount} ${checkout.currency} to ${checkout.merchant_name} in ${paid.roundTripMs}ms (relay ${paid.payment.ms}ms)`)
+  console.log(
+    `${paid.status}: ${checkout.amount} ${checkout.currency} to ${checkout.merchant_name} in ${paid.roundTripMs}ms (relay ${paid.payment.ms}ms)`,
+  )
   console.log(`  ${paid.payment.explorer_url}`)
   process.exit(paid.status === 'paid' ? 0 : 1)
 }

@@ -28,11 +28,26 @@ function dayOf(iso: string) {
 function toCsv(rows: PaymentIntent[]) {
   const cells = (v: string | null) => `"${(v ?? '').replaceAll('"', '""')}"`
   const head = ['id', 'created_at', 'paid_at', 'status', 'amount', 'currency', 'reference']
-  return [head.join(','), ...rows.map((r) => [r.id, r.created_at, r.paid_at, statusText[r.status], r.amount, r.currency, r.reference].map(cells).join(','))].join('\n')
+  return [
+    head.join(','),
+    ...rows.map((r) =>
+      [r.id, r.created_at, r.paid_at, statusText[r.status], r.amount, r.currency, r.reference]
+        .map(cells)
+        .join(','),
+    ),
+  ].join('\n')
 }
 
 /** Every charge, newest first, grouped by day. Filters and search live in the URL, so they share and reload. */
-export function PaymentsBrowser({ initial, status, q }: { initial: IntentList; status?: string; q?: string }) {
+export function PaymentsBrowser({
+  initial,
+  status,
+  q,
+}: {
+  initial: IntentList
+  status?: string
+  q?: string
+}) {
   const [rows, setRows] = useState(initial.data)
   const [cursor, setCursor] = useState(initial.has_more ? initial.next_before : null)
   const [loading, setLoading] = useState(false)
@@ -69,7 +84,10 @@ export function PaymentsBrowser({ initial, status, q }: { initial: IntentList; s
 
   const download = () => {
     const url = URL.createObjectURL(new Blob([toCsv(rows)], { type: 'text/csv' }))
-    const a = Object.assign(document.createElement('a'), { href: url, download: `kova-payments-${new Date().toISOString().slice(0, 10)}.csv` })
+    const a = Object.assign(document.createElement('a'), {
+      href: url,
+      download: `kova-payments-${new Date().toISOString().slice(0, 10)}.csv`,
+    })
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -91,15 +109,26 @@ export function PaymentsBrowser({ initial, status, q }: { initial: IntentList; s
         <div className="toolbar">
           <nav className="filters" aria-label="Filter by status">
             {FILTERS.map((f) => (
-              <Link key={f.label} href={href({ status: f.status, q })} className="filter" aria-current={(f.status ?? '') === (status ?? '') ? 'true' : undefined}>
+              <Link
+                key={f.label}
+                href={href({ status: f.status, q })}
+                className="filter"
+                aria-current={(f.status ?? '') === (status ?? '') ? 'true' : undefined}
+              >
                 {f.label}
               </Link>
             ))}
           </nav>
+          {/* biome-ignore lint/a11y/useSemanticElements: role="search" on a form is the ARIA search landmark; the <search> element needs Safari 17 */}
           <form className="search" action="/dashboard/payments" role="search">
             {status ? <input type="hidden" name="status" value={status} /> : null}
             <Icon name="search" size={18} />
-            <input name="q" defaultValue={q} placeholder="Search what it was for" aria-label="Search payments" />
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder="Search what it was for"
+              aria-label="Search payments"
+            />
           </form>
         </div>
       )}
@@ -108,7 +137,11 @@ export function PaymentsBrowser({ initial, status, q }: { initial: IntentList; s
         <section className="card empty big-empty">
           <Art name="kovi-sleep" size={150} />
           <h3>{q || status ? 'Nothing matches' : 'No payments yet'}</h3>
-          <p>{q || status ? 'Try another filter, or clear the search.' : 'Charges you start from a terminal or this dashboard show up here the moment they’re made.'}</p>
+          <p>
+            {q || status
+              ? 'Try another filter, or clear the search.'
+              : 'Charges you start from a terminal or this dashboard show up here the moment they’re made.'}
+          </p>
           {q || status ? (
             <Link className="textlink" href="/dashboard/payments">
               Clear filters

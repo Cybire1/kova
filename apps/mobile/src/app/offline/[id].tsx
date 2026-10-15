@@ -48,7 +48,8 @@ function StatusChip({ item }: { item: OfflineItem }) {
 function useSettledBuzz(item: OfflineItem) {
   const was = useRef(item.status)
   useEffect(() => {
-    if (was.current !== 'settled' && item.status === 'settled') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    if (was.current !== 'settled' && item.status === 'settled')
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
     was.current = item.status
   }, [item.status])
 }
@@ -63,7 +64,12 @@ function Outgoing({ item }: { item: OfflineItem }) {
 
   return (
     <Screen bg={colors.coralSoft}>
-      <Header title="Payment code" backIcon="close" onBack={close} right={<StatusChip item={item} />} />
+      <Header
+        title="Payment code"
+        backIcon="close"
+        onBack={close}
+        right={<StatusChip item={item} />}
+      />
       <View style={styles.body}>
         <Txt weight="semi" size={26} style={styles.title} numberOfLines={1} adjustsFontSizeToFit>
           {settled ? `${first} has been paid` : `Show ${first} this code`}
@@ -71,7 +77,11 @@ function Outgoing({ item }: { item: OfflineItem }) {
         <View>
           <CodeCard value={link} size={232} />
           {settled ? (
-            <Animated.View entering={FadeIn.duration(300)} style={styles.paidOver} pointerEvents="none">
+            <Animated.View
+              entering={FadeIn.duration(300)}
+              style={styles.paidOver}
+              pointerEvents="none"
+            >
               <Animated.View entering={ZoomIn.springify().damping(14)} style={styles.stamp}>
                 <Icon name="check" size={30} color={colors.white} strokeWidth={3} />
                 <Txt weight="bold" size={26} color={colors.white} style={{ letterSpacing: -0.6 }}>
@@ -103,7 +113,10 @@ function Outgoing({ item }: { item: OfflineItem }) {
                   label="See receipt"
                   onPress={() => {
                     close()
-                    router.push({ pathname: '/receipt/[id]', params: { id: item.entryId as string } })
+                    router.push({
+                      pathname: '/receipt/[id]',
+                      params: { id: item.entryId as string },
+                    })
                   }}
                 />
               </View>
@@ -114,7 +127,11 @@ function Outgoing({ item }: { item: OfflineItem }) {
             <PillButton
               label="Share code"
               icon="share"
-              onPress={() => void Share.share({ message: `${formatUsd(amount)} for ${first}, paid on Kova: ${link}` })}
+              onPress={() =>
+                void Share.share({
+                  message: `${formatUsd(amount)} for ${first}, paid on Kova: ${link}`,
+                })
+              }
             />
             <Txt size={12} color={colors.onTint} style={{ textAlign: 'center', marginTop: 10 }}>
               It pays {first} once, however many times it’s shown or shared.
@@ -144,7 +161,11 @@ function Incoming({ item }: { item: OfflineItem }) {
         <View style={[styles.catch, { left: width / 2 - 90 }]}>
           <PopIn delay={250} style={styles.bubble}>
             <Txt weight="bold" size={18}>
-              {settled ? `Yay! ${formatUsd(amount, { sign: true })}` : failed ? 'Hmm…' : formatUsd(amount, { sign: true })}
+              {settled
+                ? `Yay! ${formatUsd(amount, { sign: true })}`
+                : failed
+                  ? 'Hmm…'
+                  : formatUsd(amount, { sign: true })}
             </Txt>
             <View style={styles.bubbleTail} />
           </PopIn>
@@ -165,7 +186,13 @@ function Incoming({ item }: { item: OfflineItem }) {
         <Txt weight="medium" size={20} numberOfLines={1}>
           {name} sent you
         </Txt>
-        <Txt weight="bold" size={60} style={{ letterSpacing: -2.4 }} adjustsFontSizeToFit numberOfLines={1}>
+        <Txt
+          weight="bold"
+          size={60}
+          style={{ letterSpacing: -2.4 }}
+          adjustsFontSizeToFit
+          numberOfLines={1}
+        >
           {formatUsd(amount, { sign: true })}
         </Txt>
         {claimedOnly ? (
@@ -198,8 +225,13 @@ function Incoming({ item }: { item: OfflineItem }) {
         </Sticker>
         {!settled && !failed ? (
           <Animated.View entering={FadeIn.delay(400)}>
-            <Txt size={13} color={colors.onTint} style={{ textAlign: 'center', lineHeight: 18, paddingHorizontal: 10 }}>
-              Until it settles it can still fail, if {first} doesn’t have the money. It settles on Monad as soon as either of you is online.
+            <Txt
+              size={13}
+              color={colors.onTint}
+              style={{ textAlign: 'center', lineHeight: 18, paddingHorizontal: 10 }}
+            >
+              Until it settles it can still fail, if {first} doesn’t have the money. It settles on
+              Monad as soon as either of you is online.
             </Txt>
           </Animated.View>
         ) : null}
@@ -265,6 +297,12 @@ const styles = StyleSheet.create({
   copy: { alignItems: 'center', paddingHorizontal: 24 },
   facts: { paddingHorizontal: 14, paddingVertical: 12 },
   fact: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  factIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  factIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   factRule: { height: 1, backgroundColor: colors.sunken, marginVertical: 12 },
 })

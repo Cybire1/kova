@@ -1,4 +1,4 @@
-import { formatAmount, offlineCodeFrom, type OfflinePayment } from '@kova/monad'
+import { formatAmount, type OfflinePayment, offlineCodeFrom } from '@kova/monad'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native'
@@ -16,7 +16,9 @@ function useCodeFromUrl() {
   const [code, setCode] = useState<string | null>(null)
   useEffect(() => {
     const take = (url: string | null) => {
-      const found = url ? offlineCodeFrom(url.replace(/^kova:\/\/o#/, 'https://mykova.app/o#')) : null
+      const found = url
+        ? offlineCodeFrom(url.replace(/^kova:\/\/o#/, 'https://mykova.app/o#'))
+        : null
       if (found) setCode(found)
     }
     void Linking.getInitialURL().then(take)
@@ -44,8 +46,10 @@ export default function OpenCode() {
     let live = true
     void accept(code).then((r) => {
       if (!live) return
-      if (r.kind === 'mine') router.replace({ pathname: '/offline/[id]', params: { id: r.item.id, fresh: '1' } })
-      else if (r.kind === 'own' && r.item) router.replace({ pathname: '/offline/[id]', params: { id: r.item.id } })
+      if (r.kind === 'mine')
+        router.replace({ pathname: '/offline/[id]', params: { id: r.item.id, fresh: '1' } })
+      else if (r.kind === 'own' && r.item)
+        router.replace({ pathname: '/offline/[id]', params: { id: r.item.id } })
       else setResult(r)
     })
     return () => {
@@ -75,7 +79,9 @@ export default function OpenCode() {
 
   const p: OfflinePayment | null = result.kind === 'mine' ? null : result.payment
   const amount = p ? `$${formatAmount(p.authorization.value)}` : null
-  const sender = p ? (named(p.authorization.from) ?? p.name ?? short(p.authorization.from)) : 'Someone'
+  const sender = p
+    ? (named(p.authorization.from) ?? p.name ?? short(p.authorization.from))
+    : 'Someone'
   const recipient = p ? (named(p.authorization.to) ?? short(p.authorization.to)) : ''
   const copy =
     result.kind === 'theirs'
@@ -85,11 +91,20 @@ export default function OpenCode() {
           body: `${sender} signed it to ${recipient}${named(p?.authorization.to ?? '') ? ` (${short(p?.authorization.to ?? '')})` : ''}, not this wallet. Only their phone can take it.`,
         }
       : result.kind === 'own'
-        ? { pose: 'wave' as const, title: 'This one’s yours', body: `You signed it to ${recipient}. Show it to them, or share it: it settles on Monad as soon as either phone is online.` }
+        ? {
+            pose: 'wave' as const,
+            title: 'This one’s yours',
+            body: `You signed it to ${recipient}. Show it to them, or share it: it settles on Monad as soon as either phone is online.`,
+          }
         : result.kind === 'invalid'
           ? {
               pose: 'oops' as const,
-              title: result.reason === 'expired' ? 'This code has run out' : result.reason === 'no-wallet' ? 'Make your wallet first' : 'This code doesn’t check out',
+              title:
+                result.reason === 'expired'
+                  ? 'This code has run out'
+                  : result.reason === 'no-wallet'
+                    ? 'Make your wallet first'
+                    : 'This code doesn’t check out',
               body:
                 result.reason === 'bad-signature'
                   ? 'Its signature doesn’t match the wallet it says it’s from. Don’t take it as paid.'
@@ -113,10 +128,18 @@ export default function OpenCode() {
       <View style={styles.center}>
         <Kovi pose={copy.pose} size={150} />
         <Rise style={{ alignItems: 'center', paddingHorizontal: 28 }}>
-          <Txt weight="bold" size={28} style={{ letterSpacing: -0.8, textAlign: 'center', marginTop: 8 }}>
+          <Txt
+            weight="bold"
+            size={28}
+            style={{ letterSpacing: -0.8, textAlign: 'center', marginTop: 8 }}
+          >
             {copy.title}
           </Txt>
-          <Txt size={16} color={colors.onTint} style={{ textAlign: 'center', marginTop: 8, lineHeight: 22 }}>
+          <Txt
+            size={16}
+            color={colors.onTint}
+            style={{ textAlign: 'center', marginTop: 8, lineHeight: 22 }}
+          >
             {copy.body}
           </Txt>
         </Rise>
@@ -158,7 +181,13 @@ export default function OpenCode() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 30 },
-  card: { alignSelf: 'stretch', marginHorizontal: 20, marginTop: 22, paddingHorizontal: 16, paddingVertical: 6 },
+  card: {
+    alignSelf: 'stretch',
+    marginHorizontal: 20,
+    marginTop: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
   footer: { paddingHorizontal: 20, paddingBottom: 12, paddingTop: 8 },
 })

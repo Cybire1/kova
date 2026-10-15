@@ -29,7 +29,9 @@ async function main() {
   if (!key) {
     const fresh = generatePrivateKey()
     appendFileSync(envPath, `KOVA_FEE_PAYER_PRIVATE_KEY=${fresh}\n`, { mode: 0o600 })
-    console.log(`generated a relayer key for ${privateKeyToAccount(fresh).address} in apps/api/.env.monad`)
+    console.log(
+      `generated a relayer key for ${privateKeyToAccount(fresh).address} in apps/api/.env.monad`,
+    )
     console.log('fund it with testnet MON at https://faucet.monad.xyz, then run setup:dev again')
     process.exit(0)
   }
@@ -39,18 +41,35 @@ async function main() {
   if (mon === 0n) console.log('  it needs testnet MON for gas: https://faucet.monad.xyz')
 
   const ausd = getToken('testnet', 'AUSD')
-  const dollars = await publicClient.readContract({ address: ausd.address, abi: eip3009Abi, functionName: 'balanceOf', args: [relayer.address] })
+  const dollars = await publicClient.readContract({
+    address: ausd.address,
+    abi: eip3009Abi,
+    functionName: 'balanceOf',
+    args: [relayer.address],
+  })
   if (dollars === 0n && mon > 0n && walletClient) {
     try {
-      await walletClient.writeContractSync({ address: AUSD_TESTNET_FAUCET, abi: faucetAbi, functionName: 'requestFunds', args: [relayer.address] })
-      console.log('  asked Agora\'s faucet for test AUSD')
+      await walletClient.writeContractSync({
+        address: AUSD_TESTNET_FAUCET,
+        abi: faucetAbi,
+        functionName: 'requestFunds',
+        args: [relayer.address],
+      })
+      console.log("  asked Agora's faucet for test AUSD")
     } catch {
       // Agora's faucet runs dry (it reverts with InsufficientFunds). Everything else still works;
       // test dollars and refunds need AUSD sent to the relayer by hand.
-      console.log(`  Agora's faucet gave nothing (it may be empty): send test AUSD to ${relayer.address} for test dollars`)
+      console.log(
+        `  Agora's faucet gave nothing (it may be empty): send test AUSD to ${relayer.address} for test dollars`,
+      )
     }
   }
-  const funded = await publicClient.readContract({ address: ausd.address, abi: eip3009Abi, functionName: 'balanceOf', args: [relayer.address] })
+  const funded = await publicClient.readContract({
+    address: ausd.address,
+    abi: eip3009Abi,
+    functionName: 'balanceOf',
+    args: [relayer.address],
+  })
   console.log(`  ${formatAmount(funded)} AUSD for refunds`)
 
   // 2. Demo merchant with its own settlement wallet
@@ -88,7 +107,11 @@ async function main() {
 
   // The key goes where the tools that use it read it, never to the terminal.
   const keyFile = join(process.cwd(), '..', 'mobile', '.env.monad')
-  writeFileSync(keyFile, `KOVA_API_KEY=${generated.secret}\nEXPO_PUBLIC_KOVA_API_URL=http://localhost:${config.PORT}\n`, { mode: 0o600 })
+  writeFileSync(
+    keyFile,
+    `KOVA_API_KEY=${generated.secret}\nEXPO_PUBLIC_KOVA_API_URL=http://localhost:${config.PORT}\n`,
+    { mode: 0o600 },
+  )
   console.log(`\nAPI key ${generated.prefix}… saved to apps/mobile/.env.monad (KOVA_API_KEY)`)
   process.exit(0)
 }

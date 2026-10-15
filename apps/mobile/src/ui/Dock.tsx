@@ -41,7 +41,11 @@ export function Dock({ state, navigation }: BottomTabBarProps) {
         accessibilityLabel={tab.label}
         accessibilityState={{ selected: focused }}
         onPress={() => {
-          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true })
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          })
           if (!focused && !event.defaultPrevented) {
             void Haptics.selectionAsync()
             navigation.navigate(route.name)
@@ -51,11 +55,21 @@ export function Dock({ state, navigation }: BottomTabBarProps) {
       >
         <View style={[styles.tab, focused && styles.tabOn]}>
           {tab.icon === 'profile' && profile ? (
-            <View style={[styles.face, { borderColor: focused ? colors.yellow : 'rgba(255,255,255,0.45)' }]}>
+            <View
+              style={[
+                styles.face,
+                { borderColor: focused ? colors.yellow : 'rgba(255,255,255,0.45)' },
+              ]}
+            >
               <Avatar name={profile.name} id={profile.address} size={focused ? 28 : 26} />
             </View>
           ) : (
-            <NavIcon name={tab.icon} active={focused} size={26} color={focused ? colors.ink : 'rgba(255,255,255,0.66)'} />
+            <NavIcon
+              name={tab.icon}
+              active={focused}
+              size={26}
+              color={focused ? colors.ink : 'rgba(255,255,255,0.66)'}
+            />
           )}
         </View>
       </Pressable>
@@ -63,8 +77,16 @@ export function Dock({ state, navigation }: BottomTabBarProps) {
   })
 
   return (
-    <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { top: undefined, height: H + bottom + 60 }]}>
-      <Svg pointerEvents="none" width={width} height={H + bottom + 60} style={StyleSheet.absoluteFill}>
+    <View
+      pointerEvents="box-none"
+      style={[StyleSheet.absoluteFill, { top: undefined, height: H + bottom + 60 }]}
+    >
+      <Svg
+        pointerEvents="none"
+        width={width}
+        height={H + bottom + 60}
+        style={StyleSheet.absoluteFill}
+      >
         <Defs>
           <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={colors.paper} stopOpacity={0} />

@@ -16,11 +16,14 @@ import { KovaError } from './errors.js'
 export const idempotent = createMiddleware(async (c, next) => {
   const key = c.req.header('idempotency-key')?.trim()
   if (!key) return next()
-  if (key.length > 255) throw new KovaError('invalid_request', 'Idempotency-Key is at most 255 characters')
+  if (key.length > 255)
+    throw new KovaError('invalid_request', 'Idempotency-Key is at most 255 characters')
 
   const apiKeyId = c.get('apiKey').id
   const body = await c.req.raw.clone().text()
-  const requestHash = createHash('sha256').update(`${c.req.method} ${c.req.path}\n${body}`).digest('hex')
+  const requestHash = createHash('sha256')
+    .update(`${c.req.method} ${c.req.path}\n${body}`)
+    .digest('hex')
 
   const [claimed] = await db
     .insert(schema.idempotencyKeys)
@@ -30,12 +33,21 @@ export const idempotent = createMiddleware(async (c, next) => {
 
   if (!claimed) {
     const existing = await db.query.idempotencyKeys.findFirst({
-      where: and(eq(schema.idempotencyKeys.apiKeyId, apiKeyId), eq(schema.idempotencyKeys.key, key)),
+      where: and(
+        eq(schema.idempotencyKeys.apiKeyId, apiKeyId),
+        eq(schema.idempotencyKeys.key, key),
+      ),
     })
     if (!existing || existing.requestHash !== requestHash)
-      throw new KovaError('idempotency_conflict', 'This Idempotency-Key was already used with a different request')
+      throw new KovaError(
+        'idempotency_conflict',
+        'This Idempotency-Key was already used with a different request',
+      )
     if (existing.statusCode === null || !existing.response)
-      throw new KovaError('idempotency_conflict', 'A request with this Idempotency-Key is still in progress')
+      throw new KovaError(
+        'idempotency_conflict',
+        'A request with this Idempotency-Key is still in progress',
+      )
     c.header('idempotent-replayed', 'true')
     return c.json(existing.response, existing.statusCode as 200)
   }
@@ -52,6 +64,12 @@ export const idempotent = createMiddleware(async (c, next) => {
     await db.delete(schema.idempotencyKeys).where(eq(schema.idempotencyKeys.id, claimed.id))
     return
   }
-  const response = (await c.res.clone().json().catch(() => null)) as Record<string, unknown> | null
-  await db.update(schema.idempotencyKeys).set({ statusCode: c.res.status, response }).where(eq(schema.idempotencyKeys.id, claimed.id))
+  const response = (await c.res
+    .clone()
+    .json()
+    .catch(() => null)) as Record<string, unknown> | null
+  await db
+    .update(schema.idempotencyKeys)
+    .set({ statusCode: c.res.status, response })
+    .where(eq(schema.idempotencyKeys.id, claimed.id))
 })

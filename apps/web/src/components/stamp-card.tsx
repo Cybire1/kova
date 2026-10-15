@@ -59,7 +59,11 @@ export function StampCard({
   const filled = Math.min(stamps, every)
   const left = every - filled
   return (
-    <section className="stamps" data-ready={ready ? 'true' : undefined} aria-label={`Stamp card at ${shop}`}>
+    <section
+      className="stamps"
+      data-ready={ready ? 'true' : undefined}
+      aria-label={`Stamp card at ${shop}`}
+    >
       <span className="stamps-kovi" aria-hidden="true">
         <Art name="kovi-peek" size={80} />
       </span>
@@ -100,7 +104,11 @@ export function StampCard({
             </li>
           )
         })}
-        <li className="stamp stamp-free" data-on={ready && !justUsed ? 'true' : undefined} aria-label="Then one free">
+        <li
+          className="stamp stamp-free"
+          data-on={ready && !justUsed ? 'true' : undefined}
+          aria-label="Then one free"
+        >
           <Icon name="bag" size={14} />
           <span>Free</span>
         </li>
@@ -110,8 +118,26 @@ export function StampCard({
 }
 
 /** The card after a payment: the stamp it earned, or the fresh card a free item started. */
-export function StampsAfterPay({ slug, shop, usedReward }: { slug: string; shop: string; usedReward: boolean }) {
+export function StampsAfterPay({
+  slug,
+  shop,
+  usedReward,
+}: {
+  slug: string
+  shop: string
+  usedReward: boolean
+}) {
   const { payer, card } = useStampCard(slug)
   if (!payer || !card?.every) return null
-  return <StampCard every={card.every} stamps={card.stamps} ready={card.ready} known shop={shop} fresh={!usedReward} justUsed={usedReward && card.stamps === 0} />
+  return (
+    <StampCard
+      every={card.every}
+      stamps={card.stamps}
+      ready={card.ready}
+      known
+      shop={shop}
+      fresh={!usedReward}
+      justUsed={usedReward && card.stamps === 0}
+    />
+  )
 }

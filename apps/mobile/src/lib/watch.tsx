@@ -44,7 +44,8 @@ function update(checkout: string, change: Partial<Watched>) {
   emit()
 }
 
-const following = (w: Watched) => (w.status === 'new' || w.status === 'preparing') && Date.now() - w.paidAt < FOLLOW_MS
+const following = (w: Watched) =>
+  (w.status === 'new' || w.status === 'preparing') && Date.now() - w.paidAt < FOLLOW_MS
 
 /** Starts following a stall order just paid on this phone, unless it was paid for someone else. */
 export function watchOrder(checkout: Checkout) {
@@ -54,11 +55,16 @@ export function watchOrder(checkout: Checkout) {
     checkout: checkout.id,
     stall: order.stall.name,
     table: order.table ?? null,
-    items: order.lines.map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name)).join(', '),
+    items: order.lines
+      .map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name))
+      .join(', '),
     status: order.status,
     paidAt: Date.now(),
   }
-  watched = [next, ...watched.filter((w) => w.checkout !== checkout.id && Date.now() - w.paidAt < FOLLOW_MS)].slice(0, 10)
+  watched = [
+    next,
+    ...watched.filter((w) => w.checkout !== checkout.id && Date.now() - w.paidAt < FOLLOW_MS),
+  ].slice(0, 10)
   emit()
 }
 
@@ -66,7 +72,8 @@ export function watchOrder(checkout: Checkout) {
 export function useWatchedOrder(checkout: string | undefined): Watched | null {
   const [value, setValue] = useState<Watched | null>(null)
   useEffect(() => {
-    const listener = () => setValue(checkout ? (watched.find((w) => w.checkout === checkout) ?? null) : null)
+    const listener = () =>
+      setValue(checkout ? (watched.find((w) => w.checkout === checkout) ?? null) : null)
     listener()
     listeners.add(listener)
     return () => {
@@ -100,7 +107,9 @@ export function OrderWatcher() {
         update(w.checkout, { status })
       }
       // Announce outside the loop, so an order marked ready while the app was away shows on return.
-      const ready = watched.find((w) => w.status === 'ready' && !w.announced && Date.now() - w.paidAt < FOLLOW_MS)
+      const ready = watched.find(
+        (w) => w.status === 'ready' && !w.announced && Date.now() - w.paidAt < FOLLOW_MS,
+      )
       if (ready && !stopped) {
         update(ready.checkout, { announced: true })
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)

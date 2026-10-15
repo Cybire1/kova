@@ -78,7 +78,11 @@ async function balance(address: `0x${string}`) {
 }
 
 async function newCharge(amount: string): Promise<string> {
-  const { status, body } = await post('/v1/payment_intents', { amount, reference: `card_${amount}` }, true)
+  const { status, body } = await post(
+    '/v1/payment_intents',
+    { amount, reference: `card_${amount}` },
+    true,
+  )
   expect(status).toBe(201)
   return body.id as string
 }
@@ -92,9 +96,17 @@ async function tap(intent: string, pin?: string) {
     domain: td.domain,
     types: td.types,
     primaryType: td.primaryType,
-    message: { ...td.message, amount: BigInt(td.message.amount), deadline: BigInt(td.message.deadline) },
+    message: {
+      ...td.message,
+      amount: BigInt(td.message.amount),
+      deadline: BigInt(td.message.deadline),
+    },
   })
-  const done = await post(`/v1/card_taps/${prepared.body.id}/complete`, { card_signature: cardSignature, pin }, true)
+  const done = await post(
+    `/v1/card_taps/${prepared.body.id}/complete`,
+    { card_signature: cardSignature, pin },
+    true,
+  )
   return { prepared, done }
 }
 
@@ -128,7 +140,11 @@ beforeAll(async () => {
   // $12 into the holder's wallet from Kova's testnet treasury. The holder never holds MON.
   await sendFromRelayer(
     settlementToken.address,
-    encodeFunctionData({ abi: erc20Abi, functionName: 'transfer', args: [holder.address, 12_000_000n] }),
+    encodeFunctionData({
+      abi: erc20Abi,
+      functionName: 'transfer',
+      args: [holder.address, 12_000_000n],
+    }),
   )
 }, 120_000)
 
@@ -150,7 +166,11 @@ describe.skipIf(!ready)('Kova Card on Monad', () => {
       }),
     )
     const cardSignature = await card.signTypedData(
-      claimTypedData(network.chainId, contract, { card: card.address, holder: holder.address, deadline }),
+      claimTypedData(network.chainId, contract, {
+        card: card.address,
+        holder: holder.address,
+        deadline,
+      }),
     )
     const permitNonce = await publicClient.readContract({
       address: settlementToken.address,
@@ -175,7 +195,11 @@ describe.skipIf(!ready)('Kova Card on Monad', () => {
       deadline: Number(deadline),
       holder_signature: holderSignature,
       card_signature: cardSignature,
-      permit: { value: maxUint256.toString(), deadline: Number(deadline), signature: permitSignature },
+      permit: {
+        value: maxUint256.toString(),
+        deadline: Number(deadline),
+        signature: permitSignature,
+      },
       pin: PIN,
     })
     expect(linked.status, JSON.stringify(linked.body)).toBe(201)
@@ -194,7 +218,9 @@ describe.skipIf(!ready)('Kova Card on Monad', () => {
     const { prepared, done } = await tap(intent)
     expect(prepared.body.pin_required).toBe(false)
     expect(done?.status, JSON.stringify(done?.body)).toBe(200)
-    console.log(`card tap paid in ${Math.round(performance.now() - started)}ms · ${done?.body.payment.explorer_url}`)
+    console.log(
+      `card tap paid in ${Math.round(performance.now() - started)}ms · ${done?.body.payment.explorer_url}`,
+    )
 
     expect(await balance(holder.address)).toBe(before - 2_400_000n)
     expect(await balance(shop)).toBe(2_400_000n)
@@ -203,7 +229,11 @@ describe.skipIf(!ready)('Kova Card on Monad', () => {
     expect(charge.body.payment.payer.toLowerCase()).toBe(holder.address.toLowerCase())
 
     // The same signed tap can't pay twice.
-    const again = await post(`/v1/card_taps/${prepared.body.id}/complete`, { card_signature: '0x00' }, true)
+    const again = await post(
+      `/v1/card_taps/${prepared.body.id}/complete`,
+      { card_signature: '0x00' },
+      true,
+    )
     expect(again.status).toBe(409)
   }, 120_000)
 

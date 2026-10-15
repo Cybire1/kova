@@ -9,9 +9,9 @@ import {
   displayCurrencies,
   guessCurrency,
 } from '@/lib/wallet/money'
+import { InAppNote } from './in-app'
 import { useWallet } from './provider'
 import { Avatar } from './ui'
-import { InAppNote } from './in-app'
 
 type Step = { at: 'start' } | { at: 'name' } | { at: 'waiting'; what: 'create' | 'open' }
 

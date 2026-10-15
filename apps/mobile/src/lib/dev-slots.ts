@@ -9,7 +9,12 @@ import * as SecureStore from 'expo-secure-store'
  * stay where they are.
  */
 const SLOT = 'kova.dev.slot.'
-const SHARED = new Set(['kova.prefs.v1', 'kova.rates.v1', 'kova.payfrom.v1', 'kova.send.privately.v1'])
+const SHARED = new Set([
+  'kova.prefs.v1',
+  'kova.rates.v1',
+  'kova.payfrom.v1',
+  'kova.send.privately.v1',
+])
 const secrets = (owner: string) => [
   'kova.dev.prf',
   'kova.monad.vault.v1',
@@ -26,7 +31,10 @@ export async function stashWallet(name: string, owner: string) {
     const value = await SecureStore.getItemAsync(key).catch(() => null)
     if (value) secure[key] = value
   }
-  if (!secure['kova.dev.prf']) throw new Error('Only a dev wallet (fake=1) can be stashed: a passkey wallet’s key never leaves the Keychain.')
+  if (!secure['kova.dev.prf'])
+    throw new Error(
+      'Only a dev wallet (fake=1) can be stashed: a passkey wallet’s key never leaves the Keychain.',
+    )
   await AsyncStorage.setItem(`${SLOT}${name}`, JSON.stringify({ owner, pairs }))
   await SecureStore.setItemAsync(`${SLOT}${name}`, JSON.stringify(secure))
 }
@@ -39,6 +47,7 @@ export async function unstashWallet(name: string): Promise<string> {
   const { owner, pairs } = JSON.parse(raw) as { owner: string; pairs: [string, string | null][] }
   await AsyncStorage.multiRemove((await AsyncStorage.getAllKeys()).filter(own))
   await AsyncStorage.multiSet(pairs.filter((p): p is [string, string] => p[1] !== null))
-  for (const [key, value] of Object.entries(JSON.parse(secure) as Record<string, string>)) await SecureStore.setItemAsync(key, value)
+  for (const [key, value] of Object.entries(JSON.parse(secure) as Record<string, string>))
+    await SecureStore.setItemAsync(key, value)
   return owner
 }

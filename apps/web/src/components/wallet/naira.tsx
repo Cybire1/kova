@@ -139,7 +139,10 @@ export function NairaCashOut() {
       body: JSON.stringify({ account_number: account, bank_code: bank }),
     })
       .then((r) => live && setNamed({ name: r.account_name }))
-      .catch((e) => live && setNamed({ problem: e instanceof Error ? e.message : 'The bank didn’t answer.' }))
+      .catch(
+        (e) =>
+          live && setNamed({ problem: e instanceof Error ? e.message : 'The bank didn’t answer.' }),
+      )
     return () => {
       live = false
     }
@@ -214,7 +217,11 @@ export function NairaCashOut() {
               />
             </span>
             <span className={short ? 'w-naira-help w-naira-bad' : 'w-naira-help'}>
-              {balance === null ? '…' : short ? `You have ${formatUsd(balance)}` : `Available ${formatUsd(balance)}`}
+              {balance === null
+                ? '…'
+                : short
+                  ? `You have ${formatUsd(balance)}`
+                  : `Available ${formatUsd(balance)}`}
             </span>
           </label>
           <label className="w-naira-field">
@@ -278,7 +285,9 @@ export function NairaCashOut() {
           </div>
         </dl>
         <p className="w-fine w-center">
-          {info?.rate_source === 'chainlink' ? 'Chainlink rate on Monad, less 1%.' : 'Market rate, less 1%.'}{' '}
+          {info?.rate_source === 'chainlink'
+            ? 'Chainlink rate on Monad, less 1%.'
+            : 'Market rate, less 1%.'}{' '}
           The quote holds for 15 minutes. If the bank can’t take it, your dollars come back.
         </p>
         {problem ? <p className="form-error">{problem}</p> : null}
@@ -325,9 +334,17 @@ function CashOutResult({ first }: { first: CashOutToPay }) {
   const failed = cashOut.status === 'failed'
   return (
     <div className="w-screen w-moment">
-      <Art name={failed ? 'kovi-oops' : paid ? 'kovi-cheer' : 'kovi-ride'} size={180} className="w-moment-art" />
+      <Art
+        name={failed ? 'kovi-oops' : paid ? 'kovi-cheer' : 'kovi-ride'}
+        size={180}
+        className="w-moment-art"
+      />
       <h1 className="w-hero-title">
-        {paid ? 'Sent to your bank.' : failed ? 'Your dollars came back.' : 'On its way to your bank.'}
+        {paid
+          ? 'Sent to your bank.'
+          : failed
+            ? 'Your dollars came back.'
+            : 'On its way to your bank.'}
       </h1>
       <p className="w-lead">
         {paid
@@ -428,7 +445,8 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
       </div>
     )
 
-  const ok = DOLLARS.test(amount) && Number(amount) >= 1 && Number(amount) <= 500 && /.+@.+\..+/.test(email)
+  const ok =
+    DOLLARS.test(amount) && Number(amount) >= 1 && Number(amount) <= 500 && /.+@.+\..+/.test(email)
   const start = async () => {
     if (!profile || !ok) return
     setBusy(true)
@@ -439,10 +457,17 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
       } catch {
         // Not remembered; fine.
       }
-      const started = await json<TopUp & { url: string }>(`/api/naira/wallets/${profile.address}/naira-top-ups`, {
-        method: 'POST',
-        body: JSON.stringify({ amount, email, return_url: `${window.location.origin}/wallet/add/naira` }),
-      })
+      const started = await json<TopUp & { url: string }>(
+        `/api/naira/wallets/${profile.address}/naira-top-ups`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            amount,
+            email,
+            return_url: `${window.location.origin}/wallet/add/naira`,
+          }),
+        },
+      )
       window.location.assign(started.url)
     } catch (e) {
       setBusy(false)
@@ -457,8 +482,8 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
         <Art name="kovi-catch" size={96} className="w-add-art" />
         <h1 className="w-title">From your bank, in naira</h1>
         <p className="w-lead">
-          Pay naira by bank transfer, card or USSD with Paystack. The dollars land in this wallet
-          as soon as Paystack confirms it.
+          Pay naira by bank transfer, card or USSD with Paystack. The dollars land in this wallet as
+          soon as Paystack confirms it.
         </p>
         <div className="w-naira-form">
           <label className="w-naira-field">
@@ -517,7 +542,9 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
           disabled={!ok || !quote || busy}
           onClick={() => void start()}
         >
-          <span className="pill-label">{busy ? 'Opening Paystack…' : quote ? `Pay ${quote.naira}` : 'Pay with Paystack'}</span>
+          <span className="pill-label">
+            {busy ? 'Opening Paystack…' : quote ? `Pay ${quote.naira}` : 'Pay with Paystack'}
+          </span>
           <span className="pill-cap">
             <Icon name="arrow" size={18} />
           </span>
@@ -537,7 +564,9 @@ function TopUpReturn({ reference }: { reference: string }) {
 
   const verify = useCallback(async () => {
     try {
-      const checked = await json<TopUp>(`/api/naira/naira-top-ups/${reference}/verify`, { method: 'POST' })
+      const checked = await json<TopUp>(`/api/naira/naira-top-ups/${reference}/verify`, {
+        method: 'POST',
+      })
       setTopUp(checked)
       if (checked.status === 'settled' && profile) void refresh()
     } catch (e) {
@@ -550,7 +579,8 @@ function TopUpReturn({ reference }: { reference: string }) {
   }, [verify])
 
   useEffect(() => {
-    if (!topUp || (topUp.status !== 'initialized' && topUp.status !== 'paid') || tries.current > 20) return
+    if (!topUp || (topUp.status !== 'initialized' && topUp.status !== 'paid') || tries.current > 20)
+      return
     const timer = setTimeout(() => {
       tries.current += 1
       void verify()

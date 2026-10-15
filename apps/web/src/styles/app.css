@@ -29,7 +29,9 @@
   font-size: 0.875rem;
   font-weight: 700;
   text-decoration: none;
-  transition: background-color 0.3s var(--spring), transform 0.4s var(--spring);
+  transition:
+    background-color 0.3s var(--spring),
+    transform 0.4s var(--spring);
 }
 
 .shop-back:hover {
@@ -482,7 +484,9 @@
 .row-go {
   color: var(--muted);
   opacity: 0.5;
-  transition: transform 0.35s var(--spring), opacity 0.2s;
+  transition:
+    transform 0.35s var(--spring),
+    opacity 0.2s;
 }
 
 .row:hover .row-go {
@@ -907,7 +911,9 @@
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, 0.3rem);
-  transition: opacity 0.2s, transform 0.3s var(--spring);
+  transition:
+    opacity 0.2s,
+    transform 0.3s var(--spring);
 }
 
 .dc-tip strong {
@@ -1116,7 +1122,9 @@
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
 }
 
 .src-first:hover {
@@ -1432,7 +1440,8 @@
     flex: none;
     height: 0.625rem;
     margin-top: -1px;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='10' viewBox='0 0 16 10'%3E%3Cpath d='M0 0 8 8 16 0z' fill='%23f8f7f3'/%3E%3Cpath d='M0 0 8 8 16 0' fill='none' stroke='%230b1a1d' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E")
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='10' viewBox='0 0 16 10'%3E%3Cpath d='M0 0 8 8 16 0z' fill='%23f8f7f3'/%3E%3Cpath d='M0 0 8 8 16 0' fill='none' stroke='%230b1a1d' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E")
       0 0 / 16px 100% round no-repeat;
   }
 
@@ -1775,7 +1784,13 @@
     border: 0;
     border-radius: 0;
     background: none;
-    mask-image: linear-gradient(to right, transparent, #000 1rem, #000 calc(100% - 2rem), transparent);
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      #000 1rem,
+      #000 calc(100% - 2rem),
+      transparent
+    );
   }
 
   .filter {
@@ -1990,18 +2005,24 @@
   margin-top: 0.15rem;
   border-radius: 50%;
   background: var(--teal);
-  box-shadow: inset 0 0 0 3px var(--surface), 0 0 0 2px var(--teal);
+  box-shadow:
+    inset 0 0 0 3px var(--surface),
+    0 0 0 2px var(--teal);
 }
 
 .timeline li[data-state="now"] .timeline-dot {
   background: var(--coral);
-  box-shadow: inset 0 0 0 3px var(--surface), 0 0 0 2px var(--coral);
+  box-shadow:
+    inset 0 0 0 3px var(--surface),
+    0 0 0 2px var(--coral);
   animation: breathe 2.2s var(--spring) infinite;
 }
 
 .timeline li[data-state="off"] .timeline-dot {
   background: var(--sunken);
-  box-shadow: inset 0 0 0 3px var(--surface), 0 0 0 2px var(--muted);
+  box-shadow:
+    inset 0 0 0 3px var(--surface),
+    0 0 0 2px var(--muted);
 }
 
 .timeline strong {
@@ -2113,6 +2134,10 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--muted);
@@ -2685,7 +2710,9 @@
   color: var(--ink);
   font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
 }
 
 .tcard-add:hover {

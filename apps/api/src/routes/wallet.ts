@@ -2,9 +2,9 @@ import { schema, uuidv7 } from '@kova/db'
 import {
   AUSD_TESTNET_FAUCET,
   decodeMemo,
+  eip3009Abi,
   explorerTxUrl,
   formatAmount,
-  eip3009Abi,
   noteKeyMessage,
   OFFLINE_MAX,
   OFFLINE_VALIDITY,
@@ -122,8 +122,14 @@ async function nairaMovesFor(rows: TransferRow[]): Promise<NairaMoves> {
   const hashes = [...new Set(rows.map((r) => r.txHash))]
   if (hashes.length === 0) return new Map()
   const [topUps, refunds] = await Promise.all([
-    db.select({ txHash: schema.nairaTopUps.txHash }).from(schema.nairaTopUps).where(inArray(schema.nairaTopUps.txHash, hashes)),
-    db.select({ txHash: schema.cashOuts.refundTxHash }).from(schema.cashOuts).where(inArray(schema.cashOuts.refundTxHash, hashes)),
+    db
+      .select({ txHash: schema.nairaTopUps.txHash })
+      .from(schema.nairaTopUps)
+      .where(inArray(schema.nairaTopUps.txHash, hashes)),
+    db
+      .select({ txHash: schema.cashOuts.refundTxHash })
+      .from(schema.cashOuts)
+      .where(inArray(schema.cashOuts.refundTxHash, hashes)),
   ])
   const moves: NairaMoves = new Map()
   for (const t of topUps) if (t.txHash) moves.set(t.txHash, 'top_up')
@@ -131,7 +137,12 @@ async function nairaMovesFor(rows: TransferRow[]): Promise<NairaMoves> {
   return moves
 }
 
-function serializeTransfer(row: TransferRow, shops: Shops = new Map(), notes: Notes = new Map(), naira: NairaMoves = new Map()) {
+function serializeTransfer(
+  row: TransferRow,
+  shops: Shops = new Map(),
+  notes: Notes = new Map(),
+  naira: NairaMoves = new Map(),
+) {
   const memo = row.nonce ? decodeMemo(row.nonce as Hex) : null
   const token = tokenByAddress(config.KOVA_NETWORK, row.tokenAddress as Address)
   return {
@@ -207,9 +218,15 @@ export const walletRoutes = new Hono()
       throw new KovaError('invalid_request', 'That note isn’t sealed the way Kova expects.')
     // A private send: the dollars go to a one-time address made for the recipient, and this is
     // what they need to find it. Kova publishes it with no recipient (GET /public/stealth/announcements).
-    const stealth = body?.stealth === undefined || body.stealth === null ? null : stealthBody.safeParse(body.stealth)
+    const stealth =
+      body?.stealth === undefined || body.stealth === null
+        ? null
+        : stealthBody.safeParse(body.stealth)
     if (stealth && !stealth.success)
-      throw new KovaError('invalid_request', 'A private send needs { ephemeral_public_key, view_tag } and, if any, a sealed memo.')
+      throw new KovaError(
+        'invalid_request',
+        'A private send needs { ephemeral_public_key, view_tag } and, if any, a sealed memo.',
+      )
     const { authorization, signature } = signed
     const token = tokenByAddress(config.KOVA_NETWORK, signed.token)
     if (!token) throw new KovaError('invalid_request', 'Kova only sends the dollars it settles in.')
@@ -223,7 +240,10 @@ export const walletRoutes = new Hono()
     const offline = body?.offline === true
     if (offline) {
       if (authorization.validAfter !== 0n)
-        throw new KovaError('invalid_request', 'An offline payment is valid from the moment it’s signed.')
+        throw new KovaError(
+          'invalid_request',
+          'An offline payment is valid from the moment it’s signed.',
+        )
       if (authorization.value > OFFLINE_MAX)
         throw new KovaError('policy_declined', 'An offline payment carries $100 at most.')
       if (authorization.validBefore > now + OFFLINE_VALIDITY + 600n)
@@ -291,7 +311,10 @@ export const walletRoutes = new Hono()
     if (!isAddress(from) || !/^0x[0-9a-f]{64}$/.test(nonce))
       throw new KovaError('invalid_request', 'Expected a sender address and a 32-byte nonce.')
     const tokenParam = c.req.query('token')
-    const token = tokenParam && isAddress(tokenParam) ? tokenByAddress(config.KOVA_NETWORK, getAddress(tokenParam)) : settlementToken
+    const token =
+      tokenParam && isAddress(tokenParam)
+        ? tokenByAddress(config.KOVA_NETWORK, getAddress(tokenParam))
+        : settlementToken
     if (!token) throw new KovaError('invalid_request', 'Kova doesn’t know that dollar.')
     const row = await db.query.transfers.findFirst({
       where: and(
@@ -310,9 +333,20 @@ export const walletRoutes = new Hono()
       })
     // Not in Kova's index yet: the token itself knows whether the authorization was used.
     const used = await publicClient
-      .readContract({ address: token.address, abi: eip3009Abi, functionName: 'authorizationState', args: [getAddress(from), nonce as Hex] })
+      .readContract({
+        address: token.address,
+        abi: eip3009Abi,
+        functionName: 'authorizationState',
+        args: [getAddress(from), nonce as Hex],
+      })
       .catch(() => null)
-    return c.json({ object: 'offline_payment', status: used ? 'settled' : 'waiting', tx_hash: null, explorer_url: null, settled_at: null })
+    return c.json({
+      object: 'offline_payment',
+      status: used ? 'settled' : 'waiting',
+      tx_hash: null,
+      explorer_url: null,
+      settled_at: null,
+    })
   })
   .get('/wallets/:address/transfers', async (c) => {
     const address = c.req.param('address')
@@ -349,7 +383,11 @@ export const walletRoutes = new Hono()
     const last = rows.at(-1)
     const cursor =
       rows.length === page && last ? last.blockNumber - 1n : (through ?? BigInt(afterText))
-    const [shops, notes, naira] = await Promise.all([shopsPaid(rows), notesFor(rows), nairaMovesFor(rows)])
+    const [shops, notes, naira] = await Promise.all([
+      shopsPaid(rows),
+      notesFor(rows),
+      nairaMovesFor(rows),
+    ])
     return c.json({
       object: 'list',
       data: rows.map((row) => serializeTransfer(row, shops, notes, naira)),
@@ -364,14 +402,23 @@ export const walletRoutes = new Hono()
       where: eq(schema.walletStealthKeys.address, address.toLowerCase()),
     })
     if (!key) throw notFound('private receiving key', address)
-    return c.json({ object: 'stealth_key', address, meta_address: key.metaAddress, signature: key.signature })
+    return c.json({
+      object: 'stealth_key',
+      address,
+      meta_address: key.metaAddress,
+      signature: key.signature,
+    })
   })
   .put('/wallets/:address/stealth', async (c) => {
     const address = walletAddress(c)
     const parsed = z
-      .object({ meta_address: z.string().max(200), signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/) })
+      .object({
+        meta_address: z.string().max(200),
+        signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/),
+      })
       .safeParse(await c.req.json().catch(() => ({})))
-    if (!parsed.success) throw new KovaError('invalid_request', 'Expected { meta_address, signature }.')
+    if (!parsed.success)
+      throw new KovaError('invalid_request', 'Expected { meta_address, signature }.')
     const { meta_address, signature } = parsed.data
     try {
       parseStealthMetaAddress(meta_address)
@@ -383,8 +430,16 @@ export const walletRoutes = new Hono()
       signature: signature as Hex,
     }).catch(() => null)
     if (!signer || !isAddressEqual(signer, address))
-      throw new KovaError('forbidden', 'Only the wallet itself can publish its private receiving key.')
-    limit(`stealth-key:${address.toLowerCase()}`, 20, 3_600_000, 'That’s a lot of new keys in an hour. Try again later.')
+      throw new KovaError(
+        'forbidden',
+        'Only the wallet itself can publish its private receiving key.',
+      )
+    limit(
+      `stealth-key:${address.toLowerCase()}`,
+      20,
+      3_600_000,
+      'That’s a lot of new keys in an hour. Try again later.',
+    )
     await db
       .insert(schema.walletStealthKeys)
       .values({ address: address.toLowerCase(), metaAddress: meta_address, signature })

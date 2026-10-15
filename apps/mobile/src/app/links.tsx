@@ -1,12 +1,29 @@
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Share, StyleSheet, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Share,
+  StyleSheet,
+  View,
+} from 'react-native'
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated'
 import type { Hex } from 'viem'
 import { linksFrom, type PaymentLink, recordLink } from '@/lib/chain'
 import { formatUsd, toBase } from '@/lib/money'
-import { linkKey, linkUrl, plainUsd, type SavedLink, savedLinks, setLinkId, shareMessage } from '@/lib/paylinks'
+import {
+  linkKey,
+  linkUrl,
+  plainUsd,
+  type SavedLink,
+  savedLinks,
+  setLinkId,
+  shareMessage,
+} from '@/lib/paylinks'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Kovi } from '@/ui/art'
@@ -63,7 +80,11 @@ export default function Links() {
     try {
       const remote = await linksFrom(profile.address)
       const withKeys = await Promise.all(
-        remote.map(async (link) => ({ kind: 'link' as const, link, key: link.status === 'open' ? await linkKey(link.link_address) : null })),
+        remote.map(async (link) => ({
+          kind: 'link' as const,
+          link,
+          key: link.status === 'open' ? await linkKey(link.link_address) : null,
+        })),
       )
       const known = new Set(remote.map((l) => l.link_address.toLowerCase()))
       const pending = local
@@ -104,41 +125,70 @@ export default function Links() {
 
   const confirmBack = (link: PaymentLink) => {
     void Haptics.selectionAsync()
-    Alert.alert(`Take back ${plainUsd(toBase(link.amount))}?`, 'The link stops working and the dollars come back to your balance.', [
-      { text: 'Keep it', style: 'cancel' },
-      {
-        text: 'Take it back',
-        style: 'destructive',
-        onPress: () => {
-          setWorking(link.id)
-          void takeBack(link)
-            .then((back) => {
-              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-              setRows((prev) => prev?.map((r) => (r.kind === 'link' && r.link.id === back.id ? { kind: 'link', link: back, key: null } : r)) ?? null)
-            })
-            .catch((error) => {
-              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
-              setProblem(error instanceof Error ? error.message : 'The dollars didn’t move.')
-              void load()
-            })
-            .finally(() => setWorking(null))
+    Alert.alert(
+      `Take back ${plainUsd(toBase(link.amount))}?`,
+      'The link stops working and the dollars come back to your balance.',
+      [
+        { text: 'Keep it', style: 'cancel' },
+        {
+          text: 'Take it back',
+          style: 'destructive',
+          onPress: () => {
+            setWorking(link.id)
+            void takeBack(link)
+              .then((back) => {
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+                setRows(
+                  (prev) =>
+                    prev?.map((r) =>
+                      r.kind === 'link' && r.link.id === back.id
+                        ? { kind: 'link', link: back, key: null }
+                        : r,
+                    ) ?? null,
+                )
+              })
+              .catch((error) => {
+                void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+                setProblem(error instanceof Error ? error.message : 'The dollars didn’t move.')
+                void load()
+              })
+              .finally(() => setWorking(null))
+          },
         },
-      },
-    ])
+      ],
+    )
   }
 
   const shareAgain = (link: PaymentLink, key: Hex) =>
-    void Share.share({ message: shareMessage(profile?.name ?? '', toBase(link.amount), linkUrl(link.id, key), link.note) })
+    void Share.share({
+      message: shareMessage(
+        profile?.name ?? '',
+        toBase(link.amount),
+        linkUrl(link.id, key),
+        link.note,
+      ),
+    })
 
   const waiting = rows?.filter((r) => r.kind === 'pending' || r.link.status === 'open') ?? []
   const done = rows?.filter((r) => r.kind === 'link' && r.link.status !== 'open') ?? []
 
   return (
     <Screen edges={['top']}>
-      <Header title="Your links" right={<RoundButton icon="plus" label="New link" onPress={() => router.push('/send/link')} />} />
+      <Header
+        title="Your links"
+        right={
+          <RoundButton icon="plus" label="New link" onPress={() => router.push('/send/link')} />
+        }
+      />
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 48 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.ink} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void refresh()}
+            tintColor={colors.ink}
+          />
+        }
       >
         {rows === null ? (
           <View style={styles.loading}>
@@ -150,14 +200,28 @@ export default function Links() {
             <Txt weight="bold" size={24} style={{ marginTop: 6, letterSpacing: -0.6 }}>
               No links yet
             </Txt>
-            <Txt size={15} color={colors.muted} style={{ textAlign: 'center', marginTop: 6, lineHeight: 21 }}>
-              Send dollars to anyone with a link, even if they don’t have Kova. They tap it and claim them.
+            <Txt
+              size={15}
+              color={colors.muted}
+              style={{ textAlign: 'center', marginTop: 6, lineHeight: 21 }}
+            >
+              Send dollars to anyone with a link, even if they don’t have Kova. They tap it and
+              claim them.
             </Txt>
             <View style={{ alignSelf: 'stretch', marginTop: 22 }}>
-              <PillButton label="Send as a link" icon="send" onPress={() => router.push('/send/link')} />
+              <PillButton
+                label="Send as a link"
+                icon="send"
+                onPress={() => router.push('/send/link')}
+              />
             </View>
             {problem ? (
-              <Txt weight="medium" size={14} color={colors.danger} style={{ marginTop: 14, textAlign: 'center' }}>
+              <Txt
+                weight="medium"
+                size={14}
+                color={colors.danger}
+                style={{ marginTop: 14, textAlign: 'center' }}
+              >
                 {problem}
               </Txt>
             ) : null}
@@ -214,12 +278,28 @@ export default function Links() {
                 <LinkCard
                   key={r.link.id}
                   link={r.link}
-                  onOpen={() => router.push({ pathname: '/c/[id]', params: { id: r.link.id, ...(r.key ? { key: r.key } : {}) } })}
+                  onOpen={() =>
+                    router.push({
+                      pathname: '/c/[id]',
+                      params: { id: r.link.id, ...(r.key ? { key: r.key } : {}) },
+                    })
+                  }
                   actions={
                     <View style={styles.actions}>
-                      {r.key ? <SmallButton icon="share" label="Share again" onPress={() => shareAgain(r.link, r.key as Hex)} /> : null}
                       {r.key ? (
-                        <SmallButton icon="receive" label="Take it back" busy={working === r.link.id} onPress={() => confirmBack(r.link)} />
+                        <SmallButton
+                          icon="share"
+                          label="Share again"
+                          onPress={() => shareAgain(r.link, r.key as Hex)}
+                        />
+                      ) : null}
+                      {r.key ? (
+                        <SmallButton
+                          icon="receive"
+                          label="Take it back"
+                          busy={working === r.link.id}
+                          onPress={() => confirmBack(r.link)}
+                        />
                       ) : (
                         <Txt size={13} color={colors.muted} style={{ flex: 1 }}>
                           Made on another device. Open the link there to take it back.
@@ -237,7 +317,13 @@ export default function Links() {
               </Txt>
             ) : null}
             {done.map((r) =>
-              r.kind === 'link' ? <LinkCard key={r.link.id} link={r.link} onOpen={() => router.push({ pathname: '/c/[id]', params: { id: r.link.id } })} /> : null,
+              r.kind === 'link' ? (
+                <LinkCard
+                  key={r.link.id}
+                  link={r.link}
+                  onOpen={() => router.push({ pathname: '/c/[id]', params: { id: r.link.id } })}
+                />
+              ) : null,
             )}
           </>
         )}
@@ -246,15 +332,36 @@ export default function Links() {
   )
 }
 
-function LinkCard({ link, actions, onOpen }: { link: PaymentLink; actions?: ReactNode; onOpen: () => void }) {
+function LinkCard({
+  link,
+  actions,
+  onOpen,
+}: {
+  link: PaymentLink
+  actions?: ReactNode
+  onOpen: () => void
+}) {
   const open = link.status === 'open'
   const back = link.status === 'returned'
   return (
-    <Animated.View layout={LinearTransition} style={[styles.card, !open && { backgroundColor: colors.paper }]}>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${formatUsd(toBase(link.amount))} link, ${link.status}`} onPress={onOpen} style={styles.cardTop}>
+    <Animated.View
+      layout={LinearTransition}
+      style={[styles.card, !open && { backgroundColor: colors.paper }]}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${formatUsd(toBase(link.amount))} link, ${link.status}`}
+        onPress={onOpen}
+        style={styles.cardTop}
+      >
         <EnvelopeBadge tone={open ? 'coral' : back ? 'muted' : 'teal'} />
         <View style={{ flex: 1 }}>
-          <Txt weight="bold" size={20} color={open ? colors.ink : colors.onTint} style={back ? { textDecorationLine: 'line-through' } : null}>
+          <Txt
+            weight="bold"
+            size={20}
+            color={open ? colors.ink : colors.onTint}
+            style={back ? { textDecorationLine: 'line-through' } : null}
+          >
             {formatUsd(toBase(link.amount))}
           </Txt>
           <Txt size={13} color={colors.muted} numberOfLines={1}>
@@ -262,7 +369,9 @@ function LinkCard({ link, actions, onOpen }: { link: PaymentLink; actions?: Reac
           </Txt>
         </View>
         <Status
-          label={open ? 'Waiting' : back ? 'Taken back' : `Claimed by ${short(link.claimed_by ?? '')}`}
+          label={
+            open ? 'Waiting' : back ? 'Taken back' : `Claimed by ${short(link.claimed_by ?? '')}`
+          }
           fill={open ? colors.coralSoft : back ? colors.sunken : colors.tealSoft}
         />
       </Pressable>
@@ -292,7 +401,17 @@ function Stat({ dot, label }: { dot: string; label: string }) {
   )
 }
 
-function SmallButton({ icon, label, onPress, busy }: { icon: IconName; label: string; onPress: () => void; busy?: boolean }) {
+function SmallButton({
+  icon,
+  label,
+  onPress,
+  busy,
+}: {
+  icon: IconName
+  label: string
+  onPress: () => void
+  busy?: boolean
+}) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -301,7 +420,11 @@ function SmallButton({ icon, label, onPress, busy }: { icon: IconName; label: st
       onPress={onPress}
       style={({ pressed }) => [styles.small, pressed && { transform: [{ scale: 0.96 }] }]}
     >
-      {busy ? <ActivityIndicator size="small" color={colors.ink} /> : <Icon name={icon} size={16} />}
+      {busy ? (
+        <ActivityIndicator size="small" color={colors.ink} />
+      ) : (
+        <Icon name={icon} size={16} />
+      )}
       <Txt weight="semi" size={14}>
         {busy ? 'Taking it back' : label}
       </Txt>
@@ -314,11 +437,32 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 8 },
   summary: { marginTop: 10, borderRadius: 28, backgroundColor: colors.ink, padding: 18, gap: 2 },
   summaryRow: { flexDirection: 'row', gap: 16, marginTop: 8 },
-  problem: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, padding: 12, borderRadius: 16, backgroundColor: colors.coralSoft },
+  problem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: colors.coralSoft,
+  },
   section: { marginTop: 22, marginBottom: 8, marginLeft: 4 },
-  card: { marginBottom: 10, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, padding: 12 },
+  card: {
+    marginBottom: 10,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    padding: 12,
+  },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  status: { height: 26, paddingHorizontal: 10, borderRadius: 13, justifyContent: 'center', maxWidth: 150 },
+  status: {
+    height: 26,
+    paddingHorizontal: 10,
+    borderRadius: 13,
+    justifyContent: 'center',
+    maxWidth: 150,
+  },
   actions: { flexDirection: 'row', gap: 8, marginTop: 12, alignItems: 'center' },
   small: {
     flex: 1,

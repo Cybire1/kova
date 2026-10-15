@@ -1,6 +1,16 @@
 import * as SecureStore from 'expo-secure-store'
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react'
-import type { CreatedTrip, ExtraBag, FlightOffer, FlightSearch, Money, StayDetail, StayRate, StaySearch, Trip } from './api'
+import type {
+  CreatedTrip,
+  ExtraBag,
+  FlightOffer,
+  FlightSearch,
+  Money,
+  StayDetail,
+  StayRate,
+  StaySearch,
+  Trip,
+} from './api'
 import { load, save } from './storage'
 
 /**
@@ -72,10 +82,19 @@ export function TravelProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const remember = useCallback(async (trip: CreatedTrip) => {
-    await SecureStore.setItemAsync(tokenKey(trip.id), trip.token, { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY })
+    await SecureStore.setItemAsync(tokenKey(trip.id), trip.token, {
+      keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+    })
     setTrips((prev) => {
       const next = [
-        { id: trip.id, kind: trip.kind, title: trip.summary.title, subtitle: trip.summary.subtitle, image: trip.summary.provider.image, created_at: trip.created_at },
+        {
+          id: trip.id,
+          kind: trip.kind,
+          title: trip.summary.title,
+          subtitle: trip.summary.subtitle,
+          image: trip.summary.provider.image,
+          created_at: trip.created_at,
+        },
         ...prev.filter((t) => t.id !== trip.id),
       ].slice(0, 50)
       void save(LIST, next)
@@ -83,9 +102,14 @@ export function TravelProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const tokenFor = useCallback((id: string) => SecureStore.getItemAsync(tokenKey(id)).catch(() => null), [])
+  const tokenFor = useCallback(
+    (id: string) => SecureStore.getItemAsync(tokenKey(id)).catch(() => null),
+    [],
+  )
 
-  return <Ctx.Provider value={{ draft, setDraft, trips, remember, tokenFor }}>{children}</Ctx.Provider>
+  return (
+    <Ctx.Provider value={{ draft, setDraft, trips, remember, tokenFor }}>{children}</Ctx.Provider>
+  )
 }
 
 // --- formatting ----------------------------------------------------------------------------
@@ -97,14 +121,24 @@ export const clock = (iso: string | null | undefined) => (iso ? iso.slice(11, 16
 export function day(iso: string | null | undefined) {
   if (!iso) return ''
   const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
-  return new Date(Date.UTC(y ?? 2026, (m ?? 1) - 1, d ?? 1)).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+  return new Date(Date.UTC(y ?? 2026, (m ?? 1) - 1, d ?? 1)).toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  })
 }
 
-export const hours = (minutes: number | null | undefined) => (minutes == null ? '' : `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`)
+export const hours = (minutes: number | null | undefined) =>
+  minutes == null ? '' : `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`
 
 /** Days between two ISO dates. */
 export function nights(checkIn: string, checkOut: string) {
-  return Math.round((Date.parse(`${checkOut.slice(0, 10)}T00:00:00Z`) - Date.parse(`${checkIn.slice(0, 10)}T00:00:00Z`)) / 86_400_000)
+  return Math.round(
+    (Date.parse(`${checkOut.slice(0, 10)}T00:00:00Z`) -
+      Date.parse(`${checkIn.slice(0, 10)}T00:00:00Z`)) /
+      86_400_000,
+  )
 }
 
 /** The next day after `iso`, as YYYY-MM-DD. */

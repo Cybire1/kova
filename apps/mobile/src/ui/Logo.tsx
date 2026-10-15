@@ -36,11 +36,30 @@ export function LogoMark({
 }
 
 /** The wordmark, drawn in the mark's stroke. `height` is the full height including the k's ascender. */
-export function Wordmark({ height = 28, ink = colors.ink, coin = colors.coral }: { height?: number; ink?: string; coin?: string }) {
+export function Wordmark({
+  height = 28,
+  ink = colors.ink,
+  coin = colors.coral,
+}: {
+  height?: number
+  ink?: string
+  coin?: string
+}) {
   const w = 15.5
-  const line = { stroke: ink, strokeWidth: w, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' }
+  const line = {
+    stroke: ink,
+    strokeWidth: w,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    fill: 'none',
+  }
   return (
-    <Svg width={(height * 252) / 100} height={height} viewBox="0 0 252 100" accessibilityLabel="Kova">
+    <Svg
+      width={(height * 252) / 100}
+      height={height}
+      viewBox="0 0 252 100"
+      accessibilityLabel="Kova"
+    >
       <Path d="M8 8 V92" {...line} />
       <Path d="M12 70 L40 38" {...line} />
       <Path d="M26 56 L44 92" {...line} />

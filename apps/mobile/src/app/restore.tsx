@@ -8,8 +8,8 @@ import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { KeyScene } from '@/ui/art'
 import { Bob } from '@/ui/motion'
-import { Header, PillButton, Rise, Screen, TextLink, Txt } from '@/ui/primitives'
 import { ProfileForm } from '@/ui/ProfileForm'
+import { Header, PillButton, Rise, Screen, TextLink, Txt } from '@/ui/primitives'
 
 /**
  * A wallet coming back: on a new phone, or this one after it was removed. The passkey from
@@ -49,7 +49,10 @@ export default function Restore() {
   if (step === 'name')
     return (
       <Screen bg={colors.paper}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <Header />
           <ProfileForm
             heading="Your wallet is back."
@@ -81,7 +84,8 @@ export default function Restore() {
           Welcome back.
         </Txt>
         <Txt size={17} color={colors.onTint} style={styles.body}>
-          Use the passkey you made with Kova. iCloud Keychain brings it to this phone, and your wallet comes with it.
+          Use the passkey you made with Kova. iCloud Keychain brings it to this phone, and your
+          wallet comes with it.
         </Txt>
         {problem ? (
           <Txt weight="medium" size={15} color={colors.danger} style={{ marginTop: 12 }}>

@@ -15,8 +15,8 @@ import { Icon, type IconName } from '../Icon'
 import { Keypad } from '../Keypad'
 import { Envelope } from '../LinkParts'
 import { Burst } from '../motion'
-import { PillButton, TextLink, Txt } from '../primitives'
 import { spendLabel, TopUpLine, usePaymentRoute } from '../Private'
+import { PillButton, TextLink, Txt } from '../primitives'
 import { SlideToSend } from './SlideToSend'
 
 type Step = 'amount' | 'review' | 'made'
@@ -31,7 +31,11 @@ const SIDE = 20
 /** Development only: dev-link links already made this run. */
 const autoMade = new Set<string>()
 
-export function LinkSheet({ start }: { start?: { amount?: string; note?: string; autoSend?: boolean } } = {}) {
+export function LinkSheet({
+  start,
+}: {
+  start?: { amount?: string; note?: string; autoSend?: boolean }
+} = {}) {
   const { profile, balance, makeLink } = useWallet()
   const { width } = useWindowDimensions()
   const [step, setStep] = useState<Step>(start?.amount ? 'review' : 'amount')
@@ -120,7 +124,12 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
                 For anyone, even without Kova
               </Txt>
             </View>
-            <Pressable accessibilityRole="button" onPress={() => router.replace('/links')} hitSlop={8} style={styles.mine}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.replace('/links')}
+              hitSlop={8}
+              style={styles.mine}
+            >
               <Txt weight="semi" size={13}>
                 Your links
               </Txt>
@@ -128,7 +137,13 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
           </View>
 
           <View style={styles.entry}>
-            <Txt weight="semi" size={64} style={[styles.big, typed === '' && { color: '#B4B9B8' }]} numberOfLines={1} adjustsFontSizeToFit>
+            <Txt
+              weight="semi"
+              size={64}
+              style={[styles.big, typed === '' && { color: '#B4B9B8' }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
               ${groupTyped(typed)}
             </Txt>
             {have !== null ? (
@@ -153,7 +168,11 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
           </View>
           <Keypad onKey={(key) => setTyped((v) => applyKey(v, key))} size={56} />
           <View style={{ marginTop: 14 }}>
-            <PillButton label={over ? 'More than you have' : 'Review'} disabled={amount === 0n || over} onPress={() => moveTo('review')} />
+            <PillButton
+              label={over ? 'More than you have' : 'Review'}
+              disabled={amount === 0n || over}
+              onPress={() => moveTo('review')}
+            />
           </View>
         </Animated.View>
       ) : null}
@@ -161,21 +180,39 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
       {step === 'review' ? (
         <Animated.View key="review" entering={enter} style={pad}>
           <View style={styles.top}>
-            <Round icon="back" label="Change the amount" onPress={() => moveTo('amount')} disabled={busy} />
+            <Round
+              icon="back"
+              label="Change the amount"
+              onPress={() => moveTo('amount')}
+              disabled={busy}
+            />
             <Txt weight="semi" size={17} style={{ flex: 1 }}>
               {busy ? 'Putting it in the link' : 'Check and make the link'}
             </Txt>
           </View>
 
           <View style={{ alignItems: 'center', marginTop: 10 }}>
-            <Envelope width={Math.min(250, width - 120)} amount={formatUsd(amount)} caption="For anyone with the link" open={!busy} delay={120} />
+            <Envelope
+              width={Math.min(250, width - 120)}
+              amount={formatUsd(amount)}
+              caption="For anyone with the link"
+              open={!busy}
+              delay={120}
+            />
           </View>
 
           <View style={styles.facts}>
             <Fact label="Who can claim it" value="Whoever you send it to" />
             <Fact label="Not claimed?" value="Take it back any time" />
             <Fact label="Fee" value="$0.00, Kova covers it" />
-            {note.trim() ? <Fact label="Note" value={note.trim()} icon="pen" hint="They see it when they open the link" /> : null}
+            {note.trim() ? (
+              <Fact
+                label="Note"
+                value={note.trim()}
+                icon="pen"
+                hint="They see it when they open the link"
+              />
+            ) : null}
           </View>
 
           <View style={styles.cash}>
@@ -215,8 +252,18 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
       ) : null}
 
       {step === 'made' && made ? (
-        <Animated.View key="made" entering={FadeIn.duration(320)} style={[pad, { alignItems: 'center', paddingTop: 26 }]}>
-          <Envelope width={Math.min(230, width - 140)} amount={formatUsd(amount)} caption="Ready to share" open delay={200} />
+        <Animated.View
+          key="made"
+          entering={FadeIn.duration(320)}
+          style={[pad, { alignItems: 'center', paddingTop: 26 }]}
+        >
+          <Envelope
+            width={Math.min(230, width - 140)}
+            amount={formatUsd(amount)}
+            caption="Ready to share"
+            open
+            delay={200}
+          />
           <Burst
             spots={[
               { x: width / 2 - 140, y: 40, size: 24, fill: colors.yellow, delay: 100 },
@@ -228,8 +275,13 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
           <Txt weight="bold" size={36} style={[styles.big, { marginTop: 14, letterSpacing: -1.2 }]}>
             Your link is ready
           </Txt>
-          <Txt size={15} color={colors.onTint} style={{ textAlign: 'center', marginTop: 4, lineHeight: 21, paddingHorizontal: 8 }}>
-            {plainUsd(amount)} waits in it until someone claims it. Not claimed? Take it back from Your links.
+          <Txt
+            size={15}
+            color={colors.onTint}
+            style={{ textAlign: 'center', marginTop: 4, lineHeight: 21, paddingHorizontal: 8 }}
+          >
+            {plainUsd(amount)} waits in it until someone claims it. Not claimed? Take it back from
+            Your links.
           </Txt>
 
           <View style={styles.preview}>
@@ -241,7 +293,14 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
           <View style={{ alignSelf: 'stretch', marginTop: 14, gap: 10 }}>
             <PillButton label="Share the link" icon="share" onPress={share} />
             <View style={styles.row}>
-              <Pressable accessibilityRole="button" onPress={copy} style={({ pressed }) => [styles.option, pressed && { transform: [{ scale: 0.97 }] }]}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={copy}
+                style={({ pressed }) => [
+                  styles.option,
+                  pressed && { transform: [{ scale: 0.97 }] },
+                ]}
+              >
                 <Icon name={copied ? 'check' : 'copy'} size={18} />
                 <Txt weight="semi" size={15}>
                   {copied ? 'Copied' : 'Copy link'}
@@ -250,7 +309,10 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
               <Pressable
                 accessibilityRole="button"
                 onPress={() => router.replace('/links')}
-                style={({ pressed }) => [styles.option, pressed && { transform: [{ scale: 0.97 }] }]}
+                style={({ pressed }) => [
+                  styles.option,
+                  pressed && { transform: [{ scale: 0.97 }] },
+                ]}
               >
                 <Icon name="list" size={18} />
                 <Txt weight="semi" size={15}>
@@ -268,7 +330,17 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
   )
 }
 
-function Fact({ label, value, hint, icon }: { label: string; value: string; hint?: string; icon?: IconName }) {
+function Fact({
+  label,
+  value,
+  hint,
+  icon,
+}: {
+  label: string
+  value: string
+  hint?: string
+  icon?: IconName
+}) {
   return (
     <View style={styles.fact}>
       <Txt size={15} color={colors.muted}>
@@ -291,7 +363,17 @@ function Fact({ label, value, hint, icon }: { label: string; value: string; hint
   )
 }
 
-function Round({ icon, label, onPress, disabled }: { icon: IconName; label: string; onPress: () => void; disabled?: boolean }) {
+function Round({
+  icon,
+  label,
+  onPress,
+  disabled,
+}: {
+  icon: IconName
+  label: string
+  onPress: () => void
+  disabled?: boolean
+}) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -302,7 +384,11 @@ function Round({ icon, label, onPress, disabled }: { icon: IconName; label: stri
         void Haptics.selectionAsync()
         onPress()
       }}
-      style={({ pressed }) => [styles.round, disabled && { opacity: 0.35 }, pressed && { transform: [{ scale: 0.92 }] }]}
+      style={({ pressed }) => [
+        styles.round,
+        disabled && { opacity: 0.35 },
+        pressed && { transform: [{ scale: 0.92 }] },
+      ]}
     >
       <Icon name={icon} size={20} />
     </Pressable>
@@ -311,11 +397,33 @@ function Round({ icon, label, onPress, disabled }: { icon: IconName; label: stri
 
 const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 24 },
-  round: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  mine: { height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.sunken, justifyContent: 'center' },
+  round: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mine: {
+    height: 32,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: colors.sunken,
+    justifyContent: 'center',
+  },
   entry: { alignItems: 'center', paddingTop: 18, paddingBottom: 14 },
   big: { letterSpacing: -2 },
-  pill: { height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: colors.sunken, justifyContent: 'center', marginTop: 2 },
+  pill: {
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    backgroundColor: colors.sunken,
+    justifyContent: 'center',
+    marginTop: 2,
+  },
   note: {
     marginTop: 14,
     width: 260,
@@ -331,11 +439,52 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   noteInput: { flex: 1, height: '100%', fontFamily: fonts.medium, fontSize: 15, color: colors.ink },
-  facts: { marginTop: 14, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, paddingHorizontal: 16, paddingVertical: 6 },
-  fact: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingVertical: 9 },
-  cash: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, marginBottom: 14, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: colors.tealSoft },
-  problem: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12, padding: 12, borderRadius: 16, backgroundColor: colors.coralSoft },
-  preview: { alignSelf: 'stretch', marginTop: 16, padding: 14, borderRadius: 18, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.ink, borderStyle: 'dashed' },
+  facts: {
+    marginTop: 14,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  fact: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 9,
+  },
+  cash: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: colors.tealSoft,
+  },
+  problem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: colors.coralSoft,
+  },
+  preview: {
+    alignSelf: 'stretch',
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    borderStyle: 'dashed',
+  },
   row: { flexDirection: 'row', gap: 10 },
   option: {
     flex: 1,

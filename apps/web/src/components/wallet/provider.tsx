@@ -13,7 +13,14 @@ import {
   stealthMetaAddress,
 } from '@kova/monad'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { type Address, getAddress, isAddress, isAddressEqual, type LocalAccount, type TypedDataDefinition } from 'viem'
+import {
+  type Address,
+  getAddress,
+  isAddress,
+  isAddressEqual,
+  type LocalAccount,
+  type TypedDataDefinition,
+} from 'viem'
 import { generatePrivateKey } from 'viem/accounts'
 import {
   createKovaPasskey,
@@ -22,17 +29,17 @@ import {
   passkeyProblem,
 } from '@/lib/passkey'
 import { type ViewKey, viewOf } from '@/lib/takings'
-import { openVault, sealAndUpload, type VaultContents } from '@/lib/vault'
 import { countNewWallet } from '@/lib/try-count'
+import { openVault, sealAndUpload, type VaultContents } from '@/lib/vault'
 import {
   balanceOf,
+  type CashOutToPay,
   type ChargeToPay,
   addTestDollars as fetchTestDollars,
   type IndexedTransfer,
   type Moved,
-  type CashOutToPay,
-  payCharge,
   payCashOut,
+  payCharge,
   sendMoney,
   transfersAfter,
 } from '@/lib/wallet/chain'
@@ -952,7 +959,9 @@ export function WalletProvider({
         shortfall,
       )
       if (!plan)
-        throw new Error('Your private dollars don’t make up the difference any more. Nothing was paid.')
+        throw new Error(
+          'Your private dollars don’t make up the difference any more. Nothing was paid.',
+        )
       const move = 'from' in plan ? [plan.from] : plan.gather
       // The wallet opens for this and for the payment right after: one passkey.
       const account = await unlock(0n)
@@ -974,7 +983,8 @@ export function WalletProvider({
           throw new Error(
             moved.count
               ? `Only ${formatUsd(moved.amount)} moved into your balance just now. Nothing was paid; try again.`
-              : (moved.problem ?? 'Your private dollars didn’t move just now. Nothing was paid; try again.'),
+              : (moved.problem ??
+                  'Your private dollars didn’t move just now. Nothing was paid; try again.'),
           )
         return moved
       } finally {
@@ -1510,7 +1520,13 @@ export function WalletProvider({
             (locked
               ? 'Private note'
               : (t.shop?.reference ??
-                (paid ? 'Scan to pay' : link ? 'Sent as a link' : t.kind === 'cashout' ? 'To a Nigerian bank' : 'Sent'))),
+                (paid
+                  ? 'Scan to pay'
+                  : link
+                    ? 'Sent as a link'
+                    : t.kind === 'cashout'
+                      ? 'To a Nigerian bank'
+                      : 'Sent'))),
           ...secret,
           ...(link ? { link: true } : {}),
           address: t.to,
@@ -1531,10 +1547,10 @@ export function WalletProvider({
               : t.naira === 'cash_out_refund'
                 ? 'Cash-out returned'
                 : t.kind === 'refund'
-              ? 'Refund'
-              : link
-                ? 'Your link'
-                : (nameFor(t.from) ?? short(t.from)),
+                  ? 'Refund'
+                  : link
+                    ? 'Your link'
+                    : (nameFor(t.from) ?? short(t.from)),
           detail:
             sealed ??
             (locked
@@ -1546,10 +1562,10 @@ export function WalletProvider({
                   : t.naira === 'cash_out_refund'
                     ? 'The bank couldn’t take it'
                     : t.kind === 'refund'
-                  ? 'Money back'
-                  : link
-                    ? 'Taken back'
-                    : 'Arrived'),
+                      ? 'Money back'
+                      : link
+                        ? 'Taken back'
+                        : 'Arrived'),
           ...(sealed !== null ? { private: 'both' as const } : locked ? { locked: true } : {}),
           ...(link ? { link: true } : {}),
           address: t.from,
@@ -1598,7 +1614,8 @@ export function WalletProvider({
         kind: 'received',
         amount: f.amount,
         name: f.from ? (nameFor(f.from) ?? f.name ?? short(getAddress(f.from))) : (f.name ?? ''),
-        detail: f.note ?? (waiting ? 'Private' : f.used && !moved ? 'Spent privately' : 'Made public'),
+        detail:
+          f.note ?? (waiting ? 'Private' : f.used && !moved ? 'Spent privately' : 'Made public'),
         ...(f.note ? { private: 'both' as const } : {}),
         ...(f.from ? { address: getAddress(f.from) } : {}),
         ...(f.proven === 'claimed' ? { unconfirmed: true } : {}),
@@ -1687,7 +1704,9 @@ export function WalletProvider({
   // console shows the arrival moment for a made-up payment, to look at the design.
   useEffect(() => {
     if (process.env.NODE_ENV !== 'development') return
-    const w = window as unknown as { kovaArrival?: (a: Partial<NonNullable<typeof arrived>>) => void }
+    const w = window as unknown as {
+      kovaArrival?: (a: Partial<NonNullable<typeof arrived>>) => void
+    }
     w.kovaArrival = (a) =>
       setArrived({ id: `preview:${Date.now()}`, amount: 1_000_000n, at: Date.now(), ...a })
     return () => {

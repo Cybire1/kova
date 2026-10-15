@@ -11,7 +11,8 @@ import { PairSheet } from './pair-sheet'
 import { Sources } from './sources'
 import { Tape } from './tape'
 
-const hourName = (h: number) => (h === 0 ? 'midnight' : h < 12 ? `${h}am` : h === 12 ? 'noon' : `${h - 12}pm`)
+const hourName = (h: number) =>
+  h === 0 ? 'midnight' : h < 12 ? `${h}am` : h === 12 ? 'noon' : `${h - 12}pm`
 
 /**
  * The overview, kept live: the total rolls, new payments print on the tape, and the day's
@@ -46,7 +47,11 @@ export function OverviewLive({
         const response = await fetch(`/api/feed?tz=${encodeURIComponent(tz)}`)
         if (response.status === 401) return window.location.assign('/signin?expired=1')
         if (!response.ok) throw new Error(String(response.status))
-        const data = (await response.json()) as { summary: Summary; intents: PaymentIntent[]; terminals: Terminal[] }
+        const data = (await response.json()) as {
+          summary: Summary
+          intents: PaymentIntent[]
+          terminals: Terminal[]
+        }
         if (cancelled) return
         const landed = data.intents.filter((i) => !seen.current.has(`${i.id}:${i.status}`))
         for (const intent of data.intents) seen.current.add(`${intent.id}:${intent.status}`)
@@ -73,13 +78,31 @@ export function OverviewLive({
 
   const [whole, cents] = usd(summary.today.total).split('.')
   const count = summary.today.count
-  const busiest = summary.hourly.reduce<Summary['hourly'][number] | null>((best, h) => (h.count > 0 && (!best || Number(h.total) > Number(best.total)) ? h : best), null)
+  const busiest = summary.hourly.reduce<Summary['hourly'][number] | null>(
+    (best, h) => (h.count > 0 && (!best || Number(h.total) > Number(best.total)) ? h : best),
+    null,
+  )
   const average = count ? Number(summary.today.total) / count : 0
 
   const steps = [
-    { done: terminals.length > 0, label: 'Pair a phone as a terminal', cta: 'Pair a phone', action: () => setPairing(true) },
-    { done: summary.all_time.count > 0, label: 'Take your first payment', cta: 'Start a charge', href: '/charge' },
-    { done: hasWebhook, label: 'Send payments to your own systems', cta: 'Add a webhook', href: '/dashboard/developers' },
+    {
+      done: terminals.length > 0,
+      label: 'Pair a phone as a terminal',
+      cta: 'Pair a phone',
+      action: () => setPairing(true),
+    },
+    {
+      done: summary.all_time.count > 0,
+      label: 'Take your first payment',
+      cta: 'Start a charge',
+      href: '/charge',
+    },
+    {
+      done: hasWebhook,
+      label: 'Send payments to your own systems',
+      cta: 'Add a webhook',
+      href: '/dashboard/developers',
+    },
   ]
   const next = steps.find((s) => !s.done)
   const doneCount = steps.filter((s) => s.done).length + 1
@@ -91,7 +114,13 @@ export function OverviewLive({
           <Art name="badge-shop" size={56} priority />
           <div>
             <h1>{summary.merchant.name}</h1>
-            <p>{new Date().toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+            <p>
+              {new Date().toLocaleDateString([], {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+              })}
+            </p>
           </div>
         </div>
         <Pill href="/charge" icon="tap" tone="coral" className="desk-charge">
@@ -113,7 +142,9 @@ export function OverviewLive({
           </span>
           {count ? <span className="chip">Average {usd(average)}</span> : null}
           {busiest ? <span className="chip">Busiest hour, {hourName(busiest.hour)}</span> : null}
-          {summary.last_paid_at ? <span className="chip">Last {ago(summary.last_paid_at)}</span> : null}
+          {summary.last_paid_at ? (
+            <span className="chip">Last {ago(summary.last_paid_at)}</span>
+          ) : null}
           {summary.open_intents > 0 ? (
             <Link href="/dashboard/payments?status=requires_payment" className="chip chip-coral">
               {summary.open_intents} waiting
@@ -150,11 +181,22 @@ export function OverviewLive({
 
       <DayChart hourly={summary.hourly} daily={summary.daily} />
 
-      <Sources terminals={terminals} byTerminal={summary.by_terminal} byStall={summary.by_stall ?? []} onAdd={() => setPairing(true)} />
+      <Sources
+        terminals={terminals}
+        byTerminal={summary.by_terminal}
+        byStall={summary.by_stall ?? []}
+        onAdd={() => setPairing(true)}
+      />
 
       <Tape intents={intents} fresh={fresh} connected={connected} hop={hop} />
 
-      {pairing ? <PairSheet known={terminals.map((t) => t.id)} onPaired={(list) => setTerminals(list)} onClose={() => setPairing(false)} /> : null}
+      {pairing ? (
+        <PairSheet
+          known={terminals.map((t) => t.id)}
+          onPaired={(list) => setTerminals(list)}
+          onClose={() => setPairing(false)}
+        />
+      ) : null}
     </div>
   )
 }

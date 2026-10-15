@@ -10,7 +10,12 @@ import { KovaError, notFound } from '../errors.js'
 import { decodeId, encodeId } from '../ids.js'
 
 /** Everything a shop can subscribe to. `*` means all of them. */
-export const EVENT_TYPES = ['payment_intent.paid', 'payment_intent.held', 'payment_intent.failed', 'test.ping'] as const
+export const EVENT_TYPES = [
+  'payment_intent.paid',
+  'payment_intent.held',
+  'payment_intent.failed',
+  'test.ping',
+] as const
 
 type Endpoint = typeof schema.webhookEndpoints.$inferSelect
 
@@ -34,15 +39,25 @@ const endpointBody = z.object({
       const url = new URL(u)
       if (url.protocol === 'https:') return true
       // Plain http only for local development servers.
-      return !isProduction && url.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname)
+      return (
+        !isProduction &&
+        url.protocol === 'http:' &&
+        ['localhost', '127.0.0.1'].includes(url.hostname)
+      )
     }, 'Use an https:// URL'),
-  events: z.array(z.enum([...EVENT_TYPES, '*'])).min(1).default(['*']),
+  events: z
+    .array(z.enum([...EVENT_TYPES, '*']))
+    .min(1)
+    .default(['*']),
 })
 
 export const webhookRoutes = new Hono()
   .get('/webhook_endpoints', requireApiKey, requireMerchantKey, async (c) => {
     const rows = await db.query.webhookEndpoints.findMany({
-      where: and(eq(schema.webhookEndpoints.merchantId, c.get('merchant').id), eq(schema.webhookEndpoints.status, 'active')),
+      where: and(
+        eq(schema.webhookEndpoints.merchantId, c.get('merchant').id),
+        eq(schema.webhookEndpoints.status, 'active'),
+      ),
       orderBy: desc(schema.webhookEndpoints.createdAt),
     })
     return c.json({ object: 'list', data: rows.map(serializeEndpoint) })
@@ -51,11 +66,18 @@ export const webhookRoutes = new Hono()
   /** Returns the signing secret once. Kova signs every delivery with it. */
   .post('/webhook_endpoints', requireApiKey, requireMerchantKey, async (c) => {
     const parsed = endpointBody.safeParse(await c.req.json().catch(() => ({})))
-    if (!parsed.success) throw new KovaError('invalid_request', parsed.error.issues[0]?.message ?? 'Invalid request')
+    if (!parsed.success)
+      throw new KovaError('invalid_request', parsed.error.issues[0]?.message ?? 'Invalid request')
     const secret = `whsec_${randomBytes(24).toString('base64url')}`
     const [row] = await db
       .insert(schema.webhookEndpoints)
-      .values({ id: uuidv7(), merchantId: c.get('merchant').id, url: parsed.data.url, secret, events: parsed.data.events })
+      .values({
+        id: uuidv7(),
+        merchantId: c.get('merchant').id,
+        url: parsed.data.url,
+        secret,
+        events: parsed.data.events,
+      })
       .returning()
     if (!row) throw new KovaError('internal', 'Could not create the endpoint')
     return c.json({ ...serializeEndpoint(row), secret }, 201)
@@ -68,7 +90,12 @@ export const webhookRoutes = new Hono()
       ? await db
           .update(schema.webhookEndpoints)
           .set({ status: 'disabled' })
-          .where(and(eq(schema.webhookEndpoints.id, uuid), eq(schema.webhookEndpoints.merchantId, c.get('merchant').id)))
+          .where(
+            and(
+              eq(schema.webhookEndpoints.id, uuid),
+              eq(schema.webhookEndpoints.merchantId, c.get('merchant').id),
+            ),
+          )
           .returning()
       : []
     if (!row) throw notFound('webhook endpoint', id)
@@ -81,7 +108,10 @@ export const webhookRoutes = new Hono()
     const uuid = decodeId('webhookEndpoint', id)
     const endpoint = uuid
       ? await db.query.webhookEndpoints.findFirst({
-          where: and(eq(schema.webhookEndpoints.id, uuid), eq(schema.webhookEndpoints.merchantId, c.get('merchant').id)),
+          where: and(
+            eq(schema.webhookEndpoints.id, uuid),
+            eq(schema.webhookEndpoints.merchantId, c.get('merchant').id),
+          ),
         })
       : undefined
     if (!endpoint) throw notFound('webhook endpoint', id)
@@ -94,7 +124,9 @@ export const webhookRoutes = new Hono()
         data: { message: 'Hello from Kova. Your endpoint is set up.' },
       })
       // Queued directly for this endpoint only, not fanned out to the others.
-      await tx.insert(schema.webhookDeliveries).values({ id: uuidv7(), endpointId: endpoint.id, eventId })
+      await tx
+        .insert(schema.webhookDeliveries)
+        .values({ id: uuidv7(), endpointId: endpoint.id, eventId })
     })
     return c.json({ object: 'event', id: encodeId('event', eventId), type: 'test.ping' }, 202)
   })
@@ -108,7 +140,12 @@ export const webhookRoutes = new Hono()
       limit,
     })
     const deliveries = rows.length
-      ? await db.query.webhookDeliveries.findMany({ where: inArray(schema.webhookDeliveries.eventId, rows.map((r) => r.id)) })
+      ? await db.query.webhookDeliveries.findMany({
+          where: inArray(
+            schema.webhookDeliveries.eventId,
+            rows.map((r) => r.id),
+          ),
+        })
       : []
     return c.json({
       object: 'list',

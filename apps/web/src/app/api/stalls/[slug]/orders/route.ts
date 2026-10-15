@@ -8,7 +8,10 @@ export async function POST(request: Request, context: { params: Promise<{ slug: 
       method: 'POST',
       body: await request.text(),
       // The API rate-limits by address; pass the buyer's, not this server's.
-      headers: { 'x-forwarded-for': request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown' },
+      headers: {
+        'x-forwarded-for':
+          request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown',
+      },
     })
     return Response.json(order, { status: 201 })
   } catch (error) {

@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react'
 import { Art, Icon } from '@/components/brand'
 import { formatUsd } from '@/lib/wallet/money'
 import { ScreenHead } from './activity'
-import { NairaRow } from './naira'
 import { FromAbroadRow } from './money'
+import { NairaRow } from './naira'
 import { useWallet } from './provider'
 
 type Stage =
@@ -32,7 +32,11 @@ export function AddMoney() {
             wallet.
           </span>
         </div>
-        <NairaRow href="/wallet/add/naira" title="From your bank, in naira" detail="Bank transfer, card or USSD, with Paystack" />
+        <NairaRow
+          href="/wallet/add/naira"
+          title="From your bank, in naira"
+          detail="Bank transfer, card or USSD, with Paystack"
+        />
         <FromAbroadRow />
         <CardOrBank />
         {chainDeposits ? <FromAnotherChain /> : null}
@@ -116,7 +120,11 @@ export function AddMoney() {
             <Icon name="plus" size={18} />
           </span>
         </button>
-        <NairaRow href="/wallet/add/naira" title="From your bank, in naira" detail="Bank transfer, card or USSD, with Paystack" />
+        <NairaRow
+          href="/wallet/add/naira"
+          title="From your bank, in naira"
+          detail="Bank transfer, card or USSD, with Paystack"
+        />
         <FromAbroadRow />
         {chainDeposits ? <FromAnotherChain /> : null}
       </div>

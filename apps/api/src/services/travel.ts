@@ -34,10 +34,21 @@ let travelShop: Merchant | null = null
 /** Kova Travel's own merchant record, created the first time it's needed. */
 export async function kovaTravel(): Promise<Merchant> {
   if (travelShop) return travelShop
-  const existing = await db.query.merchants.findFirst({ where: eq(schema.merchants.slug, 'kova-travel') })
-  if (existing) return (travelShop = existing)
-  const address = config.KOVA_TRAVEL_SETTLEMENT_ADDRESS ?? (config.KOVA_NETWORK === 'testnet' ? feePayerAddress : undefined)
-  if (!address || !isAddress(address)) throw new KovaError('internal', 'Kova Travel has no settlement address. Set KOVA_TRAVEL_SETTLEMENT_ADDRESS.')
+  const existing = await db.query.merchants.findFirst({
+    where: eq(schema.merchants.slug, 'kova-travel'),
+  })
+  if (existing) {
+    travelShop = existing
+    return travelShop
+  }
+  const address =
+    config.KOVA_TRAVEL_SETTLEMENT_ADDRESS ??
+    (config.KOVA_NETWORK === 'testnet' ? feePayerAddress : undefined)
+  if (!address || !isAddress(address))
+    throw new KovaError(
+      'internal',
+      'Kova Travel has no settlement address. Set KOVA_TRAVEL_SETTLEMENT_ADDRESS.',
+    )
   const [created] = await db
     .insert(schema.merchants)
     .values({
@@ -52,7 +63,10 @@ export async function kovaTravel(): Promise<Merchant> {
     })
     .onConflictDoNothing()
     .returning()
-  return (travelShop = created ?? (await db.query.merchants.findFirst({ where: eq(schema.merchants.slug, 'kova-travel') }))!)
+  travelShop =
+    created ??
+    (await db.query.merchants.findFirst({ where: eq(schema.merchants.slug, 'kova-travel') }))!
+  return travelShop
 }
 
 // --- creating a trip -----------------------------------------------------------------------
@@ -97,19 +111,31 @@ async function createShares(trip: Trip, payers: string[], reference: string) {
       metadata: { trip: encodeId('trip', trip.id), share: label },
       expiresInSeconds: seconds,
     })
-    await db.insert(schema.tripShares).values({ id: uuidv7(), tripId: trip.id, intentId: intent.id, label })
+    await db
+      .insert(schema.tripShares)
+      .values({ id: uuidv7(), tripId: trip.id, intentId: intent.id, label })
     out.push({ label, intent })
   }
   return out
 }
 
 function requireDuffel() {
-  if (!duffel) throw new KovaError('invalid_request', 'Kova Travel is not set up on this server yet (it needs a Duffel key).')
+  if (!duffel)
+    throw new KovaError(
+      'invalid_request',
+      'Kova Travel is not set up on this server yet (it needs a Duffel key).',
+    )
   return duffel
 }
 
 const nameOf = (t: Traveller) => `${t.given_name.trim()} ${t.family_name.trim()}`.trim()
-const dayMonth = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
+const dayMonth = (iso: string) =>
+  new Date(iso).toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  })
 
 export async function createFlightTrip(input: {
   offerId: string
@@ -123,12 +149,19 @@ export async function createFlightTrip(input: {
   extras: string[]
 }): Promise<CreatedTrip> {
   const client = requireDuffel()
-  const { data: offer } = await client.offers.get(input.offerId, { return_available_services: true })
+  const { data: offer } = await client.offers.get(input.offerId, {
+    return_available_services: true,
+  })
   const view = serializeOffer(offer)
-  if (!view) throw new KovaError('invalid_request', `Kova can't price fares in ${offer.total_currency} yet.`)
-  if (new Date(offer.expires_at).getTime() < Date.now()) throw new KovaError('conflict', 'This fare has expired. Search again for the latest price.')
+  if (!view)
+    throw new KovaError('invalid_request', `Kova can't price fares in ${offer.total_currency} yet.`)
+  if (new Date(offer.expires_at).getTime() < Date.now())
+    throw new KovaError('conflict', 'This fare has expired. Search again for the latest price.')
   if (input.travellers.length !== offer.passengers.length)
-    throw new KovaError('invalid_request', `This fare is for ${offer.passengers.length} ${offer.passengers.length === 1 ? 'traveller' : 'travellers'}.`)
+    throw new KovaError(
+      'invalid_request',
+      `This fare is for ${offer.passengers.length} ${offer.passengers.length === 1 ? 'traveller' : 'travellers'}.`,
+    )
 
   // The total the airline will charge: the fare plus every seat and bag chosen.
   const byId = new Map<string, { total_amount: string; total_currency: string }>()
@@ -146,15 +179,21 @@ export async function createFlightTrip(input: {
   let fare = Number(offer.total_amount)
   for (const s of input.services) {
     const service = byId.get(s.id)
-    if (!service) throw new KovaError('invalid_request', 'One of the seats or bags is no longer available.')
-    if (service.total_currency !== offer.total_currency) throw new KovaError('invalid_request', 'Mixed currencies on one fare are not supported.')
+    if (!service)
+      throw new KovaError('invalid_request', 'One of the seats or bags is no longer available.')
+    if (service.total_currency !== offer.total_currency)
+      throw new KovaError('invalid_request', 'Mixed currencies on one fare are not supported.')
     fare += Number(service.total_amount) * s.quantity
   }
   const fareText = fare.toFixed(2)
   const price = money(fareText, offer.total_currency)
-  if (!price) throw new KovaError('invalid_request', `Kova can't price fares in ${offer.total_currency} yet.`)
+  if (!price)
+    throw new KovaError('invalid_request', `Kova can't price fares in ${offer.total_currency} yet.`)
 
-  const travellers = input.travellers.map((t, i) => ({ ...t, supplier_id: t.passenger_id ?? offer.passengers[i]?.id }))
+  const travellers = input.travellers.map((t, i) => ({
+    ...t,
+    supplier_id: t.passenger_id ?? offer.passengers[i]?.id,
+  }))
 
   // Hold the fare now if the airline allows it (and nothing extra was added), so it can be paid later.
   let supplierOrderId: string | null = null
@@ -168,17 +207,26 @@ export async function createFlightTrip(input: {
         metadata: { kova: 'hold' },
       })
       supplierOrderId = order.id
-      const until = order.payment_status.price_guarantee_expires_at ?? order.payment_status.payment_required_by
+      const until =
+        order.payment_status.price_guarantee_expires_at ?? order.payment_status.payment_required_by
       if (until) payBy = new Date(until)
     } catch (error) {
-      console.warn('[travel] hold failed, the fare must be paid before it expires', error instanceof Error ? error.message : error)
+      console.warn(
+        '[travel] hold failed, the fare must be paid before it expires',
+        error instanceof Error ? error.message : error,
+      )
     }
   }
 
   const first = view.slices[0]
   const last = view.slices.at(-1)
   const title = first ? `${first.from.city} to ${first.to.city}` : 'Your flight'
-  const dates = view.slices.length > 1 && first && last?.departs ? `${dayMonth(first.departs ?? '')}, back ${dayMonth(last.departs)}` : first?.departs ? dayMonth(first.departs) : ''
+  const dates =
+    view.slices.length > 1 && first && last?.departs
+      ? `${dayMonth(first.departs ?? '')}, back ${dayMonth(last.departs)}`
+      : first?.departs
+        ? dayMonth(first.departs)
+        : ''
   const people = `${input.travellers.length} ${input.travellers.length === 1 ? 'traveller' : 'travellers'}`
 
   const token = randomBytes(24).toString('base64url')
@@ -231,12 +279,21 @@ export async function createStayTrip(input: {
   const client = requireDuffel()
   const { data: quote } = await client.stays.quotes.create(input.rateId)
   const price = money(quote.total_amount, quote.total_currency)
-  if (!price) throw new KovaError('invalid_request', `Kova can't price rooms in ${quote.total_currency} yet.`)
+  if (!price)
+    throw new KovaError('invalid_request', `Kova can't price rooms in ${quote.total_currency} yet.`)
   const room = quote.accommodation.rooms[0]
   const rate = room?.rates.find((r) => r.id === input.rateId) ?? room?.rates[0]
   // A quote holds the rate for a short while; half an hour at most, or the rate's own expiry.
-  const payBy = new Date(Math.min(Date.now() + 30 * 60_000, rate?.expires_at ? new Date(rate.expires_at).getTime() : Infinity))
-  const nights = Math.round((new Date(quote.check_out_date).getTime() - new Date(quote.check_in_date).getTime()) / 86_400_000)
+  const payBy = new Date(
+    Math.min(
+      Date.now() + 30 * 60_000,
+      rate?.expires_at ? new Date(rate.expires_at).getTime() : Infinity,
+    ),
+  )
+  const nights = Math.round(
+    (new Date(quote.check_out_date).getTime() - new Date(quote.check_in_date).getTime()) /
+      86_400_000,
+  )
 
   const token = randomBytes(24).toString('base64url')
   const [trip] = await db
@@ -249,7 +306,10 @@ export async function createStayTrip(input: {
       summary: {
         title: quote.accommodation.name,
         subtitle: `${dayMonth(quote.check_in_date)} to ${dayMonth(quote.check_out_date)}, ${nights} ${nights === 1 ? 'night' : 'nights'}, ${quote.guests.length} ${quote.guests.length === 1 ? 'guest' : 'guests'}`,
-        provider: { name: quote.accommodation.name, image: quote.accommodation.photos?.[0]?.url ?? null },
+        provider: {
+          name: quote.accommodation.name,
+          image: quote.accommodation.photos?.[0]?.url ?? null,
+        },
         legs: [
           {
             from: quote.accommodation.location.address.city_name,
@@ -266,7 +326,11 @@ export async function createStayTrip(input: {
           ? {
               name: room?.name ?? 'Room',
               board: rate.board_type.replace(/_/g, ' '),
-              cancellation: rate.cancellation_timeline[0] && Number(rate.cancellation_timeline[0].refund_amount) > 0 ? 'Free cancellation' : 'Non-refundable',
+              cancellation:
+                rate.cancellation_timeline[0] &&
+                Number(rate.cancellation_timeline[0].refund_amount) > 0
+                  ? 'Free cancellation'
+                  : 'Non-refundable',
             }
           : undefined,
         extras: [],
@@ -289,7 +353,10 @@ export async function createStayTrip(input: {
 
 function toDuffelPassenger(t: Traveller & { supplier_id?: string }) {
   if (!t.born_on || !t.gender || !t.title || !t.email || !t.phone_number || !t.supplier_id)
-    throw new KovaError('invalid_request', `${nameOf(t)} needs a date of birth, gender, title, email and phone number to fly.`)
+    throw new KovaError(
+      'invalid_request',
+      `${nameOf(t)} needs a date of birth, gender, title, email and phone number to fly.`,
+    )
   return {
     id: t.supplier_id,
     title: t.title,
@@ -306,7 +373,9 @@ function toDuffelPassenger(t: Traveller & { supplier_id?: string }) {
 
 /** The trip a payment belongs to, if it's a Kova Travel share. */
 export async function tripForIntent(intentId: string) {
-  const share = await db.query.tripShares.findFirst({ where: eq(schema.tripShares.intentId, intentId) })
+  const share = await db.query.tripShares.findFirst({
+    where: eq(schema.tripShares.intentId, intentId),
+  })
   if (!share) return null
   const trip = await db.query.trips.findFirst({ where: eq(schema.trips.id, share.tripId) })
   return trip ? { trip, share } : null
@@ -320,8 +389,15 @@ export async function tripForIntent(intentId: string) {
 export async function onIntentPaid(intentId: string) {
   const found = await tripForIntent(intentId)
   if (!found) return
-  const shares = await db.query.tripShares.findMany({ where: eq(schema.tripShares.tripId, found.trip.id) })
-  const intents = await db.query.paymentIntents.findMany({ where: inArray(schema.paymentIntents.id, shares.map((s) => s.intentId)) })
+  const shares = await db.query.tripShares.findMany({
+    where: eq(schema.tripShares.tripId, found.trip.id),
+  })
+  const intents = await db.query.paymentIntents.findMany({
+    where: inArray(
+      schema.paymentIntents.id,
+      shares.map((s) => s.intentId),
+    ),
+  })
   if (intents.some((i) => i.status !== 'paid')) return
 
   const [claimed] = await db
@@ -343,8 +419,10 @@ export async function onIntentPaid(intentId: string) {
 }
 
 function bookingFailure(message: string) {
-  if (/price|changed/i.test(message)) return 'The airline changed the price before Kova could book it.'
-  if (/unavailable|sold|expired|no longer/i.test(message)) return 'It sold out before Kova could book it.'
+  if (/price|changed/i.test(message))
+    return 'The airline changed the price before Kova could book it.'
+  if (/unavailable|sold|expired|no longer/i.test(message))
+    return 'It sold out before Kova could book it.'
   return 'The booking didn’t go through.'
 }
 
@@ -356,7 +434,10 @@ async function book(trip: Trip) {
   if (trip.kind === 'flight' && supplierOrderId) {
     // A held fare: pay the hold from Kova's Duffel balance.
     const { data: order } = await client.orders.get(supplierOrderId)
-    await client.payments.create({ order_id: order.id, payment: { type: 'balance', amount: order.total_amount, currency: order.total_currency } })
+    await client.payments.create({
+      order_id: order.id,
+      payment: { type: 'balance', amount: order.total_amount, currency: order.total_currency },
+    })
     reference = (await client.orders.get(order.id)).data.booking_reference
   } else if (trip.kind === 'flight') {
     const { data: order } = await client.orders.create({
@@ -373,7 +454,10 @@ async function book(trip: Trip) {
     if (!trip.quoteId || !trip.contact) throw new Error('The stay has no quote to book')
     const { data: booking } = await client.stays.bookings.create({
       quote_id: trip.quoteId,
-      guests: trip.travellers.map((g) => ({ given_name: g.given_name, family_name: g.family_name })),
+      guests: trip.travellers.map((g) => ({
+        given_name: g.given_name,
+        family_name: g.family_name,
+      })),
       email: trip.contact.email,
       phone_number: trip.contact.phone_number,
       metadata: { kova_trip: encodeId('trip', trip.id) },
@@ -389,7 +473,10 @@ async function book(trip: Trip) {
       status: 'booked',
       supplierOrderId,
       bookingReference: reference,
-      travellers: trip.travellers.map((t) => ({ given_name: t.given_name, family_name: t.family_name })),
+      travellers: trip.travellers.map((t) => ({
+        given_name: t.given_name,
+        family_name: t.family_name,
+      })),
       contact: null,
       updatedAt: new Date(),
     })
@@ -404,14 +491,30 @@ export async function expireTrips(): Promise<number> {
     .where(and(eq(schema.trips.status, 'awaiting_payment'), lt(schema.trips.payBy, new Date())))
     .returning({ id: schema.trips.id })
   if (stale.length === 0) return 0
-  const shares = await db.query.tripShares.findMany({ where: inArray(schema.tripShares.tripId, stale.map((t) => t.id)) })
+  const shares = await db.query.tripShares.findMany({
+    where: inArray(
+      schema.tripShares.tripId,
+      stale.map((t) => t.id),
+    ),
+  })
   if (shares.length)
     await db
       .update(schema.paymentIntents)
       .set({ status: 'canceled', updatedAt: new Date() })
-      .where(and(inArray(schema.paymentIntents.id, shares.map((s) => s.intentId)), eq(schema.paymentIntents.status, 'requires_payment')))
+      .where(
+        and(
+          inArray(
+            schema.paymentIntents.id,
+            shares.map((s) => s.intentId),
+          ),
+          eq(schema.paymentIntents.status, 'requires_payment'),
+        ),
+      )
   // A split that only some friends paid: they get their shares back.
-  for (const trip of stale) await refundTrip(trip.id, 'trip_expired').catch((error) => console.error('[refund] trip', error))
+  for (const trip of stale)
+    await refundTrip(trip.id, 'trip_expired').catch((error) =>
+      console.error('[refund] trip', error),
+    )
   return stale.length
 }
 
@@ -420,14 +523,25 @@ export async function expireTrips(): Promise<number> {
 /** A trip for the phone that booked it. Needs the trip's token. */
 export async function loadTrip(id: string, token: string | undefined) {
   const uuid = decodeId('trip', id)
-  const trip = uuid ? await db.query.trips.findFirst({ where: eq(schema.trips.id, uuid) }) : undefined
+  const trip = uuid
+    ? await db.query.trips.findFirst({ where: eq(schema.trips.id, uuid) })
+    : undefined
   if (!trip || !token || hashToken(token) !== trip.tokenHash) throw notFound('trip', id)
   return trip
 }
 
 export async function serializeTrip(trip: Trip) {
-  const shares = await db.query.tripShares.findMany({ where: eq(schema.tripShares.tripId, trip.id) })
-  const intents = shares.length ? await db.query.paymentIntents.findMany({ where: inArray(schema.paymentIntents.id, shares.map((s) => s.intentId)) }) : []
+  const shares = await db.query.tripShares.findMany({
+    where: eq(schema.tripShares.tripId, trip.id),
+  })
+  const intents = shares.length
+    ? await db.query.paymentIntents.findMany({
+        where: inArray(
+          schema.paymentIntents.id,
+          shares.map((s) => s.intentId),
+        ),
+      })
+    : []
   const byId = new Map(intents.map((i) => [i.id, i]))
   return {
     object: 'trip',
@@ -439,7 +553,8 @@ export async function serializeTrip(trip: Trip) {
     amount: formatAmount(trip.amount),
     fare: { amount: trip.fareAmount, currency: trip.fareCurrency },
     pay_by: trip.payBy.toISOString(),
-    held: trip.kind === 'flight' && Boolean(trip.supplierOrderId) && trip.status === 'awaiting_payment',
+    held:
+      trip.kind === 'flight' && Boolean(trip.supplierOrderId) && trip.status === 'awaiting_payment',
     booking_reference: trip.bookingReference,
     travellers: trip.travellers.map((t) => nameOf(t)),
     failure: trip.failure,
@@ -461,7 +576,9 @@ export async function tripForCheckout(intentId: string) {
   const found = await tripForIntent(intentId)
   if (!found) return null
   const { trip, share } = found
-  const shares = await db.query.tripShares.findMany({ where: eq(schema.tripShares.tripId, trip.id) })
+  const shares = await db.query.tripShares.findMany({
+    where: eq(schema.tripShares.tripId, trip.id),
+  })
   return {
     kind: trip.kind,
     title: trip.summary.title,

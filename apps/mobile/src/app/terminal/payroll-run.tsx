@@ -25,10 +25,17 @@ export default function PayrollRunReceipt() {
 
   return (
     <Screen edges={['top']}>
-      <Header title={run?.label ?? 'Payroll'} subtitle={run ? whenLabel(run.created_at) : undefined} />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 48 }}>
+      <Header
+        title={run?.label ?? 'Payroll'}
+        subtitle={run ? whenLabel(run.created_at) : undefined}
+      />
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 48 }}
+      >
         <Problem text={problem} />
-        {!run && !problem ? <ActivityIndicator color={colors.ink} style={{ marginTop: 60 }} /> : null}
+        {!run && !problem ? (
+          <ActivityIndicator color={colors.ink} style={{ marginTop: 60 }} />
+        ) : null}
         {run ? (
           <>
             <View style={{ alignItems: 'center', paddingVertical: 18 }}>
@@ -51,7 +58,11 @@ export default function PayrollRunReceipt() {
                     <Txt weight="semi" size={15} numberOfLines={1}>
                       {p.name}
                     </Txt>
-                    <Txt size={12} color={p.status === 'failed' ? colors.coralDeep : colors.muted} numberOfLines={2}>
+                    <Txt
+                      size={12}
+                      color={p.status === 'failed' ? colors.coralDeep : colors.muted}
+                      numberOfLines={2}
+                    >
                       {p.status === 'paid' && p.stealth_address
                         ? `To one-time address ${shortAddress(p.stealth_address)}`
                         : p.status === 'failed'
@@ -59,7 +70,9 @@ export default function PayrollRunReceipt() {
                           : 'Waiting'}
                     </Txt>
                     {p.explorer_url ? (
-                      <Pressable onPress={() => void WebBrowser.openBrowserAsync(p.explorer_url as string)}>
+                      <Pressable
+                        onPress={() => void WebBrowser.openBrowserAsync(p.explorer_url as string)}
+                      >
                         <Txt weight="semi" size={13} color={colors.tealDeep}>
                           See it on Monadscan
                         </Txt>
@@ -73,8 +86,8 @@ export default function PayrollRunReceipt() {
               ))}
             </Card>
             <Txt size={13} color={colors.muted} style={{ marginTop: 14, lineHeight: 19 }}>
-              Monad shows {shop.name} paying these one-time addresses. Who they belong to is in this book and in each person’s own
-              wallet, nowhere else.
+              Monad shows {shop.name} paying these one-time addresses. Who they belong to is in this
+              book and in each person’s own wallet, nowhere else.
             </Txt>
           </>
         ) : null}

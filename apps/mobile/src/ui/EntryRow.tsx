@@ -2,9 +2,9 @@ import { router } from 'expo-router'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { formatUsd } from '@/lib/money'
 import { colors } from '@/lib/theme'
-import { Icon } from './Icon'
 import type { Entry } from '@/lib/wallet'
 import { AddBadge, Avatar, ShopBadge } from './art'
+import { Icon } from './Icon'
 import { EnvelopeBadge } from './LinkParts'
 import { Txt } from './primitives'
 
@@ -21,7 +21,15 @@ export function when(at: number): string {
 const verbs = { paid: 'Paid', sent: 'Sent', received: 'Received', added: 'Added' } as const
 
 /** A face with a small padlock on it: someone paid, or was paid, privately. */
-export function PrivateAvatar({ name, id, size = 38 }: { name: string; id?: string; size?: number }) {
+export function PrivateAvatar({
+  name,
+  id,
+  size = 38,
+}: {
+  name: string
+  id?: string
+  size?: number
+}) {
   const lock = Math.max(16, Math.round(size * 0.46))
   return (
     <View>
@@ -39,7 +47,10 @@ export function EntryRow({ entry }: { entry: Entry }) {
   // Sent, received or paid privately: like any other row, with a padlock and "Private" leading the line.
   const privately = Boolean(entry.privately || entry.fromPrivate)
   const said = privately && /^(Received|Sent) privately$/.test(entry.detail) ? null : entry.detail
-  const detail = [entry.unconfirmed ? 'Unconfirmed sender' : null, said && privately && entry.private ? `“${said}”` : said]
+  const detail = [
+    entry.unconfirmed ? 'Unconfirmed sender' : null,
+    said && privately && entry.private ? `“${said}”` : said,
+  ]
     .filter(Boolean)
     .join(' · ')
   return (
@@ -65,7 +76,14 @@ export function EntryRow({ entry }: { entry: Entry }) {
           {entry.name}
         </Txt>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          {privately || entry.private ? <Icon name="lock" size={12} color={privately ? colors.ink : colors.muted} strokeWidth={2.4} /> : null}
+          {privately || entry.private ? (
+            <Icon
+              name="lock"
+              size={12}
+              color={privately ? colors.ink : colors.muted}
+              strokeWidth={2.4}
+            />
+          ) : null}
           <Txt size={13} color={colors.muted} numberOfLines={1} style={{ flexShrink: 1 }}>
             {privately ? (
               <Txt weight="semi" size={13}>
@@ -86,7 +104,9 @@ export function EntryRow({ entry }: { entry: Entry }) {
 
 export function signed(entry: Entry) {
   const amount = BigInt(entry.amount)
-  return entry.kind === 'received' || entry.kind === 'added' ? formatUsd(amount, { sign: true }) : formatUsd(-amount)
+  return entry.kind === 'received' || entry.kind === 'added'
+    ? formatUsd(amount, { sign: true })
+    : formatUsd(-amount)
 }
 
 const styles = StyleSheet.create({

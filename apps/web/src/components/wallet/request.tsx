@@ -140,8 +140,8 @@ export function Receive() {
         <p className="w-offline-hint">
           <NoSignal size={15} />
           <span>
-            No signal? A Kova phone can still scan this and pay you. It settles as soon as either
-            of you is back online.
+            No signal? A Kova phone can still scan this and pay you. It settles as soon as either of
+            you is back online.
           </span>
         </p>
         <ShareButton

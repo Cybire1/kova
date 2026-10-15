@@ -16,10 +16,23 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { type BarcodeLookup, type CatalogItem, createCharge, lookupBarcode, ringUp } from '@/lib/api'
+import {
+  type BarcodeLookup,
+  type CatalogItem,
+  createCharge,
+  lookupBarcode,
+  ringUp,
+} from '@/lib/api'
 import { sameBarcode, useCatalog } from '@/lib/catalog'
 import { settlementToken } from '@/lib/config'
-import { applyKey, currencyInfo, type DisplayCurrency, formatLocal, groupTyped, localToUsd } from '@/lib/money'
+import {
+  applyKey,
+  currencyInfo,
+  type DisplayCurrency,
+  formatLocal,
+  groupTyped,
+  localToUsd,
+} from '@/lib/money'
 import { useShop } from '@/lib/shop'
 import { useStall } from '@/lib/stall'
 import { load, save } from '@/lib/storage'
@@ -99,13 +112,18 @@ export default function Till() {
     return item && quantity > 0 ? [{ item, quantity }] : []
   })
   const count = lines.reduce((n, l) => n + l.quantity, 0)
-  const total = lines.reduce((sum, l) => sum + Math.round(Number(l.item.price) * 100) * l.quantity, 0) / 100
+  const total =
+    lines.reduce((sum, l) => sum + Math.round(Number(l.item.price) * 100) * l.quantity, 0) / 100
 
   const add = useCallback(
-    (item: CatalogItem, by = 1) => setBasket((b) => ({ ...b, [item.id]: Math.max(0, Math.min(999, (b[item.id] ?? 0) + by)) })),
+    (item: CatalogItem, by = 1) =>
+      setBasket((b) => ({ ...b, [item.id]: Math.max(0, Math.min(999, (b[item.id] ?? 0) + by)) })),
     [],
   )
-  const setQty = useCallback((id: string, quantity: number) => setBasket((b) => ({ ...b, [id]: quantity })), [])
+  const setQty = useCallback(
+    (id: string, quantity: number) => setBasket((b) => ({ ...b, [id]: quantity })),
+    [],
+  )
 
   const chargeBasket = async () => {
     setBusy(true)
@@ -114,23 +132,43 @@ export default function Till() {
       const sale = await ringUp(lines.map((l) => ({ id: l.item.id, quantity: l.quantity })))
       const usd = sale.payment_intent.amount
       setBasket({})
-      router.push({ pathname: '/terminal/[id]', params: { id: sale.payment_intent.id, price: dollars(usd), usd } })
+      router.push({
+        pathname: '/terminal/[id]',
+        params: { id: sale.payment_intent.id, price: dollars(usd), usd },
+      })
     } catch (error) {
-      setProblem(error instanceof Error ? error.message : 'Kova is unreachable. Check the connection.')
+      setProblem(
+        error instanceof Error ? error.message : 'Kova is unreachable. Check the connection.',
+      )
       void catalog.reload()
     } finally {
       setBusy(false)
     }
   }
 
-  const footerBottom = wide ? insets.bottom + 16 : shopDockClearance + Math.max(insets.bottom - 6, 16) - 44
+  const footerBottom = wide
+    ? insets.bottom + 16
+    : shopDockClearance + Math.max(insets.bottom - 6, 16) - 44
 
   const panel = (
     <View style={{ flex: 1 }}>
       {mode === 'items' ? (
-        <ItemsPanel items={catalog.items} problem={catalog.problem} basket={basket} onAdd={add} width={gridWidth} />
+        <ItemsPanel
+          items={catalog.items}
+          problem={catalog.problem}
+          basket={basket}
+          onAdd={add}
+          width={gridWidth}
+        />
       ) : (
-        <ScanPanel items={catalog.items} lines={lines} onAdd={add} onQty={setQty} reload={catalog.reload} currency={shop.currency} />
+        <ScanPanel
+          items={catalog.items}
+          lines={lines}
+          onAdd={add}
+          onQty={setQty}
+          reload={catalog.reload}
+          currency={shop.currency}
+        />
       )}
     </View>
   )
@@ -154,8 +192,19 @@ export default function Till() {
               {modes.map((m) => {
                 const on = m.id === mode
                 return (
-                  <Pressable key={m.id} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => setMode(m.id)} style={[styles.mode, on && styles.modeOn]}>
-                    <Icon name={m.icon} size={17} color={on ? colors.white : colors.ink} strokeWidth={on ? 2.6 : 2} />
+                  <Pressable
+                    key={m.id}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: on }}
+                    onPress={() => setMode(m.id)}
+                    style={[styles.mode, on && styles.modeOn]}
+                  >
+                    <Icon
+                      name={m.icon}
+                      size={17}
+                      color={on ? colors.white : colors.ink}
+                      strokeWidth={on ? 2.6 : 2}
+                    />
                     <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
                       {m.label}
                     </Txt>
@@ -209,12 +258,21 @@ export default function Till() {
           <Txt weight="bold" size={15} color={picking ? colors.white : colors.ink}>
             {currencyInfo[shop.currency].symbol.trim()} {shop.currency}
           </Txt>
-          <Icon name={picking ? 'chevronUp' : 'chevronDown'} size={16} strokeWidth={2.4} color={picking ? colors.white : colors.ink} />
+          <Icon
+            name={picking ? 'chevronUp' : 'chevronDown'}
+            size={16}
+            strokeWidth={2.4}
+            color={picking ? colors.white : colors.ink}
+          />
         </Pressable>
       </View>
       {picking ? (
         <View style={styles.currencyMenu}>
-          <Txt size={13} color={colors.muted} style={{ paddingHorizontal: 12, paddingTop: 6, paddingBottom: 4 }}>
+          <Txt
+            size={13}
+            color={colors.muted}
+            style={{ paddingHorizontal: 12, paddingTop: 6, paddingBottom: 4 }}
+          >
             Type prices in
           </Txt>
           {priceCurrencies.map((c) => {
@@ -229,7 +287,10 @@ export default function Till() {
                   shop.setCurrency(c)
                   setPicking(false)
                 }}
-                style={({ pressed }) => [styles.currencyItem, (on || pressed) && { backgroundColor: on ? colors.tealSoft : colors.sunken }]}
+                style={({ pressed }) => [
+                  styles.currencyItem,
+                  (on || pressed) && { backgroundColor: on ? colors.tealSoft : colors.sunken },
+                ]}
               >
                 <Txt weight="bold" size={15} style={{ width: 40 }}>
                   {currencyInfo[c].symbol.trim()}
@@ -255,7 +316,12 @@ export default function Till() {
               onPress={() => setMode(m.id)}
               style={[styles.mode, on && styles.modeOn]}
             >
-              <Icon name={m.icon} size={17} color={on ? colors.white : colors.ink} strokeWidth={on ? 2.6 : 2} />
+              <Icon
+                name={m.icon}
+                size={17}
+                color={on ? colors.white : colors.ink}
+                strokeWidth={on ? 2.6 : 2}
+              />
               <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
                 {m.label}
               </Txt>
@@ -290,12 +356,23 @@ export default function Till() {
               </View>
             ) : null}
             {problem ? (
-              <Txt weight="medium" size={14} color={colors.danger} style={{ marginBottom: 8, textAlign: 'center' }}>
+              <Txt
+                weight="medium"
+                size={14}
+                color={colors.danger}
+                style={{ marginBottom: 8, textAlign: 'center' }}
+              >
                 {problem}
               </Txt>
             ) : null}
             <PillButton
-              label={count > 0 ? `Charge ${dollars(total)}` : mode === 'scan' ? 'Scan something to sell' : 'Tap what they’re buying'}
+              label={
+                count > 0
+                  ? `Charge ${dollars(total)}`
+                  : mode === 'scan'
+                    ? 'Scan something to sell'
+                    : 'Tap what they’re buying'
+              }
               icon="tap"
               disabled={count === 0}
               loading={busy}
@@ -356,12 +433,19 @@ function CartPanel({
           <Txt weight="semi" size={18} style={{ marginTop: 10 }}>
             Nothing in the cart
           </Txt>
-          <Txt size={14} color={colors.muted} style={{ textAlign: 'center', marginTop: 4, lineHeight: 20 }}>
+          <Txt
+            size={14}
+            color={colors.muted}
+            style={{ textAlign: 'center', marginTop: 4, lineHeight: 20 }}
+          >
             Tap what they’re buying, or scan it.
           </Txt>
         </View>
       ) : (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 12 }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 12 }}
+        >
           {lines.map(({ item, quantity }) => (
             <View key={item.id} style={styles.cartLine}>
               <ItemFace item={item} size={46} radius={12} />
@@ -373,7 +457,13 @@ function CartPanel({
                   {dollars(item.price)} each
                 </Txt>
               </View>
-              <Stepper small value={quantity} max={999} name={item.name} onChange={(n) => onQty(item.id, n)} />
+              <Stepper
+                small
+                value={quantity}
+                max={999}
+                name={item.name}
+                onChange={(n) => onQty(item.id, n)}
+              />
               <Txt weight="bold" size={15} style={{ width: 76, textAlign: 'right' }}>
                 {dollars(Number(item.price) * quantity)}
               </Txt>
@@ -398,11 +488,22 @@ function CartPanel({
           </View>
         </View>
         {problem ? (
-          <Txt weight="medium" size={14} color={colors.danger} style={{ marginBottom: 8, textAlign: 'center' }}>
+          <Txt
+            weight="medium"
+            size={14}
+            color={colors.danger}
+            style={{ marginBottom: 8, textAlign: 'center' }}
+          >
             {problem}
           </Txt>
         ) : null}
-        <PillButton label={count > 0 ? `Charge ${dollars(total)}` : 'Charge'} icon="tap" disabled={count === 0} loading={busy} onPress={onCharge} />
+        <PillButton
+          label={count > 0 ? `Charge ${dollars(total)}` : 'Charge'}
+          icon="tap"
+          disabled={count === 0}
+          loading={busy}
+          onPress={onCharge}
+        />
       </View>
     </View>
   )
@@ -443,7 +544,9 @@ function KeypadPanel({ bottom }: { bottom: number }) {
       setNote('')
       router.push({ pathname: '/terminal/[id]', params: { id: intent.id, price: label, usd } })
     } catch (error) {
-      setProblem(error instanceof Error ? error.message : 'Kova is unreachable. Check the connection.')
+      setProblem(
+        error instanceof Error ? error.message : 'Kova is unreachable. Check the connection.',
+      )
     } finally {
       setBusy(false)
     }
@@ -463,7 +566,9 @@ function KeypadPanel({ bottom }: { bottom: number }) {
             {label}
           </Txt>
           <Txt size={14} color={colors.onTint} numberOfLines={1} adjustsFontSizeToFit>
-            {shop.currency === 'USD' ? `Customer pays $${usd} in ${settlementToken.symbol}` : `Customer pays $${usd} ${settlementToken.symbol} at ${formatLocal(1, shop.currency)} per dollar`}
+            {shop.currency === 'USD'
+              ? `Customer pays $${usd} in ${settlementToken.symbol}`
+              : `Customer pays $${usd} ${settlementToken.symbol} at ${formatLocal(1, shop.currency)} per dollar`}
           </Txt>
           {roomy ? (
             <TextInput
@@ -476,15 +581,31 @@ function KeypadPanel({ bottom }: { bottom: number }) {
             />
           ) : null}
           {problem ? (
-            <Txt weight="medium" size={14} color={colors.danger} style={{ marginTop: 6 }} numberOfLines={2}>
+            <Txt
+              weight="medium"
+              size={14}
+              color={colors.danger}
+              style={{ marginTop: 6 }}
+              numberOfLines={2}
+            >
               {problem}
             </Txt>
           ) : null}
         </View>
-        <Keypad onKey={(k) => setTyped((v) => applyKey(v, k, info.decimals))} decimals={info.decimals > 0} size={key} />
+        <Keypad
+          onKey={(k) => setTyped((v) => applyKey(v, k, info.decimals))}
+          decimals={info.decimals > 0}
+          size={key}
+        />
       </View>
       <View style={[styles.footer, { paddingBottom: bottom }]}>
-        <PillButton label={local > 0 ? `Charge ${label}` : 'Enter a price'} icon="tap" disabled={local <= 0} loading={busy} onPress={charge} />
+        <PillButton
+          label={local > 0 ? `Charge ${label}` : 'Enter a price'}
+          icon="tap"
+          disabled={local <= 0}
+          loading={busy}
+          onPress={charge}
+        />
       </View>
     </>
   )
@@ -508,7 +629,10 @@ function ItemsPanel({
   const { owned } = useStall()
   const [query, setQuery] = useState('')
   const [shelf, setShelf] = useState<string | null>(null)
-  const shelves = useMemo(() => [...new Set((items ?? []).flatMap((i) => (i.category ? [i.category] : [])))].sort(), [items])
+  const shelves = useMemo(
+    () => [...new Set((items ?? []).flatMap((i) => (i.category ? [i.category] : [])))].sort(),
+    [items],
+  )
   const columns = Math.max(3, Math.floor((width - 40) / 180))
   const tile = Math.floor((width - 40 - 10 * (columns - 1)) / columns)
 
@@ -532,11 +656,21 @@ function ItemsPanel({
         <Txt weight="semi" size={20} style={{ marginTop: 8 }}>
           Nothing to sell yet
         </Txt>
-        <Txt size={15} color={colors.onTint} style={{ textAlign: 'center', marginTop: 4, lineHeight: 21 }}>
-          {owned ? 'Add what you sell once, then ring it up with a tap.' : 'The shop’s owner adds items from their phone or the Kova dashboard.'}
+        <Txt
+          size={15}
+          color={colors.onTint}
+          style={{ textAlign: 'center', marginTop: 4, lineHeight: 21 }}
+        >
+          {owned
+            ? 'Add what you sell once, then ring it up with a tap.'
+            : 'The shop’s owner adds items from their phone or the Kova dashboard.'}
         </Txt>
         {owned ? (
-          <Pressable accessibilityRole="button" onPress={() => router.push('/terminal/item')} style={styles.inlineButton}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/terminal/item')}
+            style={styles.inlineButton}
+          >
             <Icon name="plus" size={18} />
             <Txt weight="semi" size={15}>
               Add an item
@@ -548,7 +682,9 @@ function ItemsPanel({
 
   const q = query.trim().toLowerCase()
   const shown = items.filter(
-    (i) => (!q || `${i.name} ${i.barcode ?? ''}`.toLowerCase().includes(q)) && (shelf === null || i.category === shelf),
+    (i) =>
+      (!q || `${i.name} ${i.barcode ?? ''}`.toLowerCase().includes(q)) &&
+      (shelf === null || i.category === shelf),
   )
   return (
     <FlatList
@@ -565,15 +701,31 @@ function ItemsPanel({
           {items.length > 9 ? (
             <View style={styles.search}>
               <Icon name="scan" size={18} color={colors.onTint} />
-              <TextInput value={query} onChangeText={setQuery} placeholder="Find an item" placeholderTextColor="rgba(13,13,18,0.45)" style={styles.searchInput} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Find an item"
+                placeholderTextColor="rgba(13,13,18,0.45)"
+                style={styles.searchInput}
+              />
             </View>
           ) : null}
           {shelves.length > 1 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
+            >
               {[null, ...shelves].map((name) => {
                 const on = shelf === name
                 return (
-                  <Pressable key={name ?? 'all'} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => setShelf(name)} style={[styles.shelf, on && styles.shelfOn]}>
+                  <Pressable
+                    key={name ?? 'all'}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: on }}
+                    onPress={() => setShelf(name)}
+                    style={[styles.shelf, on && styles.shelfOn]}
+                  >
                     <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
                       {name ?? 'All'}
                     </Txt>
@@ -595,13 +747,20 @@ function ItemsPanel({
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
                 onAdd(item)
               }}
-              style={({ pressed }) => [styles.tile, qty > 0 && styles.tileIn, pressed && { transform: [{ scale: 0.96 }] }]}
+              style={({ pressed }) => [
+                styles.tile,
+                qty > 0 && styles.tileIn,
+                pressed && { transform: [{ scale: 0.96 }] },
+              ]}
             >
               <View style={{ opacity: item.sold_out ? 0.5 : 1 }}>
                 <ItemFace item={item} size={tile - 16} radius={14} />
               </View>
               {item.sold_out || (item.stock !== null && item.stock <= 5) ? (
-                <View style={[styles.stockTag, item.sold_out && { backgroundColor: colors.ink }]} pointerEvents="none">
+                <View
+                  style={[styles.stockTag, item.sold_out && { backgroundColor: colors.ink }]}
+                  pointerEvents="none"
+                >
                   <Txt weight="bold" size={11} color={colors.white}>
                     {item.sold_out ? 'Sold out' : `${item.stock} left`}
                   </Txt>
@@ -743,7 +902,9 @@ function ScanPanel({
             facing="back"
             active={focused}
             enableTorch={torch}
-            barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'itf14'] }}
+            barcodeScannerSettings={{
+              barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'itf14'],
+            }}
             onBarcodeScanned={live ? ({ data }) => found(data.trim()) : undefined}
           />
         ) : (
@@ -751,7 +912,11 @@ function ScanPanel({
             <Txt weight="semi" size={17} color={colors.white}>
               Scan barcodes with the camera
             </Txt>
-            <Pressable accessibilityRole="button" onPress={() => void requestPermission()} style={[styles.inlineButton, { backgroundColor: colors.surface }]}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void requestPermission()}
+              style={[styles.inlineButton, { backgroundColor: colors.surface }]}
+            >
               <Icon name="camera" size={18} />
               <Txt weight="semi" size={15}>
                 Allow camera
@@ -762,14 +927,23 @@ function ScanPanel({
         {permission?.granted ? <View pointerEvents="none" style={styles.beam} /> : null}
         {flash || looking ? (
           <View pointerEvents="none" style={styles.flash}>
-            {looking ? <ActivityIndicator color={colors.ink} size="small" /> : <Icon name="check" size={16} />}
+            {looking ? (
+              <ActivityIndicator color={colors.ink} size="small" />
+            ) : (
+              <Icon name="check" size={16} />
+            )}
             <Txt weight="semi" size={14} numberOfLines={1}>
               {looking ? 'Looking it up' : flash}
             </Txt>
           </View>
         ) : null}
         <View style={styles.viewfinderTools}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Type a barcode" onPress={() => setTyping(true)} style={[styles.tool, styles.toolWide]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Type a barcode"
+            onPress={() => setTyping(true)}
+            style={[styles.tool, styles.toolWide]}
+          >
             <Icon name="keypad" size={16} color={colors.white} />
             <Txt weight="semi" size={13} color={colors.white}>
               Type a code
@@ -806,15 +980,27 @@ function ScanPanel({
               Add
             </Txt>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cancel" hitSlop={8} onPress={() => setTyping(false)}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Cancel"
+            hitSlop={8}
+            onPress={() => setTyping(false)}
+          >
             <Icon name="close" size={20} />
           </Pressable>
         </View>
       ) : null}
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8 }}
+        keyboardShouldPersistTaps="handled"
+      >
         {lines.length === 0 ? (
-          <Txt size={15} color={colors.onTint} style={{ textAlign: 'center', marginTop: 12, lineHeight: 21 }}>
+          <Txt
+            size={15}
+            color={colors.onTint}
+            style={{ textAlign: 'center', marginTop: 12, lineHeight: 21 }}
+          >
             Hold a barcode inside the frame. Each scan adds one to the basket.
           </Txt>
         ) : (
@@ -828,10 +1014,18 @@ function ScanPanel({
                 <Txt size={13} color={colors.onTint}>
                   {dollars(Number(item.price) * quantity)}
                   {quantity > 1 ? `, ${dollars(item.price)} each` : ''}
-                  {about(Number(item.price) * quantity, currency) ? `, ${about(Number(item.price) * quantity, currency)}` : ''}
+                  {about(Number(item.price) * quantity, currency)
+                    ? `, ${about(Number(item.price) * quantity, currency)}`
+                    : ''}
                 </Txt>
               </View>
-              <Stepper small value={quantity} name={item.name} max={999} onChange={(n) => onQty(item.id, n)} />
+              <Stepper
+                small
+                value={quantity}
+                name={item.name}
+                max={999}
+                onChange={(n) => onQty(item.id, n)}
+              />
             </View>
           ))
         )}
@@ -848,7 +1042,9 @@ function ScanPanel({
             pathname: '/terminal/item',
             params: {
               barcode: lookup.code,
-              name: lookup.suggestion ? [lookup.suggestion.brand, lookup.suggestion.name].filter(Boolean).join(' ') : '',
+              name: lookup.suggestion
+                ? [lookup.suggestion.brand, lookup.suggestion.name].filter(Boolean).join(' ')
+                : '',
               photo: lookup.suggestion?.image_url ?? '',
             },
           })
@@ -879,13 +1075,19 @@ function NotInCatalogue({
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <View style={styles.grip} />
           <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center', marginTop: 16 }}>
-            {s ? <ItemFace item={{ name: s.name, image_url: s.image_url }} size={62} /> : <Kovi pose="oops" size={80} />}
+            {s ? (
+              <ItemFace item={{ name: s.name, image_url: s.image_url }} size={62} />
+            ) : (
+              <Kovi pose="oops" size={80} />
+            )}
             <View style={{ flex: 1 }}>
               <Txt weight="bold" size={22} style={{ letterSpacing: -0.4 }}>
                 Not in your catalogue
               </Txt>
               <Txt size={14} color={colors.muted} numberOfLines={2}>
-                {s ? `Looks like ${[s.brand, s.name].filter(Boolean).join(' ')}` : `Barcode ${lookup.code}`}
+                {s
+                  ? `Looks like ${[s.brand, s.name].filter(Boolean).join(' ')}`
+                  : `Barcode ${lookup.code}`}
               </Txt>
             </View>
           </View>
@@ -895,8 +1097,15 @@ function NotInCatalogue({
               : 'Ask the owner to add it to the catalogue. For now, charge it on the keypad.'}
           </Txt>
           <View style={{ marginTop: 16, gap: 10 }}>
-            {owner ? <PillButton label="Add it and sell it" icon="plus" onPress={() => onAdd(lookup)} /> : null}
-            <PillButton label={owner ? 'Not now' : 'OK'} tone="white" icon={owner ? 'close' : 'check'} onPress={onClose} />
+            {owner ? (
+              <PillButton label="Add it and sell it" icon="plus" onPress={() => onAdd(lookup)} />
+            ) : null}
+            <PillButton
+              label={owner ? 'Not now' : 'OK'}
+              tone="white"
+              icon={owner ? 'close' : 'check'}
+              onPress={onClose}
+            />
           </View>
         </View>
       ) : null}
@@ -906,15 +1115,58 @@ function NotInCatalogue({
 
 const styles = StyleSheet.create({
   cart: { backgroundColor: colors.surface, borderLeftWidth: 2, borderLeftColor: colors.ink },
-  shelf: { height: 38, paddingHorizontal: 16, borderRadius: 19, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, justifyContent: 'center' },
+  shelf: {
+    height: 38,
+    paddingHorizontal: 16,
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+  },
   shelfOn: { backgroundColor: colors.ink },
-  stockTag: { position: 'absolute', left: 14, top: 14, paddingHorizontal: 8, height: 22, borderRadius: 11, backgroundColor: colors.coral, justifyContent: 'center' },
-  cartHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingTop: 18, paddingBottom: 10 },
-  cartLine: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.sunken },
-  cartFoot: { paddingHorizontal: 18, paddingTop: 14, borderTopWidth: 2, borderTopColor: colors.ink, gap: 10 },
+  stockTag: {
+    position: 'absolute',
+    left: 14,
+    top: 14,
+    paddingHorizontal: 8,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.coral,
+    justifyContent: 'center',
+  },
+  cartHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 22,
+    paddingTop: 18,
+    paddingBottom: 10,
+  },
+  cartLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.sunken,
+  },
+  cartFoot: {
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    borderTopWidth: 2,
+    borderTopColor: colors.ink,
+    gap: 10,
+  },
   cartTotal: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
   back: { paddingHorizontal: 20, paddingTop: 6 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, gap: 12 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    gap: 12,
+  },
   currency: {
     height: 40,
     paddingHorizontal: 14,
@@ -938,7 +1190,13 @@ const styles = StyleSheet.create({
     borderColor: colors.ink,
     backgroundColor: colors.surface,
   },
-  currencyItem: { flexDirection: 'row', alignItems: 'center', height: 44, paddingHorizontal: 12, borderRadius: 14 },
+  currencyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+  },
   modes: {
     flexDirection: 'row',
     marginHorizontal: 20,
@@ -949,7 +1207,15 @@ const styles = StyleSheet.create({
     borderColor: colors.ink,
     backgroundColor: colors.surface,
   },
-  mode: { flex: 1, height: 40, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  mode: {
+    flex: 1,
+    height: 40,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
   modeOn: { backgroundColor: colors.ink },
   modeDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.coral, marginLeft: 2 },
   entry: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, gap: 4 },
@@ -967,8 +1233,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   footer: { paddingHorizontal: 20, paddingTop: 10 },
-  basketRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 6, marginBottom: 10 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, gap: 6 },
+  basketRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    marginBottom: 10,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    gap: 6,
+  },
   inlineButton: {
     marginTop: 14,
     height: 46,
@@ -1040,7 +1318,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.ink,
     overflow: 'hidden',
   },
-  beam: { position: 'absolute', left: 36, right: 36, top: '50%', height: 2, borderRadius: 1, backgroundColor: colors.coral, opacity: 0.9 },
+  beam: {
+    position: 'absolute',
+    left: 36,
+    right: 36,
+    top: '50%',
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: colors.coral,
+    opacity: 0.9,
+  },
   flash: {
     position: 'absolute',
     top: 12,
@@ -1064,7 +1351,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  typeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, marginTop: 10 },
+  typeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 20,
+    marginTop: 10,
+  },
   typeInput: {
     height: 46,
     borderRadius: 23,
@@ -1074,9 +1367,27 @@ const styles = StyleSheet.create({
     borderColor: colors.ink,
     letterSpacing: 1,
   },
-  typeAdd: { height: 46, paddingHorizontal: 18, borderRadius: 23, backgroundColor: colors.ink, justifyContent: 'center' },
+  typeAdd: {
+    height: 46,
+    paddingHorizontal: 18,
+    borderRadius: 23,
+    backgroundColor: colors.ink,
+    justifyContent: 'center',
+  },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 7 },
   backdrop: { flex: 1, backgroundColor: 'rgba(11,26,29,0.32)' },
-  sheet: { backgroundColor: colors.paper, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 10 },
-  grip: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: 'rgba(11,26,29,0.16)' },
+  sheet: {
+    backgroundColor: colors.paper,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  grip: {
+    alignSelf: 'center',
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(11,26,29,0.16)',
+  },
 })

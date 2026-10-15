@@ -37,13 +37,18 @@ export function PaidReceipt({
       </p>
       {order?.reward ? (
         <p className="paid-reward">
-          <strong>Free with your stamp card</strong> One {order.reward.name}, {usd(order.reward.amount)} off
+          <strong>Free with your stamp card</strong> One {order.reward.name},{' '}
+          {usd(order.reward.amount)} off
         </p>
       ) : null}
       {waiting?.stall ? (
         <div className="paid-order">
           <OrderReady checkoutId={c.id} order={waiting} shop={waiting.stall.name} />
-          <StampsAfterPay slug={waiting.stall.slug} shop={waiting.stall.name} usedReward={Boolean(order?.reward)} />
+          <StampsAfterPay
+            slug={waiting.stall.slug}
+            shop={waiting.stall.name}
+            usedReward={Boolean(order?.reward)}
+          />
         </div>
       ) : null}
     </section>

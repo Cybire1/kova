@@ -1,4 +1,4 @@
-import { hashTypedData, type Hex, recoverTypedDataAddress } from 'viem'
+import { type Hex, hashTypedData, recoverTypedDataAddress } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { describe, expect, it } from 'vitest'
 import { paymentTypedData } from '../src/card.js'
@@ -38,7 +38,10 @@ describe('HaLo driver', () => {
 
   it('turns a chip error into words', async () => {
     const card = softCard(key)
-    const noSlot: Transceive = async (apdu) => (apdu[0] === 0xb0 ? [0xe1, 0x02, 0x90, 0x00] : card(apdu))
-    await expect(signWithCard(noSlot, `0x${'11'.repeat(32)}`)).rejects.toThrow(/no key in that slot/)
+    const noSlot: Transceive = async (apdu) =>
+      apdu[0] === 0xb0 ? [0xe1, 0x02, 0x90, 0x00] : card(apdu)
+    await expect(signWithCard(noSlot, `0x${'11'.repeat(32)}`)).rejects.toThrow(
+      /no key in that slot/,
+    )
   })
 })

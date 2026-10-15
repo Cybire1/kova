@@ -3,21 +3,29 @@ import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, View } from 'react-native'
-import { searchStays, type StayResult, type StaySearch } from '@/lib/api'
+import { type StayResult, type StaySearch, searchStays } from '@/lib/api'
 import { formatLocal } from '@/lib/money'
-import { day, nights } from '@/lib/travel'
 import { colors } from '@/lib/theme'
+import { day, nights } from '@/lib/travel'
 import { useWallet } from '@/lib/wallet'
 import { Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Bob } from '@/ui/motion'
-import { Stage as KoviStage } from '@/ui/Stage'
 import { Header, Screen, Txt } from '@/ui/primitives'
+import { Stage as KoviStage } from '@/ui/Stage'
 import { dollars } from '@/ui/StallParts'
 
 export function reviewWord(score: number | null) {
   if (score == null) return null
-  return score >= 9 ? 'Superb' : score >= 8.5 ? 'Excellent' : score >= 8 ? 'Very good' : score >= 7 ? 'Good' : 'Fair'
+  return score >= 9
+    ? 'Superb'
+    : score >= 8.5
+      ? 'Excellent'
+      : score >= 8
+        ? 'Very good'
+        : score >= 7
+          ? 'Good'
+          : 'Fair'
 }
 
 /** Places to stay for the dates, best match first when you said what matters. */
@@ -50,7 +58,9 @@ export default function Stays() {
         if (!live) return
         setTestMode(r.test_mode)
         setBest(r.best)
-        const list = [...r.data].sort((a, b) => Number(a.from_price?.usd ?? Infinity) - Number(b.from_price?.usd ?? Infinity))
+        const list = [...r.data].sort(
+          (a, b) => Number(a.from_price?.usd ?? Infinity) - Number(b.from_price?.usd ?? Infinity),
+        )
         if (r.best) {
           const i = list.findIndex((x) => x.id === r.best)
           if (i > 0) list.unshift(...list.splice(i, 1))
@@ -82,7 +92,11 @@ export default function Stays() {
       ) : problem ? (
         <View style={styles.center}>
           <KoviStage pose="oops" size={140} motion="bob" />
-          <Txt size={15} color={colors.muted} style={{ marginTop: 10, textAlign: 'center', lineHeight: 21 }}>
+          <Txt
+            size={15}
+            color={colors.muted}
+            style={{ marginTop: 10, textAlign: 'center', lineHeight: 21 }}
+          >
             {problem}
           </Txt>
         </View>
@@ -96,14 +110,18 @@ export default function Stays() {
               <View style={styles.test}>
                 <Icon name="info" size={16} />
                 <Txt size={13} style={{ flex: 1, lineHeight: 19 }}>
-                  Test mode: these are Duffel’s sample hotels, not real ones in {p.city ?? 'this city'}. Nothing real is booked.
+                  Test mode: these are Duffel’s sample hotels, not real ones in{' '}
+                  {p.city ?? 'this city'}. Nothing real is booked.
                 </Txt>
               </View>
             ) : null
           }
           renderItem={({ item }) => {
             const a = item.accommodation
-            const local = profile && profile.currency !== 'USD' && item.from_price ? formatLocal(Number(item.from_price.usd), profile.currency) : null
+            const local =
+              profile && profile.currency !== 'USD' && item.from_price
+                ? formatLocal(Number(item.from_price.usd), profile.currency)
+                : null
             const word = reviewWord(a.review_score)
             const isBest = item.id === best
             return (
@@ -114,10 +132,23 @@ export default function Stays() {
                   void Haptics.selectionAsync()
                   router.push({ pathname: '/travel/stay', params: { id: item.id, ...p } })
                 }}
-                style={({ pressed }) => [styles.card, isBest && styles.cardBest, pressed && { transform: [{ scale: 0.99 }] }]}
+                style={({ pressed }) => [
+                  styles.card,
+                  isBest && styles.cardBest,
+                  pressed && { transform: [{ scale: 0.99 }] },
+                ]}
               >
                 <View style={styles.photo}>
-                  {a.photos[0] ? <Image source={{ uri: a.photos[0] }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} /> : <Kovi pose="sleep" size={90} />}
+                  {a.photos[0] ? (
+                    <Image
+                      source={{ uri: a.photos[0] }}
+                      style={StyleSheet.absoluteFill}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                  ) : (
+                    <Kovi pose="sleep" size={90} />
+                  )}
                   {isBest ? (
                     <View style={styles.best}>
                       <Icon name="sparkle" size={14} />
@@ -197,11 +228,51 @@ export default function Stays() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
-  test: { flexDirection: 'row', gap: 10, alignItems: 'center', padding: 12, borderRadius: 18, backgroundColor: colors.coralSoft, marginTop: 6 },
-  card: { borderRadius: 26, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, overflow: 'hidden' },
+  test: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: colors.coralSoft,
+    marginTop: 6,
+  },
+  card: {
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
   cardBest: { borderColor: colors.coral, borderWidth: 3 },
-  photo: { height: 170, backgroundColor: colors.sunken, alignItems: 'center', justifyContent: 'center', borderBottomWidth: 2, borderColor: colors.ink },
-  best: { position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 5, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: colors.coral, borderWidth: 2, borderColor: colors.ink },
-  score: { height: 22, paddingHorizontal: 7, borderRadius: 7, backgroundColor: colors.tealDeep, justifyContent: 'center' },
+  photo: {
+    height: 170,
+    backgroundColor: colors.sunken,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 2,
+    borderColor: colors.ink,
+  },
+  best: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    height: 28,
+    paddingHorizontal: 10,
+    borderRadius: 14,
+    backgroundColor: colors.coral,
+    borderWidth: 2,
+    borderColor: colors.ink,
+  },
+  score: {
+    height: 22,
+    paddingHorizontal: 7,
+    borderRadius: 7,
+    backgroundColor: colors.tealDeep,
+    justifyContent: 'center',
+  },
   priceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, marginTop: 4 },
 })

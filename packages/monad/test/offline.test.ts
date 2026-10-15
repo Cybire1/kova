@@ -7,9 +7,9 @@ import {
   encodeOfflinePayment,
   OFFLINE_MAX,
   OFFLINE_VALIDITY,
+  type OfflinePayment,
   offlineCodeFrom,
   offlinePaymentLink,
-  type OfflinePayment,
   verifyOfflinePayment,
 } from '../src/offline.js'
 import { tokenByAddress } from '../src/tokens.js'
@@ -22,8 +22,17 @@ const sam = privateKeyToAccount(generatePrivateKey()).address
 const now = BigInt(Math.floor(Date.now() / 1000))
 
 async function pay(value: bigint, name: string | null = 'Ada'): Promise<OfflinePayment> {
-  const authorization = { from: ada.address, to: sam, value, validAfter: 0n, validBefore: now + OFFLINE_VALIDITY, nonce: randomNonce() }
-  const signature = await ada.signTypedData(transferAuthorizationTypedData(token, network.chainId, authorization))
+  const authorization = {
+    from: ada.address,
+    to: sam,
+    value,
+    validAfter: 0n,
+    validBefore: now + OFFLINE_VALIDITY,
+    nonce: randomNonce(),
+  }
+  const signature = await ada.signTypedData(
+    transferAuthorizationTypedData(token, network.chainId, authorization),
+  )
   return { chainId: network.chainId, token: token.address, authorization, signature, name }
 }
 
@@ -42,11 +51,29 @@ describe('offline payments', () => {
     const p = await pay(20_000_000n)
     expect(await verifyOfflinePayment(p)).toEqual({ ok: true })
     // Anyone changing the amount or the recipient breaks the signature.
-    expect(await verifyOfflinePayment({ ...p, authorization: { ...p.authorization, value: 2_000_000_000n } })).toEqual({ ok: false, reason: 'too-large' })
-    expect(await verifyOfflinePayment({ ...p, authorization: { ...p.authorization, value: 30_000_000n } })).toEqual({ ok: false, reason: 'bad-signature' })
-    expect(await verifyOfflinePayment({ ...p, authorization: { ...p.authorization, to: ada.address } })).toEqual({ ok: false, reason: 'bad-signature' })
-    expect(await verifyOfflinePayment(p, now + OFFLINE_VALIDITY + 1n)).toEqual({ ok: false, reason: 'expired' })
-    expect(await verifyOfflinePayment(await pay(OFFLINE_MAX + 1n))).toEqual({ ok: false, reason: 'too-large' })
+    expect(
+      await verifyOfflinePayment({
+        ...p,
+        authorization: { ...p.authorization, value: 2_000_000_000n },
+      }),
+    ).toEqual({ ok: false, reason: 'too-large' })
+    expect(
+      await verifyOfflinePayment({
+        ...p,
+        authorization: { ...p.authorization, value: 30_000_000n },
+      }),
+    ).toEqual({ ok: false, reason: 'bad-signature' })
+    expect(
+      await verifyOfflinePayment({ ...p, authorization: { ...p.authorization, to: ada.address } }),
+    ).toEqual({ ok: false, reason: 'bad-signature' })
+    expect(await verifyOfflinePayment(p, now + OFFLINE_VALIDITY + 1n)).toEqual({
+      ok: false,
+      reason: 'expired',
+    })
+    expect(await verifyOfflinePayment(await pay(OFFLINE_MAX + 1n))).toEqual({
+      ok: false,
+      reason: 'too-large',
+    })
   })
 
   it('refuses what isn’t a payment code', () => {

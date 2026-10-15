@@ -2,8 +2,6 @@ import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Animated, {
   Easing,
-  ZoomIn,
-  ZoomOut,
   useAnimatedProps,
   useAnimatedStyle,
   useReducedMotion,
@@ -12,6 +10,8 @@ import Animated, {
   withSequence,
   withSpring,
   withTiming,
+  ZoomIn,
+  ZoomOut,
 } from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
 import { colors } from '@/lib/theme'
@@ -66,16 +66,26 @@ export function ArcRoute({
     }
     if (leg === 'waiting') {
       t.value = withSpring(0.5, { damping: 16, stiffness: 120 })
-      hover.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.sin) }), -1, true)
+      hover.value = withRepeat(
+        withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.sin) }),
+        -1,
+        true,
+      )
       tick.value = 0
     } else if (leg === 'flying') {
       hover.value = withTiming(0, { duration: 200 })
       // Back to your side for a run-up, then most of the way across, waiting there for the chain.
-      t.value = withSequence(withTiming(0.04, { duration: 260, easing: Easing.out(Easing.quad) }), withTiming(0.82, { duration: 1100, easing: Easing.bezier(0.3, 0, 0.2, 1) }))
+      t.value = withSequence(
+        withTiming(0.04, { duration: 260, easing: Easing.out(Easing.quad) }),
+        withTiming(0.82, { duration: 1100, easing: Easing.bezier(0.3, 0, 0.2, 1) }),
+      )
       march.value = withRepeat(withTiming(1, { duration: 420, easing: Easing.linear }), -1)
     } else {
       t.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.cubic) })
-      tick.value = withSequence(withTiming(0, { duration: 200 }), withSpring(1, { damping: 9, stiffness: 180 }))
+      tick.value = withSequence(
+        withTiming(0, { duration: 200 }),
+        withSpring(1, { damping: 9, stiffness: 180 }),
+      )
       march.value = 0
     }
   }, [leg, reduced, t, hover, march, tick])
@@ -91,17 +101,38 @@ export function ArcRoute({
     const land = Math.max(0, (u - 0.9) / 0.1)
     return {
       opacity: 1 - land,
-      transform: [{ translateX: x - KOVI / 2 }, { translateY: y - KOVI / 2 }, { rotate: `${Math.atan2(dy, dx) * 0.8}rad` }, { scale: 1 - land * 0.6 }],
+      transform: [
+        { translateX: x - KOVI / 2 },
+        { translateY: y - KOVI / 2 },
+        { rotate: `${Math.atan2(dy, dx) * 0.8}rad` },
+        { scale: 1 - land * 0.6 },
+      ],
     }
   })
   const dots = useAnimatedProps(() => ({ strokeDashoffset: -march.value * 14 }))
-  const badge = useAnimatedStyle(() => ({ opacity: Math.min(1, tick.value * 2), transform: [{ scale: tick.value }] }))
-  const theirFace = useAnimatedStyle(() => ({ transform: [{ scale: 1 + Math.sin(Math.min(1, tick.value) * Math.PI) * 0.12 }] }))
+  const badge = useAnimatedStyle(() => ({
+    opacity: Math.min(1, tick.value * 2),
+    transform: [{ scale: tick.value }],
+  }))
+  const theirFace = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + Math.sin(Math.min(1, tick.value) * Math.PI) * 0.12 }],
+  }))
 
   return (
-    <View style={{ width, height: HEIGHT }} accessibilityLabel={`From you to ${them.name}${privately ? ', privately' : ''}`}>
+    <View
+      style={{ width, height: HEIGHT }}
+      accessibilityLabel={`From you to ${them.name}${privately ? ', privately' : ''}`}
+    >
       <Svg width={width} height={BASE} style={StyleSheet.absoluteFill}>
-        <AnimatedPath d={d} stroke={colors.ink} strokeWidth={3} strokeLinecap="round" strokeDasharray="0.1 14" fill="none" animatedProps={dots} />
+        <AnimatedPath
+          d={d}
+          stroke={colors.ink}
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeDasharray="0.1 14"
+          fill="none"
+          animatedProps={dots}
+        />
       </Svg>
       <View style={[styles.person, { left: 0 }]}>
         <Avatar name={you.name} id={you.id} size={FACE} />
@@ -113,7 +144,11 @@ export function ArcRoute({
         <Animated.View style={theirFace}>
           <Avatar name={them.name} id={them.id} size={FACE} />
           {privately ? (
-            <Animated.View entering={ZoomIn.springify().damping(14)} exiting={ZoomOut.duration(160)} style={styles.lock}>
+            <Animated.View
+              entering={ZoomIn.springify().damping(14)}
+              exiting={ZoomOut.duration(160)}
+              style={styles.lock}
+            >
               <Icon name="lock" size={13} color={colors.white} strokeWidth={2.6} />
             </Animated.View>
           ) : null}
@@ -133,7 +168,13 @@ export function ArcRoute({
 }
 
 const styles = StyleSheet.create({
-  person: { position: 'absolute', top: BASE - FACE - 2, alignItems: 'center', gap: 4, width: FACE + 8 },
+  person: {
+    position: 'absolute',
+    top: BASE - FACE - 2,
+    alignItems: 'center',
+    gap: 4,
+    width: FACE + 8,
+  },
   tick: {
     position: 'absolute',
     right: -4,

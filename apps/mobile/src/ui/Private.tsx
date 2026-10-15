@@ -44,7 +44,9 @@ const waitingOf = (receipts: PrivateReceipt[]) => receipts.filter((r) => BigInt(
 export function useSenderName() {
   const { contacts } = useWallet()
   return (from: string | null, memoName?: string | null) => {
-    const known = from ? contacts.find((c) => c.address.toLowerCase() === from.toLowerCase()) : undefined
+    const known = from
+      ? contacts.find((c) => c.address.toLowerCase() === from.toLowerCase())
+      : undefined
     if (known && !isUnnamed(known.name)) return known.name
     return memoName || (from ? shortAddress(from) : 'Someone')
   }
@@ -91,7 +93,8 @@ export function usePaymentRoute({
   const route = paying ? held.current : now
   // Details offers a choice only when both ways would really pay it.
   const viaBalance = p.route({ amount, balance, direct, privateFirst, choice: 'balance' }).from
-  const choosable = direct && p.coverFor(amount) !== null && (viaBalance === 'balance' || viaBalance === 'top-up')
+  const choosable =
+    direct && p.coverFor(amount) !== null && (viaBalance === 'balance' || viaBalance === 'top-up')
   return { route, choose, choosable }
 }
 
@@ -102,10 +105,19 @@ export function usePaymentRoute({
 export function TopUpLine({ route, onInk }: { route: Route; onInk?: boolean }) {
   if (route.from !== 'top-up') return null
   return (
-    <Animated.View entering={FadeIn.duration(220)} style={styles.calm} accessibilityLiveRegion="polite">
+    <Animated.View
+      entering={FadeIn.duration(220)}
+      style={styles.calm}
+      accessibilityLiveRegion="polite"
+    >
       <Icon name="lock" size={14} color={onInk ? colors.onInk : colors.onTint} />
-      <Txt size={13} color={onInk ? colors.onInk : colors.onTint} style={{ flex: 1, lineHeight: 18 }}>
-        {formatUsd(route.moving)} of your private dollars moves into your balance for this; that move is visible on Monad.
+      <Txt
+        size={13}
+        color={onInk ? colors.onInk : colors.onTint}
+        style={{ flex: 1, lineHeight: 18 }}
+      >
+        {formatUsd(route.moving)} of your private dollars moves into your balance for this; that
+        move is visible on Monad.
       </Txt>
     </Animated.View>
   )
@@ -145,11 +157,22 @@ export function PayDetails({
         <Txt weight="semi" size={13} color={colors.muted}>
           Details
         </Txt>
-        <Icon name={open ? 'chevronUp' : 'chevronDown'} size={14} color={colors.muted} strokeWidth={2.4} />
+        <Icon
+          name={open ? 'chevronUp' : 'chevronDown'}
+          size={14}
+          color={colors.muted}
+          strokeWidth={2.4}
+        />
       </Pressable>
       {open ? (
         <Animated.View entering={FadeIn.duration(200)}>
-          <PayFrom amount={amount} balance={balance} route={route} onChange={onChoose} disabled={disabled} />
+          <PayFrom
+            amount={amount}
+            balance={balance}
+            route={route}
+            onChange={onChoose}
+            disabled={disabled}
+          />
         </Animated.View>
       ) : null}
     </View>
@@ -191,7 +214,12 @@ function PayFrom({
         style={[styles.option, on && styles.optionOn]}
       >
         <View style={styles.optionTop}>
-          <Icon name={key === 'private' ? 'lock' : 'home'} size={14} color={on ? colors.white : colors.ink} strokeWidth={2.4} />
+          <Icon
+            name={key === 'private' ? 'lock' : 'home'}
+            size={14}
+            color={on ? colors.white : colors.ink}
+            strokeWidth={2.4}
+          />
           <Txt weight="semi" size={13} color={on ? colors.white : colors.ink}>
             {label}
           </Txt>
@@ -230,7 +258,12 @@ export function Announced({ url, at, onInk }: { url: string | null; at: number; 
   if (!url && !fresh) return null
   const color = onInk ? colors.white : colors.ink
   return url ? (
-    <Pressable accessibilityRole="link" hitSlop={8} onPress={() => void WebBrowser.openBrowserAsync(url)} style={styles.announced}>
+    <Pressable
+      accessibilityRole="link"
+      hitSlop={8}
+      onPress={() => void WebBrowser.openBrowserAsync(url)}
+      style={styles.announced}
+    >
       <Icon name="check" size={14} color={color} strokeWidth={2.6} />
       <Txt weight="semi" size={13} color={color} style={{ textDecorationLine: 'underline' }}>
         Announced on Monad
@@ -306,7 +339,8 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
                 {formatUsd(moved.amount)}
               </Txt>
               <Txt size={15} color={colors.onInk} style={{ lineHeight: 21 }}>
-                moved into your wallet in {(moved.ms / 1000).toFixed(1)} s. Still in your balance; Monad shows the move.
+                moved into your wallet in {(moved.ms / 1000).toFixed(1)} s. Still in your balance;
+                Monad shows the move.
               </Txt>
             </>
           ) : (
@@ -332,7 +366,11 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
                 </Txt>
               </Pressable>
             ) : null}
-            <Pressable accessibilityRole="button" onPress={p.clearMoved} style={({ pressed }) => [styles.doneButton, pressed && { opacity: 0.8 }]}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={p.clearMoved}
+              style={({ pressed }) => [styles.doneButton, pressed && { opacity: 0.8 }]}
+            >
               <Txt weight="semi" size={14}>
                 Done
               </Txt>
@@ -341,21 +379,39 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
         </Animated.View>
       ) : !p.keysHere ? (
         <View>
-          <Txt weight="bold" size={24} color={colors.white} style={[{ marginTop: 14, letterSpacing: -0.6 }, lead]}>
+          <Txt
+            weight="bold"
+            size={24}
+            color={colors.white}
+            style={[{ marginTop: 14, letterSpacing: -0.6 }, lead]}
+          >
             Receive privately
           </Txt>
           <Txt size={14} color={colors.onInk} style={{ marginTop: 4, lineHeight: 20 }}>
-            Let people send you dollars without the whole of Monad seeing they’re yours. Your wallet makes your private keys with one
-            signature, and they stay on this phone.
+            Let people send you dollars without the whole of Monad seeing they’re yours. Your wallet
+            makes your private keys with one signature, and they stay on this phone.
           </Txt>
           <View style={{ marginTop: 14 }}>
-            <PillButton label={p.working ? 'Setting up…' : 'Set up'} icon="face" tone="white" loading={p.working} onPress={() => void p.setUp()} />
+            <PillButton
+              label={p.working ? 'Setting up…' : 'Set up'}
+              icon="face"
+              tone="white"
+              loading={p.working}
+              onPress={() => void p.setUp()}
+            />
           </View>
         </View>
       ) : waiting.length || p.progress ? (
         <View>
           <View style={[styles.amountRow, lead]}>
-            <Txt weight="bold" size={44} color={colors.white} style={[styles.amount, { marginTop: 0 }]} numberOfLines={1} adjustsFontSizeToFit>
+            <Txt
+              weight="bold"
+              size={44}
+              color={colors.white}
+              style={[styles.amount, { marginTop: 0 }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
               {formatUsd(p.waiting)}
             </Txt>
             <View style={styles.inBalance}>
@@ -366,7 +422,8 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
             </View>
           </View>
           <Txt size={15} color={colors.onInk} style={{ lineHeight: 21 }}>
-            Only you can tell these are yours. Pay and send with them like any dollars: Kova keeps them private.
+            Only you can tell these are yours. Pay and send with them like any dollars: Kova keeps
+            them private.
           </Txt>
           <View style={styles.chips}>
             {senders.slice(0, 2).map((s) => (
@@ -379,7 +436,9 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
                 </Txt>
               </View>
             ))}
-            {senders.length > 2 ? <AddressChip label={`+${senders.length - 2} more`} onInk /> : null}
+            {senders.length > 2 ? (
+              <AddressChip label={`+${senders.length - 2} more`} onInk />
+            ) : null}
           </View>
           {p.progress ? (
             <View style={styles.making}>
@@ -390,12 +449,18 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
             </View>
           ) : moved?.count ? (
             <Txt weight="medium" size={13} color={colors.tealLight} style={{ marginTop: 12 }}>
-              Made {formatUsd(moved.amount)} public in {(moved.ms / 1000).toFixed(1)} s. {moved.failed ? `${moved.failed} didn’t move: ${moved.reason}` : ''}
+              Made {formatUsd(moved.amount)} public in {(moved.ms / 1000).toFixed(1)} s.{' '}
+              {moved.failed ? `${moved.failed} didn’t move: ${moved.reason}` : ''}
             </Txt>
           ) : moved?.failed ? (
             <View style={styles.problem}>
               <Icon name="info" size={16} color={colors.coralSoft} />
-              <Txt weight="medium" size={13} color={colors.coralSoft} style={{ flex: 1, lineHeight: 18 }}>
+              <Txt
+                weight="medium"
+                size={13}
+                color={colors.coralSoft}
+                style={{ flex: 1, lineHeight: 18 }}
+              >
                 {moved.reason}
               </Txt>
             </View>
@@ -437,13 +502,17 @@ export function PrivateRow({ receipt, last }: { receipt: PrivateReceipt; last?: 
   const name = senderName(receipt.from, receipt.senderName)
   const waiting = BigInt(receipt.held) > 0n
   const unconfirmed = receipt.proven === 'claimed'
-  const entry = activity.find((e) => e.kind === 'received' && e.txHash?.toLowerCase() === receipt.txHash.toLowerCase())
+  const entry = activity.find(
+    (e) => e.kind === 'received' && e.txHash?.toLowerCase() === receipt.txHash.toLowerCase(),
+  )
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${formatUsd(BigInt(receipt.amount))} from ${name}, privately. ${waiting ? 'Private, in your balance' : receipt.movedTx ? 'Made public' : 'Spent privately'}`}
       onPress={() =>
-        entry ? router.push({ pathname: '/receipt/[id]', params: { id: entry.id } }) : void WebBrowser.openBrowserAsync(receipt.explorerUrl)
+        entry
+          ? router.push({ pathname: '/receipt/[id]', params: { id: entry.id } })
+          : void WebBrowser.openBrowserAsync(receipt.explorerUrl)
       }
       style={({ pressed }) => [styles.row, !last && styles.rowRule, pressed && { opacity: 0.65 }]}
     >
@@ -463,7 +532,13 @@ export function PrivateRow({ receipt, last }: { receipt: PrivateReceipt; last?: 
           {formatUsd(BigInt(receipt.amount), { sign: true })}
         </Txt>
         <Txt weight="semi" size={12} color={colors.muted}>
-          {waiting ? (BigInt(receipt.held) < BigInt(receipt.amount) ? `${formatUsd(BigInt(receipt.held))} left` : 'Private') : receipt.movedTx ? 'Made public' : 'Spent'}
+          {waiting
+            ? BigInt(receipt.held) < BigInt(receipt.amount)
+              ? `${formatUsd(BigInt(receipt.held))} left`
+              : 'Private'
+            : receipt.movedTx
+              ? 'Made public'
+              : 'Spent'}
         </Txt>
       </View>
     </Pressable>
@@ -478,16 +553,31 @@ export function PrivateFlow({ receipt }: { receipt?: PrivateReceipt }) {
   const senderName = useSenderName()
   const from = receipt ? senderName(receipt.from, receipt.senderName) : 'Someone'
   return (
-    <View style={styles.flow} accessible accessibilityLabel="Someone pays an address made for that payment alone, which only your keys can open">
+    <View
+      style={styles.flow}
+      accessible
+      accessibilityLabel="Someone pays an address made for that payment alone, which only your keys can open"
+    >
       <View style={styles.flowEnd}>
         <Avatar name={from} id={receipt?.from ?? undefined} size={40} />
-        <Txt weight="semi" size={12} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ maxWidth: 84 }}>
+        <Txt
+          weight="semi"
+          size={12}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          style={{ maxWidth: 84 }}
+        >
           {from}
         </Txt>
       </View>
       <View style={styles.flowLine} />
       <View style={styles.flowMiddle}>
-        <AddressChip address={receipt?.stealthAddress} label={receipt ? undefined : 'its own address'} pending={!receipt} />
+        <AddressChip
+          address={receipt?.stealthAddress}
+          label={receipt ? undefined : 'its own address'}
+          pending={!receipt}
+        />
         <Txt size={11} color={colors.muted}>
           Monad sees this
         </Txt>
@@ -512,12 +602,18 @@ export function ReceivingCard() {
   return (
     <View style={styles.receiving}>
       <View style={styles.receivingTop}>
-        <View style={[styles.receivingIcon, { backgroundColor: on ? colors.tealSoft : colors.sunken }]}>
+        <View
+          style={[styles.receivingIcon, { backgroundColor: on ? colors.tealSoft : colors.sunken }]}
+        >
           <Icon name="lock" size={19} />
         </View>
         <View style={{ flex: 1 }}>
           <Txt weight="semi" size={16}>
-            {on ? 'Anyone can send to you privately' : p.keysHere ? 'Almost ready' : 'Not set up on this phone'}
+            {on
+              ? 'Anyone can send to you privately'
+              : p.keysHere
+                ? 'Almost ready'
+                : 'Not set up on this phone'}
           </Txt>
           <Txt size={13} color={colors.muted} style={{ lineHeight: 18 }}>
             {on
@@ -530,7 +626,12 @@ export function ReceivingCard() {
       </View>
       {p.keysHere ? null : (
         <View style={{ marginTop: 12 }}>
-          <PillButton label={p.working ? 'Setting up…' : 'Set up'} icon="face" loading={p.working} onPress={() => void p.setUp()} />
+          <PillButton
+            label={p.working ? 'Setting up…' : 'Set up'}
+            icon="face"
+            loading={p.working}
+            onPress={() => void p.setUp()}
+          />
         </View>
       )}
     </View>
@@ -624,9 +725,14 @@ export function SentPrivately({
         </Txt>
       </View>
       <Txt size={14} color={colors.onTint} style={{ lineHeight: 20, marginTop: 8 }}>
-        Monad shows {formatUsd(amount)} going to <Txt weight="semi" size={14}>{shortAddress(oneTime)}</Txt>, an address made for this payment
-        alone. Only {first} can open it.
-        {fromPrivate ? ' It came from your private dollars, so your wallet doesn’t show either.' : ''}
+        Monad shows {formatUsd(amount)} going to{' '}
+        <Txt weight="semi" size={14}>
+          {shortAddress(oneTime)}
+        </Txt>
+        , an address made for this payment alone. Only {first} can open it.
+        {fromPrivate
+          ? ' It came from your private dollars, so your wallet doesn’t show either.'
+          : ''}
       </Txt>
       <View style={{ marginTop: 8 }}>
         <Announced url={p.announcementAt(oneTime)} at={at} />
@@ -651,7 +757,14 @@ export function SentPrivately({
 const styles = StyleSheet.create({
   card: { borderRadius: 28, backgroundColor: colors.ink, padding: 18, overflow: 'hidden' },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  lockDisc: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.coral, alignItems: 'center', justifyContent: 'center' },
+  lockDisc: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   amount: { marginTop: 12, letterSpacing: -1.6, lineHeight: 50 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   fromChip: {
@@ -688,9 +801,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
   },
-  doneButton: { height: 44, paddingHorizontal: 22, borderRadius: 22, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  doneButton: {
+    height: 44,
+    paddingHorizontal: 22,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   problem: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 12 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 11 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+  },
   rowRule: { borderBottomWidth: 1, borderColor: colors.sunken },
   flow: { flexDirection: 'row', alignItems: 'flex-start' },
   flowEnd: { alignItems: 'center', gap: 5, width: 84 },
@@ -706,12 +832,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  receiving: { borderRadius: 24, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, padding: 14 },
+  receiving: {
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    padding: 14,
+  },
   receivingTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  receivingIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  offer: { borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, padding: 12, gap: 10 },
+  receivingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  offer: {
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    padding: 12,
+    gap: 10,
+  },
   offerTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  offerLock: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  offerLock: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   send: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -725,8 +877,21 @@ const styles = StyleSheet.create({
     paddingRight: 10,
   },
   sendOn: { backgroundColor: colors.ink },
-  sendLock: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  sent: { alignSelf: 'stretch', borderRadius: 20, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, padding: 14 },
+  sendLock: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sent: {
+    alignSelf: 'stretch',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    padding: 14,
+  },
   sentTag: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
@@ -739,10 +904,30 @@ const styles = StyleSheet.create({
   },
   sentLink: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
   announced: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  payFrom: { borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, padding: 12, marginTop: 8 },
-  details: { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 8 },
+  payFrom: {
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    padding: 12,
+    marginTop: 8,
+  },
+  details: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
   calm: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, paddingHorizontal: 4 },
-  amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 12 },
+  amountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 12,
+  },
   inBalance: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -753,7 +938,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.tealSoft,
   },
   making: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 14 },
-  option: { flex: 1, borderRadius: 16, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.paper, paddingVertical: 8, paddingHorizontal: 10, gap: 2 },
+  option: {
+    flex: 1,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.paper,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    gap: 2,
+  },
   optionOn: { backgroundColor: colors.ink },
   optionTop: { flexDirection: 'row', alignItems: 'center', gap: 5 },
 })

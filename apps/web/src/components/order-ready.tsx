@@ -38,7 +38,15 @@ function chime(audio: AudioContext | null) {
  * collected), checked every few seconds. When the shop marks it ready the page says so in big
  * letters, and chimes and buzzes the phone if it can, so nobody needs a buzzer on the table.
  */
-export function OrderReady({ checkoutId, order: initial, shop }: { checkoutId: string; order: Order; shop: string }) {
+export function OrderReady({
+  checkoutId,
+  order: initial,
+  shop,
+}: {
+  checkoutId: string
+  order: Order
+  shop: string
+}) {
   const [order, setOrder] = useState(initial)
   const [alerts, setAlerts] = useState<'off' | 'on'>('off')
   const [moment, setMoment] = useState(false)
@@ -68,7 +76,9 @@ export function OrderReady({ checkoutId, order: initial, shop }: { checkoutId: s
     }, 15_000)
     if (document.hidden && 'Notification' in window && Notification.permission === 'granted')
       new Notification('Your order is ready', {
-        body: order.table ? `${shop} is bringing it to table ${order.table}.` : `Collect it at the counter at ${shop}.`,
+        body: order.table
+          ? `${shop} is bringing it to table ${order.table}.`
+          : `Collect it at the counter at ${shop}.`,
         icon: '/icon.png',
       })
   }, [order.table, shop])
@@ -77,7 +87,9 @@ export function OrderReady({ checkoutId, order: initial, shop }: { checkoutId: s
     if (done) return
     const timer = setInterval(async () => {
       if (document.hidden && seen.current !== 'new' && seen.current !== 'preparing') return
-      const r = await fetch(`/api/checkout/${encodeURIComponent(checkoutId)}`, { cache: 'no-store' }).catch(() => null)
+      const r = await fetch(`/api/checkout/${encodeURIComponent(checkoutId)}`, {
+        cache: 'no-store',
+      }).catch(() => null)
       if (!r?.ok) return
       const next = ((await r.json()) as Checkout).order
       if (!next?.status) return
@@ -92,7 +104,8 @@ export function OrderReady({ checkoutId, order: initial, shop }: { checkoutId: s
     if (!audio.current) audio.current = new AudioContext()
     // Played once, quietly, so the buyer knows what to listen for.
     chime(audio.current)
-    if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission().catch(() => {})
+    if ('Notification' in window && Notification.permission === 'default')
+      await Notification.requestPermission().catch(() => {})
     setAlerts('on')
   }
 
@@ -112,7 +125,12 @@ export function OrderReady({ checkoutId, order: initial, shop }: { checkoutId: s
   const ready = status === 'ready'
 
   return (
-    <section className="ready" data-ready={ready ? 'true' : undefined} data-moment={moment ? 'true' : undefined} aria-live="polite">
+    <section
+      className="ready"
+      data-ready={ready ? 'true' : undefined}
+      data-moment={moment ? 'true' : undefined}
+      aria-live="polite"
+    >
       {ready ? (
         <div className="ready-moment">
           <span className="ready-spark ready-spark-a" aria-hidden="true">
@@ -124,14 +142,28 @@ export function OrderReady({ checkoutId, order: initial, shop }: { checkoutId: s
           <Art name="kovi-cheer" size={96} className="ready-kovi" />
           <p className="ready-kicker">{shop}</p>
           <h2>Your order is ready</h2>
-          <p className="ready-where">{order.table ? `We’re bringing it to table ${order.table}.` : 'Collect it at the counter.'}</p>
+          <p className="ready-where">
+            {order.table
+              ? `We’re bringing it to table ${order.table}.`
+              : 'Collect it at the counter.'}
+          </p>
         </div>
       ) : (
         <div className="ready-head">
           <p className="ready-kicker">{order.table ? `Table ${order.table}` : 'At the counter'}</p>
-          <h2>{status === 'collected' ? 'All yours. Enjoy!' : status === 'preparing' ? `${shop} is making it` : `${shop} has your order`}</h2>
+          <h2>
+            {status === 'collected'
+              ? 'All yours. Enjoy!'
+              : status === 'preparing'
+                ? `${shop} is making it`
+                : `${shop} has your order`}
+          </h2>
           {done ? null : (
-            <p>{order.table ? `It comes to table ${order.table}. This page tells you when it’s ready.` : 'This page tells you the moment it’s ready. Keep it open.'}</p>
+            <p>
+              {order.table
+                ? `It comes to table ${order.table}. This page tells you when it’s ready.`
+                : 'This page tells you the moment it’s ready. Keep it open.'}
+            </p>
           )}
         </div>
       )}

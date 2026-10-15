@@ -13,7 +13,15 @@ const rows: Key[][] = [
 ]
 
 /** Round outlined keys that give a little when pressed. */
-export function Keypad({ onKey, decimals = true, size = 62 }: { onKey: (key: Key) => void; decimals?: boolean; size?: number }) {
+export function Keypad({
+  onKey,
+  decimals = true,
+  size = 62,
+}: {
+  onKey: (key: Key) => void
+  decimals?: boolean
+  size?: number
+}) {
   return (
     <View style={styles.grid}>
       {rows.map((row) => (
@@ -34,7 +42,17 @@ export function Keypad({ onKey, decimals = true, size = 62 }: { onKey: (key: Key
               >
                 {({ pressed }) =>
                   del ? (
-                    <View style={[styles.key, { width: size, height: size, borderWidth: 0, backgroundColor: 'transparent' }]}>
+                    <View
+                      style={[
+                        styles.key,
+                        {
+                          width: size,
+                          height: size,
+                          borderWidth: 0,
+                          backgroundColor: 'transparent',
+                        },
+                      ]}
+                    >
                       <Icon name="del" size={28} />
                     </View>
                   ) : (
@@ -43,7 +61,10 @@ export function Keypad({ onKey, decimals = true, size = 62 }: { onKey: (key: Key
                         style={[
                           styles.key,
                           { width: size, height: size, borderRadius: size / 2 },
-                          pressed && { transform: [{ scale: 0.94 }], backgroundColor: colors.sunken },
+                          pressed && {
+                            transform: [{ scale: 0.94 }],
+                            backgroundColor: colors.sunken,
+                          },
                         ]}
                       >
                         <Txt weight="medium" size={30}>

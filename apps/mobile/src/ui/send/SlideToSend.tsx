@@ -89,7 +89,9 @@ export function SlideToSend({
 
   const knob = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }))
   const fill = useAnimatedStyle(() => ({ width: x.value + KNOB + PAD }))
-  const words = useAnimatedStyle(() => ({ opacity: interpolate(x.value, [0, (max || 1) * 0.5], [1, 0], 'clamp') }))
+  const words = useAnimatedStyle(() => ({
+    opacity: interpolate(x.value, [0, (max || 1) * 0.5], [1, 0], 'clamp'),
+  }))
 
   return (
     <View
@@ -145,7 +147,14 @@ function Chevron({ i }: { i: number }) {
     const ease = Easing.inOut(Easing.quad)
     v.value = withDelay(
       i * 140,
-      withRepeat(withSequence(withTiming(1, { duration: 360, easing: ease }), withTiming(0.35, { duration: 520, easing: ease }), withTiming(0.35, { duration: 400 })), -1),
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 360, easing: ease }),
+          withTiming(0.35, { duration: 520, easing: ease }),
+          withTiming(0.35, { duration: 400 }),
+        ),
+        -1,
+      ),
     )
   }, [reduced, i, v])
   const style = useAnimatedStyle(() => ({ opacity: v.value }))
@@ -157,9 +166,28 @@ function Chevron({ i }: { i: number }) {
 }
 
 const styles = StyleSheet.create({
-  track: { height: HEIGHT, borderRadius: HEIGHT / 2, backgroundColor: colors.ink, justifyContent: 'center', overflow: 'hidden' },
-  fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: HEIGHT / 2, backgroundColor: colors.coral },
-  words: { ...StyleSheet.absoluteFillObject, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingLeft: KNOB },
+  track: {
+    height: HEIGHT,
+    borderRadius: HEIGHT / 2,
+    backgroundColor: colors.ink,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  fill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: HEIGHT / 2,
+    backgroundColor: colors.coral,
+  },
+  words: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: KNOB,
+  },
   knob: {
     position: 'absolute',
     left: PAD,

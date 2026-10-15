@@ -1,15 +1,16 @@
 import * as Haptics from 'expo-haptics'
 import { useEffect, useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
-import { day, nights, today } from '@/lib/travel'
 import { colors } from '@/lib/theme'
+import { day, nights, today } from '@/lib/travel'
 import { PillButton, Txt } from '../primitives'
 import { Sheet } from './Sheet'
 
 const WEEK = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
 
 /** YYYY-MM-DD for a UTC calendar day. */
-const iso = (y: number, m: number, d: number) => new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10)
+const iso = (y: number, m: number, d: number) =>
+  new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10)
 
 /**
  * A year of months to pick dates from. Range mode takes two taps (out and back, or check in
@@ -54,7 +55,17 @@ export function DateSheet({
       const m = (now.getUTCMonth() + i) % 12
       const days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate()
       const lead = (new Date(Date.UTC(y, m, 1)).getUTCDay() + 6) % 7
-      return { y, m, days, lead, title: new Date(Date.UTC(y, m, 1)).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' }) }
+      return {
+        y,
+        m,
+        days,
+        lead,
+        title: new Date(Date.UTC(y, m, 1)).toLocaleDateString('en-GB', {
+          month: 'long',
+          year: 'numeric',
+          timeZone: 'UTC',
+        }),
+      }
     })
   }, [])
 
@@ -68,7 +79,13 @@ export function DateSheet({
   }
 
   const ready = single ? Boolean(a) : Boolean(a && b)
-  const summary = !a ? `Pick ${labels.start.toLowerCase()}` : single ? day(a) : b ? `${day(a)} to ${day(b)}` : `${day(a)}, now pick ${labels.end.toLowerCase()}`
+  const summary = !a
+    ? `Pick ${labels.start.toLowerCase()}`
+    : single
+      ? day(a)
+      : b
+        ? `${day(a)} to ${day(b)}`
+        : `${day(a)}, now pick ${labels.end.toLowerCase()}`
 
   return (
     <Sheet visible={visible} onClose={onClose} tall>
@@ -79,7 +96,9 @@ export function DateSheet({
           </Txt>
           {a && b && !single ? (
             <Txt size={13} color={colors.muted}>
-              {labels.end === 'Check out' ? `${nights(a, b)} ${nights(a, b) === 1 ? 'night' : 'nights'}` : `${nights(a, b)} days away`}
+              {labels.end === 'Check out'
+                ? `${nights(a, b)} ${nights(a, b) === 1 ? 'night' : 'nights'}`
+                : `${nights(a, b)} days away`}
             </Txt>
           ) : null}
         </View>
@@ -137,10 +156,19 @@ export function DateSheet({
                     accessibilityState={{ disabled: past, selected: edge }}
                     disabled={past}
                     onPress={() => tap(date)}
-                    style={[styles.cell, inside && styles.inside, date === a && b && styles.rangeStart, date === b && styles.rangeEnd]}
+                    style={[
+                      styles.cell,
+                      inside && styles.inside,
+                      date === a && b && styles.rangeStart,
+                      date === b && styles.rangeEnd,
+                    ]}
                   >
                     <View style={[styles.dayDisc, edge && styles.dayOn]}>
-                      <Txt weight={edge ? 'bold' : 'medium'} size={15} color={edge ? colors.white : past ? '#B9B6AF' : colors.ink}>
+                      <Txt
+                        weight={edge ? 'bold' : 'medium'}
+                        size={15}
+                        color={edge ? colors.white : past ? '#B9B6AF' : colors.ink}
+                      >
                         {i + 1}
                       </Txt>
                     </View>
@@ -151,22 +179,55 @@ export function DateSheet({
           </View>
         ))}
       </ScrollView>
-      <PillButton label={ready ? 'Done' : summary} icon="check" disabled={!ready} onPress={() => a && onDone(a, single ? null : b)} />
+      <PillButton
+        label={ready ? 'Done' : summary}
+        icon="check"
+        disabled={!ready}
+        onPress={() => a && onDone(a, single ? null : b)}
+      />
     </Sheet>
   )
 }
 
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
-  toggle: { flexDirection: 'row', padding: 3, gap: 2, borderRadius: 20, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface },
+  toggle: {
+    flexDirection: 'row',
+    padding: 3,
+    gap: 2,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
   toggleItem: { height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: 'center' },
-  week: { flexDirection: 'row', marginTop: 14, borderBottomWidth: 1, borderColor: colors.sunken, paddingBottom: 8 },
+  week: {
+    flexDirection: 'row',
+    marginTop: 14,
+    borderBottomWidth: 1,
+    borderColor: colors.sunken,
+    paddingBottom: 8,
+  },
   weekDay: { width: `${100 / 7}%`, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, height: 46, alignItems: 'center', justifyContent: 'center' },
   inside: { backgroundColor: colors.tealSoft },
-  rangeStart: { backgroundColor: colors.tealSoft, borderTopLeftRadius: 23, borderBottomLeftRadius: 23 },
-  rangeEnd: { backgroundColor: colors.tealSoft, borderTopRightRadius: 23, borderBottomRightRadius: 23 },
-  dayDisc: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  rangeStart: {
+    backgroundColor: colors.tealSoft,
+    borderTopLeftRadius: 23,
+    borderBottomLeftRadius: 23,
+  },
+  rangeEnd: {
+    backgroundColor: colors.tealSoft,
+    borderTopRightRadius: 23,
+    borderBottomRightRadius: 23,
+  },
+  dayDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dayOn: { backgroundColor: colors.ink },
 })

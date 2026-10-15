@@ -34,7 +34,8 @@ const own = new Set<string>()
 /** Links claimed on this phone, and whose they were: their arrival already had its own celebration. */
 const claiming = new Map<string, string>()
 void load<Record<string, string>>(CLAIMED, {}).then((saved) => {
-  for (const [address, name] of Object.entries(saved)) if (!claiming.has(address)) claiming.set(address, name)
+  for (const [address, name] of Object.entries(saved))
+    if (!claiming.has(address)) claiming.set(address, name)
 })
 
 export async function savedLinks(): Promise<SavedLink[]> {
@@ -51,11 +52,18 @@ async function update(change: (list: SavedLink[]) => SavedLink[]) {
 }
 
 /** A new one-time key for a link, kept in the Keychain before any money is sent to it. */
-export async function newLinkKey(amount: bigint, note: string | null): Promise<{ key: Hex; address: Address }> {
+export async function newLinkKey(
+  amount: bigint,
+  note: string | null,
+): Promise<{ key: Hex; address: Address }> {
   const key = generatePrivateKey()
   const address = privateKeyToAccount(key).address
-  await SecureStore.setItemAsync(keyName(address), key, { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY })
-  await update((list) => [{ address, id: null, amount: amount.toString(), note, at: Date.now() }, ...list].slice(0, 200))
+  await SecureStore.setItemAsync(keyName(address), key, {
+    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  })
+  await update((list) =>
+    [{ address, id: null, amount: amount.toString(), note, at: Date.now() }, ...list].slice(0, 200),
+  )
   return { key, address }
 }
 
@@ -98,7 +106,9 @@ export async function markClaiming(address: Address, name: string) {
  * What the arrival watcher should call money from `from`, if it came out of a link: the sender's
  * own link coming back, or one just claimed on this phone (which has its own celebration already).
  */
-export function linkArrival(from: Address): { name: string; detail: string; quiet: boolean } | null {
+export function linkArrival(
+  from: Address,
+): { name: string; detail: string; quiet: boolean } | null {
   const key = from.toLowerCase()
   const claimed = claiming.get(key)
   if (own.has(key)) return { name: 'Your link', detail: 'Taken back', quiet: claimed !== undefined }

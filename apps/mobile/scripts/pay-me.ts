@@ -22,7 +22,9 @@ const option = (name: string) => {
   const i = args.indexOf(`--${name}`)
   return i >= 0 ? args[i + 1] : undefined
 }
-const [to, dollars = '25'] = args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--note' && args[i - 1] !== '--name')
+const [to, dollars = '25'] = args.filter(
+  (a, i) => !a.startsWith('--') && args[i - 1] !== '--note' && args[i - 1] !== '--name',
+)
 
 async function main() {
   const recipient = to as `0x${string}`
@@ -31,25 +33,48 @@ async function main() {
   const text = option('note')
   // Privately: their key, or no send at all.
   const meta = flag('private') ? await fetchReceivingKey(recipient) : null
-  if (flag('private') && !meta) throw new Error(`${recipient} hasn’t published a private receiving key with ${apiUrl}`)
+  if (flag('private') && !meta)
+    throw new Error(`${recipient} hasn’t published a private receiving key with ${apiUrl}`)
   const funder = process.env.KOVA_FUNDER_KEY
   if (funder) {
     const from = privateKeyToAccount((funder.startsWith('0x') ? funder : `0x${funder}`) as Hex)
     await sendMoney(from, friend.address, amount)
-    for (let i = 0; i < 20 && (await getBalance(friend.address)) < amount; i++) await new Promise((r) => setTimeout(r, 250))
+    for (let i = 0; i < 20 && (await getBalance(friend.address)) < amount; i++)
+      await new Promise((r) => setTimeout(r, 250))
   } else await fundFromFaucet(friend.address)
   const name = option('name')
-  const stealth = meta ? generateStealthPayment(meta, { from: friend.address, ...(name ? { name } : {}), ...(text ? { note: text } : {}), kind: 'send' }) : null
+  const stealth = meta
+    ? generateStealthPayment(meta, {
+        from: friend.address,
+        ...(name ? { name } : {}),
+        ...(text ? { note: text } : {}),
+        kind: 'send',
+      })
+    : null
   const note =
-    text && !stealth ? { text, mine: noteKeys(crypto.getRandomValues(new Uint8Array(32))).publicKey, theirs: await fetchNoteKey(apiUrl, recipient) } : undefined
+    text && !stealth
+      ? {
+          text,
+          mine: noteKeys(crypto.getRandomValues(new Uint8Array(32))).publicKey,
+          theirs: await fetchNoteKey(apiUrl, recipient),
+        }
+      : undefined
   const { hash, ms } = await sendMoney(
     friend,
     stealth?.stealthAddress ?? recipient,
     amount,
     note,
-    stealth ? { ephemeralPublicKey: stealth.ephemeralPublicKey, viewTag: stealth.viewTag, sealed: stealth.sealed } : undefined,
+    stealth
+      ? {
+          ephemeralPublicKey: stealth.ephemeralPublicKey,
+          viewTag: stealth.viewTag,
+          sealed: stealth.sealed,
+        }
+      : undefined,
   )
-  console.log(`sent $${dollars}${stealth ? ` privately, to one-time address ${stealth.stealthAddress},` : ''} from ${friend.address} in ${ms}ms: ${hash}`)
+  console.log(
+    `sent $${dollars}${stealth ? ` privately, to one-time address ${stealth.stealthAddress},` : ''} from ${friend.address} in ${ms}ms: ${hash}`,
+  )
 }
 
 main().catch((error) => {

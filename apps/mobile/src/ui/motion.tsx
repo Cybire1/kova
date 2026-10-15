@@ -43,7 +43,12 @@ export function Flight({
   useEffect(() => {
     if (reduced) return
     const run = withTiming(1, { duration, easing: Easing.bezier(0.45, 0, 0.3, 1) })
-    t.value = loop ? withRepeat(withSequence(withTiming(0, { duration: 0 }), run, withTiming(1, { duration: 700 })), -1) : run
+    t.value = loop
+      ? withRepeat(
+          withSequence(withTiming(0, { duration: 0 }), run, withTiming(1, { duration: 700 })),
+          -1,
+        )
+      : run
   }, [reduced, duration, loop, t])
 
   const style = useAnimatedStyle(() => {
@@ -65,7 +70,10 @@ export function Flight({
     }
   })
   return (
-    <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: 0, top: 0, width: size, height: size }, style]}>
+    <Animated.View
+      pointerEvents="none"
+      style={[{ position: 'absolute', left: 0, top: 0, width: size, height: size }, style]}
+    >
       {children}
     </Animated.View>
   )
@@ -91,7 +99,11 @@ export function Bob({
     if (reduced) return
     v.value = withDelay(
       delay,
-      withRepeat(withTiming(1, { duration: duration / 2, easing: Easing.inOut(Easing.sin) }), -1, true),
+      withRepeat(
+        withTiming(1, { duration: duration / 2, easing: Easing.inOut(Easing.sin) }),
+        -1,
+        true,
+      ),
     )
   }, [reduced, duration, delay, v])
   const anim = useAnimatedStyle(() => ({ transform: [{ translateY: -v.value * distance }] }))
@@ -118,12 +130,23 @@ export function Hop({ children, style }: { children: ReactNode; style?: StylePro
 }
 
 /** Rings that ripple out from a round button, like a contactless tap signal. */
-export function Ping({ size, color = colors.coral, delay = 0 }: { size: number; color?: string; delay?: number }) {
+export function Ping({
+  size,
+  color = colors.coral,
+  delay = 0,
+}: {
+  size: number
+  color?: string
+  delay?: number
+}) {
   const reduced = useReducedMotion()
   const v = useSharedValue(0)
   useEffect(() => {
     if (reduced) return
-    v.value = withDelay(delay, withRepeat(withTiming(1, { duration: 2400, easing: Easing.bezier(0.2, 0.7, 0.3, 1) }), -1))
+    v.value = withDelay(
+      delay,
+      withRepeat(withTiming(1, { duration: 2400, easing: Easing.bezier(0.2, 0.7, 0.3, 1) }), -1),
+    )
   }, [reduced, delay, v])
   const anim = useAnimatedStyle(() => ({
     opacity: 0.9 * (1 - v.value),
@@ -160,7 +183,15 @@ export function CoinRain({ width, height = 240 }: { width: number; height?: numb
   return (
     <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, width, height }}>
       {coins.map((c) => (
-        <Tumbling key={`${c.x}`} x={c.x * width - c.size / 2} size={c.size} delay={c.delay} duration={c.dur} spin={c.spin} height={height}>
+        <Tumbling
+          key={`${c.x}`}
+          x={c.x * width - c.size / 2}
+          size={c.size}
+          delay={c.delay}
+          duration={c.dur}
+          spin={c.spin}
+          height={height}
+        >
           <Coin size={c.size} symbol={c.symbol} />
         </Tumbling>
       ))}
@@ -189,7 +220,10 @@ function Tumbling({
   const v = useSharedValue(reduced ? 0.5 : 0)
   useEffect(() => {
     if (reduced) return
-    v.value = withDelay(delay, withRepeat(withTiming(1, { duration, easing: Easing.in(Easing.quad) }), -1))
+    v.value = withDelay(
+      delay,
+      withRepeat(withTiming(1, { duration, easing: Easing.in(Easing.quad) }), -1),
+    )
   }, [reduced, delay, duration, v])
   const anim = useAnimatedStyle(() => {
     const p = v.value
@@ -203,7 +237,11 @@ function Tumbling({
       ],
     }
   })
-  return <Animated.View style={[{ position: 'absolute', left: x, top: 0 }, anim]}>{children}</Animated.View>
+  return (
+    <Animated.View style={[{ position: 'absolute', left: x, top: 0 }, anim]}>
+      {children}
+    </Animated.View>
+  )
 }
 
 /** A hop that lands with a squash, like catching something heavy and happy. */
@@ -249,9 +287,19 @@ export function Snowfall({ width, height }: { width: number; height: number }) {
     { x: 0.94, size: 13, delay: 4600, dur: 5800 },
   ]
   return (
-    <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, width, height, overflow: 'hidden' }}>
+    <View
+      pointerEvents="none"
+      style={{ position: 'absolute', left: 0, top: 0, width, height, overflow: 'hidden' }}
+    >
       {flakes.map((f, i) => (
-        <Falling key={f.x} x={f.x * width - f.size / 2} size={f.size} delay={f.delay} duration={f.dur} height={height}>
+        <Falling
+          key={f.x}
+          x={f.x * width - f.size / 2}
+          size={f.size}
+          delay={f.delay}
+          duration={f.dur}
+          height={height}
+        >
           <Flake i={i} size={f.size} />
         </Falling>
       ))}
@@ -291,15 +339,31 @@ function Falling({
       ],
     }
   })
-  return <Animated.View style={[{ position: 'absolute', left: x, top: 0 }, anim]}>{children}</Animated.View>
+  return (
+    <Animated.View style={[{ position: 'absolute', left: x, top: 0 }, anim]}>
+      {children}
+    </Animated.View>
+  )
 }
 
 /** Sparkles that burst in once, like confetti, when something succeeds. */
-export function Burst({ spots }: { spots: { x: number; y: number; size: number; fill: string; delay: number }[] }) {
+export function Burst({
+  spots,
+}: {
+  spots: { x: number; y: number; size: number; fill: string; delay: number }[]
+}) {
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       {spots.map((spot) => (
-        <PopIn key={`${spot.x},${spot.y}`} delay={spot.delay} style={{ position: 'absolute', left: spot.x - spot.size / 2, top: spot.y - spot.size / 2 }}>
+        <PopIn
+          key={`${spot.x},${spot.y}`}
+          delay={spot.delay}
+          style={{
+            position: 'absolute',
+            left: spot.x - spot.size / 2,
+            top: spot.y - spot.size / 2,
+          }}
+        >
           <Sparkle size={spot.size} fill={spot.fill} />
         </PopIn>
       ))}
@@ -307,7 +371,15 @@ export function Burst({ spots }: { spots: { x: number; y: number; size: number; 
   )
 }
 
-export function PopIn({ children, delay = 0, style }: { children: ReactNode; delay?: number; style?: StyleProp<ViewStyle> }) {
+export function PopIn({
+  children,
+  delay = 0,
+  style,
+}: {
+  children: ReactNode
+  delay?: number
+  style?: StyleProp<ViewStyle>
+}) {
   const reduced = useReducedMotion()
   const v = useSharedValue(reduced ? 1 : 0)
   useEffect(() => {

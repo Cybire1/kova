@@ -40,7 +40,9 @@ export interface RateBook {
 }
 
 const table = (): Record<string, Rate> =>
-  Object.fromEntries(Object.entries(PER_USD).map(([code, perUsd]) => [code, { perUsd, asOf: null }]))
+  Object.fromEntries(
+    Object.entries(PER_USD).map(([code, perUsd]) => [code, { perUsd, asOf: null }]),
+  )
 
 let book: RateBook = { source: 'table', contract: null, rates: table() }
 let readAt = 0
@@ -50,7 +52,11 @@ export async function rateBook(): Promise<RateBook> {
   if (!address || Date.now() - readAt < 60_000) return book
   readAt = Date.now()
   try {
-    const [codes, values, asOf] = await publicClient.readContract({ address, abi: kovaRatesAbi, functionName: 'allRates' })
+    const [codes, values, asOf] = await publicClient.readContract({
+      address,
+      abi: kovaRatesAbi,
+      functionName: 'allRates',
+    })
     const rates = { ...book.rates }
     codes.forEach((code, i) => {
       const currency = hexToString(code, { size: 3 })
@@ -62,7 +68,10 @@ export async function rateBook(): Promise<RateBook> {
     })
     book = { source: 'chainlink', contract: address, rates }
   } catch (error) {
-    console.warn('[rates] KovaRates unreadable; keeping the last rates:', error instanceof Error ? error.message.split('\n')[0] : error)
+    console.warn(
+      '[rates] KovaRates unreadable; keeping the last rates:',
+      error instanceof Error ? error.message.split('\n')[0] : error,
+    )
   }
   return book
 }
@@ -74,6 +83,11 @@ export function serializeRates(current: RateBook) {
     chain: network.name,
     contract: current.contract,
     contract_url: current.contract ? explorerAddressUrl(network, current.contract) : null,
-    rates: Object.fromEntries(Object.entries(current.rates).map(([code, r]) => [code, { per_usd: r.perUsd, as_of: r.asOf }])),
+    rates: Object.fromEntries(
+      Object.entries(current.rates).map(([code, r]) => [
+        code,
+        { per_usd: r.perUsd, as_of: r.asOf },
+      ]),
+    ),
   }
 }

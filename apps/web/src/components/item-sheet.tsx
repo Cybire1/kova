@@ -28,7 +28,10 @@ export function ItemSheet({
   const [description, setDescription] = useState(item?.description ?? '')
   const [barcode, setBarcode] = useState(item?.barcode ?? '')
   const [soldOut, setSoldOut] = useState(item?.sold_out ?? false)
-  const [photo, setPhoto] = useState<{ id: string | null; url: string | null }>({ id: item?.image_id ?? null, url: item?.image_url ?? null })
+  const [photo, setPhoto] = useState<{ id: string | null; url: string | null }>({
+    id: item?.image_id ?? null,
+    url: item?.image_url ?? null,
+  })
   const [uploading, setUploading] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -63,7 +66,8 @@ export function ItemSheet({
       setNote(null)
       const r = await lookupBarcode(barcode.trim())
       if (r.error) return setError(r.error)
-      if (r.lookup?.item && r.lookup.item.id !== item?.id) return setNote(`Already in your catalogue as “${r.lookup.item.name}”.`)
+      if (r.lookup?.item && r.lookup.item.id !== item?.id)
+        return setNote(`Already in your catalogue as “${r.lookup.item.name}”.`)
       if (r.lookup?.suggestion) {
         if (!name.trim()) setName(r.lookup.suggestion.name)
         return setNote(`Found: ${r.lookup.suggestion.name}.`)
@@ -96,8 +100,18 @@ export function ItemSheet({
     })
 
   return (
-    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="sheet item-sheet" role="dialog" aria-modal="true" aria-labelledby="item-title">
+    // biome-ignore lint/a11y/noStaticElementInteractions: a backdrop click is a mouse shortcut; Escape and the Close button close the sheet from the keyboard
+    <div
+      className="overlay"
+      role="presentation"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="sheet item-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="item-title"
+      >
         <button type="button" className="round sheet-close" aria-label="Close" onClick={onClose}>
           <Icon name="close" size={18} />
         </button>
@@ -120,10 +134,20 @@ export function ItemSheet({
                 {uploading ? 'Uploading' : 'Add a photo'}
               </span>
             )}
-            <input type="file" accept="image/*" capture="environment" onChange={(e) => pick(e.target.files?.[0])} disabled={uploading} />
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => pick(e.target.files?.[0])}
+              disabled={uploading}
+            />
           </label>
           {photo.url ? (
-            <button type="button" className="linkbutton small-link" onClick={() => setPhoto({ id: null, url: null })}>
+            <button
+              type="button"
+              className="linkbutton small-link"
+              onClick={() => setPhoto({ id: null, url: null })}
+            >
               Remove photo
             </button>
           ) : null}
@@ -131,27 +155,62 @@ export function ItemSheet({
           <label className="field-label" htmlFor="item-name">
             Name
           </label>
-          <input id="item-name" ref={first} value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required placeholder="Iced latte" />
+          <input
+            id="item-name"
+            ref={first}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={80}
+            required
+            placeholder="Iced latte"
+          />
 
           <label className="field-label" htmlFor="item-price">
             Price in dollars
           </label>
           <div className="money-input">
             <span>$</span>
-            <input id="item-price" value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" required placeholder="4.75" pattern="\$?\d+(\.\d{1,2})?" />
+            <input
+              id="item-price"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              inputMode="decimal"
+              required
+              placeholder="4.75"
+              pattern="\$?\d+(\.\d{1,2})?"
+            />
           </div>
 
           <label className="field-label" htmlFor="item-desc">
             Description <span className="optional">optional</span>
           </label>
-          <input id="item-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} placeholder="Oat milk on request" />
+          <input
+            id="item-desc"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            maxLength={200}
+            placeholder="Oat milk on request"
+          />
 
           <label className="field-label" htmlFor="item-barcode">
             Barcode <span className="optional">optional, for the till</span>
           </label>
           <div className="inline-form">
-            <input id="item-barcode" value={barcode} onChange={(e) => setBarcode(e.target.value.replace(/\D/g, ''))} inputMode="numeric" maxLength={14} placeholder="5449000000996" className="mono-input" />
-            <button type="button" className="mini" onClick={look} disabled={pending || barcode.trim().length < 8}>
+            <input
+              id="item-barcode"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value.replace(/\D/g, ''))}
+              inputMode="numeric"
+              maxLength={14}
+              placeholder="5449000000996"
+              className="mono-input"
+            />
+            <button
+              type="button"
+              className="mini"
+              onClick={look}
+              disabled={pending || barcode.trim().length < 8}
+            >
               <Icon name="search" size={14} /> Look up
             </button>
           </div>
@@ -159,7 +218,11 @@ export function ItemSheet({
 
           {item ? (
             <label className="checkline">
-              <input type="checkbox" checked={soldOut} onChange={(e) => setSoldOut(e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={soldOut}
+                onChange={(e) => setSoldOut(e.target.checked)}
+              />
               Sold out for now
             </label>
           ) : null}
@@ -178,12 +241,21 @@ export function ItemSheet({
               <button type="button" className="mini" onClick={() => setConfirmDelete(false)}>
                 Keep
               </button>
-              <button type="button" className="mini mini-danger" onClick={remove} disabled={pending}>
+              <button
+                type="button"
+                className="mini mini-danger"
+                onClick={remove}
+                disabled={pending}
+              >
                 Remove
               </button>
             </div>
           ) : (
-            <button type="button" className="linkbutton sheet-danger-link" onClick={() => setConfirmDelete(true)}>
+            <button
+              type="button"
+              className="linkbutton sheet-danger-link"
+              onClick={() => setConfirmDelete(true)}
+            >
               <Icon name="trash" size={15} /> Remove this item
             </button>
           )

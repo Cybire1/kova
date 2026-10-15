@@ -11,13 +11,13 @@ import { load, save } from '@/lib/storage'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { beats, DecodedNote, OnBeat, PeekingKovi, SealedEnvelope, SlideUp } from '@/ui/Arrival'
-import { Burst, CoinRain, PopIn } from '@/ui/motion'
 import { when } from '@/ui/EntryRow'
 import { Icon } from '@/ui/Icon'
 import { NoteSlip } from '@/ui/LinkParts'
+import { Burst, CoinRain, PopIn } from '@/ui/motion'
 import { PrivateNote } from '@/ui/PrivateNote'
-import { Stage } from '@/ui/Stage'
 import { Chip, Header, PillButton, Rise, Screen, Sticker, Txt } from '@/ui/primitives'
+import { Stage } from '@/ui/Stage'
 
 /**
  * Money arrived: coins rain, Kovi catches them, and the amount is the headline. Sent privately, it's
@@ -56,7 +56,11 @@ export default function Received() {
 
   return (
     <Screen bg={colors.tealSoft}>
-      <Header backIcon="close" onBack={() => router.back()} right={<Chip label={latest ? when(latest.at) : 'Just now'} dot={colors.tealLight} />} />
+      <Header
+        backIcon="close"
+        onBack={() => router.back()}
+        right={<Chip label={latest ? when(latest.at) : 'Just now'} dot={colors.tealLight} />}
+      />
       <View style={{ height: 320 }}>
         <CoinRain width={width} height={320} />
         <View style={[styles.catch, { left: width / 2 - 100 }]}>
@@ -81,7 +85,13 @@ export default function Received() {
         <Txt weight="medium" size={20}>
           {name} {byLink ? 'sent you' : 'paid you'}
         </Txt>
-        <Txt weight="bold" size={64} style={{ letterSpacing: -2.5 }} adjustsFontSizeToFit numberOfLines={1}>
+        <Txt
+          weight="bold"
+          size={64}
+          style={{ letterSpacing: -2.5 }}
+          adjustsFontSizeToFit
+          numberOfLines={1}
+        >
           {formatUsd(base, { sign: true })}
         </Txt>
         {profile && profile.currency !== 'USD' ? (
@@ -100,28 +110,36 @@ export default function Received() {
         </View>
       ) : note ? (
         <View style={{ marginTop: 22 }}>
-          <PrivateNote text={note} caption={`From ${name.split(' ')[0]}. Sealed by them; only you two can read it.`} />
+          <PrivateNote
+            text={note}
+            caption={`From ${name.split(' ')[0]}. Sealed by them; only you two can read it.`}
+          />
         </View>
       ) : (
-      <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
-        <Sticker radius={24} style={{ height: 66 }}>
-          <View style={styles.row}>
-            <Txt size={15} color={colors.muted}>
-              Arrived
-            </Txt>
-            <Txt weight="semi" size={15}>
-              {byLink ? 'From a link, in about a second' : 'On Monad, final in under a second'}
-            </Txt>
-          </View>
-        </Sticker>
-      </View>
+        <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+          <Sticker radius={24} style={{ height: 66 }}>
+            <View style={styles.row}>
+              <Txt size={15} color={colors.muted}>
+                Arrived
+              </Txt>
+              <Txt weight="semi" size={15}>
+                {byLink ? 'From a link, in about a second' : 'On Monad, final in under a second'}
+              </Txt>
+            </View>
+          </Sticker>
+        </View>
       )}
       <View style={styles.footer}>
         {known ? (
           <PillButton
             label={name.startsWith('0x') ? 'Send some back' : `Say thanks to ${name.split(' ')[0]}`}
             icon="send"
-            onPress={() => router.replace({ pathname: '/send/[to]', params: { to: known.address, name: known.name } })}
+            onPress={() =>
+              router.replace({
+                pathname: '/send/[to]',
+                params: { to: known.address, name: known.name },
+              })
+            }
           />
         ) : (
           <PillButton label="Done" icon="check" onPress={() => router.back()} />
@@ -137,7 +155,17 @@ export default function Received() {
  * decodes, and Kovi peeks over the edge to whisper it. It's already in the balance: one button,
  * Done. The very first one on a wallet says, once, what makes it private.
  */
-function PrivateArrival({ amount, name, note, unconfirmed }: { amount: bigint; name: string; note?: string; unconfirmed: boolean }) {
+function PrivateArrival({
+  amount,
+  name,
+  note,
+  unconfirmed,
+}: {
+  amount: bigint
+  name: string
+  note?: string
+  unconfirmed: boolean
+}) {
   const insets = useSafeAreaInsets()
   const { width } = useWindowDimensions()
   const still = useReducedMotion()
@@ -163,12 +191,17 @@ function PrivateArrival({ amount, name, note, unconfirmed }: { amount: bigint; n
 
   // The phone answers as the envelope opens.
   useEffect(() => {
-    const timer = setTimeout(() => void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), still ? 120 : beats.open + 90)
+    const timer = setTimeout(
+      () => void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
+      still ? 120 : beats.open + 90,
+    )
     return () => clearTimeout(timer)
   }, [still])
 
   const usd = formatUsd(amount)
-  const envelope = stage ? Math.max(150, Math.min(272, stage.width - 96, (stage.height - 16) / 0.98)) : 0
+  const envelope = stage
+    ? Math.max(150, Math.min(272, stage.width - 96, (stage.height - 16) / 0.98))
+    : 0
 
   return (
     <View style={[styles.privateScreen, { paddingTop: insets.top }]}>
@@ -181,11 +214,26 @@ function PrivateArrival({ amount, name, note, unconfirmed }: { amount: bigint; n
           </Txt>
         </View>
       </View>
-      <View style={styles.privateStage} onLayout={(e) => setStage({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}>
-        {envelope ? <SealedEnvelope width={envelope} amount={usd} from={name} to={profile?.name.split(' ')[0]} /> : null}
+      <View
+        style={styles.privateStage}
+        onLayout={(e) =>
+          setStage({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })
+        }
+      >
+        {envelope ? (
+          <SealedEnvelope
+            width={envelope}
+            amount={usd}
+            from={name}
+            to={profile?.name.split(' ')[0]}
+          />
+        ) : null}
       </View>
       <PeekingKovi width={Math.min(164, width * 0.42)} whisper="Psst… just for you" />
-      <SlideUp at={beats.open} style={[styles.privateSheet, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}>
+      <SlideUp
+        at={beats.open}
+        style={[styles.privateSheet, { paddingBottom: Math.max(insets.bottom, 12) + 4 }]}
+      >
         <OnBeat at={beats.copy}>
           <Txt weight="bold" size={26} style={{ letterSpacing: -0.7, lineHeight: 31 }}>
             {name} sent you {usd}, privately
@@ -198,7 +246,11 @@ function PrivateArrival({ amount, name, note, unconfirmed }: { amount: bigint; n
         </OnBeat>
         {note ? (
           <OnBeat at={beats.note - 160} style={{ marginTop: 6 }}>
-            <DecodedNote text={note} caption={`From ${first}. Only you two can read it.`} delay={beats.note} />
+            <DecodedNote
+              text={note}
+              caption={`From ${first}. Only you two can read it.`}
+              delay={beats.note}
+            />
           </OnBeat>
         ) : null}
         <OnBeat at={beats.note + 260} style={styles.inBalance}>
@@ -228,7 +280,11 @@ function PrivateArrival({ amount, name, note, unconfirmed }: { amount: bigint; n
           </OnBeat>
         ) : null}
         <View style={{ marginTop: 'auto', paddingTop: 14 }}>
-          <PillButton label="Done" icon="check" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+          <PillButton
+            label="Done"
+            icon="check"
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          />
         </View>
       </SlideUp>
     </View>
@@ -262,7 +318,13 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
   },
   copy: { alignItems: 'center', paddingHorizontal: 24 },
-  row: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18 },
+  row: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+  },
   footer: { paddingHorizontal: 20, paddingBottom: 12, marginTop: 'auto' },
   privateScreen: { flex: 1, backgroundColor: colors.ink },
   privateTop: { height: 48, alignItems: 'center', justifyContent: 'center' },
@@ -287,7 +349,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   inBalance: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 },
-  inBalanceTick: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.positive, alignItems: 'center', justifyContent: 'center' },
+  inBalanceTick: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.positive,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   explainOnce: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -298,5 +367,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: 12,
   },
-  explainLock: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  explainLock: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })

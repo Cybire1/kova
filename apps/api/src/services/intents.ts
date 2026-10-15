@@ -1,5 +1,11 @@
 import { schema, uuidv7 } from '@kova/db'
-import { type Currency, encodeMemo, formatAmount, generateStealthAddress, parseAmount } from '@kova/monad'
+import {
+  type Currency,
+  encodeMemo,
+  formatAmount,
+  generateStealthAddress,
+  parseAmount,
+} from '@kova/monad'
 import { and, eq, lt } from 'drizzle-orm'
 import { tokenFor } from '../chain.js'
 import { config } from '../config.js'
@@ -44,7 +50,9 @@ export async function createIntent(input: CreateIntentInput): Promise<PaymentInt
   // Private takings: the customer pays a fresh one-time address only the shop can open, and the
   // announcement that lets the shop find it is written in the same transaction, so a sale can never
   // land somewhere its shop can't see.
-  const sale = input.merchant.stealthMetaAddress ? generateStealthAddress(input.merchant.stealthMetaAddress) : null
+  const sale = input.merchant.stealthMetaAddress
+    ? generateStealthAddress(input.merchant.stealthMetaAddress)
+    : null
 
   const intent = await db.transaction(async (tx) => {
     const [row] = await tx

@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics'
+import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native'
@@ -9,15 +10,24 @@ import { useSessionCovers } from '@/lib/session'
 import { colors } from '@/lib/theme'
 import { type Entry, useWallet } from '@/lib/wallet'
 import { useWatchedOrder, watchOrder } from '@/lib/watch'
-import { Image } from 'expo-image'
 import { Avatar, ShopBadge } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Bob } from '@/ui/motion'
 import { OrderProgress, progressCopy } from '@/ui/OrderProgress'
 import { PaidScene } from '@/ui/PaidScene'
 import { PayDetails, spendLabel, TopUpLine, usePaymentRoute } from '@/ui/Private'
+import {
+  Chip,
+  Header,
+  PillButton,
+  Rise,
+  RoundButton,
+  Screen,
+  Sticker,
+  TextLink,
+  Txt,
+} from '@/ui/primitives'
 import { Stage as KoviStage } from '@/ui/Stage'
-import { Chip, Header, PillButton, Rise, RoundButton, Screen, Sticker, TextLink, Txt } from '@/ui/primitives'
 
 type Stage = 'loading' | 'review' | 'paying' | 'paid' | 'problem'
 
@@ -28,7 +38,11 @@ let devPaid = false
 export default function PayCharge() {
   // autopay is development-only: it presses Pay by itself, so a film can capture the real flow.
   // stamp=1: the order was placed with this wallet as its stamp-card payer, so it pays from the balance.
-  const { id, autopay, stamp } = useLocalSearchParams<{ id: string; autopay?: string; stamp?: string }>()
+  const { id, autopay, stamp } = useLocalSearchParams<{
+    id: string
+    autopay?: string
+    stamp?: string
+  }>()
   const { profile, balance, payCheckout } = useWallet()
   const dollars = usePrivate()
   const [stage, setStage] = useState<Stage>('loading')
@@ -98,7 +112,6 @@ export default function PayCharge() {
       }
     }
   }
-
 
   useEffect(() => {
     if (!__DEV__ || autopay !== '1' || stage !== 'review' || devPaid) return
@@ -173,7 +186,9 @@ export default function PayCharge() {
           ) : null}
           {checkout.trip ? (
             <Txt size={15} color={colors.onTint} style={{ textAlign: 'center' }}>
-              {checkout.trip.share === 'You' ? 'Kova is booking it now.' : `${checkout.trip.booked_by}’s trip gets booked once it’s all paid.`}
+              {checkout.trip.share === 'You'
+                ? 'Kova is booking it now.'
+                : `${checkout.trip.booked_by}’s trip gets booked once it’s all paid.`}
             </Txt>
           ) : null}
           {checkout.order?.pay_for_me && checkout.order.customer_name ? (
@@ -188,12 +203,22 @@ export default function PayCharge() {
           ) : (
             <Sticker radius={26}>
               <View style={styles.stats}>
-                <Stat label="Took" value={entry.ms ? `${(entry.ms / 1000).toFixed(1)} seconds` : '—'} />
+                <Stat
+                  label="Took"
+                  value={entry.ms ? `${(entry.ms / 1000).toFixed(1)} seconds` : '—'}
+                />
                 <Stat label="Fee" value="$0.00" />
                 {entry.fromPrivate ? (
                   <Stat label="From" value="Private dollars" />
                 ) : (
-                  <Stat label="Left" value={balance === null ? '—' : formatUsd(balance + (dollars.keysHere ? dollars.waiting : 0n))} />
+                  <Stat
+                    label="Left"
+                    value={
+                      balance === null
+                        ? '—'
+                        : formatUsd(balance + (dollars.keysHere ? dollars.waiting : 0n))
+                    }
+                  />
                 )}
               </View>
             </Sticker>
@@ -203,10 +228,19 @@ export default function PayCharge() {
           <PillButton
             label="Done"
             icon="check"
-            onPress={() => (checkout.trip?.share === 'You' && router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+            onPress={() =>
+              checkout.trip?.share === 'You' && router.canGoBack()
+                ? router.back()
+                : router.replace('/(tabs)')
+            }
           />
           <View style={{ alignItems: 'center' }}>
-            <TextLink label="See receipt" onPress={() => router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })} />
+            <TextLink
+              label="See receipt"
+              onPress={() =>
+                router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })
+              }
+            />
           </View>
         </View>
       </Screen>
@@ -215,7 +249,12 @@ export default function PayCharge() {
   const order = checkout.order
   const trip = checkout.trip
   const place = trip ? trip.title : (order?.stall?.name ?? checkout.merchant_name)
-  const askedBy = trip && trip.share !== 'You' ? trip.booked_by : order?.pay_for_me && order.customer_name ? order.customer_name : null
+  const askedBy =
+    trip && trip.share !== 'You'
+      ? trip.booked_by
+      : order?.pay_for_me && order.customer_name
+        ? order.customer_name
+        : null
   const shown = order ? order.lines.slice(0, 4) : []
   const lead = trip
     ? trip.share === 'You'
@@ -234,7 +273,11 @@ export default function PayCharge() {
       <ScrollView contentContainerStyle={styles.review}>
         <Bob>
           {trip?.provider.image ? (
-            <Image source={{ uri: trip.provider.image }} style={styles.tripArt} contentFit={trip.kind === 'flight' ? 'contain' : 'cover'} />
+            <Image
+              source={{ uri: trip.provider.image }}
+              style={styles.tripArt}
+              contentFit={trip.kind === 'flight' ? 'contain' : 'cover'}
+            />
           ) : askedBy ? (
             <Avatar name={askedBy} size={88} />
           ) : (
@@ -252,7 +295,13 @@ export default function PayCharge() {
             {trip.subtitle}
           </Txt>
         ) : null}
-        <Txt weight="bold" size={order ? 60 : 72} style={styles.amount} adjustsFontSizeToFit numberOfLines={1}>
+        <Txt
+          weight="bold"
+          size={order ? 60 : 72}
+          style={styles.amount}
+          adjustsFontSizeToFit
+          numberOfLines={1}
+        >
           {free ? 'Free' : formatUsd(amount)}
         </Txt>
         {reward ? (
@@ -288,7 +337,13 @@ export default function PayCharge() {
                 <View style={{ width: 30 }}>
                   <Icon name="sparkle" size={16} color={colors.tealDeep} />
                 </View>
-                <Txt weight="semi" size={15} color={colors.tealDeep} style={{ flex: 1 }} numberOfLines={1}>
+                <Txt
+                  weight="semi"
+                  size={15}
+                  color={colors.tealDeep}
+                  style={{ flex: 1 }}
+                  numberOfLines={1}
+                >
                   Stamp card: {reward.name}
                 </Txt>
                 <Txt weight="semi" size={15} color={colors.tealDeep}>
@@ -315,7 +370,12 @@ export default function PayCharge() {
         ) : trip ? (
           <View style={styles.note}>
             <Txt weight="medium" size={15}>
-              {trip.provider.name}. Pay by {new Date(trip.pay_by).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+              {trip.provider.name}. Pay by{' '}
+              {new Date(trip.pay_by).toLocaleString([], {
+                weekday: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
             </Txt>
           </View>
         ) : checkout.reference ? (
@@ -347,9 +407,22 @@ export default function PayCharge() {
             Private payments don’t collect stamps.
           </Txt>
         ) : null}
-        {choosable ? <PayDetails amount={amount} balance={balance} route={route} onChoose={choose} disabled={stage === 'paying'} /> : null}
+        {choosable ? (
+          <PayDetails
+            amount={amount}
+            balance={balance}
+            route={route}
+            onChoose={choose}
+            disabled={stage === 'paying'}
+          />
+        ) : null}
         {route.from === 'short' ? (
-          <Txt weight="medium" size={15} color={colors.danger} style={{ marginTop: 12, textAlign: 'center' }}>
+          <Txt
+            weight="medium"
+            size={15}
+            color={colors.danger}
+            style={{ marginTop: 12, textAlign: 'center' }}
+          >
             You need {formatUsd(route.need)} more. Add money first.
           </Txt>
         ) : null}
@@ -360,19 +433,35 @@ export default function PayCharge() {
         ) : (
           <>
             <PillButton
-              label={spendLabel(dollars.spending) ?? (free ? 'Get it free' : fromPrivate ? `Pay ${formatUsd(amount)} privately` : `Pay ${formatUsd(amount)}`)}
+              label={
+                spendLabel(dollars.spending) ??
+                (free
+                  ? 'Get it free'
+                  : fromPrivate
+                    ? `Pay ${formatUsd(amount)} privately`
+                    : `Pay ${formatUsd(amount)}`)
+              }
               icon={fromPrivate ? 'lock' : covered ? 'bolt' : 'face'}
               loading={stage === 'paying'}
               onPress={pay}
             />
-            {route.from !== 'balance' && dollars.problem?.during === 'spend' && stage === 'review' ? (
-              <Txt weight="medium" size={13} color={colors.danger} style={{ textAlign: 'center', marginTop: 8 }}>
+            {route.from !== 'balance' &&
+            dollars.problem?.during === 'spend' &&
+            stage === 'review' ? (
+              <Txt
+                weight="medium"
+                size={13}
+                color={colors.danger}
+                style={{ textAlign: 'center', marginTop: 8 }}
+              >
                 {dollars.problem.text}
               </Txt>
             ) : null}
             {free ? (
               <Txt size={13} color={colors.muted} style={{ textAlign: 'center', marginTop: 8 }}>
-                {covered ? 'Nothing to pay. Your wallet is open, so no Face ID either.' : 'Nothing to pay. Face ID confirms it’s your card.'}
+                {covered
+                  ? 'Nothing to pay. Your wallet is open, so no Face ID either.'
+                  : 'Nothing to pay. Face ID confirms it’s your card.'}
               </Txt>
             ) : covered ? (
               <Txt size={13} color={colors.muted} style={{ textAlign: 'center', marginTop: 8 }}>
@@ -449,7 +538,13 @@ const styles = StyleSheet.create({
   title: { marginTop: 16, letterSpacing: -0.6 },
   body: { textAlign: 'center', marginTop: 8, lineHeight: 23 },
   footer: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, marginTop: 'auto' },
-  review: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 12 },
+  review: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
   order: {
     alignSelf: 'stretch',
     marginTop: 16,
@@ -462,12 +557,34 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   orderLine: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 3 },
-  tripArt: { width: 96, height: 96, borderRadius: 28, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.white },
+  tripArt: {
+    width: 96,
+    height: 96,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.white,
+  },
   amount: { letterSpacing: -2.5, marginTop: 8 },
-  note: { marginTop: 14, paddingHorizontal: 14, height: 34, borderRadius: 17, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.ink, justifyContent: 'center' },
+  note: {
+    marginTop: 14,
+    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    justifyContent: 'center',
+  },
   lines: { paddingHorizontal: 18, paddingVertical: 6 },
   line: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
-  paidTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8 },
+  paidTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
   paidCopy: { alignItems: 'center', marginTop: 4, marginBottom: 18, paddingHorizontal: 24 },
   stats: { flexDirection: 'row', paddingVertical: 12, paddingHorizontal: 8 },
   stampTag: {
@@ -482,6 +599,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     marginTop: 6,
   },
-  trackerHead: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, paddingBottom: 12 },
-  tableTag: { height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: colors.coral, borderWidth: 2, borderColor: colors.ink, justifyContent: 'center' },
+  trackerHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    paddingBottom: 12,
+  },
+  tableTag: {
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    backgroundColor: colors.coral,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    justifyContent: 'center',
+  },
 })

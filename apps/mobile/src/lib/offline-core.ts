@@ -41,8 +41,16 @@ export async function signOfflinePayment(
     validBefore: BigInt(Math.floor(now / 1000)) + OFFLINE_VALIDITY,
     nonce: randomNonce(),
   }
-  const signature = await account.signTypedData(transferAuthorizationTypedData(settlementToken, network.chainId, authorization))
-  const payment: OfflinePayment = { chainId: network.chainId, token: settlementToken.address, authorization, signature, name: name?.trim() || null }
+  const signature = await account.signTypedData(
+    transferAuthorizationTypedData(settlementToken, network.chainId, authorization),
+  )
+  const payment: OfflinePayment = {
+    chainId: network.chainId,
+    token: settlementToken.address,
+    authorization,
+    signature,
+    name: name?.trim() || null,
+  }
   return { payment, code: encodeOfflinePayment(payment) }
 }
 
@@ -82,20 +90,33 @@ export async function handIn(code: string): Promise<HandIn> {
     response = await call('/v1/transfers', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ...toSignedAuthorization(p.token, p.authorization, p.signature), offline: true }),
+      body: JSON.stringify({
+        ...toSignedAuthorization(p.token, p.authorization, p.signature),
+        offline: true,
+      }),
     })
   } catch {
     return { kind: 'unreachable' }
   }
-  const body = (await response.json().catch(() => ({}))) as { tx_hash?: Hex; ms?: number; error?: { code?: string; message?: string } }
-  if (response.ok && body.tx_hash) return { kind: 'settled', txHash: body.tx_hash, ms: Date.now() - started }
+  const body = (await response.json().catch(() => ({}))) as {
+    tx_hash?: Hex
+    ms?: number
+    error?: { code?: string; message?: string }
+  }
+  if (response.ok && body.tx_hash)
+    return { kind: 'settled', txHash: body.tx_hash, ms: Date.now() - started }
   const error = body.error ?? {}
   const text = error.message ?? `Kova answered ${response.status}.`
   if (response.status === 409 || error.code === 'conflict') return { kind: 'already' }
   if (error.code === 'policy_declined' && /enough money/i.test(text)) return { kind: 'short', text }
-  if (/ran out|expired/i.test(text) || p.authorization.validBefore <= BigInt(Math.floor(Date.now() / 1000))) return { kind: 'expired' }
+  if (
+    /ran out|expired/i.test(text) ||
+    p.authorization.validBefore <= BigInt(Math.floor(Date.now() / 1000))
+  )
+    return { kind: 'expired' }
   // Too many at once, Monad busy, Kova restarting: all of these pass.
-  if (response.status === 429 || response.status >= 500) return { kind: 'refused', text, retry: true }
+  if (response.status === 429 || response.status >= 500)
+    return { kind: 'refused', text, retry: true }
   return { kind: 'refused', text, retry: false }
 }
 

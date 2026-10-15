@@ -33,13 +33,19 @@ describe('test dollars, once a day', () => {
     await claimTestDollars(who, first)
     const nextDay = new Date(first.getTime() + 24 * HOUR + 1)
     expect(await claimTestDollars(who, nextDay)).toEqual({ ok: true })
-    expect(await claimTestDollars(who, new Date(nextDay.getTime() + HOUR))).toMatchObject({ ok: false })
+    expect(await claimTestDollars(who, new Date(nextDay.getTime() + HOUR))).toMatchObject({
+      ok: false,
+    })
   })
 
   it('pays only one of two taps at the same moment', async () => {
     const who = wallet()
     const now = new Date()
-    const results = await Promise.all([claimTestDollars(who, now), claimTestDollars(who, now), claimTestDollars(who, now)])
+    const results = await Promise.all([
+      claimTestDollars(who, now),
+      claimTestDollars(who, now),
+      claimTestDollars(who, now),
+    ])
     expect(results.filter((r) => r.ok)).toHaveLength(1)
   })
 

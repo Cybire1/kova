@@ -16,13 +16,24 @@ const statusWord: Record<PaymentIntent['status'], string> = {
 }
 
 const hourOf = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: 'numeric' })
-const timeOf = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+const timeOf = (iso: string) =>
+  new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 
 /**
  * The live tape: payments print out of the slot as they land, newest on top, with a cut line
  * between the hours. Kovi keeps watch over the slot and hops when money comes in.
  */
-export function Tape({ intents, fresh, connected, hop }: { intents: PaymentIntent[]; fresh: Set<string>; connected: boolean; hop: number }) {
+export function Tape({
+  intents,
+  fresh,
+  connected,
+  hop,
+}: {
+  intents: PaymentIntent[]
+  fresh: Set<string>
+  connected: boolean
+  hop: number
+}) {
   const rows: React.ReactNode[] = []
   let lastHour: string | null = null
   for (const intent of intents) {
@@ -37,7 +48,12 @@ export function Tape({ intents, fresh, connected, hop }: { intents: PaymentInten
     lastHour = hour
     const open = intent.status === 'requires_payment' || intent.status === 'processing'
     rows.push(
-      <li key={intent.id} className="tape-line" data-status={intent.status} data-new={fresh.has(intent.id) ? 'true' : undefined}>
+      <li
+        key={intent.id}
+        className="tape-line"
+        data-status={intent.status}
+        data-new={fresh.has(intent.id) ? 'true' : undefined}
+      >
         <Link href={`/dashboard/payments/${intent.id}`}>
           <span className="tape-time">{timeOf(at)}</span>
           <span className="tape-what">
@@ -61,7 +77,13 @@ export function Tape({ intents, fresh, connected, hop }: { intents: PaymentInten
   return (
     <section className="tape" aria-label="Live payments">
       <div className="tape-top">
-        <Art key={hop} name="kovi-peek" size={150} className={`tape-kovi${hop > 0 ? ' is-hopping' : ''}`} priority />
+        <Art
+          key={hop}
+          name="kovi-peek"
+          size={150}
+          className={`tape-kovi${hop > 0 ? ' is-hopping' : ''}`}
+          priority
+        />
         <div className="tape-slot" data-state={connected ? 'live' : 'stale'}>
           <span className="tape-led" />
           <span>{connected ? 'Live' : 'Reconnecting'}</span>

@@ -1,5 +1,5 @@
-import * as WebBrowser from 'expo-web-browser'
 import { useLocalSearchParams } from 'expo-router'
+import * as WebBrowser from 'expo-web-browser'
 import { useState } from 'react'
 import { Pressable, Share, StyleSheet, View } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
@@ -8,12 +8,12 @@ import { formatUsd } from '@/lib/money'
 import { usePrivate } from '@/lib/private'
 import { shortAddress } from '@/lib/takings-core'
 import { colors } from '@/lib/theme'
-import { Icon, type IconName } from '@/ui/Icon'
 import { type Entry, isUnnamed, useWallet } from '@/lib/wallet'
 import { Avatar, ShopBadge } from '@/ui/art'
 import { PrivateAvatar, signed, when } from '@/ui/EntryRow'
-import { Announced } from '@/ui/Private'
+import { Icon, type IconName } from '@/ui/Icon'
 import { NameSheet } from '@/ui/NameSheet'
+import { Announced } from '@/ui/Private'
 import { Header, PillButton, Screen, TextLink, Txt } from '@/ui/primitives'
 
 const titles = { paid: 'Paid', sent: 'Sent', received: 'Received', added: 'Added' } as const
@@ -36,8 +36,13 @@ export default function Receipt() {
 
   const incoming = entry.kind === 'received' || entry.kind === 'added'
   // A one-time address (a link's, or a private sale's) is never a person to name.
-  const person = (entry.kind === 'sent' || entry.kind === 'received') && entry.address && !entry.takings ? entry.address : null
-  const zigzag = Array.from({ length: 18 }, (_, i) => `L${i * 20 + 10} 10 L${i * 20 + 20} 0`).join(' ')
+  const person =
+    (entry.kind === 'sent' || entry.kind === 'received') && entry.address && !entry.takings
+      ? entry.address
+      : null
+  const zigzag = Array.from({ length: 18 }, (_, i) => `L${i * 20 + 10} 10 L${i * 20 + 20} 0`).join(
+    ' ',
+  )
   // Received privately: still private (in the balance either way), spent privately, or made public.
   const receipt = entry.privately && incoming ? privately.receiptAt(entry.oneTime) : undefined
   const waiting = receipt ? BigInt(receipt.held) > 0n : false
@@ -60,7 +65,11 @@ export default function Receipt() {
               {titles[entry.kind]} {incoming ? 'from' : 'to'}
             </Txt>
             {person ? (
-              <Pressable accessibilityRole="button" accessibilityLabel={`Rename ${entry.name}`} onPress={() => setNaming(true)}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Rename ${entry.name}`}
+                onPress={() => setNaming(true)}
+              >
                 <Txt weight="semi" size={22}>
                   {entry.name}
                 </Txt>
@@ -80,27 +89,48 @@ export default function Receipt() {
                 <TextLink label="Add a name" onPress={() => setNaming(true)} />
               </View>
             ) : null}
-            <Txt weight="bold" size={48} color={incoming ? colors.positive : colors.ink} style={{ letterSpacing: -1.5, marginTop: 6 }}>
+            <Txt
+              weight="bold"
+              size={48}
+              color={incoming ? colors.positive : colors.ink}
+              style={{ letterSpacing: -1.5, marginTop: 6 }}
+            >
               {signed(entry)}
             </Txt>
           </View>
           <View style={styles.rule} />
-          <Row label="When" value={`${new Date(entry.at).toLocaleDateString([], { day: 'numeric', month: 'long' })}, ${when(entry.at)}`} />
+          <Row
+            label="When"
+            value={`${new Date(entry.at).toLocaleDateString([], { day: 'numeric', month: 'long' })}, ${when(entry.at)}`}
+          />
           {entry.private ? (
             <Row label="Private note" icon="lock" value={entry.detail} />
-          ) : ['Sent', 'Arrived', 'Scan to pay', 'AUSD test faucet'].includes(entry.detail) || entry.takings || entry.privately || entry.offline ? null : (
+          ) : ['Sent', 'Arrived', 'Scan to pay', 'AUSD test faucet'].includes(entry.detail) ||
+            entry.takings ||
+            entry.privately ||
+            entry.offline ? null : (
             <Row label="For" value={entry.detail} />
           )}
           {entry.private ? (
             <Txt size={12} color={colors.muted} style={{ textAlign: 'right', marginTop: -2 }}>
-              {entry.private === 'both' ? 'Sealed: only the two of you can read it' : 'Sealed: only you can read it'}
+              {entry.private === 'both'
+                ? 'Sealed: only the two of you can read it'
+                : 'Sealed: only you can read it'}
             </Txt>
           ) : null}
           {entry.privately ? (
             <>
-              <Row label="Privacy" icon="lock" value={incoming ? 'Received privately' : 'Sent privately'} />
+              <Row
+                label="Privacy"
+                icon="lock"
+                value={incoming ? 'Received privately' : 'Sent privately'}
+              />
               {entry.oneTime ? <Row label="Paid to" value={shortAddress(entry.oneTime)} /> : null}
-              <Txt size={12} color={colors.muted} style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}>
+              <Txt
+                size={12}
+                color={colors.muted}
+                style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}
+              >
                 {incoming
                   ? 'An address made just for this payment. Only you can tell it’s yours.'
                   : `Monad shows that address, not ${isUnnamed(entry.name) ? 'them' : first}. Only ${first} can open it.`}
@@ -108,7 +138,15 @@ export default function Receipt() {
               {receipt ? (
                 <Row
                   label="Now"
-                  value={waiting ? (BigInt(receipt.held) < BigInt(receipt.amount) ? `${formatUsd(BigInt(receipt.held))} left, private` : 'Private, in your balance') : receipt.movedTx ? 'Made public' : 'Spent privately'}
+                  value={
+                    waiting
+                      ? BigInt(receipt.held) < BigInt(receipt.amount)
+                        ? `${formatUsd(BigInt(receipt.held))} left, private`
+                        : 'Private, in your balance'
+                      : receipt.movedTx
+                        ? 'Made public'
+                        : 'Spent privately'
+                  }
                 />
               ) : null}
               {entry.oneTime ? (
@@ -121,23 +159,45 @@ export default function Receipt() {
           {entry.offline ? (
             <>
               <Row label="How" icon="noSignal" value="Paid with a code" />
-              <Txt size={12} color={colors.muted} style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}>
-                Signed on {incoming ? `${first}’s` : 'your'} phone with no signal, and settled on Monad once a phone was online.
+              <Txt
+                size={12}
+                color={colors.muted}
+                style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}
+              >
+                Signed on {incoming ? `${first}’s` : 'your'} phone with no signal, and settled on
+                Monad once a phone was online.
               </Txt>
             </>
           ) : null}
           {entry.fromPrivate ? <Row label="Paid from" icon="lock" value="Private dollars" /> : null}
           {entry.fromPrivate ? (
-            <Txt size={12} color={colors.muted} style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}>
+            <Txt
+              size={12}
+              color={colors.muted}
+              style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}
+            >
               Paid from an address only you can open. Your wallet doesn’t show on Monad.
             </Txt>
           ) : null}
-          {entry.ms ? <Row label={entry.offline ? 'Settled in' : 'Took'} value={`${(entry.ms / 1000).toFixed(entry.offline ? 2 : 1)} seconds`} /> : null}
-          <Row label="Fee" value={entry.kind === 'paid' || entry.kind === 'sent' ? '$0.00, covered by Kova' : '$0.00'} />
+          {entry.ms ? (
+            <Row
+              label={entry.offline ? 'Settled in' : 'Took'}
+              value={`${(entry.ms / 1000).toFixed(entry.offline ? 2 : 1)} seconds`}
+            />
+          ) : null}
+          <Row
+            label="Fee"
+            value={
+              entry.kind === 'paid' || entry.kind === 'sent' ? '$0.00, covered by Kova' : '$0.00'
+            }
+          />
           <Row label="Amount" value={formatUsd(BigInt(entry.amount))} />
           {entry.txHash ? (
             <View style={{ alignItems: 'center', marginTop: 14 }}>
-              <TextLink label="View on Monadscan" onPress={() => void WebBrowser.openBrowserAsync(explorerTx(entry.txHash as string))} />
+              <TextLink
+                label="View on Monadscan"
+                onPress={() => void WebBrowser.openBrowserAsync(explorerTx(entry.txHash as string))}
+              />
             </View>
           ) : null}
         </View>
@@ -146,9 +206,16 @@ export default function Receipt() {
         </Svg>
       </View>
       <View style={styles.footer}>
-        <PillButton label="Share receipt" icon="share" onPress={() => void Share.share({ message: shareText(entry, incoming) })} />
+        <PillButton
+          label="Share receipt"
+          icon="share"
+          onPress={() => void Share.share({ message: shareText(entry, incoming) })}
+        />
       </View>
-      <NameSheet person={naming && person ? { address: person, name: entry.name } : null} onClose={() => setNaming(false)} />
+      <NameSheet
+        person={naming && person ? { address: person, name: entry.name } : null}
+        onClose={() => setNaming(false)}
+      />
     </Screen>
   )
 }
@@ -175,9 +242,20 @@ function Row({ label, value, icon }: { label: string; value: string; icon?: Icon
 
 const styles = StyleSheet.create({
   wrap: { paddingHorizontal: 20, marginTop: 16 },
-  paper: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 22, paddingBottom: 18 },
+  paper: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 22,
+    paddingBottom: 18,
+  },
   top: { alignItems: 'center' },
-  rule: { borderBottomWidth: 2, borderColor: colors.sunken, borderStyle: 'dashed', marginVertical: 18 },
+  rule: {
+    borderBottomWidth: 2,
+    borderColor: colors.sunken,
+    borderStyle: 'dashed',
+    marginVertical: 18,
+  },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, paddingVertical: 7 },
   footer: { paddingHorizontal: 20, paddingBottom: 12, marginTop: 'auto' },
 })

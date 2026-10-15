@@ -4,7 +4,9 @@ import { failure, kovaPublic } from '@/lib/api'
 export async function POST(request: Request) {
   try {
     const { address } = (await request.json()) as { address?: string }
-    return Response.json(await kovaPublic('/v1/faucet', { method: 'POST', body: JSON.stringify({ address }) }))
+    return Response.json(
+      await kovaPublic('/v1/faucet', { method: 'POST', body: JSON.stringify({ address }) }),
+    )
   } catch (error) {
     return failure(error)
   }

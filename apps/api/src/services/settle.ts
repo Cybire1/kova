@@ -1,5 +1,11 @@
 import { schema, uuidv7 } from '@kova/db'
-import { decodeCardPayments, decodeMemo, eip3009Abi, kovaCardAddress, verifyPayment } from '@kova/monad'
+import {
+  decodeCardPayments,
+  decodeMemo,
+  eip3009Abi,
+  kovaCardAddress,
+  verifyPayment,
+} from '@kova/monad'
 import { and, eq, isNull } from 'drizzle-orm'
 import { type Address, decodeEventLog, type Hash, type TransactionReceipt } from 'viem'
 import { publicClient } from '../chain.js'
@@ -142,7 +148,9 @@ export async function settleFromReceipt(
 }
 
 /** The intent a receipt claims to pay: the authorization (or card tap) carrying a Kova payment memo. */
-async function findIntentForReceipt(receipt: TransactionReceipt): Promise<PaymentIntent | undefined> {
+async function findIntentForReceipt(
+  receipt: TransactionReceipt,
+): Promise<PaymentIntent | undefined> {
   for (const tap of decodeCardPayments(receipt.logs, cardContract)) {
     if (decodeMemo(tap.memo)?.kind !== 'payment') continue
     const intent = await findIntentByMemo(tap.memo)

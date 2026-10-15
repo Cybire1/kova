@@ -2,9 +2,15 @@ import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, Share, StyleSheet, View } from 'react-native'
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated'
 import QRCode from 'react-native-qrcode-svg'
-import { type ChainDeposit, depositAddressFor, type DepositSources, depositSources, depositsTo } from '@/lib/chain'
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated'
+import {
+  type ChainDeposit,
+  type DepositSources,
+  depositAddressFor,
+  depositSources,
+  depositsTo,
+} from '@/lib/chain'
 import { colors, fonts } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Flyer } from '@/ui/art'
@@ -20,7 +26,19 @@ const LOOK: Record<string, { mark: string; fill: string; ink: string }> = {
   btc: { mark: '₿', fill: '#F2C26B', ink: colors.ink },
 }
 
-const CHAIN_NAMES: Record<string, string> = { eth: 'Ethereum', base: 'Base', arb: 'Arbitrum', bsc: 'BNB Chain', pol: 'Polygon', op: 'Optimism', avax: 'Avalanche', sol: 'Solana', tron: 'Tron', btc: 'Bitcoin', monad: 'Monad' }
+const CHAIN_NAMES: Record<string, string> = {
+  eth: 'Ethereum',
+  base: 'Base',
+  arb: 'Arbitrum',
+  bsc: 'BNB Chain',
+  pol: 'Polygon',
+  op: 'Optimism',
+  avax: 'Avalanche',
+  sol: 'Solana',
+  tron: 'Tron',
+  btc: 'Bitcoin',
+  monad: 'Monad',
+}
 
 /**
  * Bringing money in from another chain, with Aurora Intents (NEAR Intents). Pick where your money
@@ -53,7 +71,10 @@ export default function FromChain() {
     setProblem(null)
     void depositAddressFor(profile.address, source)
       .then((made) => current && setAddresses((a) => ({ ...a, [source]: made.address })))
-      .catch((error) => current && setProblem(error instanceof Error ? error.message : 'Kova didn’t answer.'))
+      .catch(
+        (error) =>
+          current && setProblem(error instanceof Error ? error.message : 'Kova didn’t answer.'),
+      )
     return () => {
       current = false
     }
@@ -82,7 +103,8 @@ export default function FromChain() {
       <Header title="From another chain" />
       <ScrollView contentContainerStyle={styles.body}>
         <Txt size={16} color={colors.muted} style={{ lineHeight: 23 }}>
-          Send from wherever your money is. It arrives here as dollars, with nothing to bridge and no gas to buy.
+          Send from wherever your money is. It arrives here as dollars, with nothing to bridge and
+          no gas to buy.
         </Txt>
 
         <View style={styles.sources}>
@@ -100,14 +122,23 @@ export default function FromChain() {
                   setSource(s.id)
                   setDeposits([])
                 }}
-                style={({ pressed }) => [styles.source, on && styles.sourceOn, pressed && { transform: [{ scale: 0.96 }] }]}
+                style={({ pressed }) => [
+                  styles.source,
+                  on && styles.sourceOn,
+                  pressed && { transform: [{ scale: 0.96 }] },
+                ]}
               >
                 <View style={[styles.disc, { backgroundColor: look?.fill }]}>
                   <Txt weight="bold" size={20} color={look?.ink}>
                     {look?.mark}
                   </Txt>
                 </View>
-                <Txt weight="semi" size={13} color={on ? colors.white : colors.ink} numberOfLines={1}>
+                <Txt
+                  weight="semi"
+                  size={13}
+                  color={on ? colors.white : colors.ink}
+                  numberOfLines={1}
+                >
                   {s.id === 'evm' ? 'EVM chains' : s.name}
                 </Txt>
               </Pressable>
@@ -117,7 +148,11 @@ export default function FromChain() {
 
         {chosen ? (
           <Txt size={14} color={colors.onTint} style={{ marginTop: 14, lineHeight: 20 }}>
-            Send <Txt weight="semi" size={14}>{chosen.send.join(', ')}</Txt> on {listOf(chosen.chains)}.
+            Send{' '}
+            <Txt weight="semi" size={14}>
+              {chosen.send.join(', ')}
+            </Txt>{' '}
+            on {listOf(chosen.chains)}.
           </Txt>
         ) : null}
 
@@ -131,8 +166,13 @@ export default function FromChain() {
                 <Txt weight="semi" size={20} style={{ textAlign: 'center' }}>
                   Live on Monad mainnet
                 </Txt>
-                <Txt size={15} color={colors.muted} style={{ textAlign: 'center', lineHeight: 22, marginTop: 6 }}>
-                  NEAR Intents moves real liquidity between chains, so this opens when Kova moves to mainnet. On testnet, use free test dollars.
+                <Txt
+                  size={15}
+                  color={colors.muted}
+                  style={{ textAlign: 'center', lineHeight: 22, marginTop: 6 }}
+                >
+                  NEAR Intents moves real liquidity between chains, so this opens when Kova moves to
+                  mainnet. On testnet, use free test dollars.
                 </Txt>
               </View>
             </Sticker>
@@ -144,7 +184,13 @@ export default function FromChain() {
             <Sticker radius={30} style={{ marginTop: 18 }}>
               <View style={styles.card}>
                 <View style={styles.qr}>
-                  <QRCode value={address} size={176} color={colors.ink} backgroundColor={colors.surface} ecl="M" />
+                  <QRCode
+                    value={address}
+                    size={176}
+                    color={colors.ink}
+                    backgroundColor={colors.surface}
+                    ecl="M"
+                  />
                 </View>
                 <Txt weight="semi" size={13} color={colors.muted} style={{ marginTop: 14 }}>
                   Your {chosen?.id === 'evm' ? 'EVM' : chosen?.name} address
@@ -168,7 +214,11 @@ export default function FromChain() {
                       {copied ? 'Copied' : 'Copy'}
                     </Txt>
                   </Pressable>
-                  <Pressable accessibilityRole="button" onPress={() => void Share.share({ message: address })} style={styles.action}>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => void Share.share({ message: address })}
+                    style={styles.action}
+                  >
                     <Icon name="share" size={18} />
                     <Txt weight="semi" size={15}>
                       Share
@@ -177,8 +227,13 @@ export default function FromChain() {
                 </View>
               </View>
             </Sticker>
-            <Txt size={13} color={colors.muted} style={{ marginTop: 12, lineHeight: 19, textAlign: 'center' }}>
-              Yours to keep: reuse it any time. Arrives as {sources?.arrives_as} in about 1–3 minutes. Kova charges nothing; the swap costs a small route fee.
+            <Txt
+              size={13}
+              color={colors.muted}
+              style={{ marginTop: 12, lineHeight: 19, textAlign: 'center' }}
+            >
+              Yours to keep: reuse it any time. Arrives as {sources?.arrives_as} in about 1–3
+              minutes. Kova charges nothing; the swap costs a small route fee.
             </Txt>
           </Animated.View>
         ) : null}
@@ -197,19 +252,45 @@ export default function FromChain() {
 
         {deposits.length ? (
           <View style={{ marginTop: 22 }}>
-            <Txt weight="semi" size={14} color={colors.muted} style={{ marginBottom: 8, marginLeft: 4 }}>
+            <Txt
+              weight="semi"
+              size={14}
+              color={colors.muted}
+              style={{ marginBottom: 8, marginLeft: 4 }}
+            >
               Coming in
             </Txt>
             <View style={styles.list}>
               {deposits.map((d, i) => (
-                <View key={`${d.tx_hash}:${d.status}`} style={[styles.row, i < deposits.length - 1 && styles.rule]}>
-                  <View style={[styles.dot, { backgroundColor: d.status === 'arrived' ? colors.positive : d.status === 'failed' ? colors.danger : colors.coral }]} />
+                <View
+                  key={`${d.tx_hash}:${d.status}`}
+                  style={[styles.row, i < deposits.length - 1 && styles.rule]}
+                >
+                  <View
+                    style={[
+                      styles.dot,
+                      {
+                        backgroundColor:
+                          d.status === 'arrived'
+                            ? colors.positive
+                            : d.status === 'failed'
+                              ? colors.danger
+                              : colors.coral,
+                      },
+                    ]}
+                  />
                   <View style={{ flex: 1 }}>
                     <Txt weight="semi" size={15}>
-                      {d.status === 'arrived' ? `${d.amount} arrived` : d.status === 'failed' ? 'Didn’t go through' : `${d.amount} on its way`}
+                      {d.status === 'arrived'
+                        ? `${d.amount} arrived`
+                        : d.status === 'failed'
+                          ? 'Didn’t go through'
+                          : `${d.amount} on its way`}
                     </Txt>
                     <Txt size={13} color={colors.muted}>
-                      {d.status === 'arrived' ? 'In your Kova wallet on Monad' : `From ${CHAIN_NAMES[d.chain ?? ''] ?? d.chain ?? 'another chain'}, swapping to dollars`}
+                      {d.status === 'arrived'
+                        ? 'In your Kova wallet on Monad'
+                        : `From ${CHAIN_NAMES[d.chain ?? ''] ?? d.chain ?? 'another chain'}, swapping to dollars`}
                     </Txt>
                   </View>
                 </View>
@@ -241,11 +322,25 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   sourceOn: { backgroundColor: colors.ink },
-  disc: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  disc: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   soon: { alignItems: 'center', padding: 22 },
   card: { alignItems: 'center', padding: 20 },
   qr: { padding: 12, borderRadius: 20, backgroundColor: colors.surface },
-  address: { fontFamily: fonts.medium, letterSpacing: 0.4, textAlign: 'center', marginTop: 4, lineHeight: 22 },
+  address: {
+    fontFamily: fonts.medium,
+    letterSpacing: 0.4,
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 22,
+  },
   actions: { flexDirection: 'row', gap: 10, marginTop: 16, alignSelf: 'stretch' },
   action: {
     flex: 1,
@@ -258,8 +353,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  list: { borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
+  list: {
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
   rule: { borderBottomWidth: 1, borderColor: colors.sunken },
   dot: { width: 10, height: 10, borderRadius: 5 },
 })

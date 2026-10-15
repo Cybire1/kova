@@ -30,25 +30,37 @@ export const jevReady = () => Boolean(config.TYPESAFE_API_KEY)
  * Asks every question about the same state at once. Questions are answered independently, so
  * one answer never colours another. Null when Jev isn't set up or doesn't answer in time.
  */
-export async function askJev(state: unknown, questions: Record<string, JevQuestion>, timeoutMs = 4000): Promise<Record<string, JevAnswer> | null> {
+export async function askJev(
+  state: unknown,
+  questions: Record<string, JevQuestion>,
+  timeoutMs = 4000,
+): Promise<Record<string, JevAnswer> | null> {
   if (!config.TYPESAFE_API_KEY || Object.keys(questions).length === 0) return null
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const response = await fetch(ENDPOINT, {
       method: 'POST',
-      headers: { authorization: `Bearer ${config.TYPESAFE_API_KEY}`, 'content-type': 'application/json' },
+      headers: {
+        authorization: `Bearer ${config.TYPESAFE_API_KEY}`,
+        'content-type': 'application/json',
+      },
       body: JSON.stringify({ model: config.JEV_MODEL ?? 'jev-latest', state, questions }),
       signal: controller.signal,
     })
-    const body = (await response.json().catch(() => null)) as { answers?: Record<string, RawAnswer> } | null
+    const body = (await response.json().catch(() => null)) as {
+      answers?: Record<string, RawAnswer>
+    } | null
     if (!response.ok || !body?.answers) {
       console.warn('[jev] refused', response.status, JSON.stringify(body)?.slice(0, 300))
       return null
     }
     const out: Record<string, JevAnswer> = {}
     for (const [id, a] of Object.entries(body.answers))
-      out[id] = a.type === 'noul' ? { probability: a.noul } : { choice: a.choice, confidence: a.confidence, distribution: a.probabilities }
+      out[id] =
+        a.type === 'noul'
+          ? { probability: a.noul }
+          : { choice: a.choice, confidence: a.confidence, distribution: a.probabilities }
     return out
   } catch (error) {
     console.warn('[jev] unavailable', error instanceof Error ? error.message : error)

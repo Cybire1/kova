@@ -7,6 +7,15 @@ import { LinkSheet } from '@/ui/send/LinkSheet'
  */
 export default function SendLink() {
   const params = useLocalSearchParams<{ amount?: string; note?: string; autosend?: string }>()
-  const amount = params.amount && /^\d+(\.\d{1,2})?$/.test(params.amount) ? params.amount : undefined
-  return <LinkSheet start={{ amount, note: params.note || undefined, autoSend: __DEV__ && params.autosend === '1' }} />
+  const amount =
+    params.amount && /^\d+(\.\d{1,2})?$/.test(params.amount) ? params.amount : undefined
+  return (
+    <LinkSheet
+      start={{
+        amount,
+        note: params.note || undefined,
+        autoSend: __DEV__ && params.autosend === '1',
+      }}
+    />
+  )
 }

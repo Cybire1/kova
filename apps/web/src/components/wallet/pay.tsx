@@ -266,7 +266,9 @@ export function PayCharge({ id }: { id: string }) {
         <p className="w-moment-big">
           {formatUsd(amount)} to {place}
         </p>
-        {order?.reward ? <p className="w-moment-reward">One {order.reward.name} free with your stamp card</p> : null}
+        {order?.reward ? (
+          <p className="w-moment-reward">One {order.reward.name} free with your stamp card</p>
+        ) : null}
         <div className="w-stats w-stats-moment">
           <span>
             <strong>{(stage.ms / 1000).toFixed(1)}s</strong> Took
@@ -288,7 +290,11 @@ export function PayCharge({ id }: { id: string }) {
           <div className="w-moment-order">
             <OrderReady checkoutId={charge.id} order={order} shop={order.stall.name} />
             {stage.fromPrivate ? null : (
-              <StampsAfterPay slug={order.stall.slug} shop={order.stall.name} usedReward={Boolean(order.reward)} />
+              <StampsAfterPay
+                slug={order.stall.slug}
+                shop={order.stall.name}
+                usedReward={Boolean(order.reward)}
+              />
             )}
           </div>
         ) : null}

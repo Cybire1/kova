@@ -33,7 +33,13 @@ export default function Welcome() {
       <View style={{ position: 'absolute', top: sceneTop, left: sceneLeft }}>
         <PlanetScene width={sceneW} />
       </View>
-      <Flight from={shift(route.from)} via={shift(route.via)} to={shift(route.to)} size={130} duration={7000}>
+      <Flight
+        from={shift(route.from)}
+        via={shift(route.via)}
+        to={shift(route.to)}
+        size={130}
+        duration={7000}
+      >
         <Flyer size={130} />
       </Flight>
 

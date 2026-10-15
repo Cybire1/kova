@@ -19,13 +19,16 @@ import { WalletBack } from '@/ui/WalletBack'
 
 type Filter = 'hand' | 'waiting' | 'done'
 
-const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+const time = (iso: string) =>
+  new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 function ago(iso: string) {
   const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000))
   if (minutes < 1) return 'just now'
   if (minutes < 60) return `${minutes} min ago`
   const hours = Math.round(minutes / 60)
-  return hours < 24 ? `${hours} h ago` : new Date(iso).toLocaleDateString([], { day: 'numeric', month: 'short' })
+  return hours < 24
+    ? `${hours} h ago`
+    : new Date(iso).toLocaleDateString([], { day: 'numeric', month: 'short' })
 }
 
 /**
@@ -37,10 +40,22 @@ export default function Orders() {
   return wide ? <Board /> : <OrderList />
 }
 
-const COLUMNS: { status: OrderStatus; title: string; next: OrderStatus; action: string; tone: string }[] = [
+const COLUMNS: {
+  status: OrderStatus
+  title: string
+  next: OrderStatus
+  action: string
+  tone: string
+}[] = [
   { status: 'new', title: 'New', next: 'preparing', action: 'Start', tone: colors.coral },
   { status: 'preparing', title: 'Preparing', next: 'ready', action: 'Ready', tone: colors.yellow },
-  { status: 'ready', title: 'Ready', next: 'collected', action: 'Handed over', tone: colors.tealSoft },
+  {
+    status: 'ready',
+    title: 'Ready',
+    next: 'collected',
+    action: 'Handed over',
+    tone: colors.tealSoft,
+  },
 ]
 
 /**
@@ -53,7 +68,9 @@ function Board() {
   const waiting = orders.waiting.length
   return (
     <View style={{ flex: 1, backgroundColor: colors.paper, paddingTop: insets.top + 16 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 28, gap: 16 }}>
+      <View
+        style={{ flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 28, gap: 16 }}
+      >
         <View style={{ flex: 1 }}>
           <Txt weight="bold" size={30} style={{ letterSpacing: -0.7 }}>
             Orders
@@ -87,12 +104,25 @@ function Board() {
               </View>
               <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: insets.bottom + 20 }}>
                 {list.map((order) => (
-                  <Animated.View key={order.id} entering={FadeInDown} exiting={FadeOut} layout={LinearTransition}>
-                    <Ticket order={order} action={col.action} onHandOver={() => void orders.advance(order, col.next)} />
+                  <Animated.View
+                    key={order.id}
+                    entering={FadeInDown}
+                    exiting={FadeOut}
+                    layout={LinearTransition}
+                  >
+                    <Ticket
+                      order={order}
+                      action={col.action}
+                      onHandOver={() => void orders.advance(order, col.next)}
+                    />
                   </Animated.View>
                 ))}
                 {list.length === 0 ? (
-                  <Txt size={14} color={colors.muted} style={{ textAlign: 'center', paddingVertical: 24 }}>
+                  <Txt
+                    size={14}
+                    color={colors.muted}
+                    style={{ textAlign: 'center', paddingVertical: 24 }}
+                  >
                     {col.status === 'new' ? 'New orders land here.' : 'Nothing here.'}
                   </Txt>
                 ) : null}
@@ -112,7 +142,11 @@ function OrderList() {
   const [filter, setFilter] = useState<Filter>('hand')
   const [refreshing, setRefreshing] = useState(false)
 
-  const lists: Record<Filter, Order[]> = { hand: orders.toHand, waiting: orders.waiting, done: orders.done }
+  const lists: Record<Filter, Order[]> = {
+    hand: orders.toHand,
+    waiting: orders.waiting,
+    done: orders.done,
+  }
   const shown = lists[filter]
   const tabs: { id: Filter; label: string; count?: number }[] = [
     { id: 'hand', label: 'To hand over', count: orders.toHand.length },
@@ -123,7 +157,11 @@ function OrderList() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.paper }}
-      contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: shopDockClearance + insets.bottom }}
+      contentContainerStyle={{
+        paddingTop: insets.top + 8,
+        paddingHorizontal: 20,
+        paddingBottom: shopDockClearance + insets.bottom,
+      }}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -170,7 +208,12 @@ function OrderList() {
                 {t.label}
               </Txt>
               {t.count ? (
-                <View style={[styles.filterCount, { backgroundColor: on ? colors.coral : colors.sunken }]}>
+                <View
+                  style={[
+                    styles.filterCount,
+                    { backgroundColor: on ? colors.coral : colors.sunken },
+                  ]}
+                >
                   <Txt weight="bold" size={12} color={colors.ink}>
                     {t.count}
                   </Txt>
@@ -185,7 +228,12 @@ function OrderList() {
         <Empty filter={filter} owner={Boolean(owned)} />
       ) : (
         shown.map((order) => (
-          <Animated.View key={order.id} entering={FadeInDown.springify().damping(18)} exiting={FadeOut.duration(180)} layout={LinearTransition.springify().damping(18)}>
+          <Animated.View
+            key={order.id}
+            entering={FadeInDown.springify().damping(18)}
+            exiting={FadeOut.duration(180)}
+            layout={LinearTransition.springify().damping(18)}
+          >
             {filter === 'done' ? (
               <DoneRow order={order} onUndo={() => void orders.collect(order, false)} />
             ) : filter === 'hand' ? (
@@ -193,7 +241,9 @@ function OrderList() {
               <Ticket
                 order={order}
                 action={order.status === 'ready' ? 'Handed over' : 'Ready'}
-                onHandOver={() => void orders.advance(order, order.status === 'ready' ? 'collected' : 'ready')}
+                onHandOver={() =>
+                  void orders.advance(order, order.status === 'ready' ? 'collected' : 'ready')
+                }
                 stage
               />
             ) : (
@@ -207,7 +257,17 @@ function OrderList() {
 }
 
 /** One order, as the kitchen reads it: who, what, any note, and one big button. */
-function Ticket({ order, onHandOver, action, stage }: { order: Order; onHandOver?: () => void; action?: string; stage?: boolean }) {
+function Ticket({
+  order,
+  onHandOver,
+  action,
+  stage,
+}: {
+  order: Order
+  onHandOver?: () => void
+  action?: string
+  stage?: boolean
+}) {
   const who = order.customer_name ?? 'Someone'
   const waiting = !onHandOver
   const ready = order.status === 'ready'
@@ -229,7 +289,13 @@ function Ticket({ order, onHandOver, action, stage }: { order: Order; onHandOver
             <Txt weight="semi" size={10} color={colors.white} style={{ letterSpacing: 0.5 }}>
               TABLE
             </Txt>
-            <Txt weight="bold" size={order.table.length > 3 ? 13 : 20} color={colors.white} numberOfLines={1} style={{ lineHeight: 22 }}>
+            <Txt
+              weight="bold"
+              size={order.table.length > 3 ? 13 : 20}
+              color={colors.white}
+              numberOfLines={1}
+              style={{ lineHeight: 22 }}
+            >
               {order.table}
             </Txt>
           </View>
@@ -275,7 +341,10 @@ function Ticket({ order, onHandOver, action, stage }: { order: Order; onHandOver
         ) : null}
         {order.note ? (
           order.flags?.includes('allergy') ? (
-            <View style={[styles.note, styles.noteFlagged]} accessibilityLabel={`Allergy or diet: ${order.note}`}>
+            <View
+              style={[styles.note, styles.noteFlagged]}
+              accessibilityLabel={`Allergy or diet: ${order.note}`}
+            >
               <View style={styles.flag}>
                 <Icon name="info" size={15} color={colors.white} strokeWidth={2.4} />
                 <Txt weight="bold" size={12} color={colors.white}>
@@ -301,9 +370,22 @@ function Ticket({ order, onHandOver, action, stage }: { order: Order; onHandOver
         <View style={{ flex: 1, gap: 2 }}>
           {stage ? (
             <View style={styles.stageRow}>
-              <View style={[styles.stageDot, { backgroundColor: ready ? colors.teal : colors.coral }]} />
-              <Txt weight="semi" size={13} color={ready ? colors.tealDeep : colors.onTint} numberOfLines={1}>
-                {ready ? (order.table ? `Ready, take it to table ${order.table}` : 'Ready, they’ve been told') : order.status === 'preparing' ? 'Preparing' : 'New'}
+              <View
+                style={[styles.stageDot, { backgroundColor: ready ? colors.teal : colors.coral }]}
+              />
+              <Txt
+                weight="semi"
+                size={13}
+                color={ready ? colors.tealDeep : colors.onTint}
+                numberOfLines={1}
+              >
+                {ready
+                  ? order.table
+                    ? `Ready, take it to table ${order.table}`
+                    : 'Ready, they’ve been told'
+                  : order.status === 'preparing'
+                    ? 'Preparing'
+                    : 'New'}
               </Txt>
             </View>
           ) : null}
@@ -329,7 +411,9 @@ function Ticket({ order, onHandOver, action, stage }: { order: Order; onHandOver
             <Txt weight="semi" size={15} color={colors.white}>
               {action ?? 'Handed over'}
             </Txt>
-            <View style={[styles.handDisc, stage && !ready && { backgroundColor: colors.coralSoft }]}>
+            <View
+              style={[styles.handDisc, stage && !ready && { backgroundColor: colors.coralSoft }]}
+            >
               <Icon name={stage && !ready ? 'bell' : 'check'} size={18} strokeWidth={2.6} />
             </View>
           </Pressable>
@@ -354,13 +438,22 @@ function DoneRow({ order, onUndo }: { order: Order; onUndo: () => void }) {
       <View style={{ flex: 1 }}>
         <Txt weight="semi" size={15} numberOfLines={1}>
           {who}, {dollars(order.amount ?? 0)}
-          {order.table ? <Txt size={15} color={colors.muted}>{`, table ${order.table}`}</Txt> : null}
+          {order.table ? (
+            <Txt size={15} color={colors.muted}>{`, table ${order.table}`}</Txt>
+          ) : null}
         </Txt>
         <Txt size={13} color={colors.muted} numberOfLines={1}>
-          {order.lines.map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name)).join(', ')}
+          {order.lines
+            .map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name))
+            .join(', ')}
         </Txt>
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Not handed over to ${who} yet`} hitSlop={10} onPress={onUndo}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Not handed over to ${who} yet`}
+        hitSlop={10}
+        onPress={onUndo}
+      >
         <Txt weight="semi" size={14} style={{ textDecorationLine: 'underline' }}>
           Undo
         </Txt>
@@ -371,9 +464,18 @@ function DoneRow({ order, onUndo }: { order: Order; onUndo: () => void }) {
 
 function Empty({ filter, owner }: { filter: Filter; owner: boolean }) {
   const copy = {
-    hand: { title: 'Nothing to hand over', body: 'Paid orders from your stall land here with the buyer’s name, what they chose and any note.' },
-    waiting: { title: 'No one is mid-order', body: 'Orders placed but not paid yet show here, including ones sent to someone else to pay.' },
-    done: { title: 'Nothing handed over yet', body: 'Orders you mark as handed over today collect here.' },
+    hand: {
+      title: 'Nothing to hand over',
+      body: 'Paid orders from your stall land here with the buyer’s name, what they chose and any note.',
+    },
+    waiting: {
+      title: 'No one is mid-order',
+      body: 'Orders placed but not paid yet show here, including ones sent to someone else to pay.',
+    },
+    done: {
+      title: 'Nothing handed over yet',
+      body: 'Orders you mark as handed over today collect here.',
+    },
   }[filter]
   return (
     <View style={styles.empty}>
@@ -381,11 +483,19 @@ function Empty({ filter, owner }: { filter: Filter; owner: boolean }) {
       <Txt weight="semi" size={20} style={{ marginTop: 6 }}>
         {copy.title}
       </Txt>
-      <Txt size={15} color={colors.muted} style={{ textAlign: 'center', marginTop: 4, lineHeight: 21 }}>
+      <Txt
+        size={15}
+        color={colors.muted}
+        style={{ textAlign: 'center', marginTop: 4, lineHeight: 21 }}
+      >
         {copy.body}
       </Txt>
       {owner && filter === 'hand' ? (
-        <Pressable accessibilityRole="button" onPress={() => router.push('/terminal/share')} style={styles.emptyButton}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/terminal/share')}
+          style={styles.emptyButton}
+        >
           <Icon name="share" size={18} />
           <Txt weight="semi" size={15}>
             Share your stall
@@ -398,10 +508,25 @@ function Empty({ filter, owner }: { filter: Filter; owner: boolean }) {
 
 const styles = StyleSheet.create({
   column: { flex: 1, backgroundColor: colors.sunken, borderRadius: 26, padding: 12 },
-  columnHead: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 8, paddingTop: 6, paddingBottom: 12 },
+  columnHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 12,
+  },
   columnDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: colors.ink },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  live: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: colors.surface },
+  live: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    backgroundColor: colors.surface,
+  },
   liveDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.teal },
   filters: { flexDirection: 'row', gap: 8, marginTop: 14, marginBottom: 14 },
   filter: {
@@ -415,18 +540,80 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   filterOn: { backgroundColor: colors.ink },
-  filterCount: { minWidth: 22, height: 22, paddingHorizontal: 6, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  ticket: { marginBottom: 14, borderRadius: 26, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, overflow: 'hidden' },
-  ticketTop: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, paddingBottom: 10 },
+  filterCount: {
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 6,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ticket: {
+    marginBottom: 14,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  ticketTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    paddingBottom: 10,
+  },
   tear: { height: 22, justifyContent: 'center' },
-  notch: { position: 'absolute', width: 22, height: 22, borderRadius: 11, backgroundColor: colors.paper, borderWidth: 2, borderColor: colors.ink },
-  perforation: { marginHorizontal: 18, borderTopWidth: 2, borderColor: colors.sunken, borderStyle: 'dashed' },
+  notch: {
+    position: 'absolute',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.paper,
+    borderWidth: 2,
+    borderColor: colors.ink,
+  },
+  perforation: {
+    marginHorizontal: 18,
+    borderTopWidth: 2,
+    borderColor: colors.sunken,
+    borderStyle: 'dashed',
+  },
   lineRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  qtyBox: { width: 30, height: 30, borderRadius: 9, backgroundColor: colors.tealSoft, alignItems: 'center', justifyContent: 'center' },
-  note: { flexDirection: 'row', gap: 8, marginTop: 4, padding: 12, borderRadius: 16, backgroundColor: colors.sunken },
+  qtyBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    backgroundColor: colors.tealSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  note: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: colors.sunken,
+  },
   /** Jev read an allergy or a diet in the note: it gets the pay colour and a label, so nobody misses it. */
-  noteFlagged: { flexDirection: 'column', gap: 8, backgroundColor: colors.coralSoft, borderWidth: 2, borderColor: colors.coral },
-  flag: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', height: 24, paddingHorizontal: 9, borderRadius: 12, backgroundColor: colors.coralDeep },
+  noteFlagged: {
+    flexDirection: 'column',
+    gap: 8,
+    backgroundColor: colors.coralSoft,
+    borderWidth: 2,
+    borderColor: colors.coral,
+  },
+  flag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    height: 24,
+    paddingHorizontal: 9,
+    borderRadius: 12,
+    backgroundColor: colors.coralDeep,
+  },
   ticketFoot: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, paddingTop: 14 },
   handOver: {
     height: 52,
@@ -438,7 +625,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  handDisc: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.tealSoft, alignItems: 'center', justifyContent: 'center' },
+  handDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.tealSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tableTag: {
     minWidth: 52,
     maxWidth: 110,
@@ -451,12 +645,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reward: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, paddingHorizontal: 12, height: 38, borderRadius: 14, backgroundColor: colors.tealSoft },
+  reward: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+    paddingHorizontal: 12,
+    height: 38,
+    borderRadius: 14,
+    backgroundColor: colors.tealSoft,
+  },
   stageRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   stageDot: { width: 8, height: 8, borderRadius: 4 },
-  waitChip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: colors.sunken },
+  waitChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: 17,
+    backgroundColor: colors.sunken,
+  },
   waitDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.coral },
-  done: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderColor: colors.sunken },
+  done: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: colors.sunken,
+  },
   empty: { alignItems: 'center', paddingTop: 30, paddingHorizontal: 12 },
   emptyButton: {
     marginTop: 16,

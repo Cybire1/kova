@@ -83,7 +83,11 @@ async function compute(): Promise<Numbers> {
     }
   })
   const sources = await db
-    .select({ ref: schema.referralCounts.ref, visits: sql<number>`sum(${schema.referralCounts.visits})`, wallets: sql<number>`sum(${schema.referralCounts.wallets})` })
+    .select({
+      ref: schema.referralCounts.ref,
+      visits: sql<number>`sum(${schema.referralCounts.visits})`,
+      wallets: sql<number>`sum(${schema.referralCounts.wallets})`,
+    })
     .from(schema.referralCounts)
     .groupBy(schema.referralCounts.ref)
   return {
@@ -106,7 +110,11 @@ async function compute(): Promise<Numbers> {
 
 const visitBody = z.object({
   /** Where they came from: a short label from the link they followed, like "x" or "monad-discord". */
-  ref: z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9_-]{0,31}$/),
+  ref: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9][a-z0-9_-]{0,31}$/),
   /** visit: they opened /try; wallet: that browser now has a Kova wallet. Counted once per browser. */
   step: z.enum(['visit', 'wallet']),
 })
@@ -114,7 +122,8 @@ const visitBody = z.object({
 export const statsRoutes = new Hono()
   /** Public: this network's numbers, a minute fresh. */
   .get('/public/stats', async (c) => {
-    if (!cached || Date.now() - cached.at > 60_000) cached = { at: Date.now(), numbers: await compute() }
+    if (!cached || Date.now() - cached.at > 60_000)
+      cached = { at: Date.now(), numbers: await compute() }
     return c.json({ object: 'stats', ...cached.numbers })
   })
 
@@ -130,8 +139,10 @@ export const statsRoutes = new Hono()
       .values({ ref, day, visits: step === 'visit' ? 1 : 0, wallets: step === 'wallet' ? 1 : 0 })
       .onConflictDoUpdate({
         target: [schema.referralCounts.ref, schema.referralCounts.day],
-        set: step === 'visit' ? { visits: sql`${schema.referralCounts.visits} + 1` } : { wallets: sql`${schema.referralCounts.wallets} + 1` },
+        set:
+          step === 'visit'
+            ? { visits: sql`${schema.referralCounts.visits} + 1` }
+            : { wallets: sql`${schema.referralCounts.wallets} + 1` },
       })
     return c.json({ object: 'visit', ref, step })
   })
-

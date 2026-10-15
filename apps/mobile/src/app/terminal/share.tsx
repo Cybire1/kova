@@ -1,15 +1,23 @@
 import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
-import * as WebBrowser from 'expo-web-browser'
 import { useLocalSearchParams } from 'expo-router'
+import * as WebBrowser from 'expo-web-browser'
 import { useState } from 'react'
-import { Linking, Pressable, ScrollView, Share, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  Linking,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import QRCode from 'react-native-qrcode-svg'
 import { posterLinkFor, stallLinkFor, tableLinkFor } from '@/lib/api'
 import { useStall } from '@/lib/stall'
 import { colors } from '@/lib/theme'
-import { Kovi } from '@/ui/art'
 import { Awning } from '@/ui/Awning'
+import { Kovi } from '@/ui/art'
 import { Icon, type IconName } from '@/ui/Icon'
 import { Header, Screen, Txt } from '@/ui/primitives'
 
@@ -53,7 +61,12 @@ export default function ShareStall() {
         <Header title={tables ? 'Your codes' : 'Share your stall'} backIcon="close" />
       </View>
       {tables ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.picker} style={{ flexGrow: 0 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.picker}
+          style={{ flexGrow: 0 }}
+        >
           {Array.from({ length: tables + 1 }, (_, n) => n).map((i) => {
             const on = i === (table ? picked : 0)
             return (
@@ -79,7 +92,12 @@ export default function ShareStall() {
       ) : null}
       <ScrollView contentContainerStyle={styles.body}>
         <View style={[styles.card, { width: card }]}>
-          <Awning width={card} height={54} stripe={card / 11} tone={stall.open ? 'coral' : 'teal'} />
+          <Awning
+            width={card}
+            height={54}
+            stripe={card / 11}
+            tone={stall.open ? 'coral' : 'teal'}
+          />
           {table ? (
             <View style={styles.tableBadge}>
               <Txt weight="semi" size={10} color={colors.white} style={{ letterSpacing: 0.6 }}>
@@ -91,17 +109,40 @@ export default function ShareStall() {
             </View>
           ) : null}
           <View style={styles.cardBody}>
-            <Txt weight="bold" size={24} style={{ textAlign: 'center', letterSpacing: -0.6 }} numberOfLines={2}>
+            <Txt
+              weight="bold"
+              size={24}
+              style={{ textAlign: 'center', letterSpacing: -0.6 }}
+              numberOfLines={2}
+            >
               {stall.name}
             </Txt>
             <Txt size={14} color={colors.muted} style={{ textAlign: 'center', marginTop: 2 }}>
-              {table ? 'Scan to order. We bring it to your table.' : 'Scan to order. Pay in dollars.'}
+              {table
+                ? 'Scan to order. We bring it to your table.'
+                : 'Scan to order. Pay in dollars.'}
             </Txt>
             <View style={styles.qr}>
-              <QRCode value={link} size={qr} color={colors.ink} backgroundColor={colors.white} ecl="H" logo={coin} logoSize={qr * 0.2} logoBackgroundColor={colors.white} logoMargin={4} logoBorderRadius={qr} />
+              <QRCode
+                value={link}
+                size={qr}
+                color={colors.ink}
+                backgroundColor={colors.white}
+                ecl="H"
+                logo={coin}
+                logoSize={qr * 0.2}
+                logoBackgroundColor={colors.white}
+                logoMargin={4}
+                logoBorderRadius={qr}
+              />
             </View>
             {stall.open ? null : (
-              <Txt weight="semi" size={13} color={colors.coralDeep} style={{ textAlign: 'center', marginTop: 10 }}>
+              <Txt
+                weight="semi"
+                size={13}
+                color={colors.coralDeep}
+                style={{ textAlign: 'center', marginTop: 10 }}
+              >
                 Your stall is closed. Open it so people can order.
               </Txt>
             )}
@@ -131,17 +172,39 @@ export default function ShareStall() {
             label="Send on WhatsApp"
             tone={colors.coral}
             // wa.me opens the WhatsApp app when it's installed, and WhatsApp's site when it isn't.
-            onPress={() => void Linking.openURL(`https://wa.me/?text=${encodeURIComponent(message)}`)}
+            onPress={() =>
+              void Linking.openURL(`https://wa.me/?text=${encodeURIComponent(message)}`)
+            }
           />
-          <Action icon="share" label="Share another way" tone={colors.surface} onPress={() => void Share.share({ message })} />
-          <Action icon="print" label={table ? 'Print the stall poster' : 'Print a table poster'} tone={colors.tealSoft} onPress={() => void WebBrowser.openBrowserAsync(posterLinkFor(stall.slug))} />
+          <Action
+            icon="share"
+            label="Share another way"
+            tone={colors.surface}
+            onPress={() => void Share.share({ message })}
+          />
+          <Action
+            icon="print"
+            label={table ? 'Print the stall poster' : 'Print a table poster'}
+            tone={colors.tealSoft}
+            onPress={() => void WebBrowser.openBrowserAsync(posterLinkFor(stall.slug))}
+          />
         </View>
       </ScrollView>
     </Screen>
   )
 }
 
-function Action({ icon, label, tone, onPress }: { icon: IconName; label: string; tone: string; onPress: () => void }) {
+function Action({
+  icon,
+  label,
+  tone,
+  onPress,
+}: {
+  icon: IconName
+  label: string
+  tone: string
+  onPress: () => void
+}) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -149,7 +212,11 @@ function Action({ icon, label, tone, onPress }: { icon: IconName; label: string;
         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         onPress()
       }}
-      style={({ pressed }) => [styles.action, { backgroundColor: tone }, pressed && { transform: [{ scale: 0.98 }] }]}
+      style={({ pressed }) => [
+        styles.action,
+        { backgroundColor: tone },
+        pressed && { transform: [{ scale: 0.98 }] },
+      ]}
     >
       <Icon name={icon} size={20} />
       <Txt weight="semi" size={16} style={{ flex: 1 }}>
@@ -163,7 +230,14 @@ function Action({ icon, label, tone, onPress }: { icon: IconName; label: string;
 const styles = StyleSheet.create({
   body: { alignItems: 'center', paddingHorizontal: 24, paddingBottom: 24, paddingTop: 8 },
   picker: { gap: 8, paddingHorizontal: 20, paddingTop: 4, paddingBottom: 10 },
-  pick: { height: 36, paddingHorizontal: 14, borderRadius: 18, borderWidth: 2, borderColor: colors.ink, justifyContent: 'center' },
+  pick: {
+    height: 36,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    justifyContent: 'center',
+  },
   pickOn: { backgroundColor: colors.ink },
   tableBadge: {
     position: 'absolute',
@@ -179,9 +253,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  card: { borderRadius: 30, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, overflow: 'hidden' },
+  card: {
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
   cardBody: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 22, alignItems: 'center' },
-  qr: { marginTop: 16, padding: 12, borderRadius: 22, backgroundColor: colors.white, borderWidth: 2, borderColor: colors.ink },
+  qr: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 22,
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.ink,
+  },
   link: {
     marginTop: 14,
     maxWidth: '100%',

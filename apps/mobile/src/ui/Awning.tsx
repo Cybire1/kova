@@ -11,7 +11,17 @@ export const canvas = '#F8F7F3'
  *
  * Drawn in points for the width it is given, so stripes keep their size on any screen.
  */
-export function Awning({ width, height = 56, stripe = 26, tone = 'coral' }: { width: number; height?: number; stripe?: number; tone?: 'coral' | 'teal' }) {
+export function Awning({
+  width,
+  height = 56,
+  stripe = 26,
+  tone = 'coral',
+}: {
+  width: number
+  height?: number
+  stripe?: number
+  tone?: 'coral' | 'teal'
+}) {
   const fill = tone === 'coral' ? colors.coral : colors.teal
   const r = stripe / 2
   // Leave room under the scallops for their outline.
@@ -25,7 +35,13 @@ export function Awning({ width, height = 56, stripe = 26, tone = 'coral' }: { wi
         return (
           <G key={i}>
             <Rect x={x} y={0} width={stripe} height={edge} fill={color} />
-            <Path d={`M${x} ${edge} A${r} ${r} 0 0 0 ${x + stripe} ${edge} Z`} fill={color} stroke={colors.ink} strokeWidth={2} strokeLinejoin="round" />
+            <Path
+              d={`M${x} ${edge} A${r} ${r} 0 0 0 ${x + stripe} ${edge} Z`}
+              fill={color}
+              stroke={colors.ink}
+              strokeWidth={2}
+              strokeLinejoin="round"
+            />
           </G>
         )
       })}

@@ -25,17 +25,25 @@ export const healthRoutes = new Hono().get('/', async (c) => {
   checks.block = head.status === 'fulfilled' ? Number(head.value) : null
   // How far the transfer index trails the chain, in blocks (~0.31s each).
   checks.index_lag =
-    head.status === 'fulfilled' && indexed.status === 'fulfilled' && indexed.value !== null ? Number(head.value - indexed.value) : null
+    head.status === 'fulfilled' && indexed.status === 'fulfilled' && indexed.value !== null
+      ? Number(head.value - indexed.value)
+      : null
 
   if (feePayerAddress && head.status === 'fulfilled') {
     const [mon, dollars] = await Promise.all([
       publicClient.getBalance({ address: feePayerAddress }).catch(() => undefined),
       publicClient
-        .readContract({ address: settlementToken.address, abi: eip3009Abi, functionName: 'balanceOf', args: [feePayerAddress] })
+        .readContract({
+          address: settlementToken.address,
+          abi: eip3009Abi,
+          functionName: 'balanceOf',
+          args: [feePayerAddress],
+        })
         .catch(() => undefined),
     ])
     checks.relayer_gas = mon === undefined ? null : `${formatEther(mon)} MON`
-    checks.relayer_balance = dollars === undefined ? null : `${formatAmount(dollars)} ${settlementToken.symbol}`
+    checks.relayer_balance =
+      dollars === undefined ? null : `${formatAmount(dollars)} ${settlementToken.symbol}`
   }
 
   const healthy = checks.database === 'ok' && head.status === 'fulfilled'

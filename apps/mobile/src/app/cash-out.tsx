@@ -2,8 +2,15 @@ import * as Haptics from 'expo-haptics'
 import { router, useLocalSearchParams } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
-import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
-import { naira, type NairaBank, type NairaInfo } from '@/lib/api'
+import {
+  KeyboardAvoidingView,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native'
+import { type NairaBank, type NairaInfo, naira } from '@/lib/api'
 import type { CashOutToPay } from '@/lib/chain'
 import { chainName } from '@/lib/config'
 import { applyKey, formatUsd, groupTyped, type Key, toBase } from '@/lib/money'
@@ -14,8 +21,8 @@ import { useWallet } from '@/lib/wallet'
 import { Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Keypad } from '@/ui/Keypad'
-import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
 import { spendLabel, TopUpLine, usePaymentRoute } from '@/ui/Private'
+import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
 import { SlideToSend } from '@/ui/send/SlideToSend'
 
 type Step = 'amount' | 'account' | 'review' | 'done'
@@ -47,18 +54,23 @@ export default function CashOutScreen() {
   const [problem, setProblem] = useState<string | null>(null)
   const quick = useSessionCovers(quote ? BigInt(quote.pay.value) : 0n)
   // Development only, for films and screenshots: ?amount=2&bank=001&account=0000000000&step=account|review
-  const dev = useLocalSearchParams<{ amount?: string; bank?: string; account?: string; step?: string }>()
+  const dev = useLocalSearchParams<{
+    amount?: string
+    bank?: string
+    account?: string
+    step?: string
+  }>()
 
   useEffect(() => {
     void naira.info().then(setInfo)
   }, [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, from the dev link
   useEffect(() => {
     if (!__DEV__ || !dev.amount) return
     setTyped(dev.amount)
     if (dev.account) setAccount(dev.account)
     if (dev.step === 'account' || dev.step === 'review') setStep('account')
-    // biome-ignore lint/correctness/useExhaustiveDependencies: once, from the dev link
   }, [])
 
   useEffect(() => {
@@ -113,9 +125,10 @@ export default function CashOutScreen() {
       .finally(() => setLooking(false))
   }, [account, bank])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the dev link's one review
   useEffect(() => {
-    if (__DEV__ && dev.step === 'review' && named && step === 'account' && !busy && !quote) void review()
-    // biome-ignore lint/correctness/useExhaustiveDependencies: the dev link's one review
+    if (__DEV__ && dev.step === 'review' && named && step === 'account' && !busy && !quote)
+      void review()
   }, [named])
 
   const shown = useMemo(() => {
@@ -129,7 +142,13 @@ export default function CashOutScreen() {
     setBusy(true)
     setProblem(null)
     try {
-      setQuote(await naira.cashOut(profile.address, { amount: dollars(amount), bankCode: bank.code, accountNumber: named.number }))
+      setQuote(
+        await naira.cashOut(profile.address, {
+          amount: dollars(amount),
+          bankCode: bank.code,
+          accountNumber: named.number,
+        }),
+      )
       setStep('review')
     } catch (error) {
       setProblem(error instanceof Error ? error.message : 'Kova didn’t answer. Try again.')
@@ -144,9 +163,14 @@ export default function CashOutScreen() {
     setProblem(null)
     try {
       const pay = () => cashOutNaira(quote)
-      let result: CashOutToPay = await privately.pay(route, BigInt(quote.pay.value), { fromBalance: pay, fromPrivate: pay })
+      let result: CashOutToPay = await privately.pay(route, BigInt(quote.pay.value), {
+        fromBalance: pay,
+        fromPrivate: pay,
+      })
       void Haptics.notificationAsync(
-        result.status === 'failed' ? Haptics.NotificationFeedbackType.Warning : Haptics.NotificationFeedbackType.Success,
+        result.status === 'failed'
+          ? Haptics.NotificationFeedbackType.Warning
+          : Haptics.NotificationFeedbackType.Success,
       )
       setQuote(result)
       setStep('done')
@@ -156,7 +180,8 @@ export default function CashOutScreen() {
         setQuote(result)
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'It didn’t go through. Nothing moved.'
+      const message =
+        error instanceof Error ? error.message : 'It didn’t go through. Nothing moved.'
       if (!/cancel/i.test(message)) setProblem(message)
     } finally {
       setBusy(false)
@@ -205,7 +230,9 @@ export default function CashOutScreen() {
               </View>
               <Txt size={14} color={colors.muted} style={{ flex: 1 }}>
                 To any Nigerian bank, through Paystack
-                {info?.cash_out_rate ? `, at ₦${Number(info.cash_out_rate).toLocaleString('en-NG', { maximumFractionDigits: 2 })} per $1` : ''}
+                {info?.cash_out_rate
+                  ? `, at ₦${Number(info.cash_out_rate).toLocaleString('en-NG', { maximumFractionDigits: 2 })} per $1`
+                  : ''}
               </Txt>
             </View>
             <View style={styles.typed}>
@@ -236,7 +263,9 @@ export default function CashOutScreen() {
             <Keypad onKey={onKey} />
             <View style={{ marginTop: 14 }}>
               <PillButton
-                label={over ? 'More than you have' : tooSmall ? 'At least $1' : 'Choose the account'}
+                label={
+                  over ? 'More than you have' : tooSmall ? 'At least $1' : 'Choose the account'
+                }
                 disabled={amount === 0n || over || tooSmall}
                 onPress={() => setStep('account')}
               />
@@ -250,7 +279,11 @@ export default function CashOutScreen() {
               Which account?
             </Txt>
             {bank ? (
-              <Pressable onPress={() => setBank(null)} style={styles.bankPick} accessibilityLabel={`${bank.name}, change bank`}>
+              <Pressable
+                onPress={() => setBank(null)}
+                style={styles.bankPick}
+                accessibilityLabel={`${bank.name}, change bank`}
+              >
                 <View style={styles.bankBadge}>
                   <Icon name="web" size={17} color={colors.white} />
                 </View>
@@ -336,11 +369,28 @@ export default function CashOutScreen() {
               </Txt>
             </View>
             <View style={styles.facts}>
-              <Fact label="You send" value={`$${quote.amount}`} hint={`From your balance on ${chainName}`} />
-              <Fact label="Rate" value={`₦${Number(quote.rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per dollar`} hint={info?.rate_source === 'chainlink' ? 'Chainlink rate on Monad, less 1%' : 'Market rate, less 1%'} />
+              <Fact
+                label="You send"
+                value={`$${quote.amount}`}
+                hint={`From your balance on ${chainName}`}
+              />
+              <Fact
+                label="Rate"
+                value={`₦${Number(quote.rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per dollar`}
+                hint={
+                  info?.rate_source === 'chainlink'
+                    ? 'Chainlink rate on Monad, less 1%'
+                    : 'Market rate, less 1%'
+                }
+              />
               <Fact label="Bank fee" value={quote.fee} hint="Taken from the naira" />
               <Fact label="Network fee" value="$0.00, Kova covers it" />
-              <Fact label="Arrives" value="In minutes" hint="If the bank can’t take it, your dollars come back" last />
+              <Fact
+                label="Arrives"
+                value="In minutes"
+                hint="If the bank can’t take it, your dollars come back"
+                last
+              />
             </View>
             {quote.test_mode ? (
               <Txt size={13} color={colors.muted} style={{ marginTop: 10 }}>
@@ -363,14 +413,19 @@ export default function CashOutScreen() {
               onSend={() => void go()}
             />
             <Txt size={13} color={colors.muted} style={{ textAlign: 'center', marginTop: 8 }}>
-              {quick ? 'Your wallet is open, so this one needs no Face ID.' : 'Face ID approves it.'}
+              {quick
+                ? 'Your wallet is open, so this one needs no Face ID.'
+                : 'Face ID approves it.'}
             </Txt>
           </View>
         ) : null}
 
         {step === 'done' && quote ? (
           <View style={styles.done}>
-            <Kovi pose={quote.status === 'failed' ? 'oops' : quote.status === 'paid' ? 'cheer' : 'ride'} size={150} />
+            <Kovi
+              pose={quote.status === 'failed' ? 'oops' : quote.status === 'paid' ? 'cheer' : 'ride'}
+              size={150}
+            />
             <Txt weight="bold" size={26} style={{ textAlign: 'center' }}>
               {quote.status === 'paid'
                 ? 'In their account'
@@ -380,18 +435,25 @@ export default function CashOutScreen() {
             </Txt>
             <Txt color={colors.muted} style={{ textAlign: 'center' }}>
               {quote.status === 'failed'
-                ? (quote.failure ?? 'The bank couldn’t take it. Your dollars came back to your wallet.')
+                ? (quote.failure ??
+                  'The bank couldn’t take it. Your dollars came back to your wallet.')
                 : `${quote.naira} to ${quote.account_name ?? 'the account'}, ${quote.bank_name} ••••${quote.account_last4}.`}
             </Txt>
             {quote.tx_url ? (
-              <Pressable onPress={() => void WebBrowser.openBrowserAsync(quote.tx_url as string)} accessibilityRole="link">
+              <Pressable
+                onPress={() => void WebBrowser.openBrowserAsync(quote.tx_url as string)}
+                accessibilityRole="link"
+              >
                 <Txt weight="semi" size={14} color={colors.tealDeep}>
                   See the transfer on Monad
                 </Txt>
               </Pressable>
             ) : null}
             {quote.refund_tx_url ? (
-              <Pressable onPress={() => void WebBrowser.openBrowserAsync(quote.refund_tx_url as string)} accessibilityRole="link">
+              <Pressable
+                onPress={() => void WebBrowser.openBrowserAsync(quote.refund_tx_url as string)}
+                accessibilityRole="link"
+              >
                 <Txt weight="semi" size={14} color={colors.tealDeep}>
                   See the refund on Monad
                 </Txt>
@@ -423,7 +485,17 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-function Fact({ label, value, hint, last }: { label: string; value: string; hint?: string; last?: boolean }) {
+function Fact({
+  label,
+  value,
+  hint,
+  last,
+}: {
+  label: string
+  value: string
+  hint?: string
+  last?: boolean
+}) {
   return (
     <View style={[styles.fact, !last && styles.rule]}>
       <Txt size={14} color={colors.muted}>
@@ -447,10 +519,33 @@ const styles = StyleSheet.create({
   flow: { flex: 1, paddingHorizontal: 20, paddingBottom: 12 },
   form: { paddingHorizontal: 20, paddingBottom: 40, gap: 16 },
   route: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
-  naira: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.tealDeep, alignItems: 'center', justifyContent: 'center' },
-  typed: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', marginTop: 28 },
-  pills: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  pill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: colors.sunken },
+  naira: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.tealDeep,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  typed: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    marginTop: 28,
+  },
+  pills: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  pill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: colors.sunken,
+  },
   input: {
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -462,7 +557,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.ink,
   },
-  bankList: { maxHeight: 300, borderWidth: 2, borderColor: colors.ink, borderRadius: 16, backgroundColor: colors.surface, overflow: 'hidden' },
+  bankList: {
+    maxHeight: 300,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
   bankRow: { paddingHorizontal: 14, paddingVertical: 12 },
   rule: { borderBottomWidth: 1, borderBottomColor: colors.sunken },
   bankPick: {
@@ -485,8 +587,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  named: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 12, borderRadius: 14, backgroundColor: colors.tealSoft },
-  facts: { marginTop: 16, borderRadius: 20, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, paddingHorizontal: 14 },
+  named: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: colors.tealSoft,
+  },
+  facts: {
+    marginTop: 16,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+  },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
   done: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 28 },
 })

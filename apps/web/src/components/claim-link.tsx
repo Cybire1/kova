@@ -311,7 +311,9 @@ export function ClaimLink({
   const local = currency === 'USD' ? null : formatLocal(baseToNumber(amount), currency, rates)
   const closed = link.status !== 'open' && stage.at !== 'done' && stage.at !== 'claiming'
   const youClaimed =
-    link.claimed_by && profile ? isAddressEqual(getAddress(link.claimed_by), profile.address) : false
+    link.claimed_by && profile
+      ? isAddressEqual(getAddress(link.claimed_by), profile.address)
+      : false
   const when = link.claimed_at ? `, ${ago(link.claimed_at)}` : ''
   const claimedLine = youClaimed
     ? `${formatUsd(amount)} went to your Kova wallet${when}.`
@@ -333,9 +335,7 @@ export function ClaimLink({
       }
     >
       <div className="lk-local">
-        <span className="lk-local-amount">
-          {local ? `about ${local}` : 'US dollars, on Monad'}
-        </span>
+        <span className="lk-local-amount">{local ? `about ${local}` : 'US dollars, on Monad'}</span>
         <label className="lk-cur">
           <span className="sr-only">Show the amount in</span>
           <span className="lk-cur-code" aria-hidden="true">
@@ -613,8 +613,7 @@ export function ClaimLink({
                 </div>
                 {privyAppId ? (
                   <p className="lk-fine">
-                    With email or Google, a wallet is made for you on the spot. No app, no
-                    password.
+                    With email or Google, a wallet is made for you on the spot. No app, no password.
                   </p>
                 ) : null}
 

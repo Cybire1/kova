@@ -22,14 +22,26 @@ const appPackage = path.join(projectRoot, 'package.json')
 const monadSource = path.join(workspaceRoot, 'packages/monad/src')
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (moduleName === '@kova/monad') return { type: 'sourceFile', filePath: path.join(monadSource, 'index.ts') }
-  if (context.originModulePath.startsWith(monadSource) && moduleName.startsWith('.') && moduleName.endsWith('.js')) {
-    const ts = path.resolve(path.dirname(context.originModulePath), moduleName.replace(/\.js$/, '.ts'))
+  if (moduleName === '@kova/monad')
+    return { type: 'sourceFile', filePath: path.join(monadSource, 'index.ts') }
+  if (
+    context.originModulePath.startsWith(monadSource) &&
+    moduleName.startsWith('.') &&
+    moduleName.endsWith('.js')
+  ) {
+    const ts = path.resolve(
+      path.dirname(context.originModulePath),
+      moduleName.replace(/\.js$/, '.ts'),
+    )
     if (fs.existsSync(ts)) return { type: 'sourceFile', filePath: ts }
   }
   const root = moduleName.split('/')[0]
   if (shared.includes(root) || context.originModulePath.startsWith(monadSource))
-    return context.resolveRequest({ ...context, originModulePath: appPackage }, moduleName, platform)
+    return context.resolveRequest(
+      { ...context, originModulePath: appPackage },
+      moduleName,
+      platform,
+    )
   return context.resolveRequest(context, moduleName, platform)
 }
 

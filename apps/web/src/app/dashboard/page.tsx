@@ -13,5 +13,12 @@ export default async function OverviewPage() {
     kova<{ data: Terminal[] }>('/v1/terminals'),
     kova<{ data: WebhookEndpoint[] }>('/v1/webhook_endpoints'),
   ])
-  return <OverviewLive initialSummary={summary} initialIntents={intents.data} initialTerminals={terminals.data} hasWebhook={webhooks.data.length > 0} />
+  return (
+    <OverviewLive
+      initialSummary={summary}
+      initialIntents={intents.data}
+      initialTerminals={terminals.data}
+      hasWebhook={webhooks.data.length > 0}
+    />
+  )
 }

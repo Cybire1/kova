@@ -3,17 +3,25 @@ import * as Haptics from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Linking, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Linking,
+  Pressable,
+  ScrollView,
+  Share,
+  StyleSheet,
+  View,
+} from 'react-native'
 import QRCode from 'react-native-qrcode-svg'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getTrip, payLinkFor, type Trip, type TripShare } from '@/lib/api'
-import { clock, day, useTravel } from '@/lib/travel'
 import { colors } from '@/lib/theme'
+import { clock, day, useTravel } from '@/lib/travel'
 import { Flyer, Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Bob } from '@/ui/motion'
-import { Stage as KoviStage } from '@/ui/Stage'
 import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
+import { Stage as KoviStage } from '@/ui/Stage'
 import { dollars } from '@/ui/StallParts'
 
 /** "in 23 min" or "until Sat 14:00", for how long a trip can still be paid. */
@@ -50,7 +58,8 @@ export default function TripScreen() {
           booked.current = true
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
         }
-        if (next.status === 'awaiting_payment' || next.status === 'booking') timer = setTimeout(load, 3000)
+        if (next.status === 'awaiting_payment' || next.status === 'booking')
+          timer = setTimeout(load, 3000)
       } catch (error) {
         if (live) setProblem(error instanceof Error ? error.message : 'Kova is unreachable.')
       }
@@ -85,42 +94,68 @@ export default function TripScreen() {
 
   return (
     <Screen bg={trip.status === 'booked' ? colors.tealSoft : colors.paper}>
-      <Header title={trip.summary.title} subtitle={trip.summary.subtitle} backIcon="close" onBack={close} />
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 30 }}>
+      <Header
+        title={trip.summary.title}
+        subtitle={trip.summary.subtitle}
+        backIcon="close"
+        onBack={close}
+      />
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 30 }}
+      >
         {trip.test_mode ? (
           <View style={styles.test}>
             <Icon name="info" size={15} />
             <Txt size={13} style={{ flex: 1 }}>
-              Test mode: booked with Duffel’s sandbox, not a real {trip.kind === 'flight' ? 'airline' : 'hotel'}.
+              Test mode: booked with Duffel’s sandbox, not a real{' '}
+              {trip.kind === 'flight' ? 'airline' : 'hotel'}.
             </Txt>
           </View>
         ) : null}
         {trip.status === 'awaiting_payment' ? <Paying trip={trip} /> : null}
         {trip.status === 'booking' ? (
           <View style={styles.center}>
-            <Bob distance={10}>{trip.kind === 'flight' ? <Flyer size={160} /> : <Kovi pose="key" size={150} />}</Bob>
+            <Bob distance={10}>
+              {trip.kind === 'flight' ? <Flyer size={160} /> : <Kovi pose="key" size={150} />}
+            </Bob>
             <Txt weight="bold" size={26} style={{ marginTop: 12, letterSpacing: -0.6 }}>
               Paid. Booking it now
             </Txt>
             <Txt size={15} color={colors.muted} style={{ marginTop: 4, textAlign: 'center' }}>
-              {trip.kind === 'flight' ? 'The airline issues the ticket in a moment.' : 'The hotel confirms in a moment.'}
+              {trip.kind === 'flight'
+                ? 'The airline issues the ticket in a moment.'
+                : 'The hotel confirms in a moment.'}
             </Txt>
           </View>
         ) : null}
-        {trip.status === 'booked' ? (trip.kind === 'flight' ? <BoardingPass trip={trip} /> : <Voucher trip={trip} />) : null}
+        {trip.status === 'booked' ? (
+          trip.kind === 'flight' ? (
+            <BoardingPass trip={trip} />
+          ) : (
+            <Voucher trip={trip} />
+          )
+        ) : null}
         {trip.status === 'failed' || trip.status === 'expired' || trip.status === 'canceled' ? (
           <View style={styles.center}>
             <KoviStage pose="oops" size={140} motion="bob" />
             <Txt weight="bold" size={24} style={{ marginTop: 10 }}>
               {trip.status === 'expired' ? 'The price ran out' : 'It wasn’t booked'}
             </Txt>
-            <Txt size={15} color={colors.muted} style={{ marginTop: 6, textAlign: 'center', lineHeight: 22 }}>
+            <Txt
+              size={15}
+              color={colors.muted}
+              style={{ marginTop: 6, textAlign: 'center', lineHeight: 22 }}
+            >
               {trip.status === 'expired'
                 ? 'It wasn’t fully paid in time, so nothing was booked. Anything already paid goes back to whoever paid it.'
                 : `${trip.failure ?? 'The booking didn’t go through.'} Nothing was booked, and what was paid goes back to whoever paid it.`}
             </Txt>
             <View style={{ alignSelf: 'stretch', marginTop: 18 }}>
-              <PillButton label="Search again" icon="arrow" onPress={() => router.replace('/travel')} />
+              <PillButton
+                label="Search again"
+                icon="arrow"
+                onPress={() => router.replace('/travel')}
+              />
             </View>
           </View>
         ) : null}
@@ -135,10 +170,16 @@ function Paying({ trip }: { trip: Trip }) {
   return (
     <>
       <View style={styles.status}>
-        <Image source={trip.summary.provider.image ? { uri: trip.summary.provider.image } : undefined} style={styles.provider} contentFit={trip.kind === 'flight' ? 'contain' : 'cover'} />
+        <Image
+          source={trip.summary.provider.image ? { uri: trip.summary.provider.image } : undefined}
+          style={styles.provider}
+          contentFit={trip.kind === 'flight' ? 'contain' : 'cover'}
+        />
         <View style={{ flex: 1 }}>
           <Txt weight="bold" size={22} style={{ letterSpacing: -0.5 }}>
-            {trip.shares.length > 1 ? `${paid} of ${trip.shares.length} paid` : 'Waiting for payment'}
+            {trip.shares.length > 1
+              ? `${paid} of ${trip.shares.length} paid`
+              : 'Waiting for payment'}
           </Txt>
           <Txt size={14} color={colors.muted}>
             {trip.held ? 'The airline is holding the fare. ' : ''}Pay {payWindow(trip.pay_by)}.
@@ -154,7 +195,9 @@ function Paying({ trip }: { trip: Trip }) {
         </Txt>
         {trip.fare.currency !== 'USD' ? (
           <Txt size={13} color={colors.muted}>
-            The fare is {trip.fare.currency} {Number(trip.fare.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}, in dollars at Kova’s reference rate
+            The fare is {trip.fare.currency}{' '}
+            {Number(trip.fare.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}, in
+            dollars at Kova’s reference rate
           </Txt>
         ) : null}
       </View>
@@ -177,7 +220,9 @@ function ShareRow({ share, trip }: { share: TripShare; trip: Trip }) {
   return (
     <View style={[styles.share, done && styles.shareDone]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View style={[styles.shareDot, done && { backgroundColor: colors.teal }]}>{done ? <Icon name="check" size={16} color={colors.white} strokeWidth={2.6} /> : null}</View>
+        <View style={[styles.shareDot, done && { backgroundColor: colors.teal }]}>
+          {done ? <Icon name="check" size={16} color={colors.white} strokeWidth={2.6} /> : null}
+        </View>
         <View style={{ flex: 1 }}>
           <Txt weight="semi" size={16}>
             {mine ? 'Your share' : share.label}
@@ -193,17 +238,33 @@ function ShareRow({ share, trip }: { share: TripShare; trip: Trip }) {
       {!done && share.checkout ? (
         mine ? (
           <View style={{ marginTop: 12 }}>
-            <PillButton label={`Pay ${dollars(share.amount)}`} icon="face" onPress={() => router.push({ pathname: '/pay/[id]', params: { id: share.checkout ?? '' } })} />
+            <PillButton
+              label={`Pay ${dollars(share.amount)}`}
+              icon="face"
+              onPress={() =>
+                router.push({ pathname: '/pay/[id]', params: { id: share.checkout ?? '' } })
+              }
+            />
           </View>
         ) : (
           <View style={styles.shareActions}>
-            <Pressable accessibilityRole="button" onPress={() => void Linking.openURL(`https://wa.me/?text=${encodeURIComponent(message)}`)} style={[styles.shareButton, { backgroundColor: colors.coral }]}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() =>
+                void Linking.openURL(`https://wa.me/?text=${encodeURIComponent(message)}`)
+              }
+              style={[styles.shareButton, { backgroundColor: colors.coral }]}
+            >
               <Icon name="whatsapp" size={16} />
               <Txt weight="semi" size={14}>
                 WhatsApp
               </Txt>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => void Share.share({ message })} style={styles.shareButton}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void Share.share({ message })}
+              style={styles.shareButton}
+            >
               <Icon name="share" size={16} />
               <Txt weight="semi" size={14}>
                 Share
@@ -253,7 +314,15 @@ function BoardingPass({ trip }: { trip: Trip }) {
           <View key={`${leg.departs}${i}`} style={styles.pass}>
             <View style={styles.passTop}>
               <View style={styles.passLogo}>
-                {trip.summary.provider.image ? <Image source={{ uri: trip.summary.provider.image }} style={{ width: 24, height: 24 }} contentFit="contain" /> : <Icon name="send" size={14} />}
+                {trip.summary.provider.image ? (
+                  <Image
+                    source={{ uri: trip.summary.provider.image }}
+                    style={{ width: 24, height: 24 }}
+                    contentFit="contain"
+                  />
+                ) : (
+                  <Icon name="send" size={14} />
+                )}
               </View>
               <Txt weight="semi" size={14} color={colors.onInk} style={{ flex: 1 }}>
                 {leg.carrier ?? trip.summary.provider.name}, {leg.flight}
@@ -321,7 +390,12 @@ function BoardingPass({ trip }: { trip: Trip }) {
               </View>
               {trip.booking_reference ? (
                 <View style={styles.qr}>
-                  <QRCode value={trip.booking_reference} size={78} color={colors.ink} backgroundColor={colors.surface} />
+                  <QRCode
+                    value={trip.booking_reference}
+                    size={78}
+                    color={colors.ink}
+                    backgroundColor={colors.surface}
+                  />
                 </View>
               ) : null}
             </View>
@@ -349,7 +423,13 @@ function Voucher({ trip }: { trip: Trip }) {
         </View>
       </View>
       <View style={styles.voucher}>
-        {trip.summary.provider.image ? <Image source={{ uri: trip.summary.provider.image }} style={styles.voucherPhoto} contentFit="cover" /> : null}
+        {trip.summary.provider.image ? (
+          <Image
+            source={{ uri: trip.summary.provider.image }}
+            style={styles.voucherPhoto}
+            contentFit="cover"
+          />
+        ) : null}
         <View style={{ padding: 16, gap: 10 }}>
           <Txt weight="bold" size={22} style={{ letterSpacing: -0.5 }}>
             {trip.summary.title}
@@ -390,7 +470,14 @@ function Voucher({ trip }: { trip: Trip }) {
                 {trip.booking_reference}
               </Txt>
             </View>
-            {trip.booking_reference ? <QRCode value={trip.booking_reference} size={70} color={colors.ink} backgroundColor={colors.surface} /> : null}
+            {trip.booking_reference ? (
+              <QRCode
+                value={trip.booking_reference}
+                size={70}
+                color={colors.ink}
+                backgroundColor={colors.surface}
+              />
+            ) : null}
           </View>
         </View>
       </View>
@@ -400,27 +487,122 @@ function Voucher({ trip }: { trip: Trip }) {
 
 const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40 },
-  test: { flexDirection: 'row', gap: 8, alignItems: 'center', padding: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.coralSoft, marginBottom: 12 },
+  test: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    padding: 10,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: colors.coralSoft,
+    marginBottom: 12,
+  },
   status: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 4 },
-  provider: { width: 52, height: 52, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.ink },
-  total: { marginTop: 16, marginBottom: 14, padding: 16, borderRadius: 24, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.ink, gap: 2 },
-  share: { marginBottom: 10, padding: 14, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface },
+  provider: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.ink,
+  },
+  total: {
+    marginTop: 16,
+    marginBottom: 14,
+    padding: 16,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    gap: 2,
+  },
+  share: {
+    marginBottom: 10,
+    padding: 14,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
   shareDone: { backgroundColor: colors.tealSoft },
-  shareDot: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  shareDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   shareActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  shareButton: { flex: 1, height: 42, borderRadius: 21, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  shareButton: {
+    flex: 1,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
   bookedHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   pass: { marginBottom: 14, borderRadius: 28, backgroundColor: colors.ink, overflow: 'hidden' },
   passTop: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingBottom: 6 },
-  passLogo: { width: 34, height: 34, borderRadius: 10, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
-  route: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 10 },
+  passLogo: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  route: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingBottom: 10,
+  },
   tear: { height: 26, justifyContent: 'center' },
-  notch: { position: 'absolute', width: 26, height: 26, borderRadius: 13, backgroundColor: colors.tealSoft },
-  perforation: { marginHorizontal: 22, borderTopWidth: 2, borderColor: 'rgba(255,255,255,0.22)', borderStyle: 'dashed' },
+  notch: {
+    position: 'absolute',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.tealSoft,
+  },
+  perforation: {
+    marginHorizontal: 22,
+    borderTopWidth: 2,
+    borderColor: 'rgba(255,255,255,0.22)',
+    borderStyle: 'dashed',
+  },
   passBottom: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, paddingTop: 10 },
   qr: { padding: 8, borderRadius: 14, backgroundColor: colors.surface },
-  voucher: { borderRadius: 28, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, overflow: 'hidden' },
+  voucher: {
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
   voucherPhoto: { height: 160, borderBottomWidth: 2, borderColor: colors.ink },
-  voucherDates: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderRadius: 18, backgroundColor: colors.paper },
-  voucherRef: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 12, borderTopWidth: 1, borderColor: colors.sunken },
+  voucherDates: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: colors.paper,
+  },
+  voucherRef: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderColor: colors.sunken,
+  },
 })

@@ -310,7 +310,8 @@ export async function spend(pocket: Pocket, request: SpendRequest): Promise<Spen
   })
   // Session ids are unique per phone network session; one that belongs to another pocket is refused.
   if (existing) {
-    if (existing.pocketId !== pocket.id) throw new KovaError('conflict', 'That session belongs to another pocket.')
+    if (existing.pocketId !== pocket.id)
+      throw new KovaError('conflict', 'That session belongs to another pocket.')
     return existing
   }
   if (request.amount <= 0n) throw new KovaError('invalid_request', 'Send at least a cent.')
@@ -379,9 +380,15 @@ export async function spend(pocket: Pocket, request: SpendRequest): Promise<Spen
 }
 
 /** The spend a USSD session already made, if any. */
-export async function spendForSession(pocket: Pocket, sessionId: string): Promise<Spend | undefined> {
+export async function spendForSession(
+  pocket: Pocket,
+  sessionId: string,
+): Promise<Spend | undefined> {
   return db.query.ussdSpends.findFirst({
-    where: and(eq(schema.ussdSpends.pocketId, pocket.id), eq(schema.ussdSpends.sessionId, sessionId)),
+    where: and(
+      eq(schema.ussdSpends.pocketId, pocket.id),
+      eq(schema.ussdSpends.sessionId, sessionId),
+    ),
   })
 }
 

@@ -53,7 +53,8 @@ export function BalanceCard({
   const total = balance === null ? null : balance + privateAmount
   const shown = useCounted(total)
   const usd = shown === null ? null : formatUsd(shown)
-  const [whole, cents] = usd === null ? ['—', ''] : [usd.slice(1, usd.lastIndexOf('.')), usd.slice(usd.lastIndexOf('.'))]
+  const [whole, cents] =
+    usd === null ? ['—', ''] : [usd.slice(1, usd.lastIndexOf('.')), usd.slice(usd.lastIndexOf('.'))]
   const hasPrivate = privateAmount > 0n
   /** The split, shown on a tap of the amount: how much of it is private. */
   const [split, setSplit] = useState(splitOpen)
@@ -63,10 +64,18 @@ export function BalanceCard({
     <View
       style={styles.card}
       accessibilityLabel={
-        hideBalance ? 'Balance hidden' : `Available ${usd ?? 'loading'}${hasPrivate && total !== null ? `, ${formatUsd(privateAmount)} of it private` : ''}`
+        hideBalance
+          ? 'Balance hidden'
+          : `Available ${usd ?? 'loading'}${hasPrivate && total !== null ? `, ${formatUsd(privateAmount)} of it private` : ''}`
       }
     >
-      <Svg width={220} height={220} viewBox="-110 -110 220 220" style={styles.rings} pointerEvents="none">
+      <Svg
+        width={220}
+        height={220}
+        viewBox="-110 -110 220 220"
+        style={styles.rings}
+        pointerEvents="none"
+      >
         {[104, 78, 52, 26].map((r) => (
           <Circle key={r} r={r} fill="none" stroke={colors.tealDeep} strokeWidth={2} />
         ))}
@@ -112,7 +121,13 @@ export function BalanceCard({
 
       <Pressable
         accessibilityRole={hasPrivate ? 'button' : undefined}
-        accessibilityLabel={hasPrivate ? (splitShown ? 'Hide how much is private' : 'Show how much is private') : undefined}
+        accessibilityLabel={
+          hasPrivate
+            ? splitShown
+              ? 'Hide how much is private'
+              : 'Show how much is private'
+            : undefined
+        }
         disabled={!hasPrivate}
         onPress={() => {
           void Haptics.selectionAsync()
@@ -129,7 +144,15 @@ export function BalanceCard({
             <Txt weight="semi" size={26} color={onTeal} style={styles.sign}>
               $
             </Txt>
-            <Txt weight="bold" size={54} color={colors.white} style={styles.whole} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5}>
+            <Txt
+              weight="bold"
+              size={54}
+              color={colors.white}
+              style={styles.whole}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+            >
               {whole}
             </Txt>
             <Txt weight="semi" size={24} color={onTeal} style={styles.cents}>
@@ -145,19 +168,33 @@ export function BalanceCard({
       </Pressable>
 
       {splitShown ? (
-        <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(140)} style={styles.splitRow}>
+        <Animated.View
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(140)}
+          style={styles.splitRow}
+        >
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={hideBalance ? 'Some of it is private. Open private dollars' : `${formatUsd(privateAmount)} of it private. Open private dollars`}
+            accessibilityLabel={
+              hideBalance
+                ? 'Some of it is private. Open private dollars'
+                : `${formatUsd(privateAmount)} of it private. Open private dollars`
+            }
             hitSlop={6}
             onPress={onPrivate}
-            style={({ pressed }) => [styles.chip, styles.private, pressed && { transform: [{ scale: 0.96 }] }]}
+            style={({ pressed }) => [
+              styles.chip,
+              styles.private,
+              pressed && { transform: [{ scale: 0.96 }] },
+            ]}
           >
             <Icon name="lock" size={13} color={colors.white} strokeWidth={2.4} />
             <Txt weight="semi" size={13} color={colors.white}>
               {hideBalance ? '•••• of it private' : `${formatUsd(privateAmount)} of it private`}
             </Txt>
-            {onPrivate ? <Icon name="arrow" size={13} color={colors.onInk} strokeWidth={2.4} /> : null}
+            {onPrivate ? (
+              <Icon name="arrow" size={13} color={colors.onInk} strokeWidth={2.4} />
+            ) : null}
           </Pressable>
         </Animated.View>
       ) : null}
@@ -173,14 +210,24 @@ export function BalanceCard({
         {takings ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={hideBalance ? 'Private takings waiting. Open them' : `${formatUsd(takings.amount)} in private takings, waiting to move to your wallet`}
+            accessibilityLabel={
+              hideBalance
+                ? 'Private takings waiting. Open them'
+                : `${formatUsd(takings.amount)} in private takings, waiting to move to your wallet`
+            }
             hitSlop={6}
             onPress={takings.onPress}
-            style={({ pressed }) => [styles.chip, styles.takings, pressed && { transform: [{ scale: 0.96 }] }]}
+            style={({ pressed }) => [
+              styles.chip,
+              styles.takings,
+              pressed && { transform: [{ scale: 0.96 }] },
+            ]}
           >
             <Icon name="lock" size={13} color={colors.ink} strokeWidth={2.4} />
             <Txt weight="semi" size={13}>
-              {hideBalance ? '+•••• private takings' : `+${formatUsd(takings.amount)} private takings`}
+              {hideBalance
+                ? '+•••• private takings'
+                : `+${formatUsd(takings.amount)} private takings`}
             </Txt>
           </Pressable>
         ) : null}
@@ -194,13 +241,22 @@ export function BalanceCard({
             }
             hitSlop={6}
             onPress={waiting.onPress}
-            style={({ pressed }) => [styles.chip, styles.takings, pressed && { transform: [{ scale: 0.96 }] }]}
+            style={({ pressed }) => [
+              styles.chip,
+              styles.takings,
+              pressed && { transform: [{ scale: 0.96 }] },
+            ]}
           >
             <Icon name="clock" size={13} color={colors.ink} strokeWidth={2.4} />
             <Txt weight="semi" size={13}>
               {hideBalance
                 ? '•••• waiting'
-                : [waiting.out > 0n ? formatUsd(-waiting.out) : null, waiting.in > 0n ? formatUsd(waiting.in, { sign: true }) : null].filter(Boolean).join(' · ') + ' waiting'}
+                : [
+                    waiting.out > 0n ? formatUsd(-waiting.out) : null,
+                    waiting.in > 0n ? formatUsd(waiting.in, { sign: true }) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') + ' waiting'}
             </Txt>
           </Pressable>
         ) : null}
@@ -288,6 +344,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
   },
-  takings: { backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.ink, paddingHorizontal: 10 },
+  takings: {
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    paddingHorizontal: 10,
+  },
   private: { backgroundColor: colors.ink, paddingHorizontal: 11 },
 })

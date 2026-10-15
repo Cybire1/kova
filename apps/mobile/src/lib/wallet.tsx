@@ -1,29 +1,63 @@
 import { createPasskeyWithPrfOutput, getPasskeyPrfOutput, isMeraError } from '@category-labs/mera'
-import { generateStealthAddress, generateStealthPayment, type OfflinePayment, type StealthMemo, stealthMemoMessage } from '@kova/monad'
+import {
+  generateStealthAddress,
+  generateStealthPayment,
+  type OfflinePayment,
+  type StealthMemo,
+  stealthMemoMessage,
+} from '@kova/monad'
 import { hkdf } from '@noble/hashes/hkdf.js'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { base64urlnopad } from '@scure/base'
 import * as SecureStore from 'expo-secure-store'
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { AppState } from 'react-native'
-import { type Address, getAddress, hexToBytes, isAddress, isAddressEqual, type LocalAccount, type TypedDataDefinition } from 'viem'
+import {
+  type Address,
+  getAddress,
+  hexToBytes,
+  isAddress,
+  isAddressEqual,
+  type LocalAccount,
+  type TypedDataDefinition,
+} from 'viem'
 import { generatePrivateKey } from 'viem/accounts'
 import { type Checkout, demoSignIn } from './api'
-import { type CashOutToPay, claimLink, fundFromFaucet, getBalance, incomingSince, type PaymentLink, payCashOut, payCharge, recordLink, sendMoney } from './chain'
+import {
+  type CashOutToPay,
+  claimLink,
+  fundFromFaucet,
+  getBalance,
+  incomingSince,
+  type PaymentLink,
+  payCashOut,
+  payCharge,
+  recordLink,
+  sendMoney,
+} from './chain'
 import { passkeyDomain } from './config'
-import { signOfflinePayment } from './offline-core'
-import { offlineArrival, offlineEntryId } from './offline-store'
 import { openSigningSession } from './keys'
 import { type DisplayCurrency, formatUsd } from './money'
-import { kovaWebAuthnClient, takeVaultOutput } from './passkey'
-import { endSession, sessionAccount, spend, startSession } from './session'
-import { forgetLink, linkArrival, linkKey, markClaiming, newLinkKey, setLinkId } from './paylinks'
-import { load, remove, save } from './storage'
-import { forgetVaultSecret, keepVaultSecret, openVault, saveVault } from './vault'
 import { ensureNoteKey, myNoteKeys, readNote, theirNoteKey } from './notes'
+import { signOfflinePayment } from './offline-core'
+import { offlineArrival, offlineEntryId } from './offline-store'
+import { kovaWebAuthnClient, takeVaultOutput } from './passkey'
+import { forgetLink, linkArrival, linkKey, markClaiming, newLinkKey, setLinkId } from './paylinks'
 import { fetchReceivingKey, type PrivateReceipt, UntrustedKey } from './private-core'
 import { ensureReceiving, forgetReceiving, isPrivateAddress, resetScan } from './private-store'
+import { endSession, sessionAccount, spend, startSession } from './session'
+import { load, remove, save } from './storage'
 import { forgetTakingsKeys, isTakingsAddress } from './takings-store'
+import { forgetVaultSecret, keepVaultSecret, openVault, saveVault } from './vault'
 
 /**
  * The wallet is a passkey (Mera). Creating it takes one Face ID: the passkey, which iCloud
@@ -155,7 +189,12 @@ interface Wallet {
    * Sends dollars to a person. `privately`: to a fresh one-time address made from their published
    * key, checked against their own signature first; Monad shows the amount, but not who got it.
    */
-  send: (to: Contact, amount: bigint, note?: string, options?: { privately?: boolean; signer?: LocalAccount }) => Promise<Entry>
+  send: (
+    to: Contact,
+    amount: bigint,
+    note?: string,
+    options?: { privately?: boolean; signer?: LocalAccount },
+  ) => Promise<Entry>
   /**
    * A private payment this wallet's viewing key found: into your activity as received, and when it
    * arrived while the app is open (`celebrate`), the arrival screen, marked private.
@@ -165,7 +204,10 @@ interface Wallet {
    * Sends dollars as a link: a fresh one-time key, the dollars sent to its address, and the link
    * recorded with Kova. The key comes back to be shared and stays in this phone's Keychain.
    */
-  makeLink: (amount: bigint, note?: string) => Promise<{ link: PaymentLink; key: `0x${string}`; entry: Entry }>
+  makeLink: (
+    amount: bigint,
+    note?: string,
+  ) => Promise<{ link: PaymentLink; key: `0x${string}`; entry: Entry }>
   /**
    * Signs a payment with no network (one Face ID, or the open session): the signed payment is a code
    * to show or share, and settles on Monad once either phone is online. Nothing leaves the phone here.
@@ -174,7 +216,10 @@ interface Wallet {
   /** An offline payment that settled, into your activity (once, whoever saw it first). */
   recordOffline: (entry: Entry) => Promise<void>
   /** Claims a link someone sent into this wallet. */
-  claimFromLink: (link: PaymentLink, key: `0x${string}`) => Promise<{ link: PaymentLink; entry: Entry }>
+  claimFromLink: (
+    link: PaymentLink,
+    key: `0x${string}`,
+  ) => Promise<{ link: PaymentLink; entry: Entry }>
   /** Takes back a link you sent that no one has claimed: everything at it comes home. */
   takeBack: (link: PaymentLink) => Promise<PaymentLink>
   /** Whether a private note to them can be read by them (they've published a note key). */
@@ -242,12 +287,14 @@ async function begin(prf: Uint8Array, expected?: Address, locked = true): Promis
   startSession(session, account)
   // So people can send this wallet private notes. Quiet: a note key is a nicety, not a payment.
   void ensureNoteKey(account).catch((error) => {
-    if (__DEV__) console.log('[notes] key not published', error instanceof Error ? error.message : error)
+    if (__DEV__)
+      console.log('[notes] key not published', error instanceof Error ? error.message : error)
   })
   // So people can send this wallet dollars privately: its private-receiving keys, made once with the
   // account that's open anyway, and their public half given to Kova. Quiet, like the note key.
   void ensureReceiving(account, locked).catch((error) => {
-    if (__DEV__) console.log('[private] keys not ready', error instanceof Error ? error.message : error)
+    if (__DEV__)
+      console.log('[private] keys not ready', error instanceof Error ? error.message : error)
   })
   return account
 }
@@ -259,7 +306,10 @@ async function theirReceivingKey(to: Contact): Promise<string> {
   try {
     meta = await fetchReceivingKey(to.address)
   } catch (error) {
-    if (error instanceof UntrustedKey) throw new Error(`Kova gave a private key for ${isUnnamed(to.name) ? 'them' : first} that they didn’t sign, so it wasn’t used.`)
+    if (error instanceof UntrustedKey)
+      throw new Error(
+        `Kova gave a private key for ${isUnnamed(to.name) ? 'them' : first} that they didn’t sign, so it wasn’t used.`,
+      )
     throw new Error('Kova couldn’t be reached to send privately.')
   }
   if (!meta) throw new Error(`${first} can’t receive privately yet. Send it normally instead.`)
@@ -298,10 +348,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const record = useCallback(async (entry: Entry) => {
     setActivity((prev) => {
-      if (entry.txHash && prev.some((e) => e.txHash === entry.txHash && e.kind === entry.kind)) return prev
+      if (entry.txHash && prev.some((e) => e.txHash === entry.txHash && e.kind === entry.kind))
+        return prev
       // Newest first, in the order things happened: a private payment found later still sits at its own time.
       const at = prev.findIndex((e) => e.at <= entry.at)
-      const next = (at === -1 ? [...prev, entry] : [...prev.slice(0, at), entry, ...prev.slice(at)]).slice(0, 200)
+      const next = (
+        at === -1 ? [...prev, entry] : [...prev.slice(0, at), entry, ...prev.slice(at)]
+      ).slice(0, 200)
       void save(ACTIVITY, next)
       return next
     })
@@ -316,8 +369,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       // Offline: keep showing the last known balance.
       if (__DEV__) {
-        const e = error as { shortMessage?: string; details?: string; cause?: { message?: string; details?: string } }
-        console.log('[wallet] balance refresh failed', e.shortMessage, '|', e.details, '|', e.cause?.message, '|', e.cause?.details)
+        const e = error as {
+          shortMessage?: string
+          details?: string
+          cause?: { message?: string; details?: string }
+        }
+        console.log(
+          '[wallet] balance refresh failed',
+          e.shortMessage,
+          '|',
+          e.details,
+          '|',
+          e.cause?.message,
+          '|',
+          e.cause?.details,
+        )
       }
     }
   }, [profile])
@@ -329,7 +395,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     for (const e of activity) {
       // Nor is a sender only a private memo names: anyone could have written it.
       if (e.address?.toLowerCase() === zero || e.link || e.takings || e.unconfirmed) continue
-      if ((e.kind === 'sent' || e.kind === 'received') && e.address && !seen.has(e.address.toLowerCase()))
+      if (
+        (e.kind === 'sent' || e.kind === 'received') &&
+        e.address &&
+        !seen.has(e.address.toLowerCase())
+      )
         seen.set(e.address.toLowerCase(), { address: e.address, name: e.name })
     }
     for (const c of savedContacts) {
@@ -346,7 +416,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (!edited.current || !profile?.name) return
     const timer = setTimeout(() => {
       edited.current = false
-      void saveVault({ v: 1, name: profile.name, currency: profile.currency, contacts: savedContacts }).catch(() => {})
+      void saveVault({
+        v: 1,
+        name: profile.name,
+        currency: profile.currency,
+        contacts: savedContacts,
+      }).catch(() => {})
     }, 1500)
     return () => clearTimeout(timer)
   }, [profile?.name, profile?.currency, savedContacts])
@@ -360,7 +435,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const shownActivity = useMemo(
     () =>
       activity.map((e) => {
-        const name = (e.kind === 'sent' || e.kind === 'received') && e.address ? named.get(e.address.toLowerCase()) : undefined
+        const name =
+          (e.kind === 'sent' || e.kind === 'received') && e.address
+            ? named.get(e.address.toLowerCase())
+            : undefined
         return name && name !== e.name ? { ...e, name } : e
       }),
     [activity, named],
@@ -409,7 +487,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             })
             continue
           }
-          const note = t.note ? await readNote(t.note, { from: t.from, to: profile.address, value: t.amount }) : null
+          const note = t.note
+            ? await readNote(t.note, { from: t.from, to: profile.address, value: t.amount })
+            : null
           const refund = t.kind === 'refund'
           // Money out of a link: your own coming back, or one claimed here a moment ago.
           const fromLink = linkArrival(t.from)
@@ -422,10 +502,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
               : t.naira === 'cash_out_refund'
                 ? 'Cash-out returned'
                 : refund
-              ? 'Refund'
-              : fromTakings
-                ? 'Private takings'
-                : (fromLink?.name ?? nameFor(t.from) ?? `${t.from.slice(0, 6)}…${t.from.slice(-4)}`)
+                  ? 'Refund'
+                  : fromTakings
+                    ? 'Private takings'
+                    : (fromLink?.name ??
+                      nameFor(t.from) ??
+                      `${t.from.slice(0, 6)}…${t.from.slice(-4)}`)
           await record({
             id: newId(),
             kind: t.faucet || t.naira === 'top_up' ? 'added' : 'received',
@@ -433,7 +515,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             name,
             detail:
               note ??
-              (t.faucet ? 'AUSD test faucet' : refund ? 'Money back from a booking' : fromTakings ? 'From a private sale' : (fromLink?.detail ?? 'Arrived')),
+              (t.faucet
+                ? 'AUSD test faucet'
+                : refund
+                  ? 'Money back from a booking'
+                  : fromTakings
+                    ? 'From a private sale'
+                    : (fromLink?.detail ?? 'Arrived')),
             address: t.from,
             txHash: t.hash,
             at: Date.now(),
@@ -442,14 +530,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             ...(fromTakings ? { takings: true } : {}),
           })
           // Already in your activity (claimed here, say): it had its celebration.
-          const seen = shownRef.current.some((e) => e.txHash?.toLowerCase() === t.hash.toLowerCase() && e.kind === 'received')
+          const seen = shownRef.current.some(
+            (e) => e.txHash?.toLowerCase() === t.hash.toLowerCase() && e.kind === 'received',
+          )
           if (!t.faucet && !fromLink?.quiet && !fromTakings && !seen)
-            setArrival({ amount: t.amount, name, address: t.from, hash: t.hash, ...(note ? { note } : {}) })
+            setArrival({
+              amount: t.amount,
+              name,
+              address: t.from,
+              hash: t.hash,
+              ...(note ? { note } : {}),
+            })
         }
         if (transfers.length) void refresh()
       } catch (error) {
         // Try again on the next tick.
-        if (__DEV__) console.log('[wallet] incoming scan failed', error instanceof Error ? error.message.split('\n')[0] : error)
+        if (__DEV__)
+          console.log(
+            '[wallet] incoming scan failed',
+            error instanceof Error ? error.message.split('\n')[0] : error,
+          )
       } finally {
         busy = false
       }
@@ -534,7 +634,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       currency,
       protected: true,
       createdAt: Date.now(),
-      passkey: { credentialId: created.credentialId, ...(created.transports ? { transports: created.transports } : {}) },
+      passkey: {
+        credentialId: created.credentialId,
+        ...(created.transports ? { transports: created.transports } : {}),
+      },
     }
     await save(PROFILE, next)
     setProfile(next)
@@ -544,7 +647,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const restore = useCallback(async () => {
-    const asserted = await getPasskeyPrfOutput({ rpId: passkeyDomain, webAuthnClient: kovaWebAuthnClient }).catch((error) => {
+    const asserted = await getPasskeyPrfOutput({
+      rpId: passkeyDomain,
+      webAuthnClient: kovaWebAuthnClient,
+    }).catch((error) => {
       throw new Error(passkeyProblem(error))
     })
     const vault = takeVaultOutput()
@@ -553,7 +659,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const account = await begin(asserted.prfOutput)
     // Who you are comes back from the vault this passkey sealed, if it sealed one.
     const backup = vault ? await openVault(vault).catch(() => null) : null
-    const restoredContacts = (backup?.contacts ?? []).filter((c) => isAddress(c.address)) as Contact[]
+    const restoredContacts = (backup?.contacts ?? []).filter((c) =>
+      isAddress(c.address),
+    ) as Contact[]
     if (restoredContacts.length) {
       setSavedContacts(restoredContacts)
       await save(CONTACTS, restoredContacts)
@@ -661,9 +769,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setSavedContacts((prev) => {
       const before = prev.find((c) => isAddressEqual(c.address, contact.address))
       // Paying someone by address must not wipe the name you gave them.
-      const name = isUnnamed(contact.name) && before && !isUnnamed(before.name) ? before.name : contact.name
+      const name =
+        isUnnamed(contact.name) && before && !isUnnamed(before.name) ? before.name : contact.name
       const merged = { ...before, ...contact, name, currency: contact.currency ?? before?.currency }
-      const next = [merged, ...prev.filter((c) => !isAddressEqual(c.address, contact.address))].slice(0, 50)
+      const next = [
+        merged,
+        ...prev.filter((c) => !isAddressEqual(c.address, contact.address)),
+      ].slice(0, 50)
       void save(CONTACTS, next)
       edited.current = true
       return next
@@ -685,23 +797,36 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const send = useCallback(
-    async (to: Contact, amount: bigint, note?: string, options: { privately?: boolean; signer?: LocalAccount } = {}) => {
+    async (
+      to: Contact,
+      amount: bigint,
+      note?: string,
+      options: { privately?: boolean; signer?: LocalAccount } = {},
+    ) => {
       const text = note?.trim()
       if (!profile) throw new Error('No wallet on this phone')
-      if (options.signer && !options.privately) throw new Error('Private dollars only go out privately.')
+      if (options.signer && !options.privately)
+        throw new Error('Private dollars only go out privately.')
       // Privately: their key is checked before anything is signed, then a one-time address is made
       // for this payment alone, with a memo sealed to it (you, your name, your note) that only their
       // viewing key opens. Kova announces it without them.
       const meta = options.privately ? await theirReceivingKey(to) : null
       let stealth: ReturnType<typeof generateStealthPayment> | null = null
       if (meta) {
-        const memo: StealthMemo = { from: profile.address, ...(profile.name ? { name: profile.name } : {}), ...(text ? { note: text } : {}), kind: 'send' }
+        const memo: StealthMemo = {
+          from: profile.address,
+          ...(profile.name ? { name: profile.name } : {}),
+          ...(text ? { note: text } : {}),
+          kind: 'send',
+        }
         if (options.signer) {
           // From private dollars, Monad shows a one-time address paying: the wallet's own signature in
           // the memo is what tells them it's you.
           const e = generatePrivateKey()
           const address = generateStealthAddress(meta, e).stealthAddress
-          const proof = await (await unlock(0n)).signMessage({ message: stealthMemoMessage(address) })
+          const proof = await (await unlock(0n)).signMessage({
+            message: stealthMemoMessage(address),
+          })
           stealth = generateStealthPayment(meta, { ...memo, proof }, e)
         } else stealth = generateStealthPayment(meta, memo)
       }
@@ -718,7 +843,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         stealth?.stealthAddress ?? to.address,
         amount,
         sealing,
-        stealth ? { ephemeralPublicKey: stealth.ephemeralPublicKey, viewTag: stealth.viewTag, sealed: stealth.sealed } : undefined,
+        stealth
+          ? {
+              ephemeralPublicKey: stealth.ephemeralPublicKey,
+              viewTag: stealth.viewTag,
+              sealed: stealth.sealed,
+            }
+          : undefined,
       )
       if (!options.signer) spend(amount)
       const entry: Entry = {
@@ -732,7 +863,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         ms,
         at: Date.now(),
         ...(sealing ? { private: sealing.theirs ? ('both' as const) : ('you' as const) } : {}),
-        ...(stealth ? { privately: true, oneTime: stealth.stealthAddress, ...(text ? { private: 'both' as const } : {}) } : {}),
+        ...(stealth
+          ? {
+              privately: true,
+              oneTime: stealth.stealthAddress,
+              ...(text ? { private: 'both' as const } : {}),
+            }
+          : {}),
         ...(options.signer ? { fromPrivate: true } : {}),
       }
       await record(entry)
@@ -784,9 +921,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             display_currency: profile.currency,
           })
         } catch (error) {
-          if (i >= 6) throw new Error('The dollars are in your link, but Kova couldn’t save it yet. Find it in Your links to share it.')
+          if (i >= 6)
+            throw new Error(
+              'The dollars are in your link, but Kova couldn’t save it yet. Find it in Your links to share it.',
+            )
           await new Promise((r) => setTimeout(r, 700))
-          if (__DEV__) console.log('[links] record retry', error instanceof Error ? error.message : error)
+          if (__DEV__)
+            console.log('[links] record retry', error instanceof Error ? error.message : error)
         }
       }
       await setLinkId(address, link.id)
@@ -810,7 +951,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const claimFromLink = useCallback(
     async (link: PaymentLink, key: `0x${string}`) => {
       if (!profile) throw new Error('Make your Kova wallet first, then claim it.')
-      const name = link.sender_name?.trim() || `${link.sender_address.slice(0, 6)}…${link.sender_address.slice(-4)}`
+      const name =
+        link.sender_name?.trim() ||
+        `${link.sender_address.slice(0, 6)}…${link.sender_address.slice(-4)}`
       await markClaiming(link.link_address, name)
       const claimed = await claimLink(link, key, profile.address)
       const entry: Entry = {
@@ -836,7 +979,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     async (link: PaymentLink) => {
       if (!profile) throw new Error('No wallet on this phone')
       const key = await linkKey(link.link_address)
-      if (!key) throw new Error('This phone doesn’t have the key to this link. Open the link itself to take it back.')
+      if (!key)
+        throw new Error(
+          'This phone doesn’t have the key to this link. Open the link itself to take it back.',
+        )
       await markClaiming(link.link_address, 'Your link')
       const back = await claimLink(link, key, profile.address)
       await record({
@@ -862,7 +1008,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const from = receipt.from
       // Your name for them; else what they call themselves in the memo; else their address.
       const known = from ? nameFor(from) : undefined
-      const name = known && !isUnnamed(known) ? known : (receipt.senderName ?? (from ? shortAddress(from) : 'Someone'))
+      const name =
+        known && !isUnnamed(known)
+          ? known
+          : (receipt.senderName ?? (from ? shortAddress(from) : 'Someone'))
       const unconfirmed = receipt.proven === 'claimed'
       const amount = BigInt(receipt.amount)
       await record({
@@ -913,7 +1062,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setStatus('none')
   }, [])
 
-  const signMessage = useCallback(async (message: string) => (await unlock(0n)).signMessage({ message }), [unlock])
+  const signMessage = useCallback(
+    async (message: string) => (await unlock(0n)).signMessage({ message }),
+    [unlock],
+  )
   const signTypedData = useCallback(
     async (typedData: TypedDataDefinition) => (await unlock(0n)).signTypedData(typedData),
     [unlock],
@@ -926,7 +1078,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     // A stand-in for the passkey's second secret, so private notes work on a simulator too.
     await keepVaultSecret(crypto.getRandomValues(new Uint8Array(32)))
     const account = await begin(entropy, undefined, false)
-    const next: Profile = { name: name.trim(), address: account.address, currency, protected: false, createdAt: Date.now() }
+    const next: Profile = {
+      name: name.trim(),
+      address: account.address,
+      currency,
+      protected: false,
+      createdAt: Date.now(),
+    }
     await save(PROFILE, next)
     setProfile(next)
     setBalance(0n)

@@ -1,7 +1,15 @@
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { type CatalogItem, updateItem } from '@/lib/api'
 import { useCatalog } from '@/lib/catalog'
@@ -35,23 +43,43 @@ export default function Products() {
   const [problem, setProblem] = useState<string | null>(null)
 
   const items = catalog.items ?? []
-  const categories = useMemo(() => [...new Set(items.flatMap((i) => (i.category ? [i.category] : [])))].sort(), [items])
+  const categories = useMemo(
+    () => [...new Set(items.flatMap((i) => (i.category ? [i.category] : [])))].sort(),
+    [items],
+  )
   const low = items.filter((i) => i.stock !== null && i.stock > 0 && i.stock <= LOW).length
   const out = items.filter((i) => i.sold_out).length
   const q = query.trim().toLowerCase()
   const shown = items.filter((i) => {
-    if (q && !`${i.name} ${i.barcode ?? ''} ${i.category ?? ''}`.toLowerCase().includes(q)) return false
+    if (q && !`${i.name} ${i.barcode ?? ''} ${i.category ?? ''}`.toLowerCase().includes(q))
+      return false
     if (filter === 'low') return i.stock !== null && i.stock > 0 && i.stock <= LOW
     if (filter === 'sold_out') return i.sold_out
     if (filter !== 'all') return i.category === filter
     return true
   })
 
-  const change = async (item: CatalogItem, patch: { stock?: number | null; sold_out?: boolean }) => {
+  const change = async (
+    item: CatalogItem,
+    patch: { stock?: number | null; sold_out?: boolean },
+  ) => {
     setSaving(item.id)
     setProblem(null)
     // Show it at once; the server's answer replaces it.
-    catalog.setItems((list) => list?.map((i) => (i.id === item.id ? { ...i, ...patch, ...(patch.stock !== undefined && patch.stock !== null ? { sold_out: patch.stock === 0 } : {}) } : i)) ?? list)
+    catalog.setItems(
+      (list) =>
+        list?.map((i) =>
+          i.id === item.id
+            ? {
+                ...i,
+                ...patch,
+                ...(patch.stock !== undefined && patch.stock !== null
+                  ? { sold_out: patch.stock === 0 }
+                  : {}),
+              }
+            : i,
+        ) ?? list,
+    )
     try {
       const saved = await updateItem(item.id, patch)
       catalog.setItems((list) => list?.map((i) => (i.id === saved.id ? saved : i)) ?? list)
@@ -74,8 +102,14 @@ export default function Products() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.paper }}>
       <ScrollView
-        refreshControl={<RefreshControl refreshing={false} onRefresh={() => void catalog.reload()} />}
-        contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: wide ? 32 : 20, paddingBottom: bottom }}
+        refreshControl={
+          <RefreshControl refreshing={false} onRefresh={() => void catalog.reload()} />
+        }
+        contentContainerStyle={{
+          paddingTop: insets.top + 16,
+          paddingHorizontal: wide ? 32 : 20,
+          paddingBottom: bottom,
+        }}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.head}>
@@ -88,7 +122,11 @@ export default function Products() {
             </Txt>
           </View>
           {owned ? (
-            <Pressable accessibilityRole="button" onPress={() => router.push('/terminal/item')} style={styles.add}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/terminal/item')}
+              style={styles.add}
+            >
               <Icon name="plus" size={18} color={colors.white} />
               <Txt weight="semi" size={15} color={colors.white}>
                 Add product
@@ -99,14 +137,34 @@ export default function Products() {
 
         <View style={styles.search}>
           <Icon name="scan" size={18} color={colors.muted} />
-          <TextInput value={query} onChangeText={setQuery} placeholder="Find a product, barcode or shelf" placeholderTextColor="#8C9799" style={styles.searchInput} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Find a product, barcode or shelf"
+            placeholderTextColor="#8C9799"
+            style={styles.searchInput}
+          />
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 12 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingVertical: 12 }}
+        >
           {chips.map((c) => {
             const on = filter === c.id
             return (
-              <Pressable key={c.id} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => setFilter(c.id)} style={[styles.chip, on && styles.chipOn, c.id === 'low' && !on && { borderColor: colors.coral }]}>
+              <Pressable
+                key={c.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                onPress={() => setFilter(c.id)}
+                style={[
+                  styles.chip,
+                  on && styles.chipOn,
+                  c.id === 'low' && !on && { borderColor: colors.coral },
+                ]}
+              >
                 <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
                   {c.label}
                 </Txt>
@@ -123,7 +181,11 @@ export default function Products() {
 
         {!catalog.items ? (
           <View style={{ paddingTop: 60, alignItems: 'center' }}>
-            {catalog.problem ? <Txt color={colors.muted}>{catalog.problem}</Txt> : <ActivityIndicator color={colors.ink} />}
+            {catalog.problem ? (
+              <Txt color={colors.muted}>{catalog.problem}</Txt>
+            ) : (
+              <ActivityIndicator color={colors.ink} />
+            )}
           </View>
         ) : items.length === 0 ? (
           <View style={{ paddingTop: 40, alignItems: 'center', gap: 6 }}>
@@ -145,19 +207,41 @@ export default function Products() {
                 <Txt weight="semi" size={13} color={colors.muted} style={{ width: 140 }}>
                   Shelf
                 </Txt>
-                <Txt weight="semi" size={13} color={colors.muted} style={{ width: 100, textAlign: 'right' }}>
+                <Txt
+                  weight="semi"
+                  size={13}
+                  color={colors.muted}
+                  style={{ width: 100, textAlign: 'right' }}
+                >
                   Price
                 </Txt>
-                <Txt weight="semi" size={13} color={colors.muted} style={{ width: 210, textAlign: 'center' }}>
+                <Txt
+                  weight="semi"
+                  size={13}
+                  color={colors.muted}
+                  style={{ width: 210, textAlign: 'center' }}
+                >
                   Stock
                 </Txt>
-                <Txt weight="semi" size={13} color={colors.muted} style={{ width: 120, textAlign: 'right' }}>
+                <Txt
+                  weight="semi"
+                  size={13}
+                  color={colors.muted}
+                  style={{ width: 120, textAlign: 'right' }}
+                >
                   Status
                 </Txt>
               </View>
             ) : null}
             {shown.map((item) => (
-              <ProductRow key={item.id} item={item} wide={wide} editable={Boolean(owned)} saving={saving === item.id} onChange={(patch) => void change(item, patch)} />
+              <ProductRow
+                key={item.id}
+                item={item}
+                wide={wide}
+                editable={Boolean(owned)}
+                saving={saving === item.id}
+                onChange={(patch) => void change(item, patch)}
+              />
             ))}
             {shown.length === 0 ? (
               <Txt size={15} color={colors.muted} style={{ padding: 20, textAlign: 'center' }}>
@@ -205,23 +289,46 @@ function ProductRow({
     <View style={[styles.stock, wide && { width: 210 }]}>
       {counted ? (
         <>
-          <Pressable accessibilityRole="button" accessibilityLabel={`One fewer ${item.name}`} disabled={!editable || saving || item.stock === 0} onPress={() => onChange({ stock: Math.max(0, (item.stock ?? 0) - 1) })} style={styles.step}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`One fewer ${item.name}`}
+            disabled={!editable || saving || item.stock === 0}
+            onPress={() => onChange({ stock: Math.max(0, (item.stock ?? 0) - 1) })}
+            style={styles.step}
+          >
             <Icon name="minus" size={16} strokeWidth={2.6} />
           </Pressable>
           <Txt weight="bold" size={18} style={{ minWidth: 44, textAlign: 'center' }}>
             {item.stock}
           </Txt>
-          <Pressable accessibilityRole="button" accessibilityLabel={`One more ${item.name}`} disabled={!editable || saving} onPress={() => onChange({ stock: (item.stock ?? 0) + 1 })} style={styles.step}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`One more ${item.name}`}
+            disabled={!editable || saving}
+            onPress={() => onChange({ stock: (item.stock ?? 0) + 1 })}
+            style={styles.step}
+          >
             <Icon name="plus" size={16} strokeWidth={2.6} />
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Restock ${item.name} by 10`} disabled={!editable || saving} onPress={() => onChange({ stock: (item.stock ?? 0) + 10 })} style={styles.restock}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Restock ${item.name} by 10`}
+            disabled={!editable || saving}
+            onPress={() => onChange({ stock: (item.stock ?? 0) + 10 })}
+            style={styles.restock}
+          >
             <Txt weight="semi" size={13}>
               +10
             </Txt>
           </Pressable>
         </>
       ) : (
-        <Pressable accessibilityRole="button" disabled={!editable || saving} onPress={() => onChange({ stock: 20 })} style={styles.count}>
+        <Pressable
+          accessibilityRole="button"
+          disabled={!editable || saving}
+          onPress={() => onChange({ stock: 20 })}
+          style={styles.count}
+        >
           <Txt weight="semi" size={13}>
             Count stock
           </Txt>
@@ -246,14 +353,21 @@ function ProductRow({
             {item.name}
           </Txt>
           <Txt size={13} color={colors.muted} numberOfLines={1}>
-            {wide ? (item.barcode ?? 'No barcode') : `${dollars(item.price)}${item.category ? ` · ${item.category}` : ''}`}
+            {wide
+              ? (item.barcode ?? 'No barcode')
+              : `${dollars(item.price)}${item.category ? ` · ${item.category}` : ''}`}
           </Txt>
           {!wide ? <View style={{ marginTop: 8 }}>{stock}</View> : null}
         </View>
       </View>
       {wide ? (
         <>
-          <Txt size={15} style={{ width: 140 }} numberOfLines={1} color={item.category ? colors.ink : colors.muted}>
+          <Txt
+            size={15}
+            style={{ width: 140 }}
+            numberOfLines={1}
+            color={item.category ? colors.ink : colors.muted}
+          >
             {item.category ?? '—'}
           </Txt>
           <Txt weight="semi" size={16} style={{ width: 100, textAlign: 'right' }}>
@@ -273,18 +387,83 @@ function ProductRow({
 
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  add: { height: 48, paddingHorizontal: 20, borderRadius: 24, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  search: { marginTop: 18, height: 50, borderRadius: 25, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.ink, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  add: {
+    height: 48,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    backgroundColor: colors.ink,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  search: {
+    marginTop: 18,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   searchInput: { flex: 1, fontFamily: 'Manrope_600SemiBold', fontSize: 16, color: colors.ink },
-  chip: { height: 38, paddingHorizontal: 16, borderRadius: 19, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, justifyContent: 'center' },
+  chip: {
+    height: 38,
+    paddingHorizontal: 16,
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+  },
   chipOn: { backgroundColor: colors.ink },
-  table: { borderRadius: 24, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.sunken },
+  table: {
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.sunken,
+  },
   headRow: { paddingVertical: 10, backgroundColor: colors.paper },
   stock: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  step: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
-  restock: { height: 34, paddingHorizontal: 10, borderRadius: 17, backgroundColor: colors.tealSoft, justifyContent: 'center', marginLeft: 4 },
-  count: { height: 34, paddingHorizontal: 14, borderRadius: 17, borderWidth: 2, borderColor: colors.ink, borderStyle: 'dashed', justifyContent: 'center' },
+  step: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  restock: {
+    height: 34,
+    paddingHorizontal: 10,
+    borderRadius: 17,
+    backgroundColor: colors.tealSoft,
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
+  count: {
+    height: 34,
+    paddingHorizontal: 14,
+    borderRadius: 17,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+  },
   status: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
 })

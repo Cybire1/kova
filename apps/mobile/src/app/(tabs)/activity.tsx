@@ -2,13 +2,18 @@ import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { SpendingCategory } from '@/lib/api'
 import { categoryInfo, useSpendingCategories } from '@/lib/categories'
 import { formatUsd } from '@/lib/money'
-import { colors } from '@/lib/theme'
 import { useOffline } from '@/lib/offline'
+import { colors } from '@/lib/theme'
 import { type Entry, useWallet } from '@/lib/wallet'
 import { Kovi } from '@/ui/art'
 import { dockClearance } from '@/ui/Dock'
@@ -81,7 +86,12 @@ export default function Activity() {
         if (incoming(e)) got += BigInt(e.amount)
         else out += BigInt(e.amount)
       }
-      return { start, got, out, label: new Date(start).toLocaleDateString([], { weekday: 'narrow' }) }
+      return {
+        start,
+        got,
+        out,
+        label: new Date(start).toLocaleDateString([], { weekday: 'narrow' }),
+      }
     })
     const max = days.reduce((m, d) => (d.got + d.out > m ? d.got + d.out : m), 0n)
     return { days, max }
@@ -109,14 +119,23 @@ export default function Activity() {
 
   const groups = useMemo(() => {
     const shown = activity.filter((e) =>
-      category ? cats.of(e) === category : filter === 'all' ? true : filter === 'in' ? incoming(e) : !incoming(e),
+      category
+        ? cats.of(e) === category
+        : filter === 'all'
+          ? true
+          : filter === 'in'
+            ? incoming(e)
+            : !incoming(e),
     )
     const map = new Map<string, Entry[]>()
     for (const e of shown) map.set(dayLabel(e.at), [...(map.get(dayLabel(e.at)) ?? []), e])
     return [...map.entries()].map(([title, entries]) => ({
       title,
       entries,
-      net: entries.reduce((sum, e) => sum + (incoming(e) ? BigInt(e.amount) : -BigInt(e.amount)), 0n),
+      net: entries.reduce(
+        (sum, e) => sum + (incoming(e) ? BigInt(e.amount) : -BigInt(e.amount)),
+        0n,
+      ),
     }))
   }, [activity, filter, category, cats])
 
@@ -126,7 +145,11 @@ export default function Activity() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.paper }}
-      contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: dockClearance + insets.bottom }}
+      contentContainerStyle={{
+        paddingTop: insets.top + 8,
+        paddingHorizontal: 20,
+        paddingBottom: dockClearance + insets.bottom,
+      }}
     >
       <View style={styles.titleRow}>
         <Txt weight="bold" size={32} style={{ letterSpacing: -1 }}>
@@ -184,13 +207,27 @@ export default function Activity() {
             const hOut = Math.max(Number(d.out) * scale, d.out > 0n ? 4 : 0)
             const today = i === 6
             return (
-              <View key={d.start} style={styles.barCol} accessibilityLabel={`${d.label}: in ${short(d.got)}, out ${short(d.out)}`}>
+              <View
+                key={d.start}
+                style={styles.barCol}
+                accessibilityLabel={`${d.label}: in ${short(d.got)}, out ${short(d.out)}`}
+              >
                 <View style={styles.barTrack}>
-                  {hOut > 0 ? <View style={[styles.bar, { height: hOut, backgroundColor: colors.coral }]} /> : null}
-                  {hIn > 0 ? <View style={[styles.bar, { height: hIn, backgroundColor: colors.tealLight }]} /> : null}
+                  {hOut > 0 ? (
+                    <View style={[styles.bar, { height: hOut, backgroundColor: colors.coral }]} />
+                  ) : null}
+                  {hIn > 0 ? (
+                    <View
+                      style={[styles.bar, { height: hIn, backgroundColor: colors.tealLight }]}
+                    />
+                  ) : null}
                   {hIn === 0 && hOut === 0 ? <View style={styles.barEmpty} /> : null}
                 </View>
-                <Txt weight={today ? 'bold' : 'medium'} size={12} color={today ? colors.white : colors.onInk}>
+                <Txt
+                  weight={today ? 'bold' : 'medium'}
+                  size={12}
+                  color={today ? colors.white : colors.onInk}
+                >
                   {d.label}
                 </Txt>
               </View>
@@ -211,7 +248,14 @@ export default function Activity() {
           </View>
           <View style={styles.whereBar}>
             {where.list.map(([c, v]) => (
-              <View key={c} style={{ flex: Math.max(Number((v * 1000n) / (where.total || 1n)), 12), backgroundColor: categoryInfo[c].color, borderRadius: 5 }} />
+              <View
+                key={c}
+                style={{
+                  flex: Math.max(Number((v * 1000n) / (where.total || 1n)), 12),
+                  backgroundColor: categoryInfo[c].color,
+                  borderRadius: 5,
+                }}
+              />
             ))}
           </View>
           {where.list.map(([c, v]) => {
@@ -227,7 +271,11 @@ export default function Activity() {
                   void Haptics.selectionAsync()
                   setCategory(on ? null : c)
                 }}
-                style={({ pressed }) => [styles.whereRow, on && styles.whereRowOn, pressed && { opacity: 0.7 }]}
+                style={({ pressed }) => [
+                  styles.whereRow,
+                  on && styles.whereRowOn,
+                  pressed && { opacity: 0.7 },
+                ]}
               >
                 <View style={[styles.whereDot, { backgroundColor: categoryInfo[c].color }]} />
                 <Txt weight={on ? 'bold' : 'medium'} size={15} style={{ flex: 1 }}>
@@ -246,7 +294,11 @@ export default function Activity() {
       ) : null}
 
       {category ? (
-        <Pressable accessibilityRole="button" onPress={() => setCategory(null)} style={styles.showing}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setCategory(null)}
+          style={styles.showing}
+        >
           <View style={[styles.whereDot, { backgroundColor: categoryInfo[category].color }]} />
           <Txt weight="semi" size={15} style={{ flex: 1 }}>
             Only {categoryInfo[category].label.toLowerCase()}
@@ -265,8 +317,14 @@ export default function Activity() {
           <Txt weight="semi" size={20} style={{ marginTop: 8 }}>
             {activity.length === 0 ? 'Nothing here yet' : 'Nothing in this view'}
           </Txt>
-          <Txt size={15} color={colors.muted} style={{ textAlign: 'center', marginTop: 4, lineHeight: 22 }}>
-            {activity.length === 0 ? 'Pay a shop or send money to a friend and it shows up here.' : 'Try another filter.'}
+          <Txt
+            size={15}
+            color={colors.muted}
+            style={{ textAlign: 'center', marginTop: 4, lineHeight: 22 }}
+          >
+            {activity.length === 0
+              ? 'Pay a shop or send money to a friend and it shows up here.'
+              : 'Try another filter.'}
           </Txt>
         </View>
       ) : (
@@ -282,7 +340,10 @@ export default function Activity() {
             </View>
             <View style={styles.day}>
               {g.entries.map((e, i) => (
-                <View key={e.id} style={[styles.dayRow, i < g.entries.length - 1 && styles.dayRule]}>
+                <View
+                  key={e.id}
+                  style={[styles.dayRow, i < g.entries.length - 1 && styles.dayRule]}
+                >
                   <EntryRow entry={e} />
                 </View>
               ))}
@@ -294,7 +355,17 @@ export default function Activity() {
   )
 }
 
-function Legend({ color, label, value, align }: { color: string; label: string; value: string; align?: 'right' }) {
+function Legend({
+  color,
+  label,
+  value,
+  align,
+}: {
+  color: string
+  label: string
+  value: string
+  align?: 'right'
+}) {
   return (
     <View style={{ alignItems: align === 'right' ? 'flex-end' : 'flex-start' }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -318,9 +389,15 @@ function FilterSwitch({ value, onChange }: { value: Filter; onChange: (f: Filter
   useEffect(() => {
     x.value = withTiming(index, { duration: 280, easing: Easing.bezier(0.32, 0.72, 0, 1) })
   }, [index, x])
-  const thumb = useAnimatedStyle(() => ({ transform: [{ translateX: (x.value * w) / filters.length }] }))
+  const thumb = useAnimatedStyle(() => ({
+    transform: [{ translateX: (x.value * w) / filters.length }],
+  }))
   return (
-    <View style={styles.filter} onLayout={(e) => setW(e.nativeEvent.layout.width - 10)} accessibilityRole="tablist">
+    <View
+      style={styles.filter}
+      onLayout={(e) => setW(e.nativeEvent.layout.width - 10)}
+      accessibilityRole="tablist"
+    >
       <Animated.View style={[styles.filterThumb, { width: w / filters.length }, thumb]} />
       {filters.map((f) => {
         const on = f.key === value
@@ -360,12 +437,25 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   month: { marginTop: 16, borderRadius: 28, backgroundColor: colors.ink, padding: 18 },
-  split: { flexDirection: 'row', height: 12, borderRadius: 6, overflow: 'hidden', gap: 3, marginTop: 14 },
+  split: {
+    flexDirection: 'row',
+    height: 12,
+    borderRadius: 6,
+    overflow: 'hidden',
+    gap: 3,
+    marginTop: 14,
+  },
   splitIn: { backgroundColor: colors.tealLight, borderRadius: 6 },
   splitOut: { backgroundColor: colors.coral, borderRadius: 6 },
   legend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   rule: { height: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 16 },
-  bars: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 10, height: 112 },
+  bars: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginTop: 10,
+    height: 112,
+  },
   barCol: { alignItems: 'center', gap: 6, flex: 1 },
   barTrack: { height: 90, justifyContent: 'flex-end', alignItems: 'center', gap: 2 },
   bar: { width: 16, borderRadius: 5 },
@@ -380,17 +470,55 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 3,
   },
-  filterThumb: { position: 'absolute', left: 3, top: 3, bottom: 3, borderRadius: 17, backgroundColor: colors.ink },
+  filterThumb: {
+    position: 'absolute',
+    left: 3,
+    top: 3,
+    bottom: 3,
+    borderRadius: 17,
+    backgroundColor: colors.ink,
+  },
   filterItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  dayHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 4 },
-  day: { borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, paddingHorizontal: 14 },
+  dayHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  day: {
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+  },
   dayRow: { paddingVertical: 2 },
   dayRule: { borderBottomWidth: 1, borderColor: colors.sunken },
   empty: { alignItems: 'center', paddingTop: 36, paddingHorizontal: 20 },
-  where: { marginTop: 16, borderRadius: 26, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, padding: 14, paddingBottom: 8 },
-  whereHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: 4 },
+  where: {
+    marginTop: 16,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    padding: 14,
+    paddingBottom: 8,
+  },
+  whereHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    paddingHorizontal: 4,
+  },
   whereBar: { flexDirection: 'row', height: 14, gap: 3, marginTop: 12, marginBottom: 6 },
-  whereRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, paddingHorizontal: 6, borderRadius: 14 },
+  whereRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+    borderRadius: 14,
+  },
   whereRowOn: { backgroundColor: colors.paper },
   whereDot: { width: 10, height: 10, borderRadius: 5 },
   showing: {

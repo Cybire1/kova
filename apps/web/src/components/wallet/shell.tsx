@@ -22,7 +22,8 @@ export function WalletShell({ children }: { children: React.ReactNode }) {
   const path = usePathname()
   // Back from Paystack with a naira top-up: its result shows even where no wallet is open (an in-app browser).
   const params = useSearchParams()
-  const nairaReturn = path === '/wallet/add/naira' && Boolean(params.get('reference') ?? params.get('trxref'))
+  const nairaReturn =
+    path === '/wallet/add/naira' && Boolean(params.get('reference') ?? params.get('trxref'))
   const sheet = path.startsWith('/wallet/send')
   const inner = status === 'ready' && path !== '/wallet' && !sheet
 

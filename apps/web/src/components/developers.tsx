@@ -1,7 +1,14 @@
 'use client'
 
 import { useActionState, useEffect, useState, useTransition } from 'react'
-import { createKey, createWebhook, deleteWebhook, type FormState, revokeKey, testWebhook } from '@/app/actions'
+import {
+  createKey,
+  createWebhook,
+  deleteWebhook,
+  type FormState,
+  revokeKey,
+  testWebhook,
+} from '@/app/actions'
 import type { ApiKey, KovaEvent, WebhookEndpoint } from '@/lib/api'
 import { ago } from '@/lib/format'
 import { Art, Icon } from './brand'
@@ -43,7 +50,13 @@ export function verify(body: string, header: string, secret: string) {
       <div className="codecard-head">
         <div role="tablist" className="codetabs">
           {(Object.keys(samples) as Tab[]).map((t) => (
-            <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => (setTab(t), setCopied(false))}>
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              onClick={() => (setTab(t), setCopied(false))}
+            >
               {t}
             </button>
           ))}
@@ -82,7 +95,10 @@ export function KeysCard({ keys }: { keys: ApiKey[] }) {
       <div className="card-head">
         <div>
           <h2>Secret keys</h2>
-          <p>For your servers. Anyone with one can charge for your shop, so never put one in an app or web page.</p>
+          <p>
+            For your servers. Anyone with one can charge for your shop, so never put one in an app
+            or web page.
+          </p>
         </div>
       </div>
       <ul className="keylist">
@@ -102,7 +118,12 @@ export function KeysCard({ keys }: { keys: ApiKey[] }) {
             {k.current ? null : revoking === k.id ? (
               <span className="inline-confirm">
                 <span>{error ?? 'Anything using it stops working.'}</span>
-                <button type="button" className="mini" onClick={() => setRevoking(null)} disabled={busy}>
+                <button
+                  type="button"
+                  className="mini"
+                  onClick={() => setRevoking(null)}
+                  disabled={busy}
+                >
                   Keep
                 </button>
                 <button
@@ -121,7 +142,11 @@ export function KeysCard({ keys }: { keys: ApiKey[] }) {
                 </button>
               </span>
             ) : (
-              <button type="button" className="mini" onClick={() => (setRevoking(k.id), setError(null))}>
+              <button
+                type="button"
+                className="mini"
+                onClick={() => (setRevoking(k.id), setError(null))}
+              >
                 Revoke
               </button>
             )}
@@ -132,7 +157,14 @@ export function KeysCard({ keys }: { keys: ApiKey[] }) {
         {state.secret ? <SecretReveal label={`${state.name} key`} value={state.secret} /> : null}
         {adding && !state.secret ? (
           <form action={action} className="inline-form">
-            <input name="name" placeholder="What it’s for, e.g. Online store" maxLength={40} aria-label="Key name" autoFocus />
+            <input
+              name="name"
+              placeholder="What it’s for, e.g. Online store"
+              maxLength={40}
+              aria-label="Key name"
+              // biome-ignore lint/a11y/noAutofocus: the key form opens on demand, so its one field takes focus
+              autoFocus
+            />
             <button type="submit" className="mini mini-ink" disabled={pending}>
               {pending ? 'Creating' : 'Create key'}
             </button>
@@ -176,7 +208,10 @@ export function WebhooksCard({ endpoints }: { endpoints: WebhookEndpoint[] }) {
       <div className="card-head">
         <div>
           <h2>Webhooks</h2>
-          <p>Kova posts each event to your URL, signed, and retries for up to a day if your server is down.</p>
+          <p>
+            Kova posts each event to your URL, signed, and retries for up to a day if your server is
+            down.
+          </p>
         </div>
       </div>
       {endpoints.length > 0 ? (
@@ -198,10 +233,23 @@ export function WebhooksCard({ endpoints }: { endpoints: WebhookEndpoint[] }) {
                 {note[e.id] ? <span>{note[e.id]}</span> : null}
               </span>
               <span className="key-actions">
-                <button type="button" className="mini" disabled={busy} onClick={() => run(e.id, () => testWebhook(e.id), 'Test sent. Watch it arrive below.')}>
+                <button
+                  type="button"
+                  className="mini"
+                  disabled={busy}
+                  onClick={() =>
+                    run(e.id, () => testWebhook(e.id), 'Test sent. Watch it arrive below.')
+                  }
+                >
                   Send test
                 </button>
-                <button type="button" className="mini" disabled={busy} onClick={() => run(e.id, () => deleteWebhook(e.id), 'Removed')} aria-label={`Remove ${e.url}`}>
+                <button
+                  type="button"
+                  className="mini"
+                  disabled={busy}
+                  onClick={() => run(e.id, () => deleteWebhook(e.id), 'Removed')}
+                  aria-label={`Remove ${e.url}`}
+                >
                   <Icon name="close" size={14} />
                 </button>
               </span>
@@ -211,22 +259,42 @@ export function WebhooksCard({ endpoints }: { endpoints: WebhookEndpoint[] }) {
       ) : (
         <div className="empty dev-empty">
           <Art name="plane" size={84} />
-          <p>No endpoints yet. Add one to hear about payments in your own systems the moment they settle.</p>
+          <p>
+            No endpoints yet. Add one to hear about payments in your own systems the moment they
+            settle.
+          </p>
         </div>
       )}
       <div className="card-body">
-        {state.secret ? <SecretReveal label="Signing secret" value={state.secret} note="Use it to check each delivery’s Kova-Signature header. It’s shown only now." /> : null}
+        {state.secret ? (
+          <SecretReveal
+            label="Signing secret"
+            value={state.secret}
+            note="Use it to check each delivery’s Kova-Signature header. It’s shown only now."
+          />
+        ) : null}
         {adding && !state.secret ? (
           <form action={action} className="stack-form">
             <label className="field-label" htmlFor="wh-url">
               Endpoint URL
             </label>
-            <input id="wh-url" name="url" type="url" required placeholder="https://example.com/kova/webhooks" />
+            <input
+              id="wh-url"
+              name="url"
+              type="url"
+              required
+              placeholder="https://example.com/kova/webhooks"
+            />
             <fieldset>
               <legend className="field-label">Send me</legend>
               {EVENT_CHOICES.map((c) => (
                 <label key={c.value} className="checkline">
-                  <input type="checkbox" name="events" value={c.value} defaultChecked={c.value === 'payment_intent.paid'} />
+                  <input
+                    type="checkbox"
+                    name="events"
+                    value={c.value}
+                    defaultChecked={c.value === 'payment_intent.paid'}
+                  />
                   {c.label}
                 </label>
               ))}
@@ -280,20 +348,43 @@ export function EventsCard({ initial }: { initial: KovaEvent[] }) {
         <ul className="events">
           {events.map((e) => {
             const d = e.deliveries
-            const state = d.length === 0 ? 'none' : d.every((x) => x.status === 'delivered') ? 'delivered' : d.some((x) => x.status === 'failed') ? 'failed' : 'pending'
+            const state =
+              d.length === 0
+                ? 'none'
+                : d.every((x) => x.status === 'delivered')
+                  ? 'delivered'
+                  : d.some((x) => x.status === 'failed')
+                    ? 'failed'
+                    : 'pending'
             return (
               <li key={e.id}>
-                <button type="button" className="event" aria-expanded={open === e.id} onClick={() => setOpen(open === e.id ? null : e.id)}>
+                <button
+                  type="button"
+                  className="event"
+                  aria-expanded={open === e.id}
+                  onClick={() => setOpen(open === e.id ? null : e.id)}
+                >
                   <code>{e.type}</code>
                   <span className="event-state" data-state={state}>
-                    {state === 'none' ? 'No endpoints' : state === 'delivered' ? 'Delivered' : state === 'failed' ? 'Failed' : `Retrying${d[0]?.attempts ? ` (${d[0].attempts})` : ''}`}
+                    {state === 'none'
+                      ? 'No endpoints'
+                      : state === 'delivered'
+                        ? 'Delivered'
+                        : state === 'failed'
+                          ? 'Failed'
+                          : `Retrying${d[0]?.attempts ? ` (${d[0].attempts})` : ''}`}
                   </span>
                   <span className="event-time">{ago(e.created_at)}</span>
                 </button>
                 {open === e.id ? (
                   <pre className="event-body">
                     <code>{JSON.stringify({ id: e.id, type: e.type, data: e.data }, null, 2)}</code>
-                    {d.map((x) => `\n\n→ ${x.status}${x.response_status ? `, HTTP ${x.response_status}` : ''}${x.last_error ? `, ${x.last_error}` : ''}`).join('')}
+                    {d
+                      .map(
+                        (x) =>
+                          `\n\n→ ${x.status}${x.response_status ? `, HTTP ${x.response_status}` : ''}${x.last_error ? `, ${x.last_error}` : ''}`,
+                      )
+                      .join('')}
                   </pre>
                 ) : null}
               </li>

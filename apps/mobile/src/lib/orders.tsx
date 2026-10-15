@@ -1,5 +1,14 @@
 import * as Haptics from 'expo-haptics'
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { AppState } from 'react-native'
 import { collectOrder, listOrders, type Order, type OrderStatus, setOrderStatus } from './api'
 import { useTerminal } from './terminal'
@@ -34,7 +43,8 @@ export function useOrders(): OrdersState {
 }
 
 const isPaid = (o: Order) => o.payment_status === 'paid'
-const isWaiting = (o: Order) => o.payment_status === 'requires_payment' || o.payment_status === 'processing'
+const isWaiting = (o: Order) =>
+  o.payment_status === 'requires_payment' || o.payment_status === 'processing'
 
 export function OrdersProvider({ children }: { children: ReactNode }) {
   const { canCharge } = useTerminal()
@@ -54,7 +64,9 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
     const merged = list.map((o) => {
       const status = moving.current.get(o.id)
       const moved = status ? { ...o, status } : o
-      return pending.current.has(o.id) ? { ...moved, collected_at: pending.current.get(o.id) ?? null } : moved
+      return pending.current.has(o.id)
+        ? { ...moved, collected_at: pending.current.get(o.id) ?? null }
+        : moved
     })
     const paidNow = merged.filter(isPaid)
     if (seen.current) {

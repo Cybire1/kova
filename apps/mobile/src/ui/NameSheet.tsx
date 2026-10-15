@@ -1,6 +1,14 @@
 import * as Haptics from 'expo-haptics'
 import { useEffect, useState } from 'react'
-import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native'
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { Address } from 'viem'
 import { colors, fonts } from '@/lib/theme'
@@ -46,7 +54,10 @@ export function NameSheet({
   const fresh = person ? isUnnamed(person.name) : true
   return (
     <Modal visible={!!person} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <Pressable accessibilityLabel="Close" style={styles.backdrop} onPress={onClose} />
         {person ? (
           <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
@@ -54,7 +65,11 @@ export function NameSheet({
             <View style={styles.face}>
               <Avatar name={person.name} id={person.address} size={96} />
             </View>
-            <Txt weight="bold" size={26} style={{ textAlign: 'center', letterSpacing: -0.6, marginTop: 14 }}>
+            <Txt
+              weight="bold"
+              size={26}
+              style={{ textAlign: 'center', letterSpacing: -0.6, marginTop: 14 }}
+            >
               {fresh ? 'Who is this?' : 'Rename'}
             </Txt>
             <Txt size={14} color={colors.muted} style={{ textAlign: 'center', marginTop: 4 }}>
@@ -92,7 +107,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
   },
-  grip: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: 'rgba(11,26,29,0.16)' },
+  grip: {
+    alignSelf: 'center',
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(11,26,29,0.16)',
+  },
   face: { alignSelf: 'center', marginTop: 18 },
   input: {
     marginTop: 22,

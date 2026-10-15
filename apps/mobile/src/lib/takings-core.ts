@@ -41,7 +41,8 @@ export interface PrivateSale extends StealthReceipt {
   moved: boolean
 }
 
-export const keysFromSignature = (signature: Hex): StealthKeys => stealthKeysFromSignature(signature)
+export const keysFromSignature = (signature: Hex): StealthKeys =>
+  stealthKeysFromSignature(signature)
 
 export const viewFrom = (viewKey: string): TakingsView => parseStealthViewKey(viewKey)
 
@@ -65,7 +66,9 @@ export async function findSales(
   const so = () => mine.filter((s): s is PrivateSale => s !== null)
   const order = receipts.map((_, i) => i)
   // Waiting money first: it's what the total and the move need.
-  order.sort((a, b) => Number(receipts[a]?.swept_tx !== null) - Number(receipts[b]?.swept_tx !== null))
+  order.sort(
+    (a, b) => Number(receipts[a]?.swept_tx !== null) - Number(receipts[b]?.swept_tx !== null),
+  )
   const waiting = receipts.filter((r) => r.swept_tx === null).length
   let checked = 0
   for (const [n, i] of order.entries()) {
@@ -90,7 +93,8 @@ export async function findSales(
       if (checked % 4 === 0) await tick()
       if (onFound && n >= waiting && checked % 24 === 0) onFound(so())
     }
-    if (ours) mine[i] = { ...receipt, base: toBase(receipt.amount), moved: receipt.swept_tx !== null }
+    if (ours)
+      mine[i] = { ...receipt, base: toBase(receipt.amount), moved: receipt.swept_tx !== null }
     if (onFound && n === waiting - 1 && checked > 0) onFound(so())
   }
   return { sales: so(), found }
@@ -138,8 +142,10 @@ export interface MoveOutcome {
 
 /** Kova's relay speaks of payments; a move is the shop's own money going home. Said for what it is. */
 export function moveProblem(error: string): string {
-  if (/did not confirm|in time/i.test(error)) return 'Monad was slow to confirm it. Nothing is lost: move it again in a moment.'
-  if (/everything the address holds/i.test(error)) return 'Its balance changed while moving. Try again.'
+  if (/did not confirm|in time/i.test(error))
+    return 'Monad was slow to confirm it. Nothing is lost: move it again in a moment.'
+  if (/everything the address holds/i.test(error))
+    return 'Its balance changed while moving. Try again.'
   if (/not one of this shop/i.test(error)) return 'Kova doesn’t list that address as this shop’s.'
   return error
 }
@@ -182,7 +188,10 @@ export async function moveSales(input: {
       const account = privateKeyToAccount(stealthPrivateKey(keys, sale.ephemeral_public_key))
       // The key the spending key made must open exactly this sale's address, or nothing is signed.
       if (!isAddressEqual(account.address, sale.stealth_address)) {
-        moves.push({ from: sale.stealth_address, error: 'This sale’s address didn’t open with your keys.' })
+        moves.push({
+          from: sale.stealth_address,
+          error: 'This sale’s address didn’t open with your keys.',
+        })
         continue
       }
       const authorization = {
@@ -193,7 +202,9 @@ export async function moveSales(input: {
         validBefore: BigInt(Math.floor(Date.now() / 1000) + VALID_FOR_S),
         nonce: randomNonce(),
       }
-      const signature = await account.signTypedData(transferAuthorizationTypedData(settlementToken, network.chainId, authorization))
+      const signature = await account.signTypedData(
+        transferAuthorizationTypedData(settlementToken, network.chainId, authorization),
+      )
       authorizations.push(toSignedAuthorization(settlementToken.address, authorization, signature))
       onProgress?.({ step: 'signing', done: signed, total })
       await tick()
