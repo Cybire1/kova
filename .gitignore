@@ -21,3 +21,6 @@ next-env.d.ts
 apps/mobile/ios/
 apps/mobile/android/
 apps/mobile/.expo/
+
+# TypeScript incremental build info
+*.tsbuildinfo

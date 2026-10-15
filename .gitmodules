@@ -1,0 +1,6 @@
+[submodule "apps/card/contracts/lib/forge-std"]
+	path = apps/card/contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "apps/rates/contracts/lib/forge-std"]
+	path = apps/rates/contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
