@@ -22,7 +22,10 @@ export type PaySource = 'balance' | 'private'
  * stays there, still private); else the fewest addresses, largest first, put together into one
  * first. Null when they don't cover it even together.
  */
-export function planPrivateSpend<T>(holdings: readonly PrivateHolding<T>[], amount: bigint): { from: T } | { gather: T[] } | null {
+export function planPrivateSpend<T>(
+  holdings: readonly PrivateHolding<T>[],
+  amount: bigint,
+): { from: T } | { gather: T[] } | null {
   if (amount <= 0n) return null
   const funded = holdings.filter((h) => h.held > 0n)
   const order = (a: bigint, b: bigint) => (a < b ? -1 : a > b ? 1 : 0)
@@ -69,7 +72,8 @@ export interface RouteInput<T> {
   choice?: PaySource | null
 }
 
-const sum = (holdings: readonly PrivateHolding<unknown>[]) => holdings.reduce((total, h) => total + (h.held > 0n ? h.held : 0n), 0n)
+const sum = (holdings: readonly PrivateHolding<unknown>[]) =>
+  holdings.reduce((total, h) => total + (h.held > 0n ? h.held : 0n), 0n)
 
 /**
  * Where a payment of `amount` comes from. Private sends spend private dollars first when one address
@@ -78,7 +82,14 @@ const sum = (holdings: readonly PrivateHolding<unknown>[]) => holdings.reduce((t
  * together do, just enough private dollars move into the balance first: the fewest addresses whose
  * dollars make up the shortfall.
  */
-export function routePayment<T>({ amount, balance, holdings, direct, privateFirst = false, choice = null }: RouteInput<T>): PaymentRoute<T> {
+export function routePayment<T>({
+  amount,
+  balance,
+  holdings,
+  direct,
+  privateFirst = false,
+  choice = null,
+}: RouteInput<T>): PaymentRoute<T> {
   if (amount <= 0n) return { from: 'balance' }
   const plan = direct ? planPrivateSpend(holdings, amount) : null
   const single = plan !== null && 'from' in plan
@@ -89,7 +100,12 @@ export function routePayment<T>({ amount, balance, holdings, direct, privateFirs
     const top = planPrivateSpend(holdings, shortfall)
     if (!top) return null
     const move = 'from' in top ? [top.from] : top.gather
-    return { from: 'top-up', move, moving: sum(holdings.filter((h) => move.includes(h.item))), shortfall }
+    return {
+      from: 'top-up',
+      move,
+      moving: sum(holdings.filter((h) => move.includes(h.item))),
+      shortfall,
+    }
   }
 
   if (choice === 'private' && plan) return { from: 'private', gather: !single }
