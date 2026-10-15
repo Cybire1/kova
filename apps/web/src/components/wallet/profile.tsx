@@ -23,8 +23,20 @@ const whole = (base: bigint) => formatUsd(base).replace(/\.00$/, '')
 
 /** You, as the app's Profile shows you: your pass, your money's currency, your keys, your shop. */
 export function Profile() {
-  const { profile, activity, contacts, network, rates, liveRates, setCurrency, lock, signOut } =
-    useWallet()
+  const {
+    profile,
+    activity,
+    contacts,
+    network,
+    rates,
+    liveRates,
+    setCurrency,
+    lock,
+    signOut,
+    privateBalance,
+    privateReceiving,
+    hideBalance,
+  } = useWallet()
   const session = useSessionState()
   const router = useRouter()
   const [origin, setOrigin] = useState('https://mykova.app')
@@ -94,6 +106,20 @@ export function Profile() {
           <Icon name="out" size={16} />
         </Link>
       ) : null}
+
+      <Link href="/wallet/private" className="w-add-chain">
+        <span>
+          <strong>Private dollars</strong>
+          <small>
+            {privateBalance > 0n
+              ? `Private: ${hideBalance ? '••••' : formatUsd(privateBalance)}`
+              : privateReceiving
+                ? 'Anyone can send to you privately'
+                : 'Let people send to you privately'}
+          </small>
+        </span>
+        <Icon name="lock" size={16} />
+      </Link>
 
       <Link href="/wallet/keys" className="w-add-chain">
         <span>

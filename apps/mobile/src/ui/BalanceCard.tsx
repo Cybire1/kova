@@ -27,7 +27,10 @@ export function BalanceCard({
   currency,
   takings,
   waiting,
+  splitOpen = false,
 }: {
+  /** Development only: start with the split shown, for screenshots (Home's dev link `split=1`). */
+  splitOpen?: boolean
   /** The wallet's own balance on Monad. */
   balance: bigint | null
   /** Dollars sent to this wallet privately, at addresses only its keys can open: part of the balance shown. */
@@ -53,7 +56,7 @@ export function BalanceCard({
   const [whole, cents] = usd === null ? ['—', ''] : [usd.slice(1, usd.lastIndexOf('.')), usd.slice(usd.lastIndexOf('.'))]
   const hasPrivate = privateAmount > 0n
   /** The split, shown on a tap of the amount: how much of it is private. */
-  const [split, setSplit] = useState(false)
+  const [split, setSplit] = useState(splitOpen)
   const splitShown = split && hasPrivate
 
   return (

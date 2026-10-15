@@ -71,6 +71,7 @@ export default function PayCharge() {
     amount: due,
     balance,
     direct: Boolean(checkout && !checkout.order?.reward && due > 0n && stamp !== '1'),
+    paying: stage === 'paying',
   })
   const fromPrivate = route.from === 'private'
 

@@ -21,18 +21,10 @@ import {
 } from '@/lib/wallet/money'
 import { sessionCovers } from '@/lib/wallet/session'
 import { Home } from './home'
-import {
-  MoveInFirst,
-  PayFromChoice,
-  PrivateSwitch,
-  privateCovers,
-  stepLine,
-  usePayFrom,
-} from './private'
+import { PayDetails, PrivateSwitch, stepLine, TopUpLine, usePaymentRoute } from './private'
 import {
   type Contact,
   isUnnamed,
-  type PayFrom,
   type PrivateStep,
   short,
   useWallet,
@@ -84,6 +76,7 @@ export function SendSheet({ to }: { to?: string }) {
     privateBalance,
     activity,
     tickPrivate,
+    moveInFor,
   } = useWallet()
 
   const asked = params.get('amount')
@@ -114,7 +107,6 @@ export function SendSheet({ to }: { to?: string }) {
     privately: boolean
     fromPrivate: boolean
   } | null>(null)
-  const [payFrom, choosePayFrom] = usePayFrom()
   /** Paying from private dollars: gathering them first, then paying. */
   const [privateStep, setPrivateStep] = useState<PrivateStep | null>(null)
   const [closing, setClosing] = useState(false)
@@ -177,22 +169,23 @@ export function SendSheet({ to }: { to?: string }) {
     }
   }, [typed])
   const dollars = baseToNumber(amount)
-  const over = balance !== null && amount > balance
-  /** Short, but the dollars sent to you privately make up the difference once they're moved in. */
-  const coverable = privateCovers(balance, privateBalance, amount)
-  /** Short on the balance, but private dollars cover it: they pay, privately, anyone with a key. */
-  const mustPrivate = over && keyed && amount > 0n && privateBalance >= amount
-  const goPrivately = keyed && (privately || mustPrivate)
-  /** Where it comes from: private dollars only for a private send, and only when they cover it. */
-  const from: PayFrom =
-    goPrivately && privateBalance >= amount && amount > 0n
-      ? over
-        ? 'private'
-        : payFrom
-      : 'balance'
+  // Where it comes from, by the privacy router. Private dollars only go out privately, to someone
+  // with a key; a private send spends them first. When the balance is short and they cover it,
+  // that's how this send goes, privately. When only both together cover it, just enough moves in.
+  const { route, choose, choosable, from } = usePaymentRoute({
+    amount,
+    direct: keyed,
+    privateFirst: privately,
+    paying: busy,
+  })
   const fromPrivate = from === 'private'
-  /** Short with nothing private to pay it: Move in first (no key to send privately to), or less. */
-  const blocked = over && !fromPrivate
+  /** Private dollars pay it though Send privately is off: it goes privately, they only go that way. */
+  const mustPrivate = fromPrivate && !privately
+  const goPrivately = keyed && (privately || mustPrivate)
+  /** Short even with private dollars counted in. */
+  const blocked = route.from === 'short'
+  /** One balance: what you have, private dollars included. */
+  const have = balance === null ? null : balance + privateBalance
   const theirLocal = local ? formatLocal(dollars, local, rates) : null
 
   const close = useCallback(() => {
@@ -232,6 +225,11 @@ export function SendSheet({ to }: { to?: string }) {
     setLeg('flying')
     const started = Date.now()
     try {
+      // Short: just enough private dollars move into the balance first.
+      if (route.from === 'top-up') {
+        setPrivateStep('moving')
+        await moveInFor(route.shortfall)
+      }
       const moved = await send(contact, amount, note, {
         privately: goPrivately,
         from,
@@ -329,14 +327,9 @@ export function SendSheet({ to }: { to?: string }) {
                       {first(name)} sees ≈ {theirLocal}
                     </span>
                   ) : null}
-                  {balance !== null ? (
-                    <span className={`w-sheet-pill${over ? ' w-sheet-pill-over' : ''}`}>
-                      {over ? `You have ${formatUsd(balance)}` : `${formatUsd(balance)} available`}
-                    </span>
-                  ) : null}
-                  {over && privateBalance > 0n ? (
-                    <span className="w-sheet-pill w-sheet-pill-private">
-                      <Icon name="lock" size={12} />+{formatUsd(privateBalance)} private
+                  {have !== null ? (
+                    <span className={`w-sheet-pill${blocked ? ' w-sheet-pill-over' : ''}`}>
+                      {blocked ? `You have ${formatUsd(have)}` : `${formatUsd(have)} available`}
                     </span>
                   ) : null}
                 </div>
@@ -351,28 +344,18 @@ export function SendSheet({ to }: { to?: string }) {
                   />
                 </label>
                 <Keypad onKey={onKey} />
-                {coverable && !mustPrivate ? (
-                  <MoveInFirst />
-                ) : (
-                  <button
-                    type="button"
-                    className="pill pill-block"
-                    data-tone="ink"
-                    disabled={amount === 0n || blocked}
-                    onClick={() => moveTo('review')}
-                  >
-                    <span className="pill-label">
-                      {blocked
-                        ? 'More than you have'
-                        : mustPrivate
-                          ? 'Review, from private dollars'
-                          : 'Review'}
-                    </span>
-                    <span className="pill-cap">
-                      <Icon name={mustPrivate ? 'lock' : 'arrow'} size={18} />
-                    </span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="pill pill-block"
+                  data-tone="ink"
+                  disabled={amount === 0n || blocked}
+                  onClick={() => moveTo('review')}
+                >
+                  <span className="pill-label">{blocked ? 'More than you have' : 'Review'}</span>
+                  <span className="pill-cap">
+                    <Icon name="arrow" size={18} />
+                  </span>
+                </button>
               </div>
             ) : null}
 
@@ -445,13 +428,12 @@ export function SendSheet({ to }: { to?: string }) {
                     fromPrivate={fromPrivate}
                   />
                 ) : null}
-                {goPrivately && privateBalance >= amount && amount > 0n ? (
-                  <PayFromChoice
-                    value={from}
-                    onChange={choosePayFrom}
-                    amount={amount}
-                    disabled={busy}
-                  />
+                {mustPrivate ? (
+                  <p className="w-fine w-forced">This one goes privately, from your private dollars.</p>
+                ) : null}
+                <TopUpLine route={route} />
+                {choosable ? (
+                  <PayDetails amount={amount} route={route} onChoose={choose} disabled={busy} />
                 ) : null}
                 {problem ? (
                   <p className="w-sheet-problem" role="alert">
@@ -460,28 +442,24 @@ export function SendSheet({ to }: { to?: string }) {
                     {/went through/i.test(problem) ? '' : ' Your money hasn’t moved.'}
                   </p>
                 ) : null}
-                {blocked && !coverable ? (
+                {blocked ? (
                   <p className="form-error">
-                    You have {formatUsd(balance ?? 0n)}. Add money first, or send less.
+                    You have {formatUsd(have ?? 0n)}. Add money first, or send less.
                   </p>
                 ) : null}
-                {blocked && coverable ? (
-                  <MoveInFirst />
-                ) : (
-                  <SlideToSend
-                    label={
-                      problem
-                        ? 'Slide to try again'
-                        : `Slide to send ${formatUsd(amount)}${goPrivately ? ' privately' : ''}`
-                    }
-                    busy={busy}
-                    disabled={blocked || amount === 0n}
-                    onSend={() => void go()}
-                  />
-                )}
+                <SlideToSend
+                  label={
+                    problem
+                      ? 'Slide to try again'
+                      : `Slide to send ${formatUsd(amount)}${goPrivately ? ' privately' : ''}`
+                  }
+                  busy={busy}
+                  disabled={blocked || amount === 0n}
+                  onSend={() => void go()}
+                />
                 <p className="w-fine w-center" aria-live="polite">
                   {busy && privateStep
-                    ? `${stepLine(privateStep)} Kova covers every fee.`
+                    ? `${stepLine(privateStep, route.from === 'top-up' ? route.moving : undefined)} Kova covers every fee.`
                     : quick
                       ? 'Your wallet is open, so this one needs no passkey.'
                       : 'Your passkey approves it. Payments on Monad can’t be undone.'}

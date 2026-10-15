@@ -78,7 +78,7 @@ export default function CashOutScreen() {
   // One balance: private dollars count in what you have, and just enough moves in first when it's short.
   const privately = usePrivate()
   const have = balance === null ? null : balance + (privately.keysHere ? privately.waiting : 0n)
-  const { route } = usePaymentRoute({ amount, balance, direct: false })
+  const { route } = usePaymentRoute({ amount, balance, direct: false, paying: busy })
   const over = route.from === 'short'
   const tooSmall = amount > 0n && amount < 1_000_000n
 

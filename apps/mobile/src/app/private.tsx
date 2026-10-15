@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics'
-import { useFocusEffect } from 'expo-router'
+import { useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { type ReactNode, useCallback, useMemo, useState } from 'react'
 import { ActivityIndicator, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import Animated, { FadeIn } from 'react-native-reanimated'
@@ -28,10 +28,12 @@ function dayOf(at: number) {
  */
 export default function PrivateDollars() {
   const p = usePrivate()
+  // Development only: `menu=1` opens the ⋯ and `how=1` How private works, for screenshots.
+  const dev = useLocalSearchParams<{ menu?: string; how?: string }>()
   const [refreshing, setRefreshing] = useState(false)
-  const [menu, setMenu] = useState(false)
+  const [menu, setMenu] = useState(__DEV__ && dev.menu === '1')
   const [confirming, setConfirming] = useState(false)
-  const [how, setHow] = useState(false)
+  const [how, setHow] = useState(__DEV__ && dev.how === '1')
   const { refresh } = p
 
   useFocusEffect(

@@ -1,4 +1,4 @@
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -33,6 +33,8 @@ import { dollars } from '@/ui/StallParts'
  */
 export default function Home() {
   const { profile, balance, activity, contacts, refresh } = useWallet()
+  // Development only: `split=1` opens Home with the balance's split shown, for screenshots.
+  const { split } = useLocalSearchParams<{ split?: string }>()
   const insets = useSafeAreaInsets()
   const [refreshing, setRefreshing] = useState(false)
   const takings = useTakings()
@@ -89,6 +91,7 @@ export default function Home() {
             : null
         }
         privateAmount={privately.keysHere ? privately.waiting : 0n}
+        splitOpen={__DEV__ && split === '1'}
         onPrivate={() => router.push('/private')}
         waiting={
           offline.waiting.length > 0

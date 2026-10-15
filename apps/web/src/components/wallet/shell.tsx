@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { Brand, NavIcon, type NavIconName } from '@/components/brand'
+import { PrivateArrivalMoment } from './private'
 import { useWallet } from './provider'
 import { Avatar } from './ui'
 import { Welcome } from './welcome'
@@ -58,6 +59,8 @@ export function WalletShell({ children }: { children: React.ReactNode }) {
       </main>
 
       {status === 'ready' && !sheet ? <Dock path={path} /> : null}
+      {/* A private payment found while the wallet is open gets its own moment, over any screen. */}
+      {status === 'ready' ? <PrivateArrivalMoment /> : null}
     </div>
   )
 }

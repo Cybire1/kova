@@ -4,6 +4,10 @@ import type { PasskeyCredentialMetadata } from '@category-labs/mera'
 import {
   generateStealthAddress,
   type NetworkId,
+  type PaymentRoute,
+  type PrivateHolding,
+  type RouteInput,
+  routePayment,
   type StealthKeys,
   stealthMemoMessage,
   stealthMetaAddress,
@@ -35,6 +39,7 @@ import {
 import { type KeptLink, keptLinks, linksFrom } from '@/lib/wallet/dollar-links'
 import {
   type DisplayCurrency,
+  formatUsd,
   guessCurrency,
   isDisplayCurrency,
   type LiveRates,
@@ -131,8 +136,30 @@ export interface Entry {
 /** Where a payment comes from: your balance, or your private dollars at their one-time addresses. */
 export type PayFrom = 'balance' | 'private'
 
-/** How far paying from private dollars has got: gathering them into one address first, then paying. */
-export type PrivateStep = 'gathering' | 'paying'
+/** Where a payment comes from, as the privacy router decides it (@kova/monad). */
+export type Route = PaymentRoute<FoundPayment>
+
+/**
+ * How far paying with private dollars has got: putting several into one address first
+ * ('gathering'), moving just enough into the balance first ('moving'), then paying.
+ */
+export type PrivateStep = 'gathering' | 'moving' | 'paying'
+
+/** A private payment that arrived while this page was open: its moment, until it's closed. */
+export interface PrivateArrival {
+  /** Its one-time address. */
+  id: string
+  amount: bigint
+  /** Who sent it, as you know them. */
+  name: string
+  note?: string
+  /** Only its memo says who it's from. */
+  unconfirmed?: boolean
+  at: number
+}
+
+/** How fresh a payment must be, when first found, to get its arrival moment. */
+const ARRIVAL_MS = 3 * 60_000
 
 export interface ShopToday {
   name: string
@@ -243,10 +270,20 @@ interface WalletValue {
   checkPrivate: () => Promise<void>
   /** One pass of looking after private payments: new ones, who sent them, what they still hold. */
   tickPrivate: () => Promise<void>
-  /** Brings every private payment into the wallet's balance. */
+  /** Makes every private dollar public: each one-time address moves what it holds into the wallet. */
   moveIn: () => Promise<MovedIn>
   /** A move in under way. */
   movingIn: { done: number; total: number } | null
+  /** Where a payment comes from, by the privacy router, with the private dollars this browser knows. */
+  route: (input: Omit<RouteInput<FoundPayment>, 'holdings'>) => Route
+  /**
+   * Moves the fewest whole addresses that make up `shortfall` into the balance, for a payment that
+   * goes right after (one passkey for both). That move is public on Monad.
+   */
+  moveInFor: (shortfall: bigint) => Promise<MovedIn>
+  /** A private payment that just arrived while this page was open, until its moment is closed. */
+  privateArrival: PrivateArrival | null
+  clearPrivateArrival: () => void
   /** Pays a shop's charge, from your balance or (`from: 'private'`) from private dollars. */
   /** Cashes out to a Nigerian bank: signs the quote's exact transfer to Kova's treasury, and Kova pays the naira. */
   cashOutNaira: (cashOut: CashOutToPay) => Promise<CashOutToPay>
@@ -386,6 +423,16 @@ export function WalletProvider({
   const heldRef = useRef(held)
   const [unchecked, setUnchecked] = useState(false)
   const [movingIn, setMovingIn] = useState<{ done: number; total: number } | null>(null)
+  /** A private payment found while the page was open, newer than ARRIVAL_MS: its moment. */
+  const [arrived, setArrived] = useState<{
+    id: string
+    amount: bigint
+    from?: string
+    memoName?: string
+    note?: string
+    unconfirmed?: boolean
+    at: number
+  } | null>(null)
   const transfersRef = useRef(transfers)
   transfersRef.current = transfers
   const notesRef = useRef(notes)
@@ -744,7 +791,28 @@ export function WalletProvider({
           () => current.current !== wallet,
         )
         if (!next || current.current !== wallet) return
+        // Paid to you a moment ago, and new to this page: the newest gets its arrival moment.
+        // Your own change, and anything found long after it was paid, doesn't.
+        const known = new Set(ledgerRef.current.found.map((f) => f.address.toLowerCase()))
+        const fresh = next.found
+          .filter(
+            (f) =>
+              !known.has(f.address.toLowerCase()) &&
+              f.kind !== 'change' &&
+              Date.now() - f.at < ARRIVAL_MS,
+          )
+          .sort((a, b) => b.at - a.at)[0]
         if (next !== ledgerRef.current) keepLedger(wallet, next)
+        if (fresh)
+          setArrived({
+            id: fresh.address.toLowerCase(),
+            amount: BigInt(fresh.amount),
+            ...(fresh.from ? { from: fresh.from } : {}),
+            ...(fresh.name ? { memoName: fresh.name } : {}),
+            ...(fresh.note ? { note: fresh.note } : {}),
+            ...(fresh.proven === 'claimed' ? { unconfirmed: true } : {}),
+            at: fresh.at,
+          })
         lastLooks.current.feed = Date.now()
         setUnchecked(false)
       } finally {
@@ -862,6 +930,59 @@ export function WalletProvider({
       setMovingIn(null)
     }
   }, [keepHeld, markEmptied, network, profile, refreshActivity, refreshBalance, unlock])
+
+  const moveInFor = useCallback(
+    async (shortfall: bigint) => {
+      if (!profile) throw new Error('Open your wallet first.')
+      const wallet = profile.address
+      // What each address holds now, read from Monad, then the fewest that make up the difference.
+      const candidates = ledgerRef.current.found.filter((f) => !f.emptied)
+      const read = await holdings(
+        network,
+        candidates.map((f) => f.address),
+      )
+      keepHeld((held) => {
+        for (const [address, value] of read) held.set(address, value)
+      })
+      const plan = planSpend(
+        candidates.map((payment) => ({
+          payment,
+          held: read.get(payment.address.toLowerCase()) ?? 0n,
+        })),
+        shortfall,
+      )
+      if (!plan)
+        throw new Error('Your private dollars don’t make up the difference any more. Nothing was paid.')
+      const move = 'from' in plan ? [plan.from] : plan.gather
+      // The wallet opens for this and for the payment right after: one passkey.
+      const account = await unlock(0n)
+      const keys = await privateKeys(account)
+      setMovingIn({ done: 0, total: move.length })
+      try {
+        const moved = await moveInPayments(network, keys, move, wallet, (done, total) =>
+          setMovingIn({ done, total }),
+        )
+        if (current.current === wallet) {
+          keepHeld((held) => {
+            for (const address of moved.emptied) held.set(address, 0n)
+          })
+          markEmptied(wallet, moved.emptied)
+        }
+        await refreshBalance().catch(() => {})
+        void refreshActivity()
+        if (moved.amount < shortfall)
+          throw new Error(
+            moved.count
+              ? `Only ${formatUsd(moved.amount)} moved into your balance just now. Nothing was paid; try again.`
+              : (moved.problem ?? 'Your private dollars didn’t move just now. Nothing was paid; try again.'),
+          )
+        return moved
+      } finally {
+        setMovingIn(null)
+      }
+    },
+    [keepHeld, markEmptied, network, profile, refreshActivity, refreshBalance, unlock],
+  )
 
   /**
    * The one-time address to pay `amount` from, as its own account: the smallest that holds enough.
@@ -1477,15 +1598,7 @@ export function WalletProvider({
         kind: 'received',
         amount: f.amount,
         name: f.from ? (nameFor(f.from) ?? f.name ?? short(getAddress(f.from))) : (f.name ?? ''),
-        detail:
-          f.note ??
-          (waiting
-            ? 'Ready to spend'
-            : moved
-              ? 'Moved in'
-              : f.used
-                ? 'Spent privately'
-                : 'Moved in'),
+        detail: f.note ?? (waiting ? 'Private' : f.used && !moved ? 'Spent privately' : 'Made public'),
         ...(f.note ? { private: 'both' as const } : {}),
         ...(f.from ? { address: getAddress(f.from) } : {}),
         ...(f.proven === 'claimed' ? { unconfirmed: true } : {}),
@@ -1532,21 +1645,55 @@ export function WalletProvider({
 
   /**
    * What each one-time address of yours holds (your change too): as Monad last said, or as
-   * announced until it has, and nothing once it's moved in.
+   * announced until it has, and nothing once it's moved in. The privacy router reads these.
    */
-  const privateHeld = useMemo(() => {
+  const privateHoldings = useMemo<PrivateHolding<FoundPayment>[]>(() => {
     const me = profile?.address.toLowerCase()
     const movedFrom = new Set(
       transfers.filter((t) => t.to.toLowerCase() === me).map((t) => t.from.toLowerCase()),
     )
     return ledger.found
       .filter((f) => !f.emptied)
-      .map((f) => {
+      .flatMap((f) => {
         const key = f.address.toLowerCase()
-        return held.get(key) ?? (movedFrom.has(key) ? 0n : BigInt(f.amount))
+        const value = held.get(key) ?? (movedFrom.has(key) ? 0n : BigInt(f.amount))
+        return value > 0n ? [{ item: f, held: value }] : []
       })
-      .filter((value) => value > 0n)
   }, [held, ledger, profile?.address, transfers])
+  const privateHeld = useMemo(() => privateHoldings.map((h) => h.held), [privateHoldings])
+  const route = useCallback(
+    (input: Omit<RouteInput<FoundPayment>, 'holdings'>) =>
+      routePayment({ ...input, holdings: privateHoldings }),
+    [privateHoldings],
+  )
+  const privateArrival = useMemo<PrivateArrival | null>(
+    () =>
+      arrived
+        ? {
+            id: arrived.id,
+            amount: arrived.amount,
+            name: arrived.from
+              ? (nameFor(arrived.from) ?? arrived.memoName ?? short(getAddress(arrived.from)))
+              : (arrived.memoName ?? 'Someone'),
+            ...(arrived.note ? { note: arrived.note } : {}),
+            ...(arrived.unconfirmed ? { unconfirmed: true } : {}),
+            at: arrived.at,
+          }
+        : null,
+    [arrived, nameFor],
+  )
+  const clearPrivateArrival = useCallback(() => setArrived(null), [])
+  // Development only: `kovaArrival({ amount: 1_000_000n, memoName: 'Maya', note: '…' })` in the
+  // console shows the arrival moment for a made-up payment, to look at the design.
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return
+    const w = window as unknown as { kovaArrival?: (a: Partial<NonNullable<typeof arrived>>) => void }
+    w.kovaArrival = (a) =>
+      setArrived({ id: `preview:${Date.now()}`, amount: 1_000_000n, at: Date.now(), ...a })
+    return () => {
+      delete w.kovaArrival
+    }
+  }, [])
   const privateBalance = useMemo(() => privateHeld.reduce((sum, v) => sum + v, 0n), [privateHeld])
   const privateLargest = useMemo(
     () => privateHeld.reduce((most, v) => (v > most ? v : most), 0n),
@@ -1596,6 +1743,10 @@ export function WalletProvider({
       tickPrivate,
       moveIn,
       movingIn,
+      route,
+      moveInFor,
+      privateArrival,
+      clearPrivateArrival,
       payCheckout,
       cashOutNaira,
       addTestDollars,
@@ -1641,6 +1792,10 @@ export function WalletProvider({
       tickPrivate,
       moveIn,
       movingIn,
+      route,
+      moveInFor,
+      privateArrival,
+      clearPrivateArrival,
       payCheckout,
       cashOutNaira,
       addTestDollars,

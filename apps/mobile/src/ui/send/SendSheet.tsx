@@ -107,7 +107,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
   // Where it comes from, by the privacy router. Private dollars only go out privately, to someone who
   // can receive that way; a private send spends them first. When the balance is short and they cover
   // it, that's how this send goes, privately.
-  const { route, choose, choosable } = usePaymentRoute({ amount, balance, direct: !viaCode && reach === 'yes', privateFirst: privately })
+  const { route, choose, choosable } = usePaymentRoute({ amount, balance, direct: !viaCode && reach === 'yes', privateFirst: privately, paying: busy })
   const fromPrivate = !viaCode && route.from === 'private'
   const forced = fromPrivate && !privately
   const sendPrivately = !viaCode && (privately || forced) && reach === 'yes'
@@ -380,6 +380,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                 amount={amount}
                 first={isUnnamed(name) ? 'they' : first}
                 disabled={busy || forced}
+                fromPrivate={fromPrivate}
               />
               {forced ? (
                 <Txt size={12} color={colors.onTint} style={{ marginTop: -4, marginLeft: 4, lineHeight: 17 }}>
@@ -405,7 +406,8 @@ export function SendSheet({ payee }: { payee?: Payee }) {
               </Txt>
             </View>
           ) : null}
-          {!viaCode && reach !== 'yes' && route.from === 'top-up' ? (
+          {/* While their key is being checked, where it comes from isn't settled yet: no line until it is. */}
+          {!viaCode && reach !== 'yes' && reach !== 'checking' && route.from === 'top-up' ? (
             <View style={{ marginBottom: 14 }}>
               <TopUpLine route={route} />
             </View>

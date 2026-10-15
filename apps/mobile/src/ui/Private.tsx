@@ -2,7 +2,7 @@ import type { PaySource } from '@kova/monad'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Pressable, StyleSheet, Switch, View } from 'react-native'
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated'
 import { explorerTx } from '@/lib/chain'
@@ -68,21 +68,27 @@ export const spendLabel = (s: SpendProgress | null) =>
  * Where a payment comes from, by the privacy router, worked out again as the amount or the balance
  * changes. `direct`: private dollars may pay it straight from their addresses. `privateFirst`: a
  * private send. A choice made under Details holds for this payment only, and only while it can pay.
+ * While `paying`, the route holds as it was when the payment began: the balance changes under it.
  */
 export function usePaymentRoute({
   amount,
   balance,
   direct,
   privateFirst = false,
+  paying = false,
 }: {
   amount: bigint
   balance: bigint | null
   direct: boolean
   privateFirst?: boolean
+  paying?: boolean
 }) {
   const p = usePrivate()
   const [choice, choose] = useState<PaySource | null>(null)
-  const route = p.route({ amount, balance, direct, privateFirst, choice })
+  const now = p.route({ amount, balance, direct, privateFirst, choice })
+  const held = useRef(now)
+  if (!paying) held.current = now
+  const route = paying ? held.current : now
   // Details offers a choice only when both ways would really pay it.
   const viaBalance = p.route({ amount, balance, direct, privateFirst, choice: 'balance' }).from
   const choosable = direct && p.coverFor(amount) !== null && (viaBalance === 'balance' || viaBalance === 'top-up')
@@ -540,18 +546,24 @@ export function SendPrivately({
   amount,
   first,
   disabled,
+  fromPrivate,
 }: {
   on: boolean
   onChange: (on: boolean) => void
   amount: bigint
   first: string
   disabled?: boolean
+  /** Paid from private dollars, so Monad doesn't show who sent it either. */
+  fromPrivate?: boolean
 }) {
+  const said = fromPrivate
+    ? `On Monad, people will see ${formatUsd(amount)} move, but not who sent it or to whom.`
+    : `On Monad, people will see you sent ${formatUsd(amount)}, but not to whom.`
   return (
     <Pressable
       accessibilityRole="switch"
       accessibilityState={{ checked: on, disabled: !!disabled }}
-      accessibilityLabel={`Send privately. ${on ? `On. People on Monad will see you sent ${formatUsd(amount)}, but not to whom.` : 'Off.'}`}
+      accessibilityLabel={`Send privately. ${on ? `On. ${said}` : 'Off.'}`}
       disabled={disabled}
       onPress={() => {
         void Haptics.selectionAsync()
@@ -567,7 +579,7 @@ export function SendPrivately({
           Send privately
         </Txt>
         <Txt size={12} color={on ? colors.onInk : colors.muted} style={{ lineHeight: 16 }}>
-          {on ? `On Monad, people will see you sent ${formatUsd(amount)}, but not to whom.` : `Hide who gets it from everyone but ${first}.`}
+          {on ? said : `Hide who gets it from everyone but ${first}.`}
         </Txt>
       </View>
       <Switch

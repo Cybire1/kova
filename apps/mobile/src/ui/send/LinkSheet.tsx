@@ -38,7 +38,6 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
   const [back, setBack] = useState(false)
   const [typed, setTyped] = useState(start?.amount ?? '')
   const [note, setNote] = useState(start?.note ?? '')
-  const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
   const [made, setMade] = useState<{ link: PaymentLink; key: Hex } | null>(null)
   const [copied, setCopied] = useState(false)
@@ -49,7 +48,8 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
   // enough moved in first when it's short.
   const privately = usePrivate()
   const have = balance === null ? null : balance + (privately.keysHere ? privately.waiting : 0n)
-  const { route } = usePaymentRoute({ amount, balance, direct: false })
+  const [busy, setBusy] = useState(false)
+  const { route } = usePaymentRoute({ amount, balance, direct: false, paying: busy })
   const over = route.from === 'short'
 
   const moveTo = (next: Step) => {

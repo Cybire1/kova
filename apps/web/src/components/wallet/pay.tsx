@@ -14,8 +14,8 @@ import { parseScanned } from '@/lib/wallet/links'
 import { baseToNumber, formatLocal, formatUsd } from '@/lib/wallet/money'
 import { sessionCovers } from '@/lib/wallet/session'
 import { ScreenHead } from './activity'
-import { MoveInFirst, PayFromChoice, privateCovers, stepLine, usePayFrom } from './private'
-import { type PayFrom, type PrivateStep, useWallet } from './provider'
+import { PayDetails, stepLine, TopUpLine, usePaymentRoute } from './private'
+import { type PrivateStep, useWallet } from './provider'
 
 interface Detector {
   detect(source: HTMLVideoElement): Promise<{ rawValue: string }[]>
@@ -185,12 +185,21 @@ type Charge = Omit<ChargeToPay, 'order'> & { status: string; order?: Checkout['o
 
 /** Paying a shop's charge from this wallet: what it's for, then paid in about a second. */
 export function PayCharge({ id }: { id: string }) {
-  const { balance, payCheckout, profile, rates, privateBalance } = useWallet()
+  const { balance, payCheckout, profile, rates, privateBalance, moveInFor } = useWallet()
   const [charge, setCharge] = useState<Charge | null>(null)
   const [stage, setStage] = useState<Stage>({ at: 'loading' })
-  const [payFrom, choosePayFrom] = usePayFrom()
-  /** Paying from private dollars: gathering them first, then paying. */
+  /** Paying with private dollars: getting them ready or moving just enough in first, then paying. */
   const [privateStep, setPrivateStep] = useState<PrivateStep | null>(null)
+  // Where it comes from, by the privacy router. Private dollars can pay any charge straight from
+  // their addresses but a stamp card's free item: stamps go to the wallet that pays, and a private
+  // payment comes from no wallet anyone can see. That one comes from the balance, with just enough
+  // moved in first when it's short.
+  const due = charge ? BigInt(charge.amount_base) : 0n
+  const { route, choose, choosable, from } = usePaymentRoute({
+    amount: due,
+    direct: Boolean(charge && !charge.order?.reward),
+    paying: stage.at === 'paying',
+  })
 
   useEffect(() => {
     let live = true
@@ -240,19 +249,14 @@ export function PayCharge({ id }: { id: string }) {
       </div>
     )
 
-  const amount = BigInt(charge.amount_base)
+  const amount = due
   const place = charge.order?.stall?.name ?? charge.merchant_name
-  const short_ = balance !== null && amount > balance
-  /** Short, but private dollars waiting to move in would cover it. */
-  const coverable = privateCovers(balance, privateBalance, amount)
   const order = charge.order
-  /**
-   * Private dollars can pay it when they cover it, and it isn't a stamp card's free item: stamps
-   * go to the wallet that pays, and a private payment comes from no wallet anyone can see.
-   */
-  const privateCan = !order?.reward && privateBalance >= amount
-  const from: PayFrom = privateCan ? (short_ ? 'private' : payFrom) : 'balance'
   const fromPrivate = from === 'private'
+  /** Short even with private dollars counted in. */
+  const short_ = route.from === 'short'
+  /** One balance: what you have, private dollars included. */
+  const total = balance === null ? null : balance + privateBalance
 
   if (stage.at === 'paid')
     return (
@@ -271,15 +275,7 @@ export function PayCharge({ id }: { id: string }) {
             <strong>$0.00</strong> Fee
           </span>
           <span>
-            {stage.fromPrivate ? (
-              <>
-                <strong>{formatUsd(privateBalance)}</strong> Private left
-              </>
-            ) : (
-              <>
-                <strong>{balance === null ? '…' : formatUsd(balance)}</strong> Left
-              </>
-            )}
+            <strong>{total === null ? '…' : formatUsd(total)}</strong> Left
           </span>
         </div>
         {stage.fromPrivate ? (
@@ -361,9 +357,13 @@ export function PayCharge({ id }: { id: string }) {
             <div className="w-review-row">
               <span>From</span>
               <strong>
-                {fromPrivate
-                  ? `Private dollars, ${formatUsd(privateBalance)}`
-                  : `Your wallet, ${balance === null ? '…' : formatUsd(balance)}`}
+                {fromPrivate ? (
+                  <>
+                    <Icon name="lock" size={13} /> Your private dollars
+                  </>
+                ) : (
+                  `Your balance, ${total === null ? '…' : formatUsd(total)}`
+                )}
               </strong>
             </div>
             <div className="w-review-row">
@@ -378,28 +378,18 @@ export function PayCharge({ id }: { id: string }) {
               {/went through/i.test(stage.message) ? '' : ' Nothing was paid.'}
             </p>
           ) : null}
-          {privateCan ? (
-            <PayFromChoice
-              value={from}
-              onChange={choosePayFrom}
+          <TopUpLine route={route} />
+          {choosable ? (
+            <PayDetails
               amount={amount}
+              route={route}
+              onChoose={choose}
               disabled={stage.at === 'paying'}
             />
           ) : null}
-          {coverable && !privateCan ? (
+          {route.from === 'short' ? (
             <>
-              <p className="w-fine w-center">
-                You need {formatUsd(amount - (balance ?? 0n))} more, and you have{' '}
-                {formatUsd(privateBalance)} sent to you privately. Moving it in takes about a
-                second.
-              </p>
-              <MoveInFirst tone="coral" />
-            </>
-          ) : short_ && !fromPrivate ? (
-            <>
-              <p className="form-error">
-                You need {formatUsd(amount - (balance ?? 0n))} more. Add money first.
-              </p>
+              <p className="form-error">You need {formatUsd(route.need)} more. Add money first.</p>
               <Link href="/wallet/add" className="pill pill-block" data-tone="ink">
                 <span className="pill-label">Add money</span>
                 <span className="pill-cap">
@@ -416,6 +406,11 @@ export function PayCharge({ id }: { id: string }) {
               onClick={async () => {
                 setStage({ at: 'paying' })
                 try {
+                  // Short: just enough private dollars move into the balance first.
+                  if (route.from === 'top-up') {
+                    setPrivateStep('moving')
+                    await moveInFor(route.shortfall)
+                  }
                   const moved = await payCheckout(charge, { from, onStep: setPrivateStep })
                   // This wallet is the stamp card at the shop; a private payment is no one's.
                   if (profile && !fromPrivate) rememberPayer(profile.address)
@@ -430,7 +425,8 @@ export function PayCharge({ id }: { id: string }) {
             >
               <span className="pill-label">
                 {stage.at === 'paying'
-                  ? (stepLine(privateStep) ?? 'Paying…')
+                  ? (stepLine(privateStep, route.from === 'top-up' ? route.moving : undefined) ??
+                    'Paying…')
                   : `Pay ${formatUsd(amount)}${fromPrivate ? ' privately' : ''}`}
               </span>
               <span className="pill-cap">
@@ -438,10 +434,10 @@ export function PayCharge({ id }: { id: string }) {
               </span>
             </button>
           )}
-          {short_ && !fromPrivate ? null : (
+          {short_ ? null : (
             <p className="w-fine w-center" aria-live="polite">
-              {privateStep === 'gathering'
-                ? 'Kova covers every fee, the gathering too.'
+              {privateStep === 'gathering' || privateStep === 'moving'
+                ? 'Kova covers every fee.'
                 : fromPrivate && order?.stall
                   ? 'Private payments don’t collect stamps.'
                   : sessionCovers(amount)
