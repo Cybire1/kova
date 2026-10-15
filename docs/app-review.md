@@ -1,6 +1,30 @@
 # App Review: TestFlight notes
 
-What to put in App Store Connect → TestFlight → Test Information → **Beta App Review Information**.
+What to put in App Store Connect → TestFlight → **Test Information**.
+
+## Beta App Information
+
+- **Beta App Description** (paste as is):
+
+  ```text
+  Kova is a dollar wallet and a shop till in one app, on Monad.
+
+  - Send dollars to anyone by name, QR code or link. It arrives in about a second, with no fee.
+  - Pay any Kova shop by scanning its QR code.
+  - Run your own shop: take payments at the till, manage orders and items, and see today's sales.
+  - Kova Card: set a daily limit, freeze it, or change its PIN.
+
+  This beta runs on Monad testnet with test dollars only; no real money moves. Your wallet is a passkey made with Face ID, so there's no password or seed phrase.
+
+  To send feedback, take a screenshot in the app, or email us.
+  ```
+
+- **Feedback Email:** the founder's email.
+- **Marketing URL:** https://mykova.app
+- **Privacy Policy URL:** https://mykova.app/privacy
+- **License Agreement:** leave empty (Apple's standard one applies).
+
+## Beta App Review Information
 
 - **Sign-in required:** on.
 - **User name / Password:** `KOVA_DEMO_USERNAME` / `KOVA_DEMO_PASSWORD` from the API's environment
@@ -37,3 +61,10 @@ Why the app asks for:
 - Camera: to scan payment QR codes and product barcodes, and to photograph items for the shop.
 - NFC: to read a Kova Card when linking it to a wallet and when taking a card payment at the till.
 - Face ID: to approve payments (the demo account skips it).
+
+## Before the next build
+
+The demo account lives on the **testnet** API. Build 8 (11 Oct) talks to testnet; the code now
+defaults to mainnet. A new TestFlight build must set `EXPO_PUBLIC_KOVA_NETWORK=testnet` and
+`EXPO_PUBLIC_KOVA_MONAD_API_URL=https://api-monad.up.railway.app` (for example in `eas.json`'s
+production profile), or the reviewer's demo sign-in fails.
