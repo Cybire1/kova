@@ -15,7 +15,7 @@ import { stashWallet, unstashWallet } from '@/lib/dev-slots'
 import { useOffline } from '@/lib/offline'
 import { publishReceivingKey } from '@/lib/private-core'
 import { clearOffline } from '@/lib/offline-store'
-import { usePrivate } from '@/lib/private'
+import { explainedKey, usePrivate } from '@/lib/private'
 import { useStall } from '@/lib/stall'
 import {
   accept as acceptKey,
@@ -25,7 +25,7 @@ import {
   newAgent,
   switchOn,
 } from '@/lib/spend-keys'
-import { save } from '@/lib/storage'
+import { remove, save } from '@/lib/storage'
 import { useTakings } from '@/lib/takings'
 import { viewFrom } from '@/lib/takings-core'
 import { forgetTakingsKeys } from '@/lib/takings-store'
@@ -49,7 +49,8 @@ import { booksMessage } from '@/ui/Takings'
  * `takings=forget` drops this phone's copy of the keys (relaunch to see the phone without them),
  * `charge=8.00,3.25` makes a charge for each amount (with private takings on, each pays its own address), `move=1` moves
  * every private sale into the wallet, and `books=1` opens the share sheet with the accountant's view.
- * Private sends between people: `private=setup` makes this wallet's private-receiving keys and gives Kova
+ * Private sends between people: `private=unexplain` forgets that this wallet's first private arrival was
+ * explained, `private=setup` makes this wallet's private-receiving keys and gives Kova
  * the public half (as opening the wallet does), `private=look` looks through Kova's feed now, `send=…&private=1`
  * sends privately through the real code, and `movein=1` makes every private payment public (moves it into
  * the wallet) on the screen it opens (`to=/private`, say). `/send/<address>?amount=…&private=1&autosend=1`
@@ -516,6 +517,8 @@ export default function Dev() {
           const entry = await wallet.payCheckout(await getCheckout(params.pay))
           return router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })
         }
+        // The first private arrival explains itself once per wallet: forget that, to see it again.
+        if (params.private === 'unexplain' && wallet.profile) await remove(explainedKey(wallet.profile.address))
         if (params.private === 'setup') {
           setStep('making private-receiving keys')
           const ok = await privateRef.current.setUp()

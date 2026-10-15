@@ -131,6 +131,9 @@ export function usePrivate(): PrivateDollars {
 }
 
 const words = (error: unknown) => (error instanceof Error && error.message ? error.message : 'That didn’t work. Try again.')
+/** Whether this wallet's first private arrival has been explained: once per wallet, never again. */
+export const explainedKey = (wallet: string) => `kova.private.explained.v1.${wallet.toLowerCase()}`
+
 /** How often the phone looks at Kova's feed while it's open. */
 const EVERY_MS = 5000
 
