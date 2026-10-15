@@ -454,7 +454,8 @@ export function PrivateRow({ receipt, last }: { receipt: PrivateReceipt; last?: 
         </Txt>
         <Txt size={13} color={colors.muted} numberOfLines={1}>
           {unconfirmed ? 'Unconfirmed sender · ' : ''}
-          {receipt.note ? `“${receipt.note}”` : 'Private'}, {when(receipt.at)}
+          {receipt.note ? `“${receipt.note}”, ` : ''}
+          {when(receipt.at)}
         </Txt>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 3 }}>

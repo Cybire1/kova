@@ -5623,8 +5623,8 @@ button.w-chip-private:disabled {
   font-weight: 650;
 }
 
-.w-privcard-problem {
-  color: var(--coral-soft) !important;
+.w-privcard .w-privcard-problem {
+  color: var(--coral-soft);
   font-weight: 650;
 }
 
@@ -5901,7 +5901,7 @@ button.w-chip-private:disabled {
   letter-spacing: -0.03em;
   line-height: 1.2;
   text-wrap: balance;
-  animation-delay: 1.15s !important;
+  animation-delay: 1.15s;
 }
 
 .w-arrival-unconfirmed {
@@ -5912,12 +5912,13 @@ button.w-chip-private:disabled {
 .w-arrival-note {
   position: relative;
   margin: 0.5rem 0 0;
+  margin-inline: 0;
   padding: 1.125rem 1rem 0.75rem;
   border: 2px solid var(--ink);
   border-radius: 1.125rem;
   background: #f6e7c8;
   transform: rotate(-1deg);
-  animation-delay: 1.3s !important;
+  animation-delay: 1.3s;
 }
 
 .w-arrival-note::before {
@@ -5950,6 +5951,7 @@ button.w-chip-private:disabled {
 }
 
 .w-arrival-note blockquote {
+  margin: 0;
   font-size: 1.1875rem;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -5969,7 +5971,7 @@ button.w-chip-private:disabled {
   gap: 0.5rem;
   font-size: 1rem;
   font-weight: 700;
-  animation-delay: 1.7s !important;
+  animation-delay: 1.7s;
 }
 
 .w-arrival-in small {
@@ -5999,7 +6001,7 @@ button.w-chip-private:disabled {
   color: var(--on-tint);
   font-size: 0.875rem;
   line-height: 1.45;
-  animation-delay: 1.95s !important;
+  animation-delay: 1.95s;
 }
 
 .w-arrival-explain strong {
@@ -6020,7 +6022,7 @@ button.w-chip-private:disabled {
 
 .w-arrival-done {
   margin-top: 0.5rem;
-  animation-delay: 1s !important;
+  animation-delay: 1s;
 }
 
 /* The envelope: teal, sealed with a coral seal; it opens, and the card rises out. */
@@ -6161,13 +6163,15 @@ button.w-chip-private:disabled {
 
 .w-env-label {
   position: absolute;
-  bottom: calc(var(--w) * 0.62 * 0.14);
+  bottom: calc(var(--w) * 0.62 * 0.07);
   left: 0;
   right: 0;
   display: grid;
   justify-items: center;
   color: #fff;
   pointer-events: none;
+  /* Under the seal until it breaks: it shows once the envelope opens. */
+  animation: fade 0.4s 0.8s ease-out both;
 }
 
 .w-env-label strong {
@@ -6271,11 +6275,14 @@ button.w-chip-private:disabled {
   .w-confirm,
   .w-explain,
   .w-privcard {
-    animation: none !important;
+    animation: none;
   }
   .w-env-seal,
   .w-env-ripple {
     display: none;
+  }
+  .w-env-label {
+    animation: none;
   }
   .w-env-flap-shut {
     animation: none;

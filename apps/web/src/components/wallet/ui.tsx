@@ -278,7 +278,15 @@ export function BalanceCard() {
 }
 
 /** The amount itself: dollars large, the sign and cents small and raised, or dots when hidden. */
-function BalanceFigure({ hidden, whole, cents }: { hidden: boolean; whole: string; cents: string }) {
+function BalanceFigure({
+  hidden,
+  whole,
+  cents,
+}: {
+  hidden: boolean
+  whole: string
+  cents: string
+}) {
   return hidden ? (
     <span className="w-balance-hidden">••••••</span>
   ) : (

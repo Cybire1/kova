@@ -438,9 +438,11 @@ export function PrivateDollars() {
           <>
             <span className="w-privcard-row">
               <strong className="w-privcard-amount">{shown(privateBalance)}</strong>
-              <span className="w-privcard-tag">
-                <Icon name="check" size={13} /> In your balance
-              </span>
+              {privateBalance > 0n ? (
+                <span className="w-privcard-tag">
+                  <Icon name="check" size={13} /> In your balance
+                </span>
+              ) : null}
             </span>
             <p>
               {privateBalance > 0n
@@ -492,12 +494,7 @@ export function PrivateDollars() {
         </div>
       ) : null}
 
-      <button
-        type="button"
-        className="w-howlink"
-        aria-expanded={how}
-        onClick={() => setHow(!how)}
-      >
+      <button type="button" className="w-howlink" aria-expanded={how} onClick={() => setHow(!how)}>
         <Icon name="info" size={16} /> How private works <Icon name="chevronDown" size={15} />
       </button>
       {how ? (
@@ -699,7 +696,9 @@ export function PrivateArrivalMoment() {
           {arrival.name} sent you {usd}, privately
         </h2>
         {arrival.unconfirmed ? (
-          <p className="w-arrival-unconfirmed">Unconfirmed: only their sealed note says it’s them</p>
+          <p className="w-arrival-unconfirmed">
+            Unconfirmed: only their sealed note says it’s them
+          </p>
         ) : null}
         {arrival.note ? (
           <DecodedNote text={arrival.note} caption={`From ${who}. Only you two can read it.`} />

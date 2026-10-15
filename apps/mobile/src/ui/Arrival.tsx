@@ -70,6 +70,7 @@ export function SealedEnvelope({ width, amount, from, to }: { width: number; amo
   const flapBack = useFlap(flap, flapH, false)
   const card = useAnimatedStyle(() => ({ transform: [{ translateY: -lift.value * rise }, { rotate: `${-lift.value * 2}deg` }] }))
   const sealStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, seal.value * 1.4), transform: [{ scale: seal.value }] }))
+  const labelStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, flap.value * 2) }))
   const rippleStyle = useAnimatedStyle(() => ({
     opacity: ripple.value > 0 && ripple.value < 1 ? 0.8 * (1 - ripple.value) : 0,
     transform: [{ scale: 0.5 + ripple.value * 2.6 }],
@@ -120,8 +121,9 @@ export function SealedEnvelope({ width, amount, from, to }: { width: number; amo
           <Path d={frontPath} fill={colors.teal} stroke={colors.ink} strokeWidth={2} strokeLinejoin="round" />
         </Svg>
       </View>
-      {/* Addressed to you, and opened here: your keys are the only ones that open it. */}
-      <View style={[styles.label, { top: head + height * 0.6, width }]} pointerEvents="none">
+      {/* Addressed to you, and opened here: your keys are the only ones that open it. It shows once
+          the seal over it has broken. */}
+      <Animated.View style={[styles.label, { top: head + height * 0.66, width }, labelStyle]} pointerEvents="none">
         {to ? (
           <Txt weight="bold" size={16} color={colors.white} numberOfLines={1}>
             For {to}
@@ -130,7 +132,7 @@ export function SealedEnvelope({ width, amount, from, to }: { width: number; amo
         <Txt weight="medium" size={12} color="#DCEBEA" numberOfLines={1}>
           Opened on this phone, with your keys
         </Txt>
-      </View>
+      </Animated.View>
       {/* The flap, shut, with the seal on its tip. */}
       <Animated.View style={[styles.flap, { top: head, height: flapH }, flapFront]} pointerEvents="none">
         <Svg width={width} height={flapH + 6}>

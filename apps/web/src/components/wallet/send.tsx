@@ -20,16 +20,10 @@ import {
   toBase,
 } from '@/lib/wallet/money'
 import { sessionCovers } from '@/lib/wallet/session'
+import { ArcRoute, type Leg } from './arc'
 import { Home } from './home'
 import { PayDetails, PrivateSwitch, stepLine, TopUpLine, usePaymentRoute } from './private'
-import {
-  type Contact,
-  isUnnamed,
-  type PrivateStep,
-  short,
-  useWallet,
-} from './provider'
-import { ArcRoute, type Leg } from './arc'
+import { type Contact, isUnnamed, type PrivateStep, short, useWallet } from './provider'
 import { Avatar, Keypad } from './ui'
 
 const first = (name: string) => (isUnnamed(name) ? short(name) : (name.split(' ')[0] ?? name))
@@ -429,7 +423,9 @@ export function SendSheet({ to }: { to?: string }) {
                   />
                 ) : null}
                 {mustPrivate ? (
-                  <p className="w-fine w-forced">This one goes privately, from your private dollars.</p>
+                  <p className="w-fine w-forced">
+                    This one goes privately, from your private dollars.
+                  </p>
                 ) : null}
                 <TopUpLine route={route} />
                 {choosable ? (
