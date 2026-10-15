@@ -23,7 +23,7 @@ import { Bob, Burst } from '../motion'
 import { NameSheet } from '../NameSheet'
 import { OfflineNotice } from '../Offline'
 import { PillButton, TextLink, Txt } from '../primitives'
-import { PayFrom, SendPrivately, SentPrivately, spendLabel, usePayFrom } from '../Private'
+import { PayDetails, SendPrivately, SentPrivately, spendLabel, TopUpLine, usePaymentRoute } from '../Private'
 import { Stage as KoviStage } from '../Stage'
 import { ArcRoute, type Leg } from './ArcRoute'
 import { SlideToSend } from './SlideToSend'
@@ -100,18 +100,22 @@ export function SendSheet({ payee }: { payee?: Payee }) {
   const amount = typedDollars > 0 ? toBase(typedDollars.toFixed(2)) : 0n
   // Offline, a code can only promise what the last known balance holds beyond the codes still waiting.
   const limit = viaCode ? net.spendable : balance
-  const shortOf = limit !== null && amount > limit
   const overCap = viaCode && amount > OFFLINE_MAX
-  // Private dollars only go out privately, to someone who can receive that way. When the balance is
-  // short and they cover it, that's how this send goes.
-  const privateCovers = !viaCode && reach === 'yes' && amount > 0n && dollars.keysHere && dollars.coverFor(amount) !== null
-  const forced = shortOf && privateCovers
+  // One balance: dollars sent to you privately count in what you have.
+  const mine = dollars.keysHere ? dollars.waiting : 0n
+  const have = balance === null ? null : balance + mine
+  // Where it comes from, by the privacy router. Private dollars only go out privately, to someone who
+  // can receive that way; a private send spends them first. When the balance is short and they cover
+  // it, that's how this send goes, privately.
+  const { route, choose, choosable } = usePaymentRoute({ amount, balance, direct: !viaCode && reach === 'yes', privateFirst: privately })
+  const fromPrivate = !viaCode && route.from === 'private'
+  const forced = fromPrivate && !privately
   const sendPrivately = !viaCode && (privately || forced) && reach === 'yes'
-  const payFrom = usePayFrom(amount, balance, sendPrivately)
-  const fromPrivate = sendPrivately && payFrom.source === 'private'
-  const over = viaCode ? shortOf || overCap : shortOf && !fromPrivate && !forced
-  // With Send privately on, wait for their key's check: a private send never quietly goes out in the open.
-  const checking = !viaCode && privately && reach === 'checking'
+  const over = viaCode ? (limit !== null && amount > limit) || overCap : route.from === 'short'
+  // With Send privately on, wait for their key's check: a private send never quietly goes out in the
+  // open. And when the balance alone doesn't cover it, whether they can receive privately decides
+  // where it comes from.
+  const checking = !viaCode && reach === 'checking' && (privately || route.from !== 'balance')
 
   const pick = (p: Payee) => {
     void Haptics.selectionAsync()
@@ -141,11 +145,12 @@ export function SendSheet({ payee }: { payee?: Payee }) {
         return
       }
       const text = note.trim() || undefined
-      // From private dollars: one of your one-time addresses pays, and your wallet's signature in the
-      // sealed memo tells them it's you.
-      const done = fromPrivate
-        ? await dollars.spendFrom(amount, (account) => send(payee, amount, text, { privately: true, signer: account }))
-        : await send(payee, amount, text, { privately: sendPrivately })
+      // The router's way. From private dollars: one of your one-time addresses pays, and your wallet's
+      // signature in the sealed memo tells them it's you. Short: just enough moves in first.
+      const done = await dollars.pay(route, amount, {
+        fromBalance: () => send(payee, amount, text, { privately: sendPrivately }),
+        fromPrivate: (account) => send(payee, amount, text, { privately: true, signer: account }),
+      })
       // Let Kovi finish the leg he is on: the flight is timed to about what the chain takes.
       await new Promise((r) => setTimeout(r, Math.max(0, 1360 - (Date.now() - started))))
       setLeg('landed')
@@ -275,10 +280,10 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                       : `${formatUsd(net.spendable)} available${net.outWaiting > 0n ? ` · ${formatUsd(net.outWaiting)} waiting to settle` : ''}`}
                   </Txt>
                 </View>
-              ) : !viaCode && balance !== null ? (
+              ) : !viaCode && have !== null ? (
                 <View style={[styles.pill, over && { backgroundColor: colors.coralSoft }]}>
                   <Txt weight="medium" size={14} color={over ? colors.danger : colors.onTint}>
-                    {over ? `You have ${formatUsd(balance)}` : `${formatUsd(balance)} available`}
+                    {over ? `You have ${formatUsd(have)}` : `${formatUsd(have)} available`}
                   </Txt>
                 </View>
               ) : null}
@@ -308,7 +313,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           <Keypad onKey={(key) => setTyped((v) => applyKey(v, key))} size={56} />
           <View style={{ marginTop: 14 }}>
             <PillButton
-              label={overCap ? 'Up to $100 a code' : over ? 'More than you have' : forced ? 'Review, from private dollars' : 'Review'}
+              label={overCap ? 'Up to $100 a code' : over ? 'More than you have' : 'Review'}
               disabled={amount === 0n || over}
               onPress={() => moveTo('review')}
             />
@@ -376,14 +381,13 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                 first={isUnnamed(name) ? 'they' : first}
                 disabled={busy || forced}
               />
-              {forced && !privately ? (
+              {forced ? (
                 <Txt size={12} color={colors.onTint} style={{ marginTop: -4, marginLeft: 4, lineHeight: 17 }}>
-                  Your balance is short, so this one goes privately, from your private dollars.
+                  This one goes privately, from your private dollars.
                 </Txt>
               ) : null}
-              {sendPrivately && payFrom.offered ? (
-                <PayFrom amount={amount} balance={balance} source={payFrom.source} cover={payFrom.cover} onChange={payFrom.setSource} disabled={busy} />
-              ) : null}
+              <TopUpLine route={route} />
+              {choosable ? <PayDetails amount={amount} balance={balance} route={route} onChoose={choose} disabled={busy} /> : null}
             </View>
           ) : reach === 'untrusted' ? (
             <View style={styles.untrusted}>
@@ -399,6 +403,11 @@ export function SendSheet({ payee }: { payee?: Payee }) {
               <Txt size={13} color={colors.muted} style={{ flex: 1, lineHeight: 18 }}>
                 {isUnnamed(name) ? 'They' : first} can’t receive privately yet, so Monad will show who gets this one.
               </Txt>
+            </View>
+          ) : null}
+          {!viaCode && reach !== 'yes' && route.from === 'top-up' ? (
+            <View style={{ marginBottom: 14 }}>
+              <TopUpLine route={route} />
             </View>
           ) : null}
 
@@ -421,7 +430,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                 ? 'One code carries $100 at most. Send less.'
                 : viaCode
                   ? `${formatUsd(limit ?? 0n)} is free to promise offline. Send less.`
-                  : `You have ${formatUsd(balance ?? 0n)}. Add money or send less.`}
+                  : `You have ${formatUsd(have ?? 0n)}. Add money or send less.`}
             </Txt>
           ) : null}
 

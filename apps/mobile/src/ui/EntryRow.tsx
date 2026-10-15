@@ -36,12 +36,10 @@ export function PrivateAvatar({ name, id, size = 38 }: { name: string; id?: stri
 /** One line of money: who, what, when, and how much, signed by direction. */
 export function EntryRow({ entry }: { entry: Entry }) {
   const incoming = entry.kind === 'received' || entry.kind === 'added'
-  // Sent or received privately: a padlock on their face, and "Private" before the note.
-  const detail = [
-    entry.fromPrivate ? 'From private dollars' : null,
-    entry.unconfirmed ? 'Unconfirmed sender' : null,
-    entry.privately && entry.private ? `Private · “${entry.detail}”` : entry.detail,
-  ]
+  // Sent, received or paid privately: like any other row, with a padlock and "Private" leading the line.
+  const privately = Boolean(entry.privately || entry.fromPrivate)
+  const said = privately && /^(Received|Sent) privately$/.test(entry.detail) ? null : entry.detail
+  const detail = [entry.unconfirmed ? 'Unconfirmed sender' : null, said && privately && entry.private ? `“${said}”` : said]
     .filter(Boolean)
     .join(' · ')
   return (
@@ -67,9 +65,15 @@ export function EntryRow({ entry }: { entry: Entry }) {
           {entry.name}
         </Txt>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          {entry.private || entry.privately || entry.fromPrivate ? <Icon name="lock" size={12} color={colors.muted} /> : null}
+          {privately || entry.private ? <Icon name="lock" size={12} color={privately ? colors.ink : colors.muted} strokeWidth={2.4} /> : null}
           <Txt size={13} color={colors.muted} numberOfLines={1} style={{ flexShrink: 1 }}>
-            {detail}, {when(entry.at)}
+            {privately ? (
+              <Txt weight="semi" size={13}>
+                Private{detail ? ' · ' : ', '}
+              </Txt>
+            ) : null}
+            {detail ? `${detail}, ` : ''}
+            {when(entry.at)}
           </Txt>
         </View>
       </View>

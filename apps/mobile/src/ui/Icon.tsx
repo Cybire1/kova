@@ -52,6 +52,8 @@ const glyphs = {
   chevronDown: ['M6.5 9.5l5.5 5.5 5.5-5.5'],
   chevronUp: ['M6.5 14.5L12 9l5.5 5.5'],
   list: ['M8 6h12', 'M8 12h12', 'M8 18h12', 'M4 6h.01', 'M4 12h.01', 'M4 18h.01'],
+  /** Three dots, drawn as filled discs below. */
+  more: [],
   stall: ['M3.5 9.5h17L19 4.5H5z', 'M5 9.5v10h14v-10', 'M10 19.5v-5h4v5'],
   tag: ['M3.5 12.5V4.5h8l9 9-8 8z', 'M8 8.5h.01'],
   camera: ['M4 8h3l1.5-2.5h7L17 8h3v11H4z', 'M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z'],
@@ -98,6 +100,7 @@ export function Icon({
       {name === 'lock' ? <Rect x={5} y={11} width={14} height={9} rx={2.5} {...common} /> : null}
       {name === 'card' ? <Rect x={3} y={6} width={18} height={12} rx={3} {...common} /> : null}
       {name === 'print' ? <Rect x={4} y={9} width={16} height={7} rx={2} {...common} /> : null}
+      {name === 'more' ? [5, 12, 19].map((x) => <Circle key={x} cx={x} cy={12} r={2} fill={color} />) : null}
       {glyphs[name].map((d) => (
         <Path key={d} d={d} {...common} />
       ))}

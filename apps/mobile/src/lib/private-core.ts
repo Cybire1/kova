@@ -6,6 +6,8 @@ import {
   parseStealthMetaAddress,
   parseStealthViewKey,
   personalStealthKeysMessage,
+  planPrivateSpend,
+  type PrivateHolding,
   STEALTH_SCHEME_ID,
   type StealthKeys,
   stealthKeysFromSignature,
@@ -379,24 +381,19 @@ export function oneTimeAccount(keys: StealthKeys, receipt: Pick<PrivateReceipt, 
   return account
 }
 
+/** Private dollars as the router reads them: each address that still holds some, and how much. */
+export function holdingsOf(receipts: PrivateReceipt[]): PrivateHolding<PrivateReceipt>[] {
+  return receipts.flatMap((r) => (BigInt(r.held) > 0n ? [{ item: r, held: BigInt(r.held) }] : []))
+}
+
 /**
  * Which private dollars pay `amount`: the smallest single address that covers it (the change stays
  * there, still private), or, when none does alone, the largest ones until they cover it together,
- * to be gathered into one address first. Null when they don't cover it at all.
+ * to be gathered into one address first. Null when they don't cover it at all. The rule is the
+ * router's, shared with the web (@kova/monad).
  */
 export function planSpend(receipts: PrivateReceipt[], amount: bigint): { from: PrivateReceipt } | { gather: PrivateReceipt[] } | null {
-  const funded = receipts.filter((r) => BigInt(r.held) > 0n)
-  const single = funded.filter((r) => BigInt(r.held) >= amount).sort((a, b) => (BigInt(a.held) < BigInt(b.held) ? -1 : 1))[0]
-  if (single) return { from: single }
-  const largest = [...funded].sort((a, b) => (BigInt(a.held) > BigInt(b.held) ? -1 : 1))
-  const gather: PrivateReceipt[] = []
-  let sum = 0n
-  for (const r of largest) {
-    if (sum >= amount) break
-    gather.push(r)
-    sum += BigInt(r.held)
-  }
-  return sum >= amount ? { gather } : null
+  return planPrivateSpend(holdingsOf(receipts), amount)
 }
 
 /**

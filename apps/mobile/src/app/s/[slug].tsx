@@ -23,7 +23,7 @@ import { tableFrom } from '@/lib/links'
 import { type DisplayCurrency, formatLocal } from '@/lib/money'
 import { colors, fonts } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
-import { usePayFrom } from '@/ui/Private'
+import { usePaymentRoute } from '@/ui/Private'
 import { Coin, Kovi } from '@/ui/art'
 import { Awning } from '@/ui/Awning'
 import { Icon } from '@/ui/Icon'
@@ -352,12 +352,12 @@ function BasketSheet({
   const [busy, setBusy] = useState<'pay' | 'ask' | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
   const [asked, setAsked] = useState<PlacedOrder | null>(null)
-  // Paying from private dollars (as last chosen, or because the balance is short): the order isn't
-  // tied to this wallet, so it collects no stamp. A free item on the card always pays from the wallet.
+  // Paid from private dollars (the router's pick when the balance is short): the order isn't tied to
+  // this wallet, so it collects no stamp. A free item on the card always pays from the wallet.
   const { balance } = useWallet()
   const totalBase = BigInt(Math.round(total * 1e6))
-  const payFrom = usePayFrom(totalBase, balance, !free && totalBase > 0n)
-  const privately = payFrom.source === 'private'
+  const { route } = usePaymentRoute({ amount: totalBase, balance, direct: !free && totalBase > 0n })
+  const privately = route.from === 'private'
 
   useEffect(() => {
     if (visible && lines.length === 0 && !asked) onClose()

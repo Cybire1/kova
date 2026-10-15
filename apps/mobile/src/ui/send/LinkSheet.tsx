@@ -8,6 +8,7 @@ import type { Hex } from 'viem'
 import type { PaymentLink } from '@/lib/chain'
 import { applyKey, formatUsd, groupTyped, toBase } from '@/lib/money'
 import { linkUrl, plainUsd, shareMessage } from '@/lib/paylinks'
+import { usePrivate } from '@/lib/private'
 import { colors, fonts } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon, type IconName } from '../Icon'
@@ -15,6 +16,7 @@ import { Keypad } from '../Keypad'
 import { Envelope } from '../LinkParts'
 import { Burst } from '../motion'
 import { PillButton, TextLink, Txt } from '../primitives'
+import { spendLabel, TopUpLine, usePaymentRoute } from '../Private'
 import { SlideToSend } from './SlideToSend'
 
 type Step = 'amount' | 'review' | 'made'
@@ -43,7 +45,12 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
 
   const dollars = typed === '' ? 0 : Number(typed)
   const amount = dollars > 0 ? toBase(dollars.toFixed(2)) : 0n
-  const over = balance !== null && amount > balance
+  // One balance: private dollars count in what you have. A link is paid from the balance, with just
+  // enough moved in first when it's short.
+  const privately = usePrivate()
+  const have = balance === null ? null : balance + (privately.keysHere ? privately.waiting : 0n)
+  const { route } = usePaymentRoute({ amount, balance, direct: false })
+  const over = route.from === 'short'
 
   const moveTo = (next: Step) => {
     setBack(order.indexOf(next) < order.indexOf(step))
@@ -58,7 +65,8 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
     setBusy(true)
     setProblem(null)
     try {
-      const done = await makeLink(amount, note.trim() || undefined)
+      const make = () => makeLink(amount, note.trim() || undefined)
+      const done = await privately.pay(route, amount, { fromBalance: make, fromPrivate: make })
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
       setMade({ link: done.link, key: done.key })
       // Development only: the full link, for scripted captures that open it in a browser.
@@ -123,10 +131,10 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
             <Txt weight="semi" size={64} style={[styles.big, typed === '' && { color: '#B4B9B8' }]} numberOfLines={1} adjustsFontSizeToFit>
               ${groupTyped(typed)}
             </Txt>
-            {balance !== null ? (
+            {have !== null ? (
               <View style={[styles.pill, over && { backgroundColor: colors.coralSoft }]}>
                 <Txt weight="medium" size={14} color={over ? colors.danger : colors.onTint}>
-                  {over ? `You have ${formatUsd(balance)}` : `${formatUsd(balance)} available`}
+                  {over ? `You have ${formatUsd(have)}` : `${formatUsd(have)} available`}
                 </Txt>
               </View>
             ) : null}
@@ -177,6 +185,10 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
             </Txt>
           </View>
 
+          <View style={{ marginBottom: route.from === 'top-up' ? 14 : 0 }}>
+            <TopUpLine route={route} />
+          </View>
+
           {problem ? (
             <Animated.View entering={FadeIn} style={styles.problem}>
               <Icon name="info" size={18} color={colors.danger} />
@@ -184,6 +196,10 @@ export function LinkSheet({ start }: { start?: { amount?: string; note?: string;
                 {problem}
               </Txt>
             </Animated.View>
+          ) : privately.spending ? (
+            <Txt weight="medium" size={14} style={{ textAlign: 'center', marginBottom: 10 }}>
+              {spendLabel(privately.spending)}
+            </Txt>
           ) : null}
 
           <SlideToSend

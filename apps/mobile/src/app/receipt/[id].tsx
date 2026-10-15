@@ -38,7 +38,7 @@ export default function Receipt() {
   // A one-time address (a link's, or a private sale's) is never a person to name.
   const person = (entry.kind === 'sent' || entry.kind === 'received') && entry.address && !entry.takings ? entry.address : null
   const zigzag = Array.from({ length: 18 }, (_, i) => `L${i * 20 + 10} 10 L${i * 20 + 20} 0`).join(' ')
-  // Received privately: still at its one-time address, or in the balance.
+  // Received privately: still private (in the balance either way), spent privately, or made public.
   const receipt = entry.privately && incoming ? privately.receiptAt(entry.oneTime) : undefined
   const waiting = receipt ? BigInt(receipt.held) > 0n : false
   const first = isUnnamed(entry.name) ? 'they' : entry.name.split(' ')[0]
@@ -99,16 +99,16 @@ export default function Receipt() {
           {entry.privately ? (
             <>
               <Row label="Privacy" icon="lock" value={incoming ? 'Received privately' : 'Sent privately'} />
-              {entry.oneTime ? <Row label="Paid to" value={`${shortAddress(entry.oneTime)}, one-time`} /> : null}
+              {entry.oneTime ? <Row label="Paid to" value={shortAddress(entry.oneTime)} /> : null}
               <Txt size={12} color={colors.muted} style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}>
                 {incoming
-                  ? 'Made for this payment. Only you can tell it’s yours.'
+                  ? 'An address made just for this payment. Only you can tell it’s yours.'
                   : `Monad shows that address, not ${isUnnamed(entry.name) ? 'them' : first}. Only ${first} can open it.`}
               </Txt>
               {receipt ? (
                 <Row
                   label="Now"
-                  value={waiting ? (BigInt(receipt.held) < BigInt(receipt.amount) ? `${formatUsd(BigInt(receipt.held))} left, private` : 'Private, yours to spend') : receipt.movedTx ? 'Moved into your balance' : 'Spent'}
+                  value={waiting ? (BigInt(receipt.held) < BigInt(receipt.amount) ? `${formatUsd(BigInt(receipt.held))} left, private` : 'Private, in your balance') : receipt.movedTx ? 'Made public' : 'Spent privately'}
                 />
               ) : null}
               {entry.oneTime ? (
@@ -129,7 +129,7 @@ export default function Receipt() {
           {entry.fromPrivate ? <Row label="Paid from" icon="lock" value="Private dollars" /> : null}
           {entry.fromPrivate ? (
             <Txt size={12} color={colors.muted} style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}>
-              One of your one-time addresses paid. Your wallet doesn’t show on Monad.
+              Paid from an address only you can open. Your wallet doesn’t show on Monad.
             </Txt>
           ) : null}
           {entry.ms ? <Row label={entry.offline ? 'Settled in' : 'Took'} value={`${(entry.ms / 1000).toFixed(entry.offline ? 2 : 1)} seconds`} /> : null}

@@ -15,7 +15,7 @@ import { Icon } from '@/ui/Icon'
 import { Bob } from '@/ui/motion'
 import { OrderProgress, progressCopy } from '@/ui/OrderProgress'
 import { PaidScene } from '@/ui/PaidScene'
-import { PayFrom, spendLabel, usePayFrom } from '@/ui/Private'
+import { PayDetails, spendLabel, TopUpLine, usePaymentRoute } from '@/ui/Private'
 import { Stage as KoviStage } from '@/ui/Stage'
 import { Chip, Header, PillButton, Rise, RoundButton, Screen, Sticker, TextLink, Txt } from '@/ui/primitives'
 
@@ -62,20 +62,27 @@ export default function PayCharge() {
       })
   }, [id])
 
-  // Private dollars can pay any charge but a stamp-card reward (that's the card owner's wallet alone),
-  // and an order already tied to this wallet's stamp card.
+  // Where it comes from, by the privacy router. Private dollars can pay any charge straight from
+  // their addresses but a stamp-card reward (that's the card owner's wallet alone) and an order
+  // already tied to this wallet's stamp card: those come from the balance, with just enough moved in
+  // first when it's short.
   const due = checkout ? BigInt(checkout.amount_base) : 0n
-  const payFrom = usePayFrom(due, balance, Boolean(checkout && !checkout.order?.reward && due > 0n && stamp !== '1'))
-  const fromPrivate = payFrom.source === 'private'
+  const { route, choose, choosable } = usePaymentRoute({
+    amount: due,
+    balance,
+    direct: Boolean(checkout && !checkout.order?.reward && due > 0n && stamp !== '1'),
+  })
+  const fromPrivate = route.from === 'private'
 
   const pay = async () => {
     if (!checkout) return
     setStage('paying')
     try {
       // From private dollars: one of your one-time addresses signs the payment, exactly as the wallet would.
-      const done = fromPrivate
-        ? await dollars.spendFrom(due, (account) => payCheckout(checkout, { signer: account }))
-        : await payCheckout(checkout)
+      const done = await dollars.pay(route, due, {
+        fromBalance: () => payCheckout(checkout),
+        fromPrivate: (account) => payCheckout(checkout, { signer: account }),
+      })
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
       // A stall order: follow it until the counter marks it ready, wherever the buyer goes next.
       watchOrder(checkout)
@@ -130,8 +137,8 @@ export default function PayCharge() {
     )
 
   const amount = BigInt(checkout.amount_base)
-  // Short of the balance, unless private dollars pay it.
-  const short = balance !== null && balance < amount && !fromPrivate
+  // Short even with private dollars counted in.
+  const short = route.from === 'short'
   const reward = checkout.order?.reward ?? null
   // A full stamp card can make the whole order free: it's still approved, for $0, so it has a receipt.
   const free = amount === 0n && reward !== null
@@ -185,7 +192,7 @@ export default function PayCharge() {
                 {entry.fromPrivate ? (
                   <Stat label="From" value="Private dollars" />
                 ) : (
-                  <Stat label="Left" value={balance === null ? '—' : formatUsd(balance)} />
+                  <Stat label="Left" value={balance === null ? '—' : formatUsd(balance + (dollars.keysHere ? dollars.waiting : 0n))} />
                 )}
               </View>
             </Sticker>
@@ -319,23 +326,30 @@ export default function PayCharge() {
         ) : null}
       </ScrollView>
       <View style={{ paddingHorizontal: 20, gap: 10 }}>
-        {payFrom.offered ? (
-          <PayFrom amount={amount} balance={balance} source={payFrom.source} cover={payFrom.cover} onChange={payFrom.setSource} disabled={stage === 'paying'} />
-        ) : null}
         <Sticker radius={24}>
           <View style={styles.lines}>
-            {payFrom.offered ? null : <Line label="From" value={`Your wallet, ${balance === null ? '…' : formatUsd(balance)}`} />}
+            <Line
+              label="From"
+              icon={fromPrivate ? 'lock' : undefined}
+              value={
+                fromPrivate
+                  ? 'Your private dollars'
+                  : `Your balance, ${balance === null ? '…' : formatUsd(balance + (dollars.keysHere ? dollars.waiting : 0n))}`
+              }
+            />
             <Line label="Fee" value="$0.00, Kova covers it" />
           </View>
         </Sticker>
+        <TopUpLine route={route} />
         {fromPrivate && checkout.order?.stall ? (
           <Txt size={13} color={colors.onTint} style={{ textAlign: 'center' }}>
             Private payments don’t collect stamps.
           </Txt>
         ) : null}
-        {short ? (
+        {choosable ? <PayDetails amount={amount} balance={balance} route={route} onChoose={choose} disabled={stage === 'paying'} /> : null}
+        {route.from === 'short' ? (
           <Txt weight="medium" size={15} color={colors.danger} style={{ marginTop: 12, textAlign: 'center' }}>
-            You need {formatUsd(amount - (balance ?? 0n))} more. Add money first.
+            You need {formatUsd(route.need)} more. Add money first.
           </Txt>
         ) : null}
       </View>
@@ -350,7 +364,7 @@ export default function PayCharge() {
               loading={stage === 'paying'}
               onPress={pay}
             />
-            {fromPrivate && dollars.problem?.during === 'spend' && stage === 'review' ? (
+            {route.from !== 'balance' && dollars.problem?.during === 'spend' && stage === 'review' ? (
               <Txt weight="medium" size={13} color={colors.danger} style={{ textAlign: 'center', marginTop: 8 }}>
                 {dollars.problem.text}
               </Txt>
@@ -400,15 +414,18 @@ function Tracker({ status, table }: { status: OrderStatus; table: string | null 
   )
 }
 
-function Line({ label, value }: { label: string; value: string }) {
+function Line({ label, value, icon }: { label: string; value: string; icon?: 'lock' }) {
   return (
     <View style={styles.line}>
       <Txt size={15} color={colors.muted}>
         {label}
       </Txt>
-      <Txt weight="semi" size={15}>
-        {value}
-      </Txt>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 1 }}>
+        {icon ? <Icon name={icon} size={14} strokeWidth={2.4} /> : null}
+        <Txt weight="semi" size={15} numberOfLines={1}>
+          {value}
+        </Txt>
+      </View>
     </View>
   )
 }

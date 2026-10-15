@@ -51,9 +51,9 @@ import { booksMessage } from '@/ui/Takings'
  * every private sale into the wallet, and `books=1` opens the share sheet with the accountant's view.
  * Private sends between people: `private=setup` makes this wallet's private-receiving keys and gives Kova
  * the public half (as opening the wallet does), `private=look` looks through Kova's feed now, `send=…&private=1`
- * sends privately through the real code, and `movein=1` moves every private payment into the balance
- * on the screen it opens (`to=/private`, say). `/send/<address>?amount=…&private=1&autosend=1` films the sheet,
- * and `payfrom=private|balance` picks where payments come from, as the Pay from switch does.
+ * sends privately through the real code, and `movein=1` makes every private payment public (moves it into
+ * the wallet) on the screen it opens (`to=/private`, say). `/send/<address>?amount=…&private=1&autosend=1`
+ * films the sheet; where a payment comes from is the privacy router's to decide.
  * `stash=<name>` keeps this dev wallet whole and signs it out; `unstash=<name>` puts it back for the next launch.
  * Offline payments: `offline=1` makes the app act as if it had no signal (it lasts across launches) and
  * `offline=0` brings it back online, which settles whatever is waiting (`offline=clear` forgets this
@@ -209,8 +209,6 @@ export default function Dev() {
     books?: string
     private?: string
     movein?: string
-    /** Where payments come from, as if chosen: balance or private. */
-    payfrom?: string
     /**
      * `biz=seed` fills this shop's business book: four people (three can be paid privately) and two
      * suppliers. `biz=pay&amount=0.05` pays everyone who can be paid privately that much, through the
@@ -518,8 +516,6 @@ export default function Dev() {
           const entry = await wallet.payCheckout(await getCheckout(params.pay))
           return router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })
         }
-        if (params.payfrom === 'private' || params.payfrom === 'balance')
-          privateRef.current.setSource(params.payfrom)
         if (params.private === 'setup') {
           setStep('making private-receiving keys')
           const ok = await privateRef.current.setUp()

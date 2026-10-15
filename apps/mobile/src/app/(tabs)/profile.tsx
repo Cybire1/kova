@@ -404,12 +404,12 @@ function KeysCard() {
   )
 }
 
-/** Private dollars, one tap away: what's waiting, or whether people can send to you privately. */
+/** Private dollars, one tap away: how much of the balance is private, or whether people can send to you privately. */
 function PrivateRow() {
   const p = usePrivate()
   const line =
     p.waiting > 0n
-      ? `${formatUsd(p.waiting)} waiting to move in`
+      ? `Private: ${formatUsd(p.waiting)}`
       : p.keysHere && p.published
         ? 'Anyone can send to you privately'
         : p.keysHere
@@ -423,7 +423,7 @@ function PrivateRow() {
           <Txt weight="semi" size={16}>
             Private dollars
           </Txt>
-          <Txt size={13} color={p.waiting > 0n ? colors.coralDeep : colors.muted} numberOfLines={1}>
+          <Txt size={13} color={colors.muted} numberOfLines={1}>
             {line}
           </Txt>
         </View>

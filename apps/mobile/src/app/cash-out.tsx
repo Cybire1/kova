@@ -7,6 +7,7 @@ import { naira, type NairaBank, type NairaInfo } from '@/lib/api'
 import type { CashOutToPay } from '@/lib/chain'
 import { chainName } from '@/lib/config'
 import { applyKey, formatUsd, groupTyped, type Key, toBase } from '@/lib/money'
+import { usePrivate } from '@/lib/private'
 import { useSessionCovers } from '@/lib/session'
 import { colors, fonts } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
@@ -14,6 +15,7 @@ import { Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Keypad } from '@/ui/Keypad'
 import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
+import { spendLabel, TopUpLine, usePaymentRoute } from '@/ui/Private'
 import { SlideToSend } from '@/ui/send/SlideToSend'
 
 type Step = 'amount' | 'account' | 'review' | 'done'
@@ -73,7 +75,11 @@ export default function CashOutScreen() {
       return 0n
     }
   }, [typed])
-  const over = balance !== null && amount > balance
+  // One balance: private dollars count in what you have, and just enough moves in first when it's short.
+  const privately = usePrivate()
+  const have = balance === null ? null : balance + (privately.keysHere ? privately.waiting : 0n)
+  const { route } = usePaymentRoute({ amount, balance, direct: false })
+  const over = route.from === 'short'
   const tooSmall = amount > 0n && amount < 1_000_000n
 
   useEffect(() => {
@@ -137,7 +143,8 @@ export default function CashOutScreen() {
     setBusy(true)
     setProblem(null)
     try {
-      let result: CashOutToPay = await cashOutNaira(quote)
+      const pay = () => cashOutNaira(quote)
+      let result: CashOutToPay = await privately.pay(route, BigInt(quote.pay.value), { fromBalance: pay, fromPrivate: pay })
       void Haptics.notificationAsync(
         result.status === 'failed' ? Haptics.NotificationFeedbackType.Warning : Haptics.NotificationFeedbackType.Success,
       )
@@ -217,10 +224,10 @@ export default function CashOutScreen() {
                   </Txt>
                 </View>
               ) : null}
-              {balance !== null ? (
+              {have !== null ? (
                 <View style={[styles.pill, over && { backgroundColor: colors.coralSoft }]}>
                   <Txt weight="semi" size={14} color={over ? colors.danger : colors.onTint}>
-                    {over ? `You have ${formatUsd(balance)}` : `${formatUsd(balance)} available`}
+                    {over ? `You have ${formatUsd(have)}` : `${formatUsd(have)} available`}
                   </Txt>
                 </View>
               ) : null}
@@ -338,6 +345,14 @@ export default function CashOutScreen() {
             {quote.test_mode ? (
               <Txt size={13} color={colors.muted} style={{ marginTop: 10 }}>
                 Paystack test mode: no naira moves. The dollars are Monad testnet dollars.
+              </Txt>
+            ) : null}
+            <View style={{ marginTop: 10 }}>
+              <TopUpLine route={route} />
+            </View>
+            {privately.spending ? (
+              <Txt weight="medium" size={14} style={{ textAlign: 'center', marginTop: 10 }}>
+                {spendLabel(privately.spending)}
               </Txt>
             ) : null}
             {problem ? <Txt color={colors.danger}>{problem}</Txt> : null}

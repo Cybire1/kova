@@ -88,7 +88,8 @@ export default function Home() {
               }
             : null
         }
-        privately={privately.waiting > 0n ? { amount: privately.waiting, onPress: () => router.push('/private') } : null}
+        privateAmount={privately.keysHere ? privately.waiting : 0n}
+        onPrivate={() => router.push('/private')}
         waiting={
           offline.waiting.length > 0
             ? { out: offline.outWaiting, in: offline.inWaiting, onPress: () => router.push('/(tabs)/activity') }
