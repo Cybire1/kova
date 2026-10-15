@@ -166,6 +166,7 @@ export default async function IphonePage() {
           <Link href="/">Kova</Link>
           <Link href="/try?ref=iphone">Try Kova in a minute</Link>
           <Link href="/stats">Kova, live</Link>
+          <Link href="/privacy">Privacy</Link>
         </nav>
       </footer>
     </div>

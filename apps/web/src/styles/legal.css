@@ -1,0 +1,259 @@
+/*
+ * The privacy page (/privacy): the landing's paper, teal and coral, set for reading. One column at a
+ * reading measure, the short version as four cards, then each part as a row of term and answer.
+ */
+
+.pv-main {
+  width: min(100% - 2.5rem, 56rem);
+  margin-inline: auto;
+  padding-bottom: 2rem;
+}
+
+/* --- Head ----------------------------------------------------------------------------------------- */
+
+.pv-head {
+  padding: 2.5rem 0 3.5rem;
+}
+
+.pv-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.95rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.pv-kicker svg {
+  color: var(--teal-deep);
+}
+
+.pv-title {
+  margin-top: 1.25rem;
+  font-size: clamp(2.75rem, 7vw, 5rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.95;
+  text-wrap: balance;
+}
+
+.pv-title span:not(.lp-coin) {
+  color: var(--teal-deep);
+}
+
+.pv-lead {
+  max-width: 38rem;
+  margin-top: 1.5rem;
+  font-size: 1.1875rem;
+  line-height: 1.55;
+  font-weight: 500;
+  color: #2a3a3d;
+}
+
+.pv-date {
+  margin-top: 1.25rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+/* --- The short version ------------------------------------------------------------------------- */
+
+.pv-h2 {
+  font-size: clamp(1.75rem, 3.6vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+
+.pv-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.pv-card {
+  padding: 1.5rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.75rem;
+  background: var(--surface);
+}
+
+.pv-card h3 {
+  margin-top: 1rem;
+  font-size: 1.1875rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.pv-card p {
+  margin-top: 0.5rem;
+  color: #2a3a3d;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.pv-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--teal-soft);
+  color: var(--ink);
+}
+
+.pv-chip.is-coral {
+  background: var(--coral-soft);
+}
+
+.pv-chip.is-big {
+  width: 3.25rem;
+  height: 3.25rem;
+}
+
+/* --- Sections: a term and its answer ------------------------------------------------------------ */
+
+.pv-short,
+.pv-section {
+  padding-top: 3.5rem;
+}
+
+.pv-intro {
+  max-width: 38rem;
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.pv-list {
+  margin: 1.5rem 0 0;
+  border-top: 2px solid var(--ink);
+}
+
+.pv-row {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: 0.35rem 2rem;
+  padding: 1.15rem 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.pv-row dt {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+.pv-row dd {
+  margin: 0;
+  color: #2a3a3d;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.pv-prose h3 {
+  margin-top: 1.75rem;
+  font-size: 1.1875rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.pv-prose h2 + h3 {
+  margin-top: 1.5rem;
+}
+
+.pv-prose p {
+  max-width: 42rem;
+  margin-top: 0.4rem;
+  color: #2a3a3d;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+/* --- Contact ------------------------------------------------------------------------------------- */
+
+.pv-contact {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 4rem;
+  padding: 1.75rem;
+  border-radius: 1.75rem;
+  background: var(--ink);
+  color: var(--surface);
+}
+
+.pv-contact h2 {
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.pv-contact p {
+  margin-top: 0.3rem;
+  color: var(--on-ink);
+  font-size: 1.0625rem;
+  font-weight: 500;
+}
+
+.pv-contact a {
+  color: #fff;
+  font-weight: 700;
+  text-underline-offset: 4px;
+}
+
+@media (max-width: 760px) {
+  .pv-head {
+    padding: 1.5rem 0 2.5rem;
+  }
+
+  .pv-lead {
+    font-size: 1.0625rem;
+  }
+
+  .pv-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pv-card {
+    padding: 1.25rem;
+  }
+
+  .pv-short,
+  .pv-section {
+    padding-top: 2.75rem;
+  }
+
+  .pv-row {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 1rem 0;
+  }
+
+  .pv-row dd,
+  .pv-prose p {
+    font-size: 1rem;
+  }
+
+  .pv-contact {
+    align-items: flex-start;
+    margin-top: 3rem;
+    padding: 1.35rem;
+  }
+}
