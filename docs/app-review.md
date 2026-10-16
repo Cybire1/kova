@@ -64,7 +64,13 @@ Why the app asks for:
 
 ## Before the next build
 
-The demo account lives on the **testnet** API. Build 8 (11 Oct) talks to testnet; the code now
-defaults to mainnet. A new TestFlight build must set `EXPO_PUBLIC_KOVA_NETWORK=testnet` and
-`EXPO_PUBLIC_KOVA_MONAD_API_URL=https://api-monad.up.railway.app` (for example in `eas.json`'s
-production profile), or the reviewer's demo sign-in fails.
+The demo account lives on the **testnet** API, and the code defaults to mainnet. TestFlight builds
+use the `testflight` profile in `apps/mobile/eas.json`, which sets `EXPO_PUBLIC_KOVA_NETWORK=testnet`
+and `EXPO_PUBLIC_KOVA_MONAD_API_URL=https://api-monad.up.railway.app`; without them the reviewer's
+demo sign-in fails.
+
+```bash
+cd apps/mobile
+npx eas-cli build -p ios --profile testflight
+npx eas-cli submit -p ios --profile production --latest
+```
