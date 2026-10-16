@@ -1,17 +1,25 @@
 import { schema } from '@kova/db'
-import { eip3009Abi, formatAmount, TEST_DOLLARS_A_DAY } from '@kova/monad'
+import {
+  AUSD_TESTNET_FAUCET,
+  eip3009Abi,
+  faucetAbi,
+  formatAmount,
+  TEST_DOLLARS_A_DAY,
+} from '@kova/monad'
 import { eq, lt } from 'drizzle-orm'
 import { type Address, encodeFunctionData, type Hash } from 'viem'
 import { feePayerAccount, publicClient, settlementToken, walletClient } from '../chain.js'
+import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
 import { sendFromRelayer } from '../relay.js'
 
 /**
  * Test dollars, on testnet only: five a day for each wallet, from Kova's own testnet treasury (the
- * relayer, which pays the gas too). Agora's faucet gives 10,000 at once and has run dry; a small
- * daily amount from Kova's own stock keeps trying Kova working for everyone, and the treasury is
- * topped up by hand.
+ * relayer, which pays the gas too). A small daily amount from Kova's own stock keeps trying Kova
+ * working for everyone. When the stock can't cover a day's test dollars, the treasury asks Agora's
+ * testnet faucet (10,000 test AUSD to whoever asks) for itself, and only hand top-ups remain for
+ * when that faucet is dry.
  */
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -77,12 +85,9 @@ export async function giveTestDollars(to: Address): Promise<Drip> {
     )
 
   try {
-    const stock = await publicClient.readContract({
-      address: settlementToken.address,
-      abi: eip3009Abi,
-      functionName: 'balanceOf',
-      args: [feePayerAccount.address],
-    })
+    let stock = await treasury(feePayerAccount.address)
+    if (stock < TEST_DOLLARS_A_DAY && (await restock(feePayerAccount.address)))
+      stock = await treasury(feePayerAccount.address)
     if (stock < TEST_DOLLARS_A_DAY) {
       console.error(
         `[faucet] the treasury holds ${formatAmount(stock)} AUSD: top up ${feePayerAccount.address}`,
@@ -122,4 +127,43 @@ export async function giveTestDollars(to: Address): Promise<Drip> {
       'The test-dollar top-up didn’t go through. Try again in a moment.',
     )
   }
+}
+
+function treasury(address: Address): Promise<bigint> {
+  return publicClient.readContract({
+    address: settlementToken.address,
+    abi: eip3009Abi,
+    functionName: 'balanceOf',
+    args: [address],
+  })
+}
+
+let restocking: Promise<boolean> | null = null
+
+/**
+ * Asks Agora's testnet faucet to send the treasury 10,000 test AUSD. Through the relayer's one send
+ * path, so the nonce keeps one owner, and once at a time however many wallets are waiting on it.
+ * False when the faucet gives nothing (it reverts when dry) or this isn't testnet.
+ */
+export function restock(to: Address): Promise<boolean> {
+  if (config.KOVA_NETWORK !== 'testnet') return Promise.resolve(false)
+  restocking ??= sendFromRelayer(
+    AUSD_TESTNET_FAUCET,
+    encodeFunctionData({ abi: faucetAbi, functionName: 'requestFunds', args: [to] }),
+  )
+    .then((receipt) => {
+      if (receipt.status === 'success') console.log(`[faucet] restocked ${to} from Agora's faucet`)
+      return receipt.status === 'success'
+    })
+    .catch((error) => {
+      console.error(
+        "[faucet] Agora's faucet gave nothing:",
+        error instanceof Error ? error.message.split('\n')[0] : error,
+      )
+      return false
+    })
+    .finally(() => {
+      restocking = null
+    })
+  return restocking
 }
