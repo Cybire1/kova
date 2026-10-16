@@ -3,7 +3,7 @@ import { headers } from 'next/headers'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { Brand, Icon, Pill } from '@/components/brand'
-import { BetaForm, PhoneShot } from '@/components/iphone-beta'
+import { BetaForm, type BetaSource, PhoneShot } from '@/components/iphone-beta'
 
 const TITLE = 'Kova for iOS · Join the beta'
 const DESCRIPTION =
@@ -30,7 +30,7 @@ const FEATURES = [
   {
     shot: 'private',
     title: 'Private by choice',
-    body: 'A private payment lands at a one-time address only you can open, with a sealed note. Monad shows who paid, not who got paid.',
+    body: 'A private payment lands at a one-time address only you can open, with a sealed note. Nobody else can tell it was you who got paid.',
     alt: 'Ada paid you privately: +$20.00, with the note “Train tickets”',
   },
   {
@@ -47,9 +47,15 @@ const FEATURES = [
   },
 ] as const
 
-export default async function IphonePage() {
+export default async function IphonePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
   const host = (await headers()).get('host') ?? ''
   if (TESTNET_HOSTS.has(host)) redirect(HOME)
+  /** Where this visit came from, so the list shows which invite works: the wallet's card says ?ref=wallet. */
+  const source: BetaSource = (await searchParams).ref === 'wallet' ? 'wallet' : 'iphone-page'
 
   return (
     <div className="lp ip">
@@ -81,7 +87,7 @@ export default async function IphonePage() {
             puts a limit on every card, person or AI agent. Every payment settles on Monad in about
             a second, and Kova pays the gas.
           </p>
-          <BetaForm source="iphone-page" />
+          <BetaForm source={source} />
           <p className="ip-keep">
             <Icon name="shield" size={16} /> We keep your email, and your name if you give it, only
             to send your TestFlight invite.
@@ -156,7 +162,7 @@ export default async function IphonePage() {
 
       <section className="ip-close">
         <h2>Be one of the first with Kova on iOS</h2>
-        <BetaForm source="iphone-page" id="join-again" />
+        <BetaForm source={source} id="join-again" />
       </section>
 
       <footer className="lp-foot">

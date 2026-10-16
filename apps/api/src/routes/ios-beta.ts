@@ -18,7 +18,7 @@ import { clientIp, limit } from '../limits.js'
  *   POST /ios-beta/invited     marks emails as invited: { emails } (x-kova-admin)
  */
 
-export const IOS_BETA_SOURCES = ['iphone-page', 'home', 'try'] as const
+export const IOS_BETA_SOURCES = ['iphone-page', 'home', 'try', 'wallet'] as const
 
 const email = z.string().trim().toLowerCase().email().max(200)
 const joinBody = z.object({

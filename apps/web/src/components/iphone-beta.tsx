@@ -11,7 +11,7 @@ import '@/styles/iphone.css'
  * one a TestFlight invite. The form posts to /api/ios-beta, which passes it to Kova's API.
  */
 
-export type BetaSource = 'iphone-page' | 'home' | 'try'
+export type BetaSource = 'iphone-page' | 'home' | 'try' | 'wallet'
 
 /** One of the app's real screens, as a phone. */
 export function PhoneShot({

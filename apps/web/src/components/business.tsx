@@ -184,9 +184,7 @@ export function BusinessHome({ summary, team }: { summary: Business; team: Team 
             their own private-receiving key.
           </li>
           <li>
-            <strong>
-              Monad shows the business paying addresses nobody can tie to your people.
-            </strong>{' '}
+            <strong>On Monad, the business pays addresses nobody can tie to your people.</strong>{' '}
             Salaries aren’t public.
           </li>
           <li>
@@ -599,7 +597,7 @@ export function PayrollPanel({
             )}
           </section>
           <section className="card biz-how biz-how-small">
-            <h2>What Monad sees</h2>
+            <h2>What’s public on Monad</h2>
             <p>
               The business paying addresses made for one payment each. Not your people, not who got
               what. Each person finds their pay with their own keys.
@@ -664,8 +662,8 @@ export function RunReceipt({ run, business }: { run: PayrollRun; business: strin
           <section className="card biz-how biz-how-small">
             <h2>Only you see the names</h2>
             <p>
-              Monad shows {business} paying the one-time addresses on the left. Who they belong to
-              is in this book, and in each person’s own wallet, nowhere else.
+              On Monad, {business} pays the one-time addresses on the left. Who they belong to is in
+              this book, and in each person’s own wallet, nowhere else.
             </p>
           </section>
         </aside>

@@ -26,7 +26,7 @@ const SHORT: { icon: IconName; title: string; body: string }[] = [
   {
     icon: 'globe',
     title: 'Payments are public on Monad',
-    body: 'Anyone can see an address, an amount and a time. A private payment lands at an address made just for it, so Monad doesn’t show who got paid.',
+    body: 'Anyone can see an address, an amount and a time. A private payment lands at an address made just for it, so nobody can tell who got paid.',
   },
   {
     icon: 'shield',

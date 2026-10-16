@@ -116,8 +116,8 @@ export default function PrivateDollars() {
                 <PrivateFlow receipt={p.receipts.find((r) => r.kind !== 'change')} />
                 <Txt size={14} color={colors.onTint} style={{ marginTop: 14, lineHeight: 20 }}>
                   Someone who sends you dollars privately pays an address made just for that
-                  payment. Monad shows who sent it and how much, but only your keys can tell the
-                  address is yours, so nobody can add up what you receive.
+                  payment. Who sent it and how much is public on Monad, but only your keys can tell
+                  the address is yours, so nobody can add up what you receive.
                 </Txt>
                 <Txt size={13} color={colors.muted} style={{ marginTop: 8, lineHeight: 18 }}>
                   They count in your balance straight away. When you pay a shop or send privately,
@@ -173,7 +173,7 @@ export default function PrivateDollars() {
         <MenuRow
           icon="info"
           label="How private works"
-          detail="What Monad sees, and what only you can"
+          detail="What’s public on Monad, and what only you can see"
           onPress={() => {
             setMenu(false)
             setHow(true)
@@ -200,8 +200,9 @@ export default function PrivateDollars() {
           Make {formatUsd(p.waiting)} public?
         </Txt>
         <Txt size={15} color={colors.onTint} style={{ marginTop: 8, lineHeight: 22 }}>
-          Each private payment moves into your wallet, and Monad shows every move, so anyone can see
-          these dollars reached you. They stay in your balance either way. Kova covers the fee.
+          Each private payment moves into your wallet, and every move is public on Monad, so anyone
+          can see these dollars reached you. They stay in your balance either way. Kova covers the
+          fee.
         </Txt>
         <View style={{ marginTop: 18, gap: 12 }}>
           <PillButton

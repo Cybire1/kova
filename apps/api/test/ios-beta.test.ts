@@ -44,6 +44,11 @@ describe('the iPhone beta waitlist', () => {
     expect(await again.json()).toMatchObject({ status: 'already' })
   })
 
+  it('records where someone asked from, the wallet’s invite included', async () => {
+    for (const source of ['iphone-page', 'home', 'try', 'wallet'])
+      expect((await join({ email: someone(), source })).status).toBe(200)
+  })
+
   it('refuses something that isn’t an email, and a source it doesn’t know', async () => {
     expect((await join({ email: 'not-an-email' })).status).toBe(400)
     expect((await join({ email: someone(), source: 'billboard' })).status).toBe(400)

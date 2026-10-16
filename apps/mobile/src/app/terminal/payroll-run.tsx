@@ -86,7 +86,7 @@ export default function PayrollRunReceipt() {
               ))}
             </Card>
             <Txt size={13} color={colors.muted} style={{ marginTop: 14, lineHeight: 19 }}>
-              Monad shows {shop.name} paying these one-time addresses. Who they belong to is in this
+              On Monad, {shop.name} pays these one-time addresses. Who they belong to is in this
               book and in each person’s own wallet, nowhere else.
             </Txt>
           </>

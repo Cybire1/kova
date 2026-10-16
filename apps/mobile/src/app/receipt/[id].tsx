@@ -133,7 +133,7 @@ export default function Receipt() {
               >
                 {incoming
                   ? 'An address made just for this payment. Only you can tell it’s yours.'
-                  : `Monad shows that address, not ${isUnnamed(entry.name) ? 'them' : first}. Only ${first} can open it.`}
+                  : `On Monad it went to that address, not to ${isUnnamed(entry.name) ? 'them' : first}. Only ${first} can open it.`}
               </Txt>
               {receipt ? (
                 <Row

@@ -245,8 +245,8 @@ function PayFrom({
             ? 'They’re in a few places, so they’re put together into one first: that ties them to each other on Monad, never to you. Then they pay, and Monad can’t tie it to your wallet.'
             : 'Paid from an address only you can open. Monad can’t tie it to your wallet, and the change stays private.'
           : balanceShort
-            ? 'From your wallet, after just enough private dollars move into it. Monad shows the payment came from you.'
-            : 'From your wallet, as usual. Monad shows it came from you.'}
+            ? 'From your wallet, after just enough private dollars move into it. It’s public on Monad that it came from you.'
+            : 'From your wallet, as usual. It’s public on Monad that it came from you.'}
       </Txt>
     </View>
   )
@@ -340,7 +340,7 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
               </Txt>
               <Txt size={15} color={colors.onInk} style={{ lineHeight: 21 }}>
                 moved into your wallet in {(moved.ms / 1000).toFixed(1)} s. Still in your balance;
-                Monad shows the move.
+                The move is public on Monad.
               </Txt>
             </>
           ) : (
@@ -579,7 +579,7 @@ export function PrivateFlow({ receipt }: { receipt?: PrivateReceipt }) {
           pending={!receipt}
         />
         <Txt size={11} color={colors.muted}>
-          Monad sees this
+          Public on Monad
         </Txt>
       </View>
       <View style={styles.flowLine} />
@@ -725,7 +725,7 @@ export function SentPrivately({
         </Txt>
       </View>
       <Txt size={14} color={colors.onTint} style={{ lineHeight: 20, marginTop: 8 }}>
-        Monad shows {formatUsd(amount)} going to{' '}
+        On Monad, {formatUsd(amount)} went to{' '}
         <Txt weight="semi" size={14}>
           {shortAddress(oneTime)}
         </Txt>

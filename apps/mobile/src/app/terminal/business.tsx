@@ -138,7 +138,7 @@ export default function BusinessHome() {
               </Txt>
               {[
                 'Each person’s pay goes to an address made for that payment alone, from their own key.',
-                'Monad shows the business paying addresses nobody can tie to your people.',
+                'On Monad, the business pays addresses nobody can tie to your people.',
                 `They find it with their own keys, with a sealed note from ${shop.name}.`,
               ].map((line, i) => (
                 <View key={line} style={styles.step}>

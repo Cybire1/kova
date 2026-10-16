@@ -275,7 +275,7 @@ function PrivateArrival({
               <Txt weight="semi" size={14}>
                 Only you can see this came from {name.startsWith('0x') ? 'them' : first}.
               </Txt>{' '}
-              Monad shows a payment to an address made just for it.
+              On Monad, it’s a payment to an address made just for it.
             </Txt>
           </OnBeat>
         ) : null}

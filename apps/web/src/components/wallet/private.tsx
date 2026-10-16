@@ -181,8 +181,8 @@ function PayFromChoice({
             ? 'They’re in a few places, so they’re put together into one first: that ties them to each other on Monad, never to you. Then they pay, and Monad can’t tie it to your wallet.'
             : 'Paid from an address only you can open. Monad can’t tie it to your wallet, and the change stays private.'
           : short_
-            ? 'From your wallet, after just enough private dollars move into it. Monad shows the payment came from you.'
-            : 'From your wallet, as usual: Monad shows it came from you.'}
+            ? 'From your wallet, after just enough private dollars move into it. It’s public on Monad that it came from you.'
+            : 'From your wallet, as usual: it’s public on Monad that it came from you.'}
       </p>
     </div>
   )
@@ -392,7 +392,7 @@ export function PrivateDollars() {
             <Icon name="info" size={18} />
             <span>
               <strong>How private works</strong>
-              <small>What Monad sees, and what only you can</small>
+              <small>What’s public on Monad, and what only you can see</small>
             </span>
           </button>
           <button
@@ -425,8 +425,8 @@ export function PrivateDollars() {
             </span>
             <strong className="w-privcard-amount">{formatUsd(moved.amount)}</strong>
             <p>
-              moved into your wallet in {(moved.ms / 1000).toFixed(1)} s. Still in your balance;
-              Monad shows the move.{' '}
+              moved into your wallet in {(moved.ms / 1000).toFixed(1)} s. Still in your balance; The
+              move is public on Monad.{' '}
               {moved.explorer ? (
                 <a href={moved.explorer} target="_blank" rel="noreferrer">
                   See it on Monad
@@ -473,9 +473,9 @@ export function PrivateDollars() {
         <div className="w-confirm" role="alertdialog" aria-label="Make them public">
           <strong>Make {shown(privateBalance)} public?</strong>
           <p>
-            Each private payment moves into your wallet, and Monad shows every move, so anyone can
-            see these dollars reached you. They stay in your balance either way. Kova covers the
-            fee.
+            Each private payment moves into your wallet, and every move is public on Monad, so
+            anyone can see these dollars reached you. They stay in your balance either way. Kova
+            covers the fee.
           </p>
           <button
             type="button"
@@ -501,9 +501,9 @@ export function PrivateDollars() {
         <div className="w-explain">
           <PrivateFlow from={payments[0]} />
           <p>
-            Someone who sends you dollars privately pays an address made just for that payment.
-            Monad shows who sent it and how much, but only your keys can tell the address is yours,
-            so nobody can add up what you receive.
+            Someone who sends you dollars privately pays an address made just for that payment. Who
+            sent it and how much is public on Monad, but only your keys can tell the address is
+            yours, so nobody can add up what you receive.
           </p>
           <small>
             They count in your balance straight away. When you pay a shop or send privately, Kova
@@ -557,7 +557,7 @@ function PrivateFlow({ from }: { from?: Entry }) {
         <span className="w-flow-chip">
           {from?.oneTime ? short(from.oneTime) : 'its own address'}
         </span>
-        <small>Monad sees this</small>
+        <small>Public on Monad</small>
       </span>
       <span className="w-flow-line" />
       <span className="w-flow-end">
@@ -720,7 +720,7 @@ export function PrivateArrivalMoment() {
               <Icon name="lock" size={15} />
             </span>
             <span>
-              <strong>Only you can see this came from {who}.</strong> Monad shows a payment to an
+              <strong>Only you can see this came from {who}.</strong> On Monad, it’s a payment to an
               address made just for it.
             </span>
           </p>
