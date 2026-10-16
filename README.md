@@ -1,5 +1,7 @@
 # Kova
 
+[![CI](https://github.com/Cybire1/kova/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Cybire1/kova/actions/workflows/ci.yml)
+
 **Tap. Paid. Anywhere.** A dollar account you open with a passkey: it pays with no signal, in
 private and across borders, and every card, person or AI agent that spends it has its own limit.
 Every payment settles in AUSD on [Monad](https://monad.xyz) in about a second, and Kova pays the
@@ -10,6 +12,7 @@ gas, so nobody needs a crypto token, a seed phrase or an exchange to pay or get 
 - **iOS:** join the beta at [mykova.app/waitlist](https://mykova.app/waitlist), and the TestFlight invite comes by email
 - **Built for:** Monad Metropolis, Track 02: Consumer Products & Payments
 - **Demo videos:** the product demo, the Agora cross-border cut and the Chainlink CRE run are linked in the submission (sources in [`film/`](film))
+- **For AI agents and reviewers:** [AGENTS.md](AGENTS.md), the repo map, where Monad is used and how to check everything (CI runs it on every push)
 - **Licence:** [MIT](LICENSE)
 
 ## New on Monad, proven on-chain (13–14 Oct 2026)
@@ -199,11 +202,12 @@ flowchart LR
 | [`apps/mobile`](apps/mobile) | The Kova app (Expo, React Native): the wallet, and shop mode with the till. Installs with npm, outside the pnpm workspace. |
 | [`apps/web`](apps/web) | mykova.app (Next.js): landing, the web wallet (`/wallet`), shop mode (`/dashboard`), pay pages (`/pay/:id`), stall pages (`/s/:slug`) and request links (`/to/:address`). Every API call is made server-side. |
 | [`apps/api`](apps/api) | The Kova API (Hono on Node): payment intents and checkout, relaying signed payments, the chain watcher, wallets (transfers, encrypted vaults, test dollars), wallet sign-in, shops, stalls, catalogue, tills, travel. |
+| [`apps/card`](apps/card/contracts) | `KovaCard`, the contract behind every spending key (per-key daily limit, freeze, cosigner), with Foundry tests. |
 | [`apps/rates`](apps/rates) | The Chainlink CRE workflow and the `KovaRates` contract (Foundry). |
-| [`packages/monad`](packages/monad) | Networks, tokens (AUSD, USDC), EIP-3009 helpers and the on-chain memo. |
+| [`packages/monad`](packages/monad) | Shared chain logic: networks and tokens, EIP-3009 authorizations, ERC-5564 stealth addresses, sealed notes, the privacy router, spending keys, offline payments and encrypted vaults. |
 | [`packages/db`](packages/db) | Postgres schema and migrations (Drizzle). |
 | [`packages/tempo`](packages/tempo) | From the earlier Tempo build (see below); the Monad build doesn't use it. |
-| [`film`](film) | The launch teaser and link preview, rendered with Remotion. |
+| [`film`](film) | The demo videos and link previews, rendered with Remotion. |
 | [`docs`](docs) | Design notes, research, and [the Metropolis checklist](docs/metropolis.md). |
 
 ## Tech stack
@@ -221,8 +225,7 @@ TypeScript throughout · Monad testnet · [viem](https://viem.sh) · AUSD by
 You need Node 22.12+, pnpm 10, PostgreSQL 16, and Xcode for the iOS app.
 
 ```bash
-git clone https://github.com/Cybire1/kova && cd kova
-git checkout monad
+git clone --recursive https://github.com/Cybire1/kova && cd kova
 pnpm install
 ```
 
@@ -257,8 +260,10 @@ cp .env.example .env   # EXPO_PUBLIC_KOVA_MONAD_API_URL=http://<your Mac's LAN I
 npx expo run:ios
 ```
 
-**Tests:** `pnpm --filter @kova/api test` runs the API suite against your local Postgres; the
-end-to-end payment tests also need a relayer with MON and test AUSD.
+**Tests:** CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs typecheck, lint, the
+unit tests, the API suite against Postgres, the website build, the iOS app's typecheck and the
+contract tests on every push; [AGENTS.md](AGENTS.md#check-it) lists the same commands to run
+locally. The end-to-end payment tests also need a relayer with MON and test AUSD.
 
 **Deploy:** the API and web app ship as Docker images ([Dockerfile](Dockerfile),
 [Dockerfile.web](Dockerfile.web)) on Railway, with the same variables as the `.env.example` files.
