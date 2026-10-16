@@ -6,7 +6,16 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/node_modules", "!**/dist", "!**/.next", "!**/.expo", "!docs", "!film"]
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/.next",
+      "!**/.expo",
+      "!docs",
+      "!film",
+      "!**/contracts/lib"
+    ]
   },
   "formatter": {
     "enabled": true,
