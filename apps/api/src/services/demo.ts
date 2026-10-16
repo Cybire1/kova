@@ -17,7 +17,7 @@ import {
 import { HDKey } from '@scure/bip32'
 import { entropyToMnemonic, mnemonicToSeed } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english.js'
-import { and, desc, eq, gt, isNull } from 'drizzle-orm'
+import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import {
   type Address,
   bytesToHex,
@@ -133,6 +133,22 @@ export async function demoWallet(): Promise<PrivateKeyAccount> {
 }
 
 const friends = () => FRIENDS.map((name, i) => ({ name, account: derived(`friend.${i}`) }))
+
+/**
+ * Every address the demo account acts as (Sam, the customer, the bakery, the card and Sam's
+ * friends), lowercase, so public numbers can leave Kova's own demo out. Empty without a demo.
+ */
+export async function demoAddresses(): Promise<string[]> {
+  if (!demoReady()) return []
+  const wallet = await demoWallet()
+  return [
+    wallet.address,
+    derived('customer').address,
+    derived('bakery').address,
+    derived('card').address,
+    ...friends().map((f) => f.account.address),
+  ].map((a) => a.toLowerCase())
+}
 
 // ── Sign-in ─────────────────────────────────────────────────────────────────────────────────
 
@@ -428,8 +444,10 @@ export function stockDemo(): Promise<void> {
       }
 
       // Things Sam bought at the bakery, by QR.
+      // Payments keep the payer as the chain wrote it (mixed case): compare in lowercase, or this
+      // never matches and Sam buys again every 20 minutes.
       const bought = await db.query.payments.findFirst({
-        where: eq(schema.payments.payerAddress, wallet.address.toLowerCase()),
+        where: sql`lower(${schema.payments.payerAddress}) = ${wallet.address.toLowerCase()}`,
       })
       if (!bought)
         for (const sale of [

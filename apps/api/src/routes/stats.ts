@@ -1,12 +1,13 @@
 import { schema } from '@kova/db'
 import { formatAmount } from '@kova/monad'
-import { sql } from 'drizzle-orm'
+import { type SQL, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
 import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
 import { clientIp, limit } from '../limits.js'
+import { demoAddresses } from '../services/demo.js'
 
 /**
  * Public numbers: how many people use Kova on this network, what they've paid and sent, and where
@@ -58,13 +59,26 @@ const seen = sql`
   union all select lower(owner_address), created_at from merchants where owner_address is not null`
 
 async function compute(): Promise<Numbers> {
-  const people = sql`select address, min(at) as first from (${seen}) s where address like '0x%' group by address`
+  // Kova's own demo account (the one App Review signs into) buys and sells to stay lived-in: its
+  // wallets, shops and purchases are left out, so these numbers are other people's.
+  const own = await demoAddresses()
+  const notOwn = (column: SQL) =>
+    own.length
+      ? sql`${column} not in (${sql.join(
+          own.map((a) => sql`${a}`),
+          sql`, `,
+        )})`
+      : sql`true`
+  const people = sql`select address, min(at) as first from (${seen}) s where address like '0x%' and ${notOwn(sql`address`)} group by address`
+  const paidByOthers = sql`status = 'paid' and ${notOwn(sql`lower(payer_address)`)}`
   const [total, recent, shops, payments, volume, links, claimed] = await Promise.all([
     count(sql`select count(*) from (${people}) p`),
     count(sql`select count(*) from (${people}) p where first > now() - interval '7 days'`),
-    count(sql`select count(*) from merchants where status = 'active'`),
-    count(sql`select count(*) from payments where status = 'paid'`),
-    count(sql`select coalesce(sum(amount), 0) from payments where status = 'paid'`),
+    count(
+      sql`select count(*) from merchants where status = 'active' and ${notOwn(sql`coalesce(lower(owner_address), '')`)} and ${notOwn(sql`lower(settlement_address)`)}`,
+    ),
+    count(sql`select count(*) from payments where ${paidByOthers}`),
+    count(sql`select coalesce(sum(amount), 0) from payments where ${paidByOthers}`),
     count(sql`select count(*) from payment_links`),
     count(sql`select count(*) from payment_links where status = 'claimed'`),
   ])
@@ -72,7 +86,7 @@ async function compute(): Promise<Numbers> {
     sql`select to_char(date_trunc('day', first), 'YYYY-MM-DD') as day, count(*) as n from (${people}) p where first > now() - interval '14 days' group by 1`,
   )
   const paid = await rows<{ day: string; n: string }>(
-    sql`select to_char(date_trunc('day', created_at), 'YYYY-MM-DD') as day, count(*) as n from payments where status = 'paid' and created_at > now() - interval '14 days' group by 1`,
+    sql`select to_char(date_trunc('day', created_at), 'YYYY-MM-DD') as day, count(*) as n from payments where ${paidByOthers} and created_at > now() - interval '14 days' group by 1`,
   )
   const daily = Array.from({ length: DAYS }, (_, i) => {
     const d = new Date(Date.now() - (DAYS - 1 - i) * 86_400_000).toISOString().slice(0, 10)
