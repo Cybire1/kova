@@ -14,6 +14,7 @@ import { type Address, getAbiItem, type Hash, isAddressEqual, type Log } from 'v
 import { acceptedTokens, network, publicClient } from '../chain.js'
 import { config } from '../config.js'
 import { db } from '../db.js'
+import { notifyArrivals } from '../services/arrival-sms.js'
 import { settleFromReceipt } from '../services/settle.js'
 
 /**
@@ -134,8 +135,18 @@ export async function handleLogs(logs: Log[]): Promise<number> {
       }
     }
     if (rows.length) {
-      await db.insert(schema.transfers).values(rows).onConflictDoNothing()
+      // Only rows this insert added: a replayed block is already indexed, so it never texts twice.
+      const added = await db.insert(schema.transfers).values(rows).onConflictDoNothing().returning({
+        tokenAddress: schema.transfers.tokenAddress,
+        fromAddress: schema.transfers.fromAddress,
+        toAddress: schema.transfers.toAddress,
+        amount: schema.transfers.amount,
+      })
       recorded += rows.length
+      if (added.length)
+        void notifyArrivals(added).catch((error) =>
+          console.error('[watcher] arrival texts', error instanceof Error ? error.message : error),
+        )
     }
     if (paysACharge) await settleTransaction(hash)
   }
