@@ -169,6 +169,20 @@
       "when": 1791934163732,
       "tag": "0023_money",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792391700000,
+      "tag": "0024_ussd_active_phone",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792400000000,
+      "tag": "0025_phone_payments",
+      "breakpoints": true
     }
   ]
 }

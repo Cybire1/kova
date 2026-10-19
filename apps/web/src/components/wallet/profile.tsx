@@ -103,6 +103,8 @@ export function Profile() {
         <Icon name="key" size={16} />
       </Link>
 
+      {network==='testnet'?<Link href="/wallet/ussd" className="w-add-chain"><span><strong>Pay by USSD</strong><small>Link your simulator number and test payments without data</small></span><Icon name="arrow" size={16} /></Link>:null}
+
       <section className="w-money">
         <div>
           <small>Your money shows in</small>
@@ -137,8 +139,10 @@ export function Profile() {
             <Icon name="face" size={18} />
           </span>
           <span>
-            <strong>Your passkey</strong>
-            <small>The same one as the Kova app. It opens this wallet on any device.</small>
+            <strong>{profile.auth === 'google' ? 'Your Google account' : 'Your passkey'}</strong>
+            <small>{profile.auth === 'google'
+              ? `${profile.email || 'Google'} opens this same wallet on a new phone or browser.`
+              : 'The same one as the Kova app. It opens this wallet on any device.'}</small>
           </span>
         </div>
         <div className={`w-session${session.open ? ' w-session-open' : ''}`}>
@@ -146,8 +150,8 @@ export function Profile() {
             <strong>{session.open ? `Open for ${mins}:${secs}` : 'Locked'}</strong>
             <small>
               {session.open
-                ? `Pays up to ${formatUsd(session.canApprove)} without your passkey`
-                : 'Your next payment asks for your passkey'}
+                ? `Pays up to ${formatUsd(session.canApprove)} before asking again`
+                : profile.auth === 'google' ? 'Your next payment asks you to unlock your Google wallet' : 'Your next payment asks for your passkey'}
             </small>
           </span>
           {session.open ? (
@@ -162,7 +166,7 @@ export function Profile() {
           <span>3 quiet minutes</span>
         </div>
         <p className="w-fine">
-          Your name and the people you pay are sealed with your passkey. Kova stores them and can’t
+          Your name and the people you pay are encrypted by your wallet. Kova stores them and can’t
           read them.
         </p>
       </section>
@@ -172,8 +176,8 @@ export function Profile() {
       {forgetting ? (
         <div className="w-forget">
           <p>
-            This browser forgets your wallet. Your money stays on Monad, and your passkey opens it
-            again here or in the Kova app: choose <em>Open my Kova wallet</em>.
+            This browser forgets your wallet. Your money stays on Monad. Sign in again with
+            {profile.auth === 'google' ? ' the same Google account' : ' your Kova passkey'} to reopen it.
           </p>
           <div className="w-forget-actions">
             <button type="button" className="mini" onClick={() => setForgetting(false)}>

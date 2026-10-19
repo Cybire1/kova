@@ -213,6 +213,8 @@ export default function Profile() {
             <Txt size={14} color={colors.muted} style={{ marginTop: 4, lineHeight: 20 }}>
               {profile.demo
                 ? 'It’s the shared demo account: sign in again with its username and password whenever you like.'
+                : profile.auth === 'google'
+                ? 'Your money stays in the wallet. Sign in with the same Google account to reopen it here or on a replacement phone.'
                 : stall.owned
                 ? `Your money stays in the wallet, and ${stall.owned.name} keeps paying into it. Your passkey brings it back here any time: choose “I already have Kova”.`
                 : 'Your money stays in the wallet. Your passkey brings it back here, or on any phone, any time: choose “I already have Kova”.'}
@@ -328,6 +330,7 @@ const dollars = (base: bigint) => formatUsd(base).replace(/\.00$/, '')
  * how long, how much it can still approve, the rules it keeps, and whether the vault is backed up.
  */
 function KeysCard() {
+  const { profile } = useWallet()
   const session = useSessionState()
   const [backedUp, setBackedUp] = useState<number | null>(null)
   useEffect(() => {
@@ -343,10 +346,12 @@ function KeysCard() {
         </View>
         <View style={{ flex: 1 }}>
           <Txt weight="bold" size={17}>
-            Your wallet is a passkey
+            {profile?.auth === 'google' ? 'Your wallet opens with Google' : 'Your wallet is a passkey'}
           </Txt>
           <Txt size={13} color={colors.muted} style={{ lineHeight: 18 }}>
-            iCloud Keychain keeps it, and it opens this wallet on any phone you sign in on.
+            {profile?.auth === 'google'
+              ? `Sign in with ${profile.email || 'the same Google account'} on a replacement phone to reopen this wallet.`
+              : 'iCloud Keychain keeps it, and it opens this wallet on any phone you sign in on.'}
           </Txt>
         </View>
       </View>
@@ -396,8 +401,8 @@ function KeysCard() {
         <Icon name={backedUp ? 'check' : 'info'} size={15} color={backedUp ? colors.positive : colors.muted} />
         <Txt size={13} color={colors.muted} style={{ flex: 1, lineHeight: 18 }}>
           {backedUp
-            ? 'Your name and contacts are backed up, sealed by your passkey. Kova can’t read them.'
-            : 'Your name and contacts back up, sealed by your passkey, the next time you change them.'}
+            ? 'Your name and contacts are encrypted and backed up. Kova can’t read them.'
+            : 'Your name and contacts back up encrypted the next time you change them.'}
         </Txt>
       </View>
     </View>

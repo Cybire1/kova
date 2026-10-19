@@ -1,3 +1,4 @@
+import { network } from '@/lib/network'
 import type { Metadata } from 'next'
 import { type ShopToday, WalletProvider } from '@/components/wallet/provider'
 import { WalletShell } from '@/components/wallet/shell'
@@ -32,7 +33,7 @@ export default async function WalletLayout({ children }: { children: React.React
   ])
   return (
     <WalletProvider
-      network={process.env.KOVA_NETWORK === 'mainnet' ? 'mainnet' : 'testnet'}
+      network={network}
       shop={shop}
       initialRates={rates}
     >

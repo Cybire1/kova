@@ -8,6 +8,7 @@ import { formatUsd, toBase } from '@/lib/wallet/money'
 import { MoneyRow } from './money'
 import { KeysOnHome } from './keys'
 import { PrivateWaiting } from './private'
+import { MonWalletCard } from './mon'
 import { isUnnamed, useWallet } from './provider'
 import { ActionTile, Avatar, BalanceCard, EntryRow } from './ui'
 
@@ -17,9 +18,9 @@ import { ActionTile, Avatar, BalanceCard, EntryRow } from './ui'
  * right beneath it with Send and Request beside it, and the people you pay are one tap away.
  */
 export function Home() {
-  const { profile, balance, activity, contacts, network } = useWallet()
+  const { profile, balance, monBalance, activity, contacts, network } = useWallet()
   if (!profile) return null
-  const empty = balance === 0n
+  const empty = balance === 0n && !(monBalance && monBalance > 0n)
 
   return (
     <div className="w-screen">
@@ -39,6 +40,7 @@ export function Home() {
       {profile.name ? null : <NameYourself />}
 
       <BalanceCard />
+      <MonWalletCard />
 
       <div className="w-hero">
         <Link href="/wallet/pay" className="w-pay" aria-label="Pay. Scan a code or pay a link">
@@ -97,7 +99,7 @@ export function Home() {
             <span>
               {network === 'testnet'
                 ? 'Free on Monad testnet, $5 a day'
-                : 'Send AUSD on Monad to your address.'}
+                : 'Deposit crypto, or add money by card or bank.'}
             </span>
           </span>
           <span className="w-notice-cta">Add</span>

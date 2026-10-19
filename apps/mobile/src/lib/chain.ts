@@ -2,7 +2,7 @@
  * Everything the phone does on Monad, with no React Native in it, so it can be exercised
  * from Node against testnet exactly as the app runs it.
  *
- * The phone never holds MON and never sends a transaction itself. It signs EIP-3009 transfer
+ * Ordinary payments sign EIP-3009 transfer
  * authorizations, and Kova's relayer submits them and pays the gas, so a payer spends exactly
  * the price. Balances are read straight from the chain. What arrived comes from Kova's index,
  * because Monad's RPCs answer log queries only 100 blocks (about 30 seconds) at a time.
@@ -54,6 +54,10 @@ export async function getBalance(address: Address): Promise<bigint> {
     functionName: 'balanceOf',
     args: [address],
   })
+}
+
+export async function getMonBalance(address: Address): Promise<bigint> {
+  return publicClient.getBalance({ address })
 }
 
 /**
@@ -267,8 +271,9 @@ export const topUpLink = (address: Address, currency: string, returnTo: string) 
  * so no server ever sees it). Whoever holds the link can move them, like cash in an envelope.
  */
 export interface PaymentLink {
+  phone_payment?: boolean
   id: string
-  status: 'open' | 'claimed' | 'returned'
+  status: 'funding' | 'open' | 'claiming' | 'returning' | 'claimed' | 'returned'
   /** Dollars, e.g. "20.00". */
   amount: string
   currency: string
@@ -373,3 +378,11 @@ export async function payCashOut(account: LocalAccount, cashOut: CashOutToPay): 
   )
   return { ...paid, ms: Date.now() - started }
 }
+
+/** Quoted deposits: MON and other supported assets arrive as spendable AUSD. */
+export const chainDepositSources = (address: Address) =>
+  kova<import('@kova/monad').ChainDepositSources>(`/v1/wallets/${address}/chain-deposit-sources`)
+export const chainDepositQuote = (address: Address, body: import('@kova/monad').ChainDepositRequest) =>
+  kova<import('@kova/monad').ChainDepositQuote>(`/v1/wallets/${address}/chain-deposit-quote`, body)
+export const chainDepositActivity = (address: Address) =>
+  kova<{ data: import('@kova/monad').ChainDepositActivity[] }>(`/v1/wallets/${address}/chain-deposits`).then((r) => r.data)

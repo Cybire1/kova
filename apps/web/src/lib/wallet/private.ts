@@ -25,6 +25,7 @@ import type { Announcement } from '@/lib/api'
 import { baseOf, scan, type ViewKey } from '@/lib/takings'
 import { balanceOf, type StealthAnnouncement } from './chain'
 import { inTurns, signMoves } from './takings'
+import { networkStorageKey } from './storage'
 
 /**
  * Private sends between people, in the browser: the app's keys and cryptography (packages/monad
@@ -41,10 +42,10 @@ import { inTurns, signMoves } from './takings'
  * viewing key opens, so finding who paid never means asking Kova about an address. Kova also posts
  * every payment to ERC-5564's announcer on Monad, so any wallet can find its own on chain.
  *
- * On the web the keys live in memory, made again whenever the wallet opens: the view half finds
+ * On the web spending keys live in memory, made again whenever the wallet opens: the view half finds
  * new private payments while the page is open, and the spending key spends them, straight from
- * their one-time addresses, or moves them in. This browser keeps the addresses it found and what
- * their memos said, never a key.
+ * their one-time addresses, or moves them in. An encrypted read-only viewing key is cached locally
+ * for automatic balance checks after reload, and deleted at sign-out. Signing keys are not cached.
  */
 
 /** This wallet's private-receiving keys, from one signature by the wallet. It moves no money. */
@@ -207,9 +208,9 @@ const isFound = (value: unknown): value is FoundPayment => {
 const tidy = (f: FoundPayment): FoundPayment =>
   typeof f.note === 'string' || f.note === undefined ? f : { ...f, note: undefined }
 
-export function readLedger(wallet: string): PrivateLedger {
+export function readLedger(wallet: string, network: NetworkId): PrivateLedger {
   try {
-    const raw = localStorage.getItem(ledgerKey(wallet))
+    const raw = localStorage.getItem(networkStorageKey(ledgerKey(wallet), network))
     const stored = raw ? (JSON.parse(raw) as Partial<PrivateLedger>) : null
     if (!stored) return emptyLedger
     return {
@@ -225,9 +226,9 @@ export function readLedger(wallet: string): PrivateLedger {
   }
 }
 
-export function writeLedger(wallet: string, ledger: PrivateLedger) {
+export function writeLedger(wallet: string, ledger: PrivateLedger, network: NetworkId) {
   try {
-    localStorage.setItem(ledgerKey(wallet), JSON.stringify(ledger))
+    localStorage.setItem(networkStorageKey(ledgerKey(wallet), network), JSON.stringify(ledger))
   } catch {
     // Private mode or full storage: the next look finds them again.
   }

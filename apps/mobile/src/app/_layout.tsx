@@ -13,6 +13,7 @@ import { Platform, Settings } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { OfflineProvider } from '@/lib/offline'
+import { GoogleWalletProvider } from '@/lib/google-wallet'
 import { PrefsProvider, usePrefs } from '@/lib/prefs'
 import { PrivateProvider } from '@/lib/private'
 import { useLiveRates } from '@/lib/rates'
@@ -91,6 +92,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <PrefsProvider>
           <TerminalProvider>
+            <GoogleWalletProvider>
             <WalletProvider>
               <StallProvider>
                 <TakingsProvider>
@@ -118,6 +120,8 @@ export default function RootLayout() {
                   <Stack.Screen name="send/index" options={sendSheet} />
                   <Stack.Screen name="send/[to]" options={sendSheet} />
                   <Stack.Screen name="send/link" options={sendSheet} />
+                  <Stack.Screen name="send/phone" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
+                  <Stack.Screen name="phone/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
                   <Stack.Screen name="c/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
                   <Stack.Screen name="o" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
                   <Stack.Screen name="offline/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
@@ -128,6 +132,7 @@ export default function RootLayout() {
                 </TakingsProvider>
               </StallProvider>
             </WalletProvider>
+            </GoogleWalletProvider>
           </TerminalProvider>
         </PrefsProvider>
       </SafeAreaProvider>

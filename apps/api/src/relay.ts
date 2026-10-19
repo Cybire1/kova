@@ -47,16 +47,16 @@ const inFlight = new Map<string, Promise<Relayed>>()
  * `zero`: a charge a stamp card made free is still paid, for $0, so it has its receipt on Monad.
  * Only a checkout for exactly $0 may ask for it; a plain send must move money.
  */
-export function relayAuthorization(token: Token, authorization: TransferAuthorization, signature: Hex, options: { zero?: boolean } = {}): Promise<Relayed> {
+export function relayAuthorization(token: Token, authorization: TransferAuthorization, signature: Hex, options: { zero?: boolean; beforeBroadcast?: (hash: Hex) => Promise<void> } = {}): Promise<Relayed> {
   const key = `${token.address}:${authorization.from}:${authorization.nonce}`.toLowerCase()
   const running = inFlight.get(key)
   if (running) return running
-  const job = submit(token, authorization, signature, options.zero ?? false).finally(() => inFlight.delete(key))
+  const job = submit(token, authorization, signature, options.zero ?? false, options.beforeBroadcast).finally(() => inFlight.delete(key))
   inFlight.set(key, job)
   return job
 }
 
-async function submit(token: Token, authorization: TransferAuthorization, signature: Hex, zero: boolean): Promise<Relayed> {
+async function submit(token: Token, authorization: TransferAuthorization, signature: Hex, zero: boolean, beforeBroadcast?: (hash: Hex) => Promise<void>): Promise<Relayed> {
   if (!walletClient || !feePayerAccount) throw new KovaError('chain_error', 'Payments are not switched on for this server yet.')
   const started = performance.now()
 
@@ -79,7 +79,7 @@ async function submit(token: Token, authorization: TransferAuthorization, signat
 
   let receipt: TransactionReceipt
   try {
-    receipt = await sendFromRelayer(token.address, data)
+    receipt = await sendFromRelayer(token.address, data, { beforeBroadcast })
   } catch (error) {
     if (error instanceof RefusedEstimate) throw await explainRefusal(token, authorization, error.cause)
     throw error
@@ -101,7 +101,7 @@ export class RefusedEstimate extends Error {
  * One round-trip to check (estimate, with fees and nonce alongside), a local signature, then one
  * eth_sendRawTransactionSync that returns the receipt.
  */
-export async function sendFromRelayer(to: Hex, data: Hex, options: { maxGas?: bigint } = {}): Promise<TransactionReceipt> {
+export async function sendFromRelayer(to: Hex, data: Hex, options: { maxGas?: bigint; beforeBroadcast?: (hash: Hex) => Promise<void> } = {}): Promise<TransactionReceipt> {
   if (!walletClient || !feePayerAccount) throw new KovaError('chain_error', 'Payments are not switched on for this server yet.')
   let gas: bigint
   let fees: Fees
@@ -135,6 +135,9 @@ export async function sendFromRelayer(to: Hex, data: Hex, options: { maxGas?: bi
     maxPriorityFeePerGas: fees.maxPriorityFeePerGas,
   })
   const hash = keccak256(serializedTransaction)
+  // Persist a pocket's hash before any RPC can take the transaction. A failed persistence
+  // callback aborts before broadcast; reserved relayer nonces must then be refreshed.
+  try { await options.beforeBroadcast?.(hash) } catch (error) { resetNonce(); throw error }
   try {
     return await sendRawTransactionSync(publicClient, { serializedTransaction, timeout: 6_000 })
   } catch (error) {

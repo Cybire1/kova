@@ -64,6 +64,7 @@ export function serializeLink(link: Link) {
     claim_explorer_url: link.claimTx ? explorerTxUrl(network, link.claimTx as `0x${string}`) : null,
     claimed_at: link.claimedAt?.toISOString() ?? null,
     created_at: link.createdAt.toISOString(),
+    phone_payment: Boolean(link.recipientPhone),
   }
 }
 
@@ -119,6 +120,7 @@ export const linkRoutes = new Hono()
   .post('/public/links/:id/claim', async (c) => {
     limit(`claim-ip:${clientIp(c)}`, 30, 600_000, 'That’s a lot of tries from here. Try again shortly.')
     const link = await find(c.req.param('id'))
+    if (link.recipientPhone) throw new KovaError('conflict', 'Open this phone payment to verify the number or return its dollars.')
     if (link.status !== 'open') throw new KovaError('conflict', link.status === 'returned' ? 'The sender took these dollars back.' : 'This link has already been claimed.')
     const signed = parseSignedAuthorization(await c.req.json().catch(() => null))
     if (!signed) throw new KovaError('invalid_request', 'Expected a signed transfer authorization.')

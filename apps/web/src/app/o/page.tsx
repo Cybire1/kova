@@ -1,3 +1,4 @@
+import { network } from '@/lib/network'
 import type { Metadata } from 'next'
 import { Brand } from '@/components/brand'
 import { OfflinePaymentView } from '@/components/offline-payment'
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
 export default function OfflinePaymentPage() {
   return (
     <WalletProvider
-      network={process.env.KOVA_NETWORK === 'mainnet' ? 'mainnet' : 'testnet'}
+      network={network}
       shop={null}
       initialRates={null}
     >

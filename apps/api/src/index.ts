@@ -38,9 +38,13 @@ import { expireTrips } from './services/travel.js'
 import { startAnnouncer } from './workers/announcer.js'
 import { startWatcher } from './workers/watcher.js'
 import { startWebhookWorker } from './workers/webhooks.js'
+import { redactCallbackLog } from './services/ussd-callback.js'
+import { reconcilePendingPockets } from './services/pockets.js'
+import { phoneRoutes } from './routes/phone.js'
+import { recoverPhonePayments } from './services/phone-payments.js'
 
 export const app = new Hono()
-app.use(logger())
+app.use(logger((...messages) => console.log(...messages.map(redactCallbackLog))))
 app.onError(errorHandler)
 app.notFound((c) => c.json({ error: { code: 'not_found', message: 'No such endpoint' } }, 404))
 
@@ -67,6 +71,7 @@ app.route('/v1', takingsRoutes)
 app.route('/v1', businessRoutes)
 app.route('/v1', statsRoutes)
 app.route('/v1', ussdRoutes)
+app.route('/v1', phoneRoutes)
 app.route('/v1', cardRoutes)
 app.route('/v1', spendKeyRoutes)
 app.route('/v1', demoRoutes)
@@ -82,6 +87,15 @@ if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js
   startWebhookWorker()
   // Private payments are announced on Monad itself (ERC-5564), not only in Kova's feed.
   startAnnouncer()
+  const recoverUssd = () =>
+    void reconcilePendingPockets().catch(() =>
+      console.error('[ussd] Receipt recovery failed; will retry.'),
+    )
+  recoverUssd()
+  setInterval(recoverUssd, 10_000)
+  const recoverPhones = () => void recoverPhonePayments().catch(() => console.error('[phone] Recovery will retry.'))
+  recoverPhones()
+  setInterval(recoverPhones, 10_000)
   // The App Review demo account stays stocked (testnet, and only where it is configured).
   startDemo()
   // Charges nobody paid close when their code expires, so "waiting" means someone could still pay.

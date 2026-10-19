@@ -17,6 +17,7 @@ import { ActionTile } from '@/ui/ActionTile'
 import { Awning } from '@/ui/Awning'
 import { Avatar, Flyer, ShopBadge } from '@/ui/art'
 import { BalanceCard } from '@/ui/BalanceCard'
+import { MonWalletCard } from '@/ui/MonWalletCard'
 import { dockClearance } from '@/ui/Dock'
 import { EntryRow } from '@/ui/EntryRow'
 import { Icon } from '@/ui/Icon'
@@ -32,7 +33,7 @@ import { dollars } from '@/ui/StallParts'
  * Send and Request beside Pay, and the people you pay are one tap away.
  */
 export default function Home() {
-  const { profile, balance, activity, contacts, refresh } = useWallet()
+  const { profile, balance, monBalance, activity, contacts, refresh } = useWallet()
   const insets = useSafeAreaInsets()
   const [refreshing, setRefreshing] = useState(false)
   const takings = useTakings()
@@ -49,7 +50,7 @@ export default function Home() {
   }, [refresh, refreshTakings, refreshPrivate])
 
   if (!profile) return null
-  const empty = balance === 0n
+  const empty = balance === 0n && !(monBalance && monBalance > 0n)
 
   return (
     <ScrollView
@@ -95,6 +96,8 @@ export default function Home() {
             : null
         }
       />
+
+      <MonWalletCard />
 
       <View style={styles.hero}>
         <Pressable
@@ -188,7 +191,7 @@ export default function Home() {
               {isTestnet ? 'Add test dollars to start' : 'Add money to start paying'}
             </Txt>
             <Txt size={13} color={colors.onTint}>
-              {isTestnet ? '$5 a day, free on Monad testnet. Arrives in about a second.' : 'From a card or a bank transfer.'}
+              {isTestnet ? '$5 a day, free on Monad testnet. Arrives in about a second.' : 'Deposit crypto, or add money by card or bank.'}
             </Txt>
           </View>
           <View style={styles.noticeCta}>

@@ -1,7 +1,7 @@
 import { type NetworkId, parseAmount } from '@kova/monad'
 import { type Address, getAddress, isAddressEqual } from 'viem'
 import type { LocalAccount } from 'viem/accounts'
-import { openKovaPasskey, openSigningSession, passkeyProblem } from '@/lib/passkey'
+import { openWalletSigner } from '@/lib/wallet/signer'
 import { sendMoney } from '@/lib/wallet/chain'
 import { fetchPrivateKey, privatePayment } from '@/lib/wallet/private'
 import { sessionAccount, spend } from '@/lib/wallet/session'
@@ -188,10 +188,7 @@ async function openOwner(
   const open = sessionAccount(amount)
   if (open && isAddressEqual(open.address, getAddress(owner.address)))
     return { account: open, done: (spent) => spent > 0n && spend(spent) }
-  const asserted = await openKovaPasskey(owner.passkey).catch((error) => {
-    throw new Error(passkeyProblem(error))
-  })
-  const { session, account } = await openSigningSession(asserted.prfOutput)
+  const { session, account } = await openWalletSigner(owner)
   if (!isAddressEqual(account.address, getAddress(owner.address))) {
     session.end()
     throw new Error(

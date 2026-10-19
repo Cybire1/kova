@@ -22,6 +22,11 @@ const appPackage = path.join(projectRoot, 'package.json')
 const monadSource = path.join(workspaceRoot, 'packages/monad/src')
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Privy's Expo SDK needs the browser build of jose, and these packages' legacy RN entries.
+  if (moduleName === 'jose')
+    return context.resolveRequest({ ...context, unstable_conditionNames: ['browser'] }, moduleName, platform)
+  if (moduleName === 'isows' || moduleName.startsWith('zustand'))
+    return context.resolveRequest({ ...context, unstable_enablePackageExports: false }, moduleName, platform)
   if (moduleName === '@kova/monad') return { type: 'sourceFile', filePath: path.join(monadSource, 'index.ts') }
   if (context.originModulePath.startsWith(monadSource) && moduleName.startsWith('.') && moduleName.endsWith('.js')) {
     const ts = path.resolve(path.dirname(context.originModulePath), moduleName.replace(/\.js$/, '.ts'))

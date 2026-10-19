@@ -15,6 +15,7 @@ import { ordersForIntents } from '../services/orders.js'
 import { stampsAt } from '../services/stamps.js'
 import { confirmTransaction, settleFromReceipt } from '../services/settle.js'
 import { tripForCheckout } from '../services/travel.js'
+import { tillCodeFor } from '../services/pockets.js'
 
 /**
  * The payer's side of a charge. No API key: anyone holding the charge's id (it is in the QR)
@@ -37,7 +38,16 @@ async function load(id: string): Promise<{ intent: PaymentIntent; merchantName: 
 
 function serializeCheckout(intent: PaymentIntent, merchantName: string) {
   const expired = intent.status === 'requires_payment' && intent.expiresAt.getTime() < Date.now()
-  const { id, status, token, pay_to, memo, reference, network: networkId, currency } = serializeIntent(intent)
+  const {
+    id,
+    status,
+    token,
+    pay_to,
+    memo,
+    reference,
+    network: networkId,
+    currency,
+  } = serializeIntent(intent)
   const tokenInfo = tokenByAddress(config.KOVA_NETWORK, intent.tokenAddress as Address)
   return {
     object: 'checkout',
@@ -63,9 +73,15 @@ function serializeCheckout(intent: PaymentIntent, merchantName: string) {
 
 /** The payment that settled a charge, for a payer who just paid it. */
 async function paymentOf(intent: PaymentIntent) {
-  const payment = await db.query.payments.findFirst({ where: eq(schema.payments.intentId, intent.id) })
+  const payment = await db.query.payments.findFirst({
+    where: eq(schema.payments.intentId, intent.id),
+  })
   return payment
-    ? { payer: payment.payerAddress, tx_hash: payment.txHash, explorer_url: explorerTxUrl(network, payment.txHash as `0x${string}`) }
+    ? {
+        payer: payment.payerAddress,
+        tx_hash: payment.txHash,
+        explorer_url: explorerTxUrl(network, payment.txHash as `0x${string}`),
+      }
     : null
 }
 
@@ -74,10 +90,15 @@ const confirmBody = z.object({ tx_hash: z.string().regex(/^0x[0-9a-fA-F]{64}$/) 
 export const checkoutRoutes = new Hono()
   .get('/:id', async (c) => {
     const { intent, merchantName } = await load(c.req.param('id'))
-    const [orders, trip] = await Promise.all([ordersForIntents([intent.id]), tripForCheckout(intent.id)])
+    const [orders, trip, ussdCode] = await Promise.all([
+      ordersForIntents([intent.id]),
+      tripForCheckout(intent.id),
+      tillCodeFor(intent),
+    ])
     const order = orders.get(intent.id)
     return c.json({
       ...serializeCheckout(intent, merchantName),
+      ussd: ussdCode ? { code: ussdCode, dial: config.KOVA_USSD_CODE } : null,
       // What was ordered, when this charge came from a stall or a till sale.
       order: order
         ? {
@@ -117,8 +138,10 @@ export const checkoutRoutes = new Hono()
         return c.json({ ...serializeCheckout(intent, merchantName), payment })
       throw new KovaError('conflict', 'This charge has already been paid.')
     }
-    if (intent.status !== 'requires_payment') throw new KovaError('conflict', `This charge is ${intent.status}.`)
-    if (intent.expiresAt.getTime() < Date.now()) throw new KovaError('conflict', 'This charge has expired. Ask for a new code.')
+    if (intent.status !== 'requires_payment')
+      throw new KovaError('conflict', `This charge is ${intent.status}.`)
+    if (intent.expiresAt.getTime() < Date.now())
+      throw new KovaError('conflict', 'This charge has expired. Ask for a new code.')
 
     const token = tokenByAddress(config.KOVA_NETWORK, signed.token)
     if (!token || !isAddressEqual(token.address, intent.tokenAddress as Address))
@@ -127,19 +150,34 @@ export const checkoutRoutes = new Hono()
       throw new KovaError('invalid_request', 'This approval is for a different charge.')
     if (!isAddressEqual(authorization.to, intent.payTo as Address))
       throw new KovaError('invalid_request', 'This approval pays someone else.')
-    if (authorization.value !== intent.amount) throw new KovaError('invalid_request', 'This approval is for a different amount.')
+    if (authorization.value !== intent.amount)
+      throw new KovaError('invalid_request', 'This approval is for a different amount.')
     // A stamp-card reward is the card owner's alone, and a card pays for one reward.
-    const rewardPayer = typeof intent.metadata?.payer === 'string' ? (intent.metadata.payer as Address) : null
+    const rewardPayer =
+      typeof intent.metadata?.payer === 'string' ? (intent.metadata.payer as Address) : null
     if (rewardPayer) {
       if (!isAddressEqual(rewardPayer, authorization.from))
         throw new KovaError('invalid_request', 'This free item is on someone else’s stamp card.')
-      const order = await db.query.orders.findFirst({ where: eq(schema.orders.intentId, intent.id) })
-      const stall = order?.stallId ? await db.query.stalls.findFirst({ where: eq(schema.stalls.id, order.stallId) }) : undefined
-      if (order?.reward && (await stampsAt(intent.merchantId, rewardPayer)) < (stall?.loyaltyEvery ?? order.reward.stamps))
-        throw new KovaError('conflict', 'This stamp card was already used. Order again for the full price.')
+      const order = await db.query.orders.findFirst({
+        where: eq(schema.orders.intentId, intent.id),
+      })
+      const stall = order?.stallId
+        ? await db.query.stalls.findFirst({ where: eq(schema.stalls.id, order.stallId) })
+        : undefined
+      if (
+        order?.reward &&
+        (await stampsAt(intent.merchantId, rewardPayer)) <
+          (stall?.loyaltyEvery ?? order.reward.stamps)
+      )
+        throw new KovaError(
+          'conflict',
+          'This stamp card was already used. Order again for the full price.',
+        )
     }
 
-    const { receipt, ms } = await relayAuthorization(token, authorization, signature, { zero: intent.amount === 0n })
+    const { receipt, ms } = await relayAuthorization(token, authorization, signature, {
+      zero: intent.amount === 0n,
+    })
     await settleFromReceipt(receipt)
     const settled = await load(c.req.param('id'))
     return c.json({

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { type Address, getAddress, isAddress } from 'viem'
+import { getNetwork } from '@kova/monad'
 import { Icon, type IconName } from '@/components/brand'
 import {
   answer,
@@ -552,7 +553,7 @@ export function Approval({
 }
 
 export function Received({ spendKey, onDone }: { spendKey: SpendKey; onDone?: () => void }) {
-  const { profile, signMessage } = useWallet()
+  const { profile, signMessage, network } = useWallet()
   const [open, setOpen] = useState(false)
   const [to, setTo] = useState('')
   const [amount, setAmount] = useState('')
@@ -584,7 +585,7 @@ export function Received({ spendKey, onDone }: { spendKey: SpendKey; onDone?: ()
             <Icon name="check" size={16} /> Paid ${done.amount}.{' '}
             {done.tx_hash ? (
               <a
-                href={`https://testnet.monadscan.com/tx/${done.tx_hash}`}
+                href={`${getNetwork(network).explorerUrl}/tx/${done.tx_hash}`}
                 target="_blank"
                 rel="noreferrer"
               >

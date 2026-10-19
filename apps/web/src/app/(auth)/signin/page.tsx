@@ -1,3 +1,4 @@
+import { network } from '@/lib/network'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { SignInForm } from '@/components/auth-forms'
@@ -20,7 +21,7 @@ export default async function SignInPage(props: {
     <SignInForm
       notice={notice}
       privyAppId={process.env.PRIVY_APP_ID ?? null}
-      chainId={process.env.KOVA_NETWORK === 'mainnet' ? 143 : 10143}
+      chainId={network === 'mainnet' ? 143 : 10143}
     />
   )
 }

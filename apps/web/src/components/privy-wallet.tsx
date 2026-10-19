@@ -1,8 +1,7 @@
 'use client'
 
-import { PrivyProvider, useLogin, usePrivy, useWallets } from '@privy-io/react-auth'
+import { useCreateWallet, useLogin, usePrivy, useWallets } from '@privy-io/react-auth'
 import { useEffect, useRef, useState } from 'react'
-import { monad, monadTestnet } from 'viem/chains'
 import { returningFromPrivy } from '@/lib/privy-return'
 
 /**
@@ -37,37 +36,8 @@ interface Props {
   fresh?: boolean
 }
 
-export default function PrivyWallet({
-  appId,
-  chainId,
-  onWallet,
-  onCancel,
-  title = 'Your Kova wallet',
-  fresh = false,
-}: Props) {
-  const chain = chainId === monad.id ? monad : monadTestnet
-  return (
-    <PrivyProvider
-      appId={appId}
-      config={{
-        loginMethods: ['email', 'google'],
-        appearance: {
-          theme: 'light',
-          accentColor: '#d46558',
-          landingHeader: title,
-          showWalletLoginFirst: false,
-        },
-        embeddedWallets: {
-          ethereum: { createOnLogin: 'users-without-wallets' },
-          showWalletUIs: false,
-        },
-        defaultChain: chain,
-        supportedChains: [chain],
-      }}
-    >
-      <Connect onWallet={onWallet} onCancel={onCancel} fresh={fresh} />
-    </PrivyProvider>
-  )
+export default function PrivyWallet({ onWallet, onCancel, fresh = false }: Props) {
+  return <Connect onWallet={onWallet} onCancel={onCancel} fresh={fresh} />
 }
 
 function Connect({
@@ -77,6 +47,8 @@ function Connect({
 }: Pick<Props, 'onWallet' | 'onCancel'> & { fresh: boolean }) {
   const { ready, authenticated, user, logout } = usePrivy()
   const { wallets, ready: walletsReady } = useWallets()
+  const { createWallet } = useCreateWallet()
+  const creating = useRef(false)
   // Back from Google: Privy is finishing that sign-in, so neither start another nor end it.
   const [resuming] = useState(returningFromPrivy)
   // In fresh mode, whoever was signed in before is signed out before anything is delivered.
@@ -107,8 +79,15 @@ function Connect({
   // The embedded wallet appears moments after sign-in.
   useEffect(() => {
     if (!cleared || !authenticated || !walletsReady || delivered.current) return
-    const embedded = wallets.find((w) => w.walletClientType === 'privy')
-    if (!embedded) return
+    const embedded = wallets.filter((w) => w.walletClientType === 'privy')
+      .sort((a, b) => (a.walletIndex ?? 0) - (b.walletIndex ?? 0))[0]
+    if (!embedded) {
+      if (!creating.current) {
+        creating.current = true
+        void createWallet().catch(onCancel).finally(() => { creating.current = false })
+      }
+      return
+    }
     delivered.current = true
     void embedded.getEthereumProvider().then((provider) =>
       onWallet({
@@ -117,8 +96,8 @@ function Connect({
         signedInAs: user?.email?.address ?? user?.google?.email ?? 'your email',
         logout,
       }),
-    )
-  }, [cleared, authenticated, walletsReady, wallets, user, onWallet, logout])
+    ).catch(onCancel)
+  }, [cleared, authenticated, walletsReady, wallets, user, onWallet, logout, createWallet, onCancel])
 
   return null
 }

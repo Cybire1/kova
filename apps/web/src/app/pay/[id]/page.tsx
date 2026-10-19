@@ -95,13 +95,15 @@ export default async function PayPage(context: { params: Promise<{ id: string }>
           ) : null}
           {c.order?.reward ? (
             <p className="pay-reward-help">
-              {Number(c.amount) === 0 ? 'It’s on the house. You still approve it, so you get a receipt.' : 'Your stamp card took it off.'} Pay with
-              the wallet that holds the card.
+              {Number(c.amount) === 0
+                ? 'It’s on the house. You still approve it, so you get a receipt.'
+                : 'Your stamp card took it off.'}{' '}
+              Pay with the wallet that holds the card.
             </p>
           ) : null}
-          <Pill href={`kova://pay/${c.id}`} icon="tap" tone="coral" wide>
+          {c.network==='mainnet'?<Pill href={`kova://pay/${c.id}`} icon="tap" tone="coral" wide>
             Pay with the Kova app
-          </Pill>
+          </Pill>:null}
           {/* The same wallet in the browser, opened with the app's passkey (or made here in a moment). */}
           <Pill
             href={`/wallet/pay/${c.id}`}
@@ -110,8 +112,35 @@ export default async function PayPage(context: { params: Promise<{ id: string }>
             wide
             className="pay-kova-web"
           >
-            Pay with my Kova wallet
+            {c.network==='testnet'?'Pay with my test wallet':'Pay with my Kova wallet'}
           </Pill>
+          {c.ussd ? (
+            <div
+              className="pay-ussd"
+              style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #14242833' }}
+            >
+              <strong>Pay by USSD</strong>
+              <p>
+                Dial <strong>{c.ussd.dial}</strong>, choose <strong>2 · Pay a till</strong>, then
+                enter:
+              </p>
+              <p
+                aria-label={`USSD payment code ${c.ussd.code}`}
+                style={{
+                  fontSize: '2rem',
+                  fontWeight: 700,
+                  letterSpacing: '.15em',
+                  margin: '.5rem 0',
+                }}
+              >
+                {c.ussd.code}
+              </p>
+              <p className="fineprint">
+                Your USSD pocket needs enough dollars. Enter your PIN to approve the amount shown in
+                the menu.
+              </p>
+            </div>
+          ) : null}
         </section>
       </PayFlow>
     </main>

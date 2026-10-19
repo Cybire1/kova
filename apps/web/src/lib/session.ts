@@ -1,6 +1,7 @@
 import 'server-only'
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 import { cookies } from 'next/headers'
+import { network } from './network'
 
 /**
  * The signed-in shop, as its secret key sealed in an httpOnly cookie (AES-256-GCM).
@@ -9,7 +10,7 @@ import { cookies } from 'next/headers'
  * this server with the unsealed key. Signing out deletes the cookie.
  */
 
-const COOKIE = 'kova_session'
+const COOKIE = network === 'testnet' ? 'kova_session_testnet' : 'kova_session'
 const MAX_AGE = 60 * 60 * 24 * 30
 
 function secret() {

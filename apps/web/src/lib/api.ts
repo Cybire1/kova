@@ -2,6 +2,7 @@ import 'server-only'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getSession } from './session'
+import { apiUrl as baseUrl } from './network'
 
 /**
  * Server-side Kova API client.
@@ -10,8 +11,6 @@ import { getSession } from './session'
  * sees a key. `kovaPublic` is for the calls that need none: opening a shop, and the
  * customer's view of a charge.
  */
-const baseUrl = process.env.KOVA_API_URL ?? 'http://localhost:4000'
-
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -163,6 +162,7 @@ export interface IntentList {
 }
 
 export interface Checkout {
+  ussd?: {code:string;dial:string}|null
   id: string
   merchant_name: string
   amount: string

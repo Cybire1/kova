@@ -1,3 +1,4 @@
+import { publicApiUrl } from '@/lib/network'
 import type { Metadata } from 'next'
 import { EventsCard, KeysCard, Quickstart, WebhooksCard } from '@/components/developers'
 import { PageHead } from '@/components/shell'
@@ -11,7 +12,7 @@ export default async function DevelopersPage() {
     kova<{ data: WebhookEndpoint[] }>('/v1/webhook_endpoints'),
     kova<{ data: KovaEvent[] }>('/v1/events?limit=15'),
   ])
-  const apiUrl = process.env.KOVA_PUBLIC_API_URL ?? process.env.KOVA_API_URL ?? 'http://localhost:4000'
+  const apiUrl = publicApiUrl
   return (
     <>
       <PageHead title="Developers" sub="Take Kova payments from your own website, app or till software" />

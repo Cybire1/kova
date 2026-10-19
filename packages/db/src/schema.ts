@@ -801,12 +801,35 @@ export const paymentLinks = pgTable(
     claimedBy: address('claimed_by'),
     claimTx: text('claim_tx'),
     claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    /** Phone payments are reserved before funding; only OTP-verified recipients can claim. */
+    recipientPhone: text('recipient_phone'),
+    phoneKey: text('phone_key'),
+    phoneSmsSentAt: timestamp('phone_sms_sent_at', { withTimezone: true }),
+    phoneSmsAttemptAt: timestamp('phone_sms_attempt_at', { withTimezone: true }),
+    phoneCodeHash: text('phone_code_hash'),
+    phoneCodeExpiresAt: timestamp('phone_code_expires_at', { withTimezone: true }),
+    phoneCodeTries: integer('phone_code_tries').notNull().default(0),
+    phoneCodeWallet: address('phone_code_wallet'),
+    phoneVerifiedWallet: address('phone_verified_wallet'),
+    phoneOperationTo: address('phone_operation_to'),
+    phoneOperationAt: integer('phone_operation_at'),
+    phoneCheckedAt: timestamp('phone_checked_at', { withTimezone: true }).notNull().defaultNow(),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('payment_links_address_idx').on(t.linkAddress), index('payment_links_sender_idx').on(t.senderAddress)],
 )
 
 // --- Kova Travel ---------------------------------------------------------------------------
+
+/** A pending phone account becomes active only after number verification. No auth secrets here. */
+export const phoneAccounts = pgTable('phone_accounts', {
+  id: id(),
+  network: network('network').notNull(),
+  phone: text('phone').notNull(),
+  wallet: address('wallet'),
+  verifiedAt: timestamp('verified_at', { withTimezone: true }),
+  createdAt: createdAt(),
+}, (t) => [uniqueIndex('phone_accounts_network_phone_idx').on(t.network, t.phone)])
 
 export const tripKind = pgEnum('trip_kind', ['flight', 'stay'])
 export const tripStatus = pgEnum('trip_status', [
@@ -942,7 +965,7 @@ export const ussdPockets = pgTable(
     sealedKey: text('sealed_key').notNull(),
     /** scrypt: salt.hash, base64url. */
     pinHash: text('pin_hash').notNull(),
-    /** The most the pocket may hold, and the most it may spend in a day, in base units. */
+    /** The daily spending limit, in base units. Incoming transfers cannot be capped. */
     cap: amount('cap').notNull(),
     failedPins: integer('failed_pins').notNull().default(0),
     lockedUntil: timestamp('locked_until', { withTimezone: true }),
@@ -959,6 +982,7 @@ export const ussdPockets = pgTable(
   (t) => [
     uniqueIndex('ussd_pockets_owner_idx').on(t.ownerAddress),
     index('ussd_pockets_phone_idx').on(t.phone),
+    uniqueIndex('ussd_pockets_active_phone_idx').on(t.phone).where(sql`${t.status} = 'active'`),
     uniqueIndex('ussd_pockets_address_idx').on(t.pocketAddress),
   ],
 )

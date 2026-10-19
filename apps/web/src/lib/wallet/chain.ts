@@ -57,6 +57,10 @@ function client(network: NetworkId) {
   return made
 }
 
+export async function monBalanceOf(network: NetworkId, address: Address): Promise<bigint> {
+  return client(network).getBalance({ address })
+}
+
 /** The wallet's dollars (AUSD), in base units. */
 export async function balanceOf(network: NetworkId, address: Address): Promise<bigint> {
   const token = getToken(network, 'AUSD')

@@ -103,6 +103,7 @@ export default function Links() {
   }, [rows])
 
   const confirmBack = (link: PaymentLink) => {
+    if (link.phone_payment) return router.push({ pathname: '/phone/[id]', params: { id: link.id } })
     void Haptics.selectionAsync()
     Alert.alert(`Take back ${plainUsd(toBase(link.amount))}?`, 'The link stops working and the dollars come back to your balance.', [
       { text: 'Keep it', style: 'cancel' },
@@ -128,10 +129,10 @@ export default function Links() {
   }
 
   const shareAgain = (link: PaymentLink, key: Hex) =>
-    void Share.share({ message: shareMessage(profile?.name ?? '', toBase(link.amount), linkUrl(link.id, key), link.note) })
+    link.phone_payment ? router.push({ pathname: '/phone/[id]', params: { id: link.id } }) : void Share.share({ message: shareMessage(profile?.name ?? '', toBase(link.amount), linkUrl(link.id, key), link.note) })
 
-  const waiting = rows?.filter((r) => r.kind === 'pending' || r.link.status === 'open') ?? []
-  const done = rows?.filter((r) => r.kind === 'link' && r.link.status !== 'open') ?? []
+  const waiting = rows?.filter((r) => r.kind === 'pending' || !['claimed', 'returned'].includes(r.link.status)) ?? []
+  const done = rows?.filter((r) => r.kind === 'link' && ['claimed', 'returned'].includes(r.link.status)) ?? []
 
   return (
     <Screen edges={['top']}>
@@ -218,7 +219,7 @@ export default function Links() {
                   actions={
                     <View style={styles.actions}>
                       {r.key ? <SmallButton icon="share" label="Share again" onPress={() => shareAgain(r.link, r.key as Hex)} /> : null}
-                      {r.key ? (
+                      {r.key || r.link.phone_payment ? (
                         <SmallButton icon="receive" label="Take it back" busy={working === r.link.id} onPress={() => confirmBack(r.link)} />
                       ) : (
                         <Txt size={13} color={colors.muted} style={{ flex: 1 }}>

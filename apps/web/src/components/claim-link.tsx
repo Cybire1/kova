@@ -176,7 +176,7 @@ export function ClaimLink({
       // Back in the address bar, so a reload still has it.
       if (found) window.history.replaceState(null, '', `${window.location.pathname}#${found}`)
     }
-    const kept = keptKey(link.id)
+    const kept = keptKey(link.id, network)
     if (!found && kept) found = kept
     setMine(Boolean(kept))
     setKey(found && keyOpens(found, link.link_address) ? found : null)

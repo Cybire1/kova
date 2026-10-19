@@ -1,3 +1,4 @@
+import { network } from '@/lib/network'
 import type { Metadata } from 'next'
 import { Books } from '@/components/books'
 import { Brand, Icon } from '@/components/brand'
@@ -28,7 +29,7 @@ export default function BooksPage() {
           Read-only
         </span>
       </header>
-      <Books network={process.env.KOVA_NETWORK === 'mainnet' ? 'mainnet' : 'testnet'} />
+      <Books network={network} />
     </main>
   )
 }

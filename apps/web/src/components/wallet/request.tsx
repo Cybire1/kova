@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Icon } from '@/components/brand'
 import { personLink } from '@/lib/wallet/links'
 import {
@@ -111,7 +112,7 @@ export function Request() {
 
 /** Getting paid: your code, your link and your address. */
 export function Receive() {
-  const { profile } = useWallet()
+  const { profile, network } = useWallet()
   const origin = useOrigin()
   if (!profile) return null
   const link = personLink(origin, {
@@ -125,18 +126,19 @@ export function Receive() {
       <ScreenHead title="Get paid" />
       <div className="w-code-screen">
         <h1 className="w-title">Scan to pay {firstName}</h1>
-        <p className="w-lead">It lands in seconds, from anywhere.</p>
+        <p className="w-lead">Share this code or link to receive Kova payments.</p>
         <div className="w-code-card">
           <QR value={link} size={200} label={`Code to pay ${profile.name}`} />
         </div>
         <div className="w-address">
           <span>
-            <small>Your address on Monad</small>
+            <small>Receive AUSD on Monad</small>
             <code>{short(profile.address)}</code>
           </span>
           <CopyButton text={profile.address} />
         </div>
-        <p className="w-fine w-center">Monad address. Send only AUSD on Monad to it.</p>
+        <p className="w-fine w-center">AUSD arrives ready to spend. MON sent here appears separately and needs conversion.</p>
+        {network === 'mainnet' ? <Link className="w-mon-card" href="/wallet/add/chain"><span><strong>Depositing MON or other crypto?</strong><small>Choose a token and network. We convert it to dollars for you.</small></span><Icon name="arrow" size={18} /></Link> : null}
         <p className="w-offline-hint">
           <NoSignal size={15} />
           <span>

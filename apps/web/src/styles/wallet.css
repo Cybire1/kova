@@ -5378,3 +5378,68 @@ button.w-chip-private:disabled {
   padding: 0;
   border: 0;
 }
+
+/* Crypto deposits: one network, one token, one spendable balance. */
+.w-deposit-intro { display: flex; align-items: center; gap: 1rem; margin: 1rem 0 1.5rem; }
+.w-deposit-intro .w-title { font-size: 1.8rem; margin: 0 0 0.4rem; }
+.w-deposit-intro p { margin: 0; }
+.w-deposit-form { margin-bottom: 1rem; }
+.w-deposit-tokens { border: 0; padding: 0; min-width: 0; margin: 0; }
+.w-deposit-tokens legend { margin-bottom: 0.6rem; }
+.w-deposit-tokens > div { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.w-deposit-tokens button { border: 2px solid var(--ink); border-radius: 2rem; padding: 0.55rem 1rem; background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.w-deposit-tokens button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.w-deposit-details { width: 100%; min-width: 0; font-size: 0.8125rem; }
+.w-deposit-details summary { cursor: pointer; padding: 0.5rem 0; font-weight: 650; }
+.w-deposit-details > .w-naira-field { margin-top: 0.65rem; }
+.w-deposit-contract { overflow-wrap: anywhere; }
+.w-deposit-total { font-size: 2.3rem; line-height: 1.2; letter-spacing: -0.08rem; overflow-wrap: anywhere; max-width: 100%; text-align: center; }
+.w-deposit-total span { font-size: 1rem; letter-spacing: 0; }
+.w-deposit-review { width: 100%; margin: 0.5rem 0 1rem; }
+.w-deposit-review .w-review-row { font-size: 0.8125rem; }
+.w-deposit-review dd { overflow-wrap: anywhere; }
+.w-mon-card { display: flex; align-items: center; gap: 12px; padding: 16px; margin-top: 12px; border: 2px solid var(--ink); border-radius: 22px; background: var(--teal-light, #c4dada); color: var(--ink); text-decoration: none; }
+.w-mon-card > span:not(.w-mon-icon) { flex: 1; min-width: 0; }
+.w-mon-card strong, .w-mon-card small { display: block; }
+.w-mon-card strong { font-size: 15px; overflow-wrap: anywhere; }
+.w-mon-card small { font-size: 12px; margin-top: 4px; line-height: 1.5; }
+.w-mon-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--paper); flex-shrink: 0; }
+.w-mon-card-main { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; color: inherit; text-decoration: none; }
+.w-mon-card-main > span:not(.w-mon-icon) { flex: 1; min-width: 0; }
+.w-mon-dismiss { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
+.w-mon-dismiss:hover { background: rgba(0,0,0,0.06); }
+.w-mon-screen { display: flex; flex-direction: column; gap: 18px; }
+.w-mon-holding, .w-mon-preview, .w-mon-progress { display: flex; flex-direction: column; gap: 12px; border: 2px solid var(--ink); border-radius: 24px; padding: 20px; background: var(--surface, #fffdf8); }
+.w-mon-holding > strong, .w-mon-preview > strong { font-size: 32px; overflow-wrap: anywhere; letter-spacing: -1px; }
+.w-mon-input label { display: block; margin-bottom: 8px; font-weight: 600; }
+.w-mon-input > div { display: flex; gap: 12px; padding: 14px; border: 2px solid var(--ink); border-radius: 18px; }
+.w-mon-input input { width: 0; flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 24px; color: inherit; }
+.w-mon-input button { min-width: 48px; min-height: 44px; border: 0; border-radius: 22px; background: var(--ink); color: var(--paper); font: inherit; cursor: pointer; }
+.w-mon-preview dl { display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 13px; }
+.w-mon-preview dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.w-mon-progress h2 { margin: 0; font-size: 22px; }
+.w-mon-progress p { margin: 0; line-height: 1.6; }
+.w-arrival { width: min(calc(100% - 24px), 440px); max-height: calc(100dvh - 32px); margin: auto; padding: 22px; border: 2px solid var(--ink); border-radius: 30px; background: #c4dada; color: var(--ink); overflow-y: auto; text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,.2); animation: w-arrival-in .3s ease-out both; }
+.w-arrival::backdrop { background: rgba(10,22,24,.44); backdrop-filter: blur(6px); }
+.w-arrival-top { display: flex; align-items: center; justify-content: space-between; }
+.w-arrival-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; border-radius: 18px; padding: 8px 12px; background: var(--paper); }
+.w-arrival-art { height: 220px; position: relative; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+.w-arrival-coin { position: absolute; top: -36px; animation: w-arrival-rain 1.5s ease-in both; }
+.w-arrival-yay { position: absolute; top: 30px; right: 20%; padding: 9px 16px; border: 2px solid var(--ink); border-radius: 18px; background: var(--paper); font-weight: 700; transform: rotate(7deg); }
+.w-arrival h2 { font-size: 22px; margin: 18px 0 6px; overflow-wrap: anywhere; }
+.w-arrival-amount { font-size: clamp(36px, 10vw, 60px); font-weight: 700; letter-spacing: -2px; margin: 8px 0; overflow-wrap: anywhere; }
+.w-arrival > p:not(.w-arrival-amount) { font-size: 14px; line-height: 1.6; }
+.w-arrival .pill { margin-top: 24px; display: flex; justify-content: center; gap: 12px; }
+.w-arrival > .textlink { display: inline-block; margin-top: 18px; }
+.w-arrival-note { margin: 18px 0; padding: 14px; border-radius: 14px; background: var(--paper); font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
+@keyframes w-arrival-in { from { opacity: 0; transform: translateY(20px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes w-arrival-rain { 0% { transform: translateY(0) rotate(-25deg); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(250px) rotate(45deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .w-arrival, .w-arrival-coin { animation: none; } }
+.w-ussd-test,.w-ussd-notice{padding:18px;border:2px solid var(--ink,#102025);border-radius:20px;background:#d6e5e3;margin:16px 0}
+.w-ussd-test p{margin-bottom:0}.w-ussd-amount{display:block;font-size:44px;line-height:1.2;margin:14px 0}
+.w-ussd-dial{display:flex;align-items:center;gap:16px;margin:18px 0}.w-ussd-dial code{font-size:24px;overflow-wrap:anywhere}
+.w-ussd-review{padding:16px;border:2px solid currentColor;border-radius:16px;background:#f1e4db}
+.w-ussd-payment{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid #10202525}
+.w-ussd-payment span{display:grid;gap:5px;min-width:0}.w-ussd-payment small{opacity:.7}.w-ussd-payment a{flex-shrink:0}
+.w-ussd-body button.textlink{appearance:none;border:0;background:none;color:inherit;font:inherit;text-align:left;text-decoration:underline;min-height:44px;padding:8px 0;cursor:pointer}
+.w-ussd-body button.textlink:disabled{opacity:.5;cursor:default}

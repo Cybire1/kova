@@ -8,6 +8,7 @@ import { ScreenHead } from './activity'
 import { NairaRow } from './naira'
 import { FromAbroadRow } from './money'
 import { useWallet } from './provider'
+import { MonConversionEntry } from './mon'
 
 type Stage =
   | { at: 'ready' }
@@ -32,10 +33,11 @@ export function AddMoney() {
             wallet.
           </span>
         </div>
+        {chainDeposits ? <FromAnotherChain /> : null}
+        <MonConversionEntry />
         <NairaRow href="/wallet/add/naira" title="From your bank, in naira" detail="Bank transfer, card or USSD, with Paystack" />
         <FromAbroadRow />
         <CardOrBank />
-        {chainDeposits ? <FromAnotherChain /> : null}
         <Link href="/wallet/receive" className="pill pill-block" data-tone="ink">
           <span className="pill-label">Show my address</span>
           <span className="pill-cap">
@@ -118,24 +120,33 @@ export function AddMoney() {
         </button>
         <NairaRow href="/wallet/add/naira" title="From your bank, in naira" detail="Bank transfer, card or USSD, with Paystack" />
         <FromAbroadRow />
-        {chainDeposits ? <FromAnotherChain /> : null}
       </div>
     </div>
   )
 }
 
-/**
- * Deposits from other chains (Aurora Intents). Off until it can work end to end: it needs mainnet,
- * a working Monad route and AUSD as a destination. NEXT_PUBLIC_KOVA_CHAIN_DEPOSITS=1 shows it.
- */
-const chainDeposits = process.env.NEXT_PUBLIC_KOVA_CHAIN_DEPOSITS === '1'
+/** Relay checks the selected route before any deposit address is shown. Set 0 to hide. */
+const chainDeposits = process.env.NEXT_PUBLIC_KOVA_CHAIN_DEPOSITS !== '0'
 
 function FromAnotherChain() {
+  const { profile } = useWallet()
+  const [available, setAvailable] = useState(false)
+  const address = profile?.address
+  useEffect(() => {
+    let active = true
+    setAvailable(false)
+    if (address) void fetch(`/api/wallet/${address}/chain-deposit-sources`, { cache: 'no-store' })
+      .then((r) => r.ok ? r.json() : null)
+      .then((r) => { if (active) setAvailable(r?.live === true) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [address])
+  if (!available) return null
   return (
     <Link href="/wallet/add/chain" className="w-add-chain">
       <span>
-        <strong>From another chain</strong>
-        <small>USDC, USDT, ETH, SOL or BTC, from 30+ chains</small>
+        <strong>Deposit crypto</strong>
+        <small>MON, USDC, SOL & more → your Kova balance</small>
       </span>
       <Icon name="arrow" size={18} />
     </Link>

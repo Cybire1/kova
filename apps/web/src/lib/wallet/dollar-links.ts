@@ -12,6 +12,7 @@ import { type Address, getAddress, type Hex, isAddressEqual } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { balanceOf } from './chain'
 import { formatUsd } from './money'
+import { networkStorageKey } from './storage'
 
 /**
  * Links with dollars in them, as the app makes them (apps/mobile src/lib/paylinks.ts). The sender's
@@ -22,10 +23,11 @@ import { formatUsd } from './money'
  * unclaimed link can be taken back the same way.
  */
 
-export type LinkStatus = 'open' | 'claimed' | 'returned'
+export type LinkStatus = 'funding' | 'open' | 'claiming' | 'returning' | 'claimed' | 'returned'
 
 /** GET /v1/public/links/:id. */
 export interface DollarLink {
+  phone_payment?: boolean
   id: string
   status: LinkStatus
   /** Dollars, e.g. "20.00". */
@@ -179,9 +181,9 @@ export interface KeptLink {
 
 const STORE = 'kova.web.links.v1'
 
-export function keptLinks(): Record<string, KeptLink> {
+export function keptLinks(network: NetworkId): Record<string, KeptLink> {
   try {
-    const raw = localStorage.getItem(STORE)
+    const raw = localStorage.getItem(networkStorageKey(STORE, network))
     const parsed = raw ? (JSON.parse(raw) as Record<string, KeptLink>) : {}
     return parsed && typeof parsed === 'object' ? parsed : {}
   } catch {
@@ -189,9 +191,9 @@ export function keptLinks(): Record<string, KeptLink> {
   }
 }
 
-function keep(next: Record<string, KeptLink>) {
+function keep(next: Record<string, KeptLink>, network: NetworkId) {
   try {
-    localStorage.setItem(STORE, JSON.stringify(next))
+    localStorage.setItem(networkStorageKey(STORE, network), JSON.stringify(next))
   } catch {
     // Private mode or full storage: the link still works; it just can't be taken back from here.
   }
@@ -199,7 +201,7 @@ function keep(next: Record<string, KeptLink>) {
 }
 
 /** A fresh one-time key, kept before any dollars are sent to its address. */
-export function newLinkKey(amount: bigint, note: string | null): KeptLink {
+export function newLinkKey(amount: bigint, note: string | null, network: NetworkId): KeptLink {
   const key = generatePrivateKey()
   const kept: KeptLink = {
     key,
@@ -208,25 +210,25 @@ export function newLinkKey(amount: bigint, note: string | null): KeptLink {
     note,
     at: Date.now(),
   }
-  keep({ ...keptLinks(), [`pending:${kept.address.toLowerCase()}`]: kept })
+  keep({ ...keptLinks(network), [`pending:${kept.address.toLowerCase()}`]: kept }, network)
   return kept
 }
 
 /** Kova recorded the link: keep its key under the link's id from now on. */
-export function settleLinkKey(kept: KeptLink, id: string) {
-  const all = keptLinks()
+export function settleLinkKey(kept: KeptLink, id: string, network: NetworkId) {
+  const all = keptLinks(network)
   delete all[`pending:${kept.address.toLowerCase()}`]
-  keep({ ...all, [id]: { ...kept, id } })
+  keep({ ...all, [id]: { ...kept, id } }, network)
 }
 
 /** Forgets a key whose dollars never left (the send failed): nothing waits at its address. */
-export function dropLinkKey(kept: KeptLink) {
-  const all = keptLinks()
+export function dropLinkKey(kept: KeptLink, network: NetworkId) {
+  const all = keptLinks(network)
   delete all[`pending:${kept.address.toLowerCase()}`]
-  keep(all)
+  keep(all, network)
 }
 
 /** The key this browser kept for a link, if it made it. */
-export function keptKey(id: string): Hex | null {
-  return keptLinks()[id]?.key ?? null
+export function keptKey(id: string, network: NetworkId): Hex | null {
+  return keptLinks(network)[id]?.key ?? null
 }

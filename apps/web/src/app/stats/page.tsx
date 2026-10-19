@@ -1,3 +1,4 @@
+import { apiUrl, network as siteNetwork, publicApiUrl } from '@/lib/network'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Art, Brand, Icon, type IconName, Pill } from '@/components/brand'
@@ -43,8 +44,8 @@ async function statsFrom(base: string): Promise<NetworkStats | null> {
  * so the same database is never counted twice.
  */
 async function statsFor(network: Network): Promise<NetworkStats | null> {
-  const here: Network = process.env.KOVA_NETWORK === 'mainnet' ? 'mainnet' : 'testnet'
-  const own = network === here ? [process.env.KOVA_API_URL, process.env.KOVA_PUBLIC_API_URL] : []
+  const here: Network = siteNetwork
+  const own = network === here ? [apiUrl, publicApiUrl] : []
   const bases = [...new Set([...own, PUBLIC_API[network]].filter((b): b is string => Boolean(b)))]
   for (const base of bases) {
     const stats = await statsFrom(base)

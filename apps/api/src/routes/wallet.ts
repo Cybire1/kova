@@ -34,6 +34,7 @@ import { KovaError, notFound } from '../errors.js'
 import { clientIp as ip, limit } from '../limits.js'
 import { relayAuthorization } from '../relay.js'
 import { depositAddress, depositsTo, isSource, SOURCES } from '../services/deposits.js'
+import { chainDepositActivity, chainDepositQuote, chainDepositSources } from '../services/chain-deposits.js'
 import { giveTestDollars } from '../services/faucet.js'
 import { cashOutFor, topUpFor } from '../services/ramp.js'
 import { indexedThrough } from '../workers/watcher.js'
@@ -451,6 +452,21 @@ export const walletRoutes = new Hono()
     const wallet = walletAddress(c)
     const currency = (c.req.query('currency') ?? 'USD').toUpperCase()
     return c.json({ object: 'cash_out', ...cashOutFor(wallet, currency) })
+  })
+  .get('/wallets/:address/chain-deposit-sources', async (c) => {
+    walletAddress(c)
+    limit(`chain-deposit-sources:${ip(c)}`, 120, 60_000, 'Too many deposit requests. Try again shortly.')
+    return c.json({ object: 'chain_deposit_sources', ...await chainDepositSources() })
+  })
+  .post('/wallets/:address/chain-deposit-quote', async (c) => {
+    const wallet = walletAddress(c)
+    limit(`chain-deposit-quote:${ip(c)}`, 60, 3_600_000, 'Too many deposit quotes. Try again shortly.')
+    return c.json({ object: 'chain_deposit_quote', ...await chainDepositQuote(wallet, await c.req.json().catch(() => null)) })
+  })
+  .get('/wallets/:address/chain-deposits', async (c) => {
+    const wallet = walletAddress(c)
+    limit(`chain-deposits:${ip(c)}`, 600, 60_000, 'Too many tracking requests. Try again shortly.')
+    return c.json({ object: 'list', data: await chainDepositActivity(wallet) })
   })
   .get('/wallets/:address/deposit-sources', (c) => {
     walletAddress(c)

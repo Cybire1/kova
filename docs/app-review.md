@@ -2,6 +2,10 @@
 
 What to put in App Store Connect → TestFlight → Test Information → **Beta App Review Information**.
 
+Production builds now target Monad mainnet (chain 143), mainnet AUSD, and the mainnet API.
+The notes below describe the older testnet build 8. Do not reuse the test-dollar claim or demo
+credentials for a mainnet submission: the demo account is available only on the testnet API.
+
 - **Sign-in required:** on.
 - **User name / Password:** `KOVA_DEMO_USERNAME` / `KOVA_DEMO_PASSWORD` from the API's environment
   (Railway `api` service, environment `monad`; locally `apps/api/.env.monad`). Never commit them.

@@ -1,4 +1,4 @@
-import { formatAmount, normalizePhone } from '@kova/monad'
+import { formatAmount, normalizePhone, parseAmount } from '@kova/monad'
 import { config } from '../config.js'
 import { KovaError } from '../errors.js'
 import {
@@ -7,6 +7,8 @@ import {
   type Pocket,
   pocketBalance,
   pocketForPhone,
+  pocketsReady,
+  reconcilePocket,
   recentSpends,
   type Spend,
   spend,
@@ -54,6 +56,9 @@ export async function ussdReply(request: UssdRequest): Promise<string> {
     return end(
       'This number has no Kova pocket yet. Open Kova, go to Profile, then Pay by USSD to set one up.',
     )
+  if (!pocketsReady())
+    return end('USSD payments are paused. Your dollars can be returned from Kova’s USSD settings.')
+  await reconcilePocket(pocket)
 
   const steps = request.text === '' ? [] : request.text.split('*')
   const [choice, ...rest] = steps
@@ -75,6 +80,14 @@ export async function ussdReply(request: UssdRequest): Promise<string> {
 
   if (choice === '2') {
     const [code, pin] = rest
+    if (pin !== undefined) {
+      const earlier = await spendForSession(pocket, `ussd:${request.sessionId}`)
+      if (earlier) {
+        const denied = await pinDenied(pocket, pin)
+        if (denied) return denied
+        return answerFor(earlier, earlier.kind)
+      }
+    }
     if (code === undefined) return con('Enter the 6-digit code on the till:')
     const charge = /^\d{6}$/.test(code) ? await intentForTillCode(code) : null
     if (!charge) return end('No open charge has that code. Check the till and dial again.')
@@ -97,16 +110,16 @@ export async function ussdReply(request: UssdRequest): Promise<string> {
   if (choice === '3') {
     const [number, amountText, pin] = rest
     if (number === undefined)
-      return con('Send to which number?\nWith the country code, e.g. 254711000111')
+      return con('Send to which number?\nWith the country code, e.g. 2348012345678')
     const to = normalizePhone(number.startsWith('+') ? number : `+${number}`)
     if (!to) return end('That number doesn’t look right. Dial again and include the country code.')
     if (to === phone) return end('That’s your own number.')
     const wallet = await walletForPhone(to)
     if (!wallet) return end(`${mask(to)} isn’t on Kova yet. Ask them to get Kova at mykova.app.`)
     if (amountText === undefined) return con(`Send to ${mask(to)}\nAmount in dollars:`)
-    if (!/^\d{1,4}$/.test(amountText) || Number(amountText) === 0)
-      return end('Enter a whole number of dollars, like 5.')
-    const amount = BigInt(amountText) * 1_000_000n
+    if (!/^\d{1,4}(\.\d{1,2})?$/.test(amountText) || Number(amountText) === 0)
+      return end('Enter dollars and cents, like 5 or 0.50.')
+    const amount = parseAmount(amountText)
     if (pin === undefined)
       return con(`Send ${money(amount)} to ${mask(to)}\n\nEnter your PIN to send:`)
     const denied = await pinDenied(pocket, pin)
@@ -147,19 +160,16 @@ async function pinDenied(pocket: Pocket, pin: string): Promise<string | null> {
 
 async function pay(pocket: Pocket, request: Parameters<typeof spend>[1]): Promise<string> {
   // A network resending the last step gets the same answer, and no second receipt.
-  const earlier = await spendForSession(pocket, request.sessionId)
-  if (earlier) return answerFor(earlier, request.kind)
   let answered = false
   const job = spend(pocket, request).then(
-    (done) => {
-      receipts(pocket, done)
-      return done
-    },
+    (done) => done,
     (error: unknown) => {
       // Only text about a failure the screen couldn't show: the phone had already been answered.
       if (answered) {
         const why =
-          error instanceof KovaError ? error.message : 'Something went wrong, and nothing was paid.'
+          error instanceof KovaError
+            ? error.message
+            : 'Check your Kova payments before trying again.'
         sendSmsLater(
           pocket.phone,
           `Kova: your payment of ${money(request.amount)} didn’t go through. ${why}`,
@@ -184,7 +194,7 @@ async function pay(pocket: Pocket, request: Parameters<typeof spend>[1]): Promis
     const message =
       answer.error instanceof KovaError
         ? answer.error.message
-        : 'Something went wrong, and nothing was paid.'
+        : 'We couldn’t confirm the request. Check your Kova payments before trying again.'
     return end(message)
   }
   return answerFor(answer.done, request.kind)
@@ -197,21 +207,6 @@ function answerFor(done: Spend, kind: Spend['kind']): string {
   return end(
     `Paid ${money(done.amount)} to ${kind === 'phone' ? mask(done.toLabel) : done.toLabel}.\nRef ${done.reference}. A text is on its way.`,
   )
-}
-
-/** Texts for both sides once the money has moved. */
-function receipts(pocket: Pocket, done: Spend): void {
-  if (done.status !== 'paid') return
-  const to = done.kind === 'phone' ? mask(done.toLabel) : done.toLabel
-  sendSmsLater(
-    pocket.phone,
-    `Kova: you paid ${money(done.amount)} to ${to}. Ref ${done.reference}. Fee $0.00.`,
-  )
-  if (done.kind === 'phone')
-    sendSmsLater(
-      done.toLabel,
-      `Kova: you got ${money(done.amount)} from ${mask(pocket.phone)}. Ref ${done.reference}. It’s in your Kova wallet.`,
-    )
 }
 
 export const ussdCode = () => config.KOVA_USSD_CODE

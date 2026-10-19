@@ -1,3 +1,4 @@
+import { network } from '@/lib/network'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Art, Brand, Icon, Pill } from '@/components/brand'
@@ -16,7 +17,7 @@ const Coin = () => <span className="lp-coin" aria-hidden="true" />
 
 export default async function Landing() {
   const signedIn = Boolean(await getSession())
-  const mainnet = process.env.KOVA_NETWORK === 'mainnet'
+  const mainnet = network === 'mainnet'
   return (
     <div className="lp">
       <header className="lp-nav">

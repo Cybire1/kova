@@ -76,7 +76,7 @@ export function BalanceCard({
           style={styles.label}
         >
           <Txt weight="medium" size={15} color={onTeal}>
-            Available
+            Available to spend
           </Txt>
           <Icon name={hideBalance ? 'eyeOff' : 'eye'} size={18} color={onTeal} />
         </Pressable>

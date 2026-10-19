@@ -18,10 +18,15 @@ import {
   passkeyProblem,
 } from '@/lib/passkey'
 import { type ViewKey, viewOf } from '@/lib/takings'
+import { useGoogleWallet } from '@/components/google-wallet-provider'
+import { cachePrivateView, forgetPrivateView, restorePrivateView } from '@/lib/wallet/view-cache'
+import { networkStorageKey } from '@/lib/wallet/storage'
+import type { GoogleConnection } from '@/lib/google-wallet'
 import { openVault, sealAndUpload, type VaultContents } from '@/lib/vault'
 import { countNewWallet } from '@/lib/try-count'
 import {
   balanceOf,
+  monBalanceOf,
   type ChargeToPay,
   addTestDollars as fetchTestDollars,
   type IndexedTransfer,
@@ -35,6 +40,7 @@ import {
 import { type KeptLink, keptLinks, linksFrom } from '@/lib/wallet/dollar-links'
 import {
   type DisplayCurrency,
+  formatUsd,
   guessCurrency,
   isDisplayCurrency,
   type LiveRates,
@@ -43,7 +49,6 @@ import {
 } from '@/lib/wallet/money'
 import { fetchNoteKey, noteKeys, openNote, publishNoteKey } from '@/lib/wallet/notes'
 import {
-  announcedSince,
   emptyLedger,
   type FoundPayment,
   fetchPrivateKey,
@@ -83,7 +88,9 @@ export interface Profile {
   address: Address
   name: string
   currency: DisplayCurrency
-  passkey: PasskeyCredentialMetadata
+  passkey?: PasskeyCredentialMetadata
+  auth?: 'google'
+  email?: string
   createdAt: number
 }
 
@@ -164,8 +171,8 @@ interface Note {
 
 const PROFILE = 'kova.web.profile.v1'
 const HIDE = 'kova.web.hideBalance.v1'
-const notesKey = (address: string) => `kova.web.notes.v1.${address.toLowerCase()}`
-const shopKey = (address: string) => `kova.web.shop.v1.${address.toLowerCase()}`
+const notesKey = (address: string, network: NetworkId) => networkStorageKey(`kova.web.notes.v1.${address.toLowerCase()}`, network)
+const shopKey = (address: string, network: NetworkId) => networkStorageKey(`kova.web.shop.v1.${address.toLowerCase()}`, network)
 
 const read = <T,>(key: string): T | null => {
   try {
@@ -197,7 +204,10 @@ interface WalletValue {
   status: 'loading' | 'none' | 'ready'
   profile: Profile | null
   balance: bigint | null
+  monBalance: bigint | null
   activity: Entry[]
+  activityReady: boolean
+  privateScanReady: boolean
   contacts: Contact[]
   rates: Rates
   liveRates: LiveRates | null
@@ -207,6 +217,10 @@ interface WalletValue {
   create: (name: string, currency: DisplayCurrency) => Promise<void>
   /** The wallet an existing passkey holds: the app's, or one made here before. */
   open: () => Promise<{ named: boolean }>
+  signInGoogle: () => Promise<void>
+  googleEnabled: boolean
+  googleBusy: boolean
+  googleError: string | null
   /**
    * Sends to a person; `privately` sends to a one-time address only they can tell is theirs, with
    * who it's from and the note sealed inside it. `from: 'private'` pays it from private dollars.
@@ -237,7 +251,7 @@ interface WalletValue {
   announcedSend: (oneTime: string) => string | null
   /** The keys are open in this tab, so new private payments are found as they land. */
   privateOpen: boolean
-  /** Kova announced private payments this wallet's keys haven't looked through yet. */
+  /** This wallet has private receiving enabled, but this browser has no read-only scan access. */
   privateUnchecked: boolean
   /** Opens the keys (with the passkey if the wallet is locked) and looks for private payments. */
   checkPrivate: () => Promise<void>
@@ -343,10 +357,16 @@ export function WalletProvider({
   initialRates: LiveRates | null
   children: React.ReactNode
 }) {
+  const google = useGoogleWallet()
   const [status, setStatus] = useState<WalletValue['status']>('loading')
+  const [googleRestoreError, setGoogleRestoreError] = useState<string | null>(null)
+  const [googleAdopting, setGoogleAdopting] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [balance, setBalance] = useState<bigint | null>(null)
+  const [monHeld, setMonHeld] = useState<{ address: string; value: bigint } | null>(null)
   const [transfers, setTransfers] = useState<IndexedTransfer[]>([])
+  const [activityWallet, setActivityWallet] = useState<string | null>(null)
+  const [scannedWallet, setScannedWallet] = useState<string | null>(null)
   const [notes, setNotes] = useState<Record<string, Note>>({})
   const [saved, setSaved] = useState<Contact[]>([])
   const [hideBalance, setHide] = useState(false)
@@ -372,7 +392,7 @@ export function WalletProvider({
   profileRef.current = profile
   /**
    * The private-receiving view key, for the wallet it was made for: it finds private payments and
-   * can move none. In memory only, made again from the wallet whenever it opens.
+   * can move none. Its encrypted read-only cache restores automatic scans after a reload.
    */
   const [privateView, setPrivateView] = useState<{ address: string; view: ViewKey } | null>(null)
   const making = useRef<string | null>(null)
@@ -384,7 +404,6 @@ export function WalletProvider({
   /** What each found one-time address holds now, as Monad last said. */
   const [held, setHeld] = useState<Map<string, bigint>>(() => new Map())
   const heldRef = useRef(held)
-  const [unchecked, setUnchecked] = useState(false)
   const [movingIn, setMovingIn] = useState<{ done: number; total: number } | null>(null)
   const transfersRef = useRef(transfers)
   transfersRef.current = transfers
@@ -405,8 +424,8 @@ export function WalletProvider({
     const stored = read<Profile>(PROFILE)
     if (stored && isAddress(stored.address) && isDisplayCurrency(stored.currency)) {
       setProfile(stored)
-      setNotes(read<Record<string, Note>>(notesKey(stored.address)) ?? {})
-      setKnownShop(read<string>(shopKey(stored.address)))
+      setNotes(read<Record<string, Note>>(notesKey(stored.address, network)) ?? {})
+      setKnownShop(read<string>(shopKey(stored.address, network)))
       setStatus('ready')
     } else setStatus('none')
     setHide(read<boolean>(HIDE) ?? false)
@@ -422,7 +441,10 @@ export function WalletProvider({
       making.current = account.address
       void privateKeys(account)
         .then((keys) => {
-          setPrivateView({ address: account.address, view: viewOf(keys) })
+          if (sessionAccount(0n) !== account) return
+          const view = viewOf(keys)
+          setPrivateView({ address: account.address, view })
+          void cachePrivateView(account.address, view).catch(() => {})
           return publishPrivateKey(account, keys).then(() =>
             setReceiving({ address: account.address, on: true }),
           )
@@ -440,8 +462,8 @@ export function WalletProvider({
     if (!current.current || !isAddressEqual(getAddress(current.current), getAddress(wallet))) return
     ledgerRef.current = next
     setLedger(next)
-    writeLedger(wallet, next)
-  }, [])
+    writeLedger(wallet, next, network)
+  }, [network])
 
   const keepHeld = useCallback((update: (held: Map<string, bigint>) => void) => {
     const next = new Map(heldRef.current)
@@ -455,13 +477,17 @@ export function WalletProvider({
   useEffect(() => {
     if (!profile) return
     const wallet = profile.address
-    const stored = readLedger(wallet)
+    const stored = readLedger(wallet, network)
     ledgerRef.current = stored
     setLedger(stored)
     heldRef.current = new Map()
     setHeld(heldRef.current)
-    setUnchecked(false)
+    setScannedWallet(null)
     lastLooks.current = { held: 0, feed: 0 }
+    void restorePrivateView(wallet).then((view) => {
+      if (view && current.current === wallet)
+        setPrivateView((known) => known?.address === wallet ? known : { address: wallet, view })
+    })
     void fetchPrivateKey(wallet).then((meta) => {
       if (current.current !== wallet) return
       // Published a moment ago by the opening wallet: an answer from before that doesn't undo it.
@@ -486,16 +512,21 @@ export function WalletProvider({
 
   const refreshBalance = useCallback(async () => {
     if (!profile) return
-    const next = await balanceOf(network, profile.address).catch(() => null)
+    const [next, mon] = await Promise.all([
+      balanceOf(network, profile.address).catch(() => null),
+      monBalanceOf(network, profile.address).catch(() => null),
+    ])
     if (next !== null) setBalance(next)
+    if (mon !== null) setMonHeld({ address: profile.address, value: mon })
   }, [network, profile])
 
   /** New history since the last look, a page at a time until it's caught up. */
   const refreshActivity = useCallback(async () => {
     if (!profile) return
+    const wallet = profile.address
     for (let page = 0; page < 20; page++) {
-      const batch = await transfersAfter(profile.address, cursor.current).catch(() => null)
-      if (!batch) return
+      const batch = await transfersAfter(wallet, cursor.current).catch(() => null)
+      if (!batch || current.current !== wallet) return
       if (batch.data.length) {
         setTransfers((current) => {
           const seen = new Set(current.map((t) => t.id))
@@ -503,7 +534,7 @@ export function WalletProvider({
         })
       }
       cursor.current = batch.indexed_through
-      if (!batch.has_more) return
+      if (!batch.has_more) { setActivityWallet(wallet); return }
     }
   }, [profile])
 
@@ -517,6 +548,7 @@ export function WalletProvider({
     if (!profile) return
     cursor.current = '0'
     setTransfers([])
+    setActivityWallet(null)
     setBalance(null)
     void refresh()
     const tick = () => {
@@ -535,7 +567,7 @@ export function WalletProvider({
   useEffect(() => {
     if (!profile) return
     const load = () => {
-      const here = Object.values(keptLinks()).map((l) => l.address.toLowerCase())
+      const here = Object.values(keptLinks(network)).map((l) => l.address.toLowerCase())
       setLinkAddresses((current) => new Set([...current, ...here]))
     }
     load()
@@ -656,11 +688,58 @@ export function WalletProvider({
     }
     keepProfile(next)
     setSaved(people)
-    setNotes(read<Record<string, Note>>(notesKey(account.address)) ?? {})
-    setKnownShop(read<string>(shopKey(account.address)))
+    setNotes(read<Record<string, Note>>(notesKey(account.address, network)) ?? {})
+    setKnownShop(read<string>(shopKey(account.address, network)))
     setStatus('ready')
     return { named: Boolean(next.name) }
   }, [keepProfile, takeVault])
+
+  const adoptGoogle = useCallback(async (connected: GoogleConnection) => {
+    if (profile && (profile.auth !== 'google' || !isAddressEqual(profile.address, connected.account.address))) {
+      connected.session.end()
+      throw new Error('Sign out of the current wallet before opening another one.')
+    }
+    const backup = await openVault(connected.vaultSecret)
+    startSession(connected.session, connected.account)
+    takeVault(connected.vaultSecret, connected.account)
+    vaultRead.current = true
+    const next: Profile = {
+      address: connected.account.address, auth: 'google', email: connected.email,
+      name: backup?.name ?? connected.name,
+      currency: isDisplayCurrency(backup?.currency) ? backup.currency : guessCurrency(),
+      createdAt: profile?.createdAt ?? Date.now(),
+    }
+    keepProfile(next)
+    const people = (backup?.contacts ?? []).filter((c) => isAddress(c.address))
+      .map((c) => ({ ...c, currency: isDisplayCurrency(c.currency) ? c.currency : undefined }))
+    setSaved(people)
+    setNotes(read<Record<string, Note>>(notesKey(next.address, network)) ?? {})
+    setKnownShop(read<string>(shopKey(next.address, network)))
+    setStatus('ready')
+    if (!backup) backUp(vaultContents(next, people))
+  }, [profile, keepProfile, takeVault, backUp, vaultContents])
+
+  const signInGoogle = useCallback(async () => {
+    setGoogleAdopting(true)
+    setGoogleRestoreError(null)
+    try {
+      const connected = await google.connect(profile?.auth === 'google' ? profile.address : undefined)
+      try { await adoptGoogle(connected) }
+      catch (error) { connected.session.end(); throw error }
+    } finally { setGoogleAdopting(false) }
+  }, [adoptGoogle, google.connect, profile])
+
+  const resumedGoogle = useRef<GoogleConnection | null>(null)
+  useEffect(() => {
+    const connection = google.connection
+    if (status === 'loading' || !connection?.resumed || resumedGoogle.current === connection) return
+    resumedGoogle.current = connection
+    setGoogleAdopting(true)
+    void adoptGoogle(connection).catch((error: unknown) => {
+      connection.session.end()
+      setGoogleRestoreError(error instanceof Error ? error.message : 'Your wallet could not be restored. Try again.')
+    }).finally(() => setGoogleAdopting(false))
+  }, [status, google.connection, adoptGoogle])
 
   /**
    * The account to approve `amount` with: the open session if it covers it, else the passkey
@@ -671,6 +750,17 @@ export function WalletProvider({
       if (!profile) throw new Error('Open your wallet first.')
       const open = sessionAccount(amount)
       if (open) return open
+      if (profile.auth === 'google') {
+        if (!window.confirm(amount > 0n
+          ? `Approve ${formatUsd(amount)} from your Google wallet?`
+          : 'Unlock your Google wallet to approve this action?'))
+          throw new Error('Cancelled. Nothing was signed.')
+        const connected = await google.connect(profile.address)
+        startSession(connected.session, connected.account)
+        takeVault(connected.vaultSecret, connected.account)
+        void catchUpVault(connected.vaultSecret)
+        return connected.account
+      }
       const asserted = await openKovaPasskey(profile.passkey).catch((error) => {
         throw new Error(passkeyProblem(error))
       })
@@ -688,7 +778,7 @@ export function WalletProvider({
       }
       return account
     },
-    [catchUpVault, profile, takeVault],
+    [catchUpVault, profile, takeVault, google.connect],
   )
 
   const noteReaches = useCallback(
@@ -698,6 +788,10 @@ export function WalletProvider({
 
   const readNotes = useCallback(async () => {
     if (!profile) throw new Error('Open your wallet first.')
+    if (profile.auth === 'google') {
+      await unlock(0n)
+      return
+    }
     const asserted = await openKovaPasskey(profile.passkey).catch((error) => {
       throw new Error(passkeyProblem(error))
     })
@@ -711,7 +805,7 @@ export function WalletProvider({
       throw new Error('This passkey can’t open private notes in this browser.')
     takeVault(asserted.vaultSecret, account)
     void catchUpVault(asserted.vaultSecret)
-  }, [catchUpVault, profile, takeVault])
+  }, [catchUpVault, profile, takeVault, unlock])
 
   /** The view key, if it was made for the wallet on screen. */
   const viewNow =
@@ -745,8 +839,8 @@ export function WalletProvider({
         )
         if (!next || current.current !== wallet) return
         if (next !== ledgerRef.current) keepLedger(wallet, next)
+        setScannedWallet(wallet)
         lastLooks.current.feed = Date.now()
-        setUnchecked(false)
       } finally {
         scanning.current = false
       }
@@ -800,13 +894,6 @@ export function WalletProvider({
     if (!current.current) return
     const now = Date.now()
     if (viewNow) await lookWith(viewNow).catch(() => {})
-    else if (now - lastLooks.current.feed > 30_000) {
-      // No keys in this tab: Kova's feed can still say whether there's anything new to look at.
-      lastLooks.current.feed = now
-      const wallet = current.current
-      const fresh = await announcedSince(ledgerRef.current.cursor).catch(() => false)
-      if (current.current === wallet) setUnchecked(fresh)
-    }
     const unread = ledgerRef.current.found.some(
       (f) => !f.emptied && !heldRef.current.has(f.address.toLowerCase()),
     )
@@ -817,9 +904,12 @@ export function WalletProvider({
     if (!profile) throw new Error('Open your wallet first.')
     const account = await unlock(0n)
     const keys = await privateKeys(account)
+    if (current.current !== profile.address || sessionAccount(0n) !== account)
+      throw new Error('Your wallet was locked. Open it again to enable automatic private balances.')
     const view = viewOf(keys)
     making.current = account.address
     setPrivateView({ address: account.address, view })
+    void cachePrivateView(account.address, view).catch(() => {})
     void publishPrivateKey(account, keys)
       .then(() => setReceiving({ address: account.address, on: true }))
       .catch(() => {})
@@ -979,7 +1069,7 @@ export function WalletProvider({
       if (!profile) return
       setNotes((current) => {
         const next = { ...current, [hash.toLowerCase()]: note }
-        write(notesKey(profile.address), next)
+        write(notesKey(profile.address, network), next)
         return next
       })
     },
@@ -1240,7 +1330,10 @@ export function WalletProvider({
   )
 
   const signOut = useCallback(() => {
+    const wallet = current.current
+    if (wallet) void forgetPrivateView(wallet).catch(() => {})
     endSession()
+    void google.logout().catch(() => {})
     vaultSecret.current = null
     vaultRead.current = false
     vaultDirty.current = false
@@ -1256,13 +1349,13 @@ export function WalletProvider({
     setSaved([])
     setNotes({})
     setStatus('none')
-  }, [])
+  }, [google.logout])
 
   const rememberShop = useCallback(
     (name: string) => {
       if (!profile) return
       setKnownShop(name)
-      write(shopKey(profile.address), name)
+      write(shopKey(profile.address, network), name)
     },
     [profile],
   )
@@ -1572,7 +1665,10 @@ export function WalletProvider({
       status,
       profile,
       balance,
+      monBalance: monHeld && monHeld.address === profile?.address ? monHeld.value : null,
       activity,
+      activityReady: activityWallet === profile?.address,
+      privateScanReady: scannedWallet === profile?.address,
       contacts,
       rates,
       liveRates,
@@ -1580,6 +1676,10 @@ export function WalletProvider({
       setHideBalance,
       create,
       open,
+      signInGoogle,
+      googleEnabled: google.enabled,
+      googleBusy: google.busy || googleAdopting,
+      googleError: google.error ?? googleRestoreError,
       send,
       fundLink,
       noteReaches,
@@ -1591,7 +1691,9 @@ export function WalletProvider({
       privateWaiting,
       announcedSend,
       privateOpen,
-      privateUnchecked: unchecked && !privateOpen,
+      // Private receiving was enabled for this wallet, but this browser needs scan access.
+      // Network-wide announcements cannot tell whether this wallet received anything.
+      privateUnchecked: privateReceiving === true && !privateOpen,
       checkPrivate,
       tickPrivate,
       moveIn,
@@ -1617,7 +1719,10 @@ export function WalletProvider({
       status,
       profile,
       balance,
+      monHeld,
       activity,
+      activityWallet,
+      scannedWallet,
       contacts,
       rates,
       liveRates,
@@ -1625,6 +1730,12 @@ export function WalletProvider({
       setHideBalance,
       create,
       open,
+      signInGoogle,
+      google.enabled,
+      google.busy,
+      googleAdopting,
+      google.error,
+      googleRestoreError,
       send,
       fundLink,
       noteReaches,
@@ -1636,7 +1747,6 @@ export function WalletProvider({
       privateWaiting,
       announcedSend,
       privateOpen,
-      unchecked,
       checkPrivate,
       tickPrivate,
       moveIn,

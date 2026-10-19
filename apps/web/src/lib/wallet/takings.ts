@@ -1,4 +1,3 @@
-import type { PasskeyCredentialMetadata } from '@category-labs/mera'
 import {
   getNetwork,
   getToken,
@@ -15,7 +14,7 @@ import {
 import { getAddress, type Hex, isAddressEqual } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import type { PrivateSale } from '@/lib/api'
-import { openKovaPasskey, openSigningSession, passkeyProblem } from '@/lib/passkey'
+import { openWalletSigner, type WalletIdentity } from './signer'
 import { balanceOf } from './chain'
 import { sessionAccount } from './session'
 
@@ -29,11 +28,7 @@ import { sessionAccount } from './session'
  */
 
 /** The wallet this browser remembers: who it is and which passkey opens it. Nothing secret. */
-export interface WebWallet {
-  address: string
-  name: string
-  passkey: PasskeyCredentialMetadata
-}
+export type WebWallet = WalletIdentity
 
 export function rememberedWallet(): WebWallet | null {
   try {
@@ -53,10 +48,7 @@ export async function takingsKeys(owner: WebWallet, shop: string): Promise<Steal
   const open = sessionAccount(0n)
   if (open && isAddressEqual(open.address, getAddress(owner.address)))
     return stealthKeysFromSignature(await open.signMessage({ message }))
-  const asserted = await openKovaPasskey(owner.passkey).catch((error) => {
-    throw new Error(passkeyProblem(error))
-  })
-  const { session, account } = await openSigningSession(asserted.prfOutput)
+  const { session, account } = await openWalletSigner(owner)
   try {
     if (!isAddressEqual(account.address, getAddress(owner.address)))
       throw new Error(

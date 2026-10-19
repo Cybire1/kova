@@ -21,7 +21,13 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "environment": "production",
+      "env": {
+        "EXPO_PUBLIC_KOVA_NETWORK": "mainnet",
+        "EXPO_PUBLIC_KOVA_MONAD_API_URL": "https://api-monad-mainnet.up.railway.app",
+        "EXPO_PUBLIC_KOVA_MONAD_WEB_URL": "https://mykova.app"
+      }
     },
     "simulator": {
       "developmentClient": true,

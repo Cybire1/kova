@@ -150,7 +150,7 @@ export function PrivateTakingsPanel({
         href: '/wallet/shop?go=open',
         cta: 'Open my shop',
       }
-    : !home
+    : !home && wallet?.auth !== 'google'
       ? {
           text: `Private takings open with your Kova passkey, on ${passkeyDomain}.`,
           href: `https://${passkeyDomain}/dashboard/private`,

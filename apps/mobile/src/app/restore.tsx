@@ -10,13 +10,14 @@ import { KeyScene } from '@/ui/art'
 import { Bob } from '@/ui/motion'
 import { Header, PillButton, Rise, Screen, TextLink, Txt } from '@/ui/primitives'
 import { ProfileForm } from '@/ui/ProfileForm'
+import { GoogleSignInButton } from '@/ui/GoogleSignInButton'
 
 /**
  * A wallet coming back: on a new phone, or this one after it was removed. The passkey from
  * iCloud Keychain is all it takes; the same wallet, with its money, opens after one Face ID.
  */
 export default function Restore() {
-  const { restore, setName, setCurrency, balance } = useWallet()
+  const { restore, setName, setCurrency, balance, googleBusy, googleEnabled } = useWallet()
   const stall = useStall()
   const [step, setStep] = useState<'passkey' | 'name'>('passkey')
   const [busy, setBusy] = useState(false)
@@ -81,7 +82,9 @@ export default function Restore() {
           Welcome back.
         </Txt>
         <Txt size={17} color={colors.onTint} style={styles.body}>
-          Use the passkey you made with Kova. iCloud Keychain brings it to this phone, and your wallet comes with it.
+          {googleEnabled
+            ? 'Sign in the same way you opened your wallet: with Google, or with your saved Kova passkey.'
+            : 'Use your saved Kova passkey. iCloud Keychain brings it to this phone, and your wallet comes with it.'}
         </Txt>
         {problem ? (
           <Txt weight="medium" size={15} color={colors.danger} style={{ marginTop: 12 }}>
@@ -90,7 +93,8 @@ export default function Restore() {
         ) : null}
       </Rise>
       <View style={styles.footer}>
-        <PillButton label="Use my passkey" icon="face" loading={busy} onPress={usePasskey} />
+        <View style={{ marginBottom: 12 }}><GoogleSignInButton /></View>
+        <PillButton label="Use my passkey" icon="face" loading={busy} disabled={googleBusy} onPress={usePasskey} />
         {isTestnet ? (
           <View style={{ alignItems: 'center', marginTop: 14 }}>
             <TextLink label="Sign in with a demo account" onPress={() => router.push('/demo')} />

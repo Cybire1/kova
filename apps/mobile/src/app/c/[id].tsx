@@ -67,6 +67,9 @@ export default function Claim() {
   useEffect(() => {
     void load()
   }, [load])
+  useEffect(() => {
+    if (link?.phone_payment) router.replace({ pathname: '/phone/[id]', params: { id: link.id } })
+  }, [link])
 
   // Your own link: this phone kept its key, so it can be shared again.
   useEffect(() => {

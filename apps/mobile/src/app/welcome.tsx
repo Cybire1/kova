@@ -6,16 +6,19 @@ import { Flyer, PlanetScene, welcomeScene } from '@/ui/art'
 import { LogoMark, Wordmark } from '@/ui/Logo'
 import { Flight } from '@/ui/motion'
 import { PillButton, Rise, TextLink, Txt } from '@/ui/primitives'
+import { GoogleSignInButton } from '@/ui/GoogleSignInButton'
+import { useWallet } from '@/lib/wallet'
 
 /**
  * The first thing anyone sees: Kovi flies money from a shop to a home, across a little
  * planet, on the same dotted route the scene draws.
  */
 export default function Welcome() {
+  const { googleBusy, googleEnabled } = useWallet()
   const { width, height } = useWindowDimensions()
   const insets = useSafeAreaInsets()
   const sceneTop = insets.top + 40
-  const sceneH = Math.min(width * welcomeScene.aspect, height * 0.42)
+  const sceneH = Math.min(width * welcomeScene.aspect, height * (googleEnabled ? 0.32 : 0.42))
   const sceneW = sceneH / welcomeScene.aspect
   const sceneLeft = (width - sceneW) / 2
   const panelTop = sceneTop + sceneH - 24
@@ -47,7 +50,8 @@ export default function Welcome() {
           </Txt>
         </Rise>
         <View style={styles.actions}>
-          <PillButton label="Create my wallet" onPress={() => router.push('/setup')} />
+          <GoogleSignInButton />
+          <PillButton label="Create with a passkey" disabled={googleBusy} onPress={() => router.push('/setup')} />
           <View style={styles.links}>
             <TextLink label="I already have Kova" onPress={() => router.push('/restore')} />
             <TextLink label="I run a shop" onPress={() => router.push('/terminal/setup')} />

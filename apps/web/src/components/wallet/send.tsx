@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { phoneInput } from '@kova/monad'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { getAddress, isAddress } from 'viem'
@@ -580,11 +581,11 @@ export function Fit({ children }: { children: React.ReactNode }) {
 /** Who to send to: one field for a name, an address or a link; your people one tap away. */
 function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string }) => void }) {
   const router = useRouter()
-  const { contacts, activity } = useWallet()
+  const { contacts, activity, network } = useWallet()
   const [text, setText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [hasLinks, setHasLinks] = useState(false)
-  useEffect(() => setHasLinks(Object.keys(keptLinks()).length > 0), [])
+  useEffect(() => setHasLinks(Object.keys(keptLinks(network)).length > 0), [network])
   const scanned = text.trim() ? parseScanned(text) : null
   const query = text.trim().toLowerCase()
   const matches =
@@ -595,6 +596,8 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
       : contacts
 
   const go = (value: string) => {
+    const phone = phoneInput(value)
+    if (phone) return router.push(`/wallet/send/phone?phone=${encodeURIComponent(phone)}`)
     const s = parseScanned(value)
     if (!s) return setError('That isn’t a Kova link or a wallet address.')
     if (s.kind === 'charge') return router.push(`/wallet/pay/${s.id}`)
@@ -631,8 +634,8 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
             setText(e.target.value)
             setError(null)
           }}
-          placeholder="Name, address or link"
-          aria-label="Name, address or link"
+          placeholder="Name, phone, address or link"
+          aria-label="Name, phone, address or link"
           spellCheck={false}
           autoComplete="off"
         />
@@ -663,6 +666,8 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
         </Link>
       </form>
       {error ? <p className="form-error">{error}</p> : null}
+      {phoneInput(text) ? <button className="w-match" type="button" onClick={() => go(text)}><Icon name="send" size={20} /><span><strong>Send to {phoneInput(text)}</strong><small>They can join Kova when they receive it</small></span><Icon name="arrow" size={18} /></button> : null}
+      {!query ? <Link className="w-linkrow" href="/wallet/send/phone"><Icon name="send" size={20} /><span className="w-linkrow-text"><strong>Send to a phone number</strong><small>Even if they haven’t joined Kova yet</small></span><Icon name="arrow" size={18} /></Link> : null}
 
       {scanned?.kind === 'claim' ? (
         <button type="button" className="w-match" onClick={() => go(text)}>

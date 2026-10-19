@@ -177,7 +177,6 @@ export function BalanceCard() {
     hideBalance,
     setHideBalance,
     privateBalance,
-    privateUnchecked,
   } = useWallet()
   const balance = useCounted(actual)
   const usd = balance === null ? null : formatUsd(balance)
@@ -211,7 +210,7 @@ export function BalanceCard() {
           onClick={() => setHideBalance(!hideBalance)}
           aria-label={hideBalance ? 'Show balance' : 'Hide balance'}
         >
-          Available <Icon name={hideBalance ? 'eyeOff' : 'eye'} size={16} />
+          Available to spend <Icon name={hideBalance ? 'eyeOff' : 'eye'} size={16} />
         </button>
         <Link href="/wallet/add" className="w-balance-add">
           <Icon name="plus" size={14} /> Add
@@ -248,48 +247,9 @@ export function BalanceCard() {
             <Icon name="lock" size={13} />
             {hideBalance ? '+•••• private' : `+${formatUsd(privateBalance)} private`}
           </span>
-        ) : privateUnchecked ? (
-          <CheckPrivateChip />
         ) : null}
       </div>
     </section>
-  )
-}
-
-/**
- * Private payments only show once this wallet's keys have looked for them, and on the web the keys
- * live in memory: after a reload, while Kova has new ones to look through, the passkey checks.
- */
-function CheckPrivateChip() {
-  const { checkPrivate } = useWallet()
-  const [state, setState] = useState<'idle' | 'checking' | 'failed'>('idle')
-  return (
-    <button
-      type="button"
-      className="w-chip w-chip-private"
-      disabled={state === 'checking'}
-      onClick={async () => {
-        setState('checking')
-        try {
-          await checkPrivate()
-          setState('idle')
-        } catch (error) {
-          const message = error instanceof Error ? error.message : ''
-          setState(/cancel|not allowed|abort/i.test(message) ? 'idle' : 'failed')
-        }
-      }}
-    >
-      {state === 'checking' ? (
-        <span className="spinner w-chip-spinner" aria-hidden="true" />
-      ) : (
-        <Icon name="lock" size={13} />
-      )}
-      {state === 'checking'
-        ? 'Checking…'
-        : state === 'failed'
-          ? 'Couldn’t check. Try again'
-          : 'Check for private dollars'}
-    </button>
   )
 }
 

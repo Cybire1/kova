@@ -398,8 +398,7 @@ export function PrivateReceiving() {
 }
 
 /**
- * In Activity, after a reload: private payments only show once your keys have looked through what
- * Kova announced, and here the keys live in memory, so the passkey checks.
+ * A browser without a saved read-only view unlocks once to enable automatic balance checks.
  */
 export function CheckPrivate() {
   const { checkPrivate } = useWallet()
@@ -424,7 +423,7 @@ export function CheckPrivate() {
       </span>
       <span className="w-notes-locked-text">
         <strong>Private payments</strong>
-        <small>{problem ?? 'Some may be yours. Your passkey checks, here on this device.'}</small>
+        <small>{problem ?? 'Unlock once on this browser. Your private balance then updates automatically.'}</small>
       </span>
       <button
         type="button"
@@ -432,7 +431,7 @@ export function CheckPrivate() {
         onClick={() => void check()}
         disabled={busy}
       >
-        {busy ? 'Checking…' : 'Check'}
+        {busy ? 'Unlocking…' : 'Unlock'}
       </button>
     </div>
   )

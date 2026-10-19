@@ -5,20 +5,14 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { linkShopOwner, settleToWallet, walletChallenge } from '@/app/actions'
 import {
-  openKovaPasskey,
-  openSigningSession,
   passkeyDomain,
   passkeyHome,
-  passkeyProblem,
 } from '@/lib/passkey'
+import { openWalletSigner, type WalletIdentity } from '@/lib/wallet/signer'
 import { Icon } from './brand'
 
 /** Who this browser's Kova wallet is: what /wallet remembers, with nothing secret in it. */
-interface WebWallet {
-  address: string
-  name: string
-  passkey: { credentialId: string; transports?: readonly string[] }
-}
+type WebWallet = WalletIdentity
 
 const short = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`
 /** The wallet's Your shop card reads this, so Home shows the shop the passkey now opens. */
@@ -77,10 +71,7 @@ export function PasskeyOwner({
     try {
       const challenge = await walletChallenge(wallet.address, 'own_shop')
       if (!challenge.message) throw new Error(challenge.error ?? 'Kova didn’t answer. Try again.')
-      const asserted = await openKovaPasskey(wallet.passkey).catch((e) => {
-        throw new Error(passkeyProblem(e))
-      })
-      const { session, account } = await openSigningSession(asserted.prfOutput)
+      const { session, account } = await openWalletSigner(wallet)
       try {
         if (!same(account.address, wallet.address))
           throw new Error(
@@ -134,7 +125,7 @@ export function PasskeyOwner({
         </div>
       </div>
 
-      {!home ? (
+      {!home && wallet?.auth !== 'google' ? (
         <p className="form-note">
           Passkeys for Kova work on{' '}
           <a href={`https://${passkeyDomain}/dashboard/settings`}>{passkeyDomain}</a>.

@@ -1,4 +1,3 @@
-import type { Secp256k1SigningSession } from '@category-labs/mera'
 import { useEffect, useState } from 'react'
 import type { LocalAccount } from 'viem'
 
@@ -13,7 +12,7 @@ export const TAP_LIMIT = 50_000_000n
 export const SESSION_LIMIT = 150_000_000n
 
 interface Live {
-  session: Secp256k1SigningSession
+  session: { end(): void }
   account: LocalAccount
   lastUsed: number
   spent: bigint
@@ -25,7 +24,7 @@ const notify = () => {
   for (const listener of listeners) listener()
 }
 
-export function startSession(session: Secp256k1SigningSession, account: LocalAccount) {
+export function startSession(session: { end(): void }, account: LocalAccount) {
   endSession()
   live = { session, account, lastUsed: Date.now(), spent: 0n }
   notify()

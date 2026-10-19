@@ -110,7 +110,7 @@ export function LinkSheet() {
       ...(kept.note ? { note: kept.note } : {}),
       ...(profile.currency !== 'USD' ? { display_currency: profile.currency } : {}),
     })
-    settleLinkKey(kept, link.id)
+    settleLinkKey(kept, link.id, network)
     setUnrecorded(null)
     setMade({
       url: linkUrl(origin, link.id, kept.key),
@@ -134,7 +134,7 @@ export function LinkSheet() {
       }
       return
     }
-    const kept = newLinkKey(amount, note.trim() || null)
+    const kept = newLinkKey(amount, note.trim() || null, network)
     setPhase('funding')
     const started = Date.now()
     try {
@@ -143,7 +143,7 @@ export function LinkSheet() {
       setPhase('idle')
       // Nothing reached the link: forget its key. If something did, keep it, to take back later.
       const held = await balanceOf(network, kept.address).catch(() => null)
-      if (held === 0n) dropLinkKey(kept)
+      if (held === 0n) dropLinkKey(kept, network)
       else if (held !== null) setUnrecorded(kept)
       const message = e instanceof Error ? e.message : 'Kova couldn’t make the link.'
       if (!/cancel|not allowed|abort/i.test(message)) setProblem(message)

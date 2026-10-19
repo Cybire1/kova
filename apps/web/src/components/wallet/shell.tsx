@@ -7,6 +7,8 @@ import { Brand, NavIcon, type NavIconName } from '@/components/brand'
 import { useWallet } from './provider'
 import { Avatar } from './ui'
 import { Welcome } from './welcome'
+import { ArrivalNotice } from './arrival'
+import { PhoneWelcome } from './phone-welcome'
 
 /**
  * The Kova app on the web: your wallet, with your shop as one of its features. The Shop card on
@@ -51,13 +53,14 @@ export function WalletShell({ children }: { children: React.ReactNode }) {
         {status === 'loading' ? (
           <div className="w-loading" aria-busy="true" />
         ) : status === 'none' && !nairaReturn ? (
-          <Welcome forShop={path.startsWith('/wallet/shop')} />
+          path.startsWith('/wallet/phone/') ? <PhoneWelcome id={path.split('/').pop()!} /> : <Welcome forShop={path.startsWith('/wallet/shop')} />
         ) : (
           children
         )}
       </main>
 
       {status === 'ready' && !sheet ? <Dock path={path} /> : null}
+      {status === 'ready' ? <ArrivalNotice /> : null}
     </div>
   )
 }

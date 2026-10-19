@@ -5,7 +5,9 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().default('postgres://localhost:5432/kova_dev'),
   /** Which Monad network this instance serves. One process serves one network. */
-  KOVA_NETWORK: z.enum(['mainnet', 'testnet']).default('testnet'),
+  KOVA_NETWORK: z
+    .enum(['mainnet', 'testnet'])
+    .default(process.env.NODE_ENV === 'production' ? 'mainnet' : 'testnet'),
   /** Overrides the default public RPC (use a provider endpoint in production). */
   MONAD_RPC_URL: z.string().url().optional(),
   /**
@@ -64,6 +66,12 @@ const schema = z.object({
   AURORA_INTENTS_KEY: z.string().optional(),
   /** What deposits arrive as on Monad: a symbol Aurora resolves, or an asset id when the symbol is ambiguous. */
   AURORA_DESTINATION_ASSET: z.string().default('AUSD'),
+  /** Cross-chain and MON deposits into AUSD through Relay. 0 is the operational kill switch. */
+  KOVA_CHAIN_DEPOSITS: z.enum(['0', '1']).default('1'),
+  KOVA_PHONE_SEND_ENABLED: z.enum(['0', '1']).default('0'),
+  /** Public website for phone invitations, including a custom domain running a testnet demo. */
+  KOVA_PHONE_WEB_URL: z.string().url().optional(),
+  RELAY_API_KEY: z.string().optional(),
   /** Ramp Network: card and bank top-ups (and cash-out), buying AUSD on Monad. Key from partner@ramp.network. */
   RAMP_HOST_API_KEY: z.string().optional(),
   /** Paystack: naira in and out (services/naira.ts). A test key (sk_test_…) moves no real money. */
@@ -99,8 +107,10 @@ const schema = z.object({
     .optional(),
   /** The secret path segment Africa's Talking calls back on: /v1/ussd/<secret>. */
   KOVA_USSD_CALLBACK_SECRET: z.string().min(16).optional(),
+  /** Enables setup and USSD spending only after provider configuration and payment checks. */
+  KOVA_USSD_ENABLED: z.enum(['0', '1']).default('0'),
   /** The code people dial, as the app shows it. */
-  KOVA_USSD_CODE: z.string().default('*384*25891#'),
+  KOVA_USSD_CODE: z.string().default(''),
   /** Africa's Talking: USSD sessions and SMS receipts. Username "sandbox" uses their simulator. */
   AT_USERNAME: z.string().optional(),
   AT_API_KEY: z.string().optional(),

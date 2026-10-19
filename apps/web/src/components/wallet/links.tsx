@@ -39,19 +39,19 @@ export function Links() {
 
   const load = useCallback(async () => {
     if (!address) return
-    setKept(keptLinks())
+    setKept(keptLinks(network))
     setLinks(await linksFrom(address).catch(() => []))
-  }, [address])
+  }, [address, network])
 
   // Links whose dollars left but Kova never recorded (a dropped connection): finish them now.
   useEffect(() => {
     setOrigin(window.location.origin)
     if (!address) return
     void (async () => {
-      for (const [slot, link] of Object.entries(keptLinks())) {
+      for (const [slot, link] of Object.entries(keptLinks(network))) {
         if (!slot.startsWith('pending:')) continue
         const held = await balanceOf(network, link.address).catch(() => null)
-        if (held === 0n && Date.now() - link.at > 10 * 60_000) dropLinkKey(link)
+        if (held === 0n && Date.now() - link.at > 10 * 60_000) dropLinkKey(link, network)
         if (!held) continue
         const recorded = await recordLink({
           link_address: link.address,
@@ -59,15 +59,15 @@ export function Links() {
           ...(profile?.name ? { sender_name: profile.name } : {}),
           ...(link.note ? { note: link.note } : {}),
         }).catch(() => null)
-        if (recorded) settleLinkKey(link, recorded.id)
+        if (recorded) settleLinkKey(link, recorded.id, network)
       }
       await load()
     })()
   }, [address, network, load, profile?.name])
 
   if (!profile) return null
-  const open = links?.filter((l) => l.status === 'open') ?? []
-  const closed = links?.filter((l) => l.status !== 'open') ?? []
+  const open = links?.filter((l) => !['claimed', 'returned'].includes(l.status)) ?? []
+  const closed = links?.filter((l) => ['claimed', 'returned'].includes(l.status)) ?? []
 
   return (
     <div className="w-screen">
@@ -169,7 +169,7 @@ function Row({
   const [stage, setStage] = useState<'idle' | 'sure' | 'taking'>('idle')
   const [problem, setProblem] = useState<string | null>(null)
   const amount = linkBase(link)
-  const url = kept ? linkUrl(origin, link.id, kept.key) : null
+  const url = link.phone_payment ? `${origin}/wallet/phone/${link.id}` : kept ? linkUrl(origin, link.id, kept.key) : null
   const whatsapp = url
     ? `https://wa.me/?text=${encodeURIComponent(shareMessage(sender, amount, url, link.note))}`
     : ''
@@ -199,12 +199,12 @@ function Row({
         <span className="lk-row-amount">
           {formatUsd(amount)}
           <small>
-            {link.status === 'open' ? 'Waiting' : link.status === 'claimed' ? 'Claimed' : 'Back'}
+            {!['claimed', 'returned'].includes(link.status) ? 'Waiting' : link.status === 'claimed' ? 'Claimed' : 'Back'}
           </small>
         </span>
       </div>
 
-      {link.status === 'open' && kept && url && onTakeBack ? (
+      {link.phone_payment ? <div className="lk-row-actions"><Link className="textlink" href={`/wallet/phone/${link.id}`}>Open phone payment</Link>{url ? <CopyButton text={url} label="Copy invitation" /> : null}</div> : link.status === 'open' && kept && url && onTakeBack ? (
         <div className="lk-row-actions">
           {stage === 'sure' ? (
             <>

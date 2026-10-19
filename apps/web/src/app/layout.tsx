@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from 'next'
+import { GoogleWalletProvider } from '@/components/google-wallet-provider'
+import { network } from '@/lib/network'
 import './globals.css'
 import '../styles/app.css'
 import '../styles/auth.css'
@@ -33,7 +35,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
-      <body>{children}</body>
+      <body>
+        <GoogleWalletProvider appId={process.env.PRIVY_APP_ID ?? null} network={network}>
+          {children}
+        </GoogleWalletProvider>
+      </body>
     </html>
   )
 }

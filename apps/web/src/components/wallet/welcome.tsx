@@ -20,8 +20,8 @@ type Step = { at: 'start' } | { at: 'name' } | { at: 'waiting'; what: 'create' |
  * opens the same wallet here, with your name, currency and people, and a wallet made here opens
  * in the app ("I already have Kova"). Nothing to install, no seed phrase, nothing kept but who you are.
  */
-export function Welcome({ forShop = false }: { forShop?: boolean }) {
-  const { create, open } = useWallet()
+export function Welcome({ forShop = false, invitation }: { forShop?: boolean; invitation?: { amount: string; sender: string; phone: string } }) {
+  const { create, open, signInGoogle, googleEnabled, googleBusy, googleError } = useWallet()
   const [step, setStep] = useState<Step>({ at: 'start' })
   const [name, setNameText] = useState('')
   const [currency, setCurrency] = useState<DisplayCurrency>('USD')
@@ -128,11 +128,11 @@ export function Welcome({ forShop = false }: { forShop?: boolean }) {
   return (
     <div className="w-welcome">
       <Art name="scene-welcome" size={224} className="w-welcome-art" priority />
-      <h1 className="w-hero-title">Tap. Paid. Anywhere.</h1>
+      <h1 className="w-hero-title">{invitation ? `$${invitation.amount} is waiting for you` : 'Tap. Paid. Anywhere.'}</h1>
       <p className="w-lead">
-        {forShop
-          ? 'Your shop lives in your Kova wallet: its sales land there, and your passkey opens both. Open your wallet, or make one, then your shop.'
-          : 'Your Kova wallet, in your browser. The same one as in the Kova app: one passkey, one wallet.'}
+        {invitation ? `${invitation.sender} sent you dollars on Kova. Open or create your wallet, then verify ${invitation.phone} to claim them.` : forShop
+          ? 'Your shop lives in your Kova wallet: its sales land there, and your wallet opens both. Sign in with Google or a passkey, then open your shop.'
+          : 'Your Kova wallet, in your browser and the app. Open it with Google or a passkey.'}
       </p>
 
       <InAppNote />
@@ -145,10 +145,37 @@ export function Welcome({ forShop = false }: { forShop?: boolean }) {
       ) : null}
 
       <div className="w-ways">
+        {googleEnabled ? (
+          <button
+            type="button"
+            className="shop-wallet shop-wallet-make"
+            disabled={googleBusy || step.at === 'waiting'}
+            onClick={() => {
+              setError(null)
+              void signInGoogle().catch((error: unknown) => {
+                setError(error instanceof Error ? error.message : 'Google sign-in failed. Try again.')
+              })
+            }}
+          >
+            <span className="wallet-glyph" aria-hidden="true" style={{ background: '#fff' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.24 1.06-3.71 1.06-2.87 0-5.3-1.94-6.17-4.54H2.15v2.84C3.96 20.53 7.69 23 12 23z" />
+                <path fill="#FBBC05" d="M5.83 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.15A10.9 10.9 0 001 12c0 1.78.43 3.45 1.15 4.93l3.68-2.84z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.16-3.16C17.45 2.08 14.97 1 12 1 7.69 1 3.96 3.47 2.15 7.07l3.68 2.84c.87-2.6 3.3-4.53 6.17-4.53z" />
+              </svg>
+            </span>
+            <span>
+              {googleBusy ? 'Opening your wallet…' : 'Continue with Google'}
+              <small className="wallet-sub">New here or coming back: the same Google account opens the same wallet</small>
+            </span>
+            <Icon name="arrow" size={18} />
+          </button>
+        ) : null}
         <button
           type="button"
           className="shop-wallet shop-wallet-make"
-          disabled={step.at === 'waiting' || !home}
+          disabled={step.at === 'waiting' || googleBusy || !home}
           onClick={() => void openWallet()}
         >
           <span className="wallet-glyph">
@@ -171,14 +198,14 @@ export function Welcome({ forShop = false }: { forShop?: boolean }) {
         <button
           type="button"
           className="shop-wallet shop-wallet-make"
-          disabled={step.at === 'waiting' || !home}
+          disabled={step.at === 'waiting' || googleBusy || !home}
           onClick={() => setStep({ at: 'name' })}
         >
           <span className="wallet-glyph wallet-glyph-coral">
             <Icon name="plus" size={16} />
           </span>
           <span>
-            Create my wallet
+            Create with a passkey
             <small className="wallet-sub">
               Protected by your passkey. Nothing to install, no seed phrase.
             </small>
@@ -186,7 +213,7 @@ export function Welcome({ forShop = false }: { forShop?: boolean }) {
           <Icon name="arrow" size={18} />
         </button>
       </div>
-      {error ? <p className="form-error">{error}</p> : null}
+      {error || googleError ? <p className="form-error" role="alert">{error || googleError}</p> : null}
       <p className="w-fine">
         On a Mac or iPhone, iCloud Keychain brings the Kova app’s passkey here. Anywhere else,
         choose “Use a phone” and scan the code with the phone that has Kova.

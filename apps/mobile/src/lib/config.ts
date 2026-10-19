@@ -9,6 +9,10 @@ import { getNetwork, getToken, type NetworkId } from '@kova/monad'
 export const apiUrl = process.env.EXPO_PUBLIC_KOVA_MONAD_API_URL ?? 'https://api-monad-mainnet.up.railway.app'
 export const webUrl = process.env.EXPO_PUBLIC_KOVA_MONAD_WEB_URL ?? 'https://mykova.app'
 
+/** Public Privy identifiers; the native client must allow this app's bundle ID and kova scheme. */
+export const privyAppId = process.env.EXPO_PUBLIC_PRIVY_APP_ID ?? 'cmufz0ix501jn0cl6z2vdou5a'
+export const privyClientId = process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID
+
 /**
  * Monad mainnet, with mainnet AUSD. EXPO_PUBLIC_KOVA_NETWORK=testnet runs the app on testnet (free
  * test dollars), with EXPO_PUBLIC_KOVA_MONAD_API_URL=https://api-monad.up.railway.app.
@@ -34,12 +38,8 @@ export const passkeyDomain = process.env.EXPO_PUBLIC_KOVA_PASSKEY_DOMAIN ?? 'myk
 /** The chain, as people see it named. */
 export const chainName = 'Monad'
 
-/**
- * Deposits from other chains (Aurora Intents, app/from-chain.tsx). Off until it can work end to
- * end: it needs mainnet, a working Monad route and AUSD as a destination, which NEAR Intents
- * doesn't offer yet. EXPO_PUBLIC_KOVA_CHAIN_DEPOSITS=1 shows it.
- */
-export const chainDeposits = process.env.EXPO_PUBLIC_KOVA_CHAIN_DEPOSITS === '1'
+/** Relay quotes deposits into AUSD on mainnet. Set 0 to hide the entry. */
+export const chainDeposits = !isTestnet && process.env.EXPO_PUBLIC_KOVA_CHAIN_DEPOSITS !== '0'
 
 /** The dollar Kova settles in on Monad: AUSD, Agora's dollar, on mainnet and testnet alike. */
 export const settlementToken = getToken(networkId, 'AUSD')

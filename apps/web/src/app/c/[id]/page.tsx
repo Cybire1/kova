@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import { cache } from 'react'
 import { Art, Brand } from '@/components/brand'
 import { ClaimLink } from '@/components/claim-link'
@@ -48,6 +49,7 @@ export default async function ClaimPage(props: Props) {
     load(id),
     kovaPublic<LiveRates>('/v1/rates').catch(() => null),
   ])
+  if (link?.phone_payment) redirect(`/wallet/phone/${link.id}`)
 
   if (!link)
     return (

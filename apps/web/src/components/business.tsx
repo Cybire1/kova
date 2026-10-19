@@ -78,7 +78,7 @@ function useOwner(shop: BusinessShop) {
   }, [])
   const payer = shop.owner ?? shop.settlement
   const mine = Boolean(wallet && wallet.address.toLowerCase() === payer.toLowerCase())
-  const blocked = !home
+  const blocked = !home && wallet?.auth !== 'google'
     ? `Paying from the dashboard works on ${passkeyDomain}, where your passkey lives.`
     : !wallet
       ? 'Open your Kova wallet in this browser first: it’s the wallet that pays.'

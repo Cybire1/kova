@@ -1,4 +1,5 @@
 import * as Clipboard from 'expo-clipboard'
+import { phoneInput } from '@kova/monad'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -509,6 +510,8 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
   const direct = query ? parseScanned(text) : null
 
   const go = (value: string) => {
+    const phone = phoneInput(value)
+    if (phone) return router.replace({ pathname: '/send/phone', params: { phone } })
     const scanned = parseScanned(value)
     if (!scanned) return setProblem('That isn’t a Kova link or a wallet address.')
     if (scanned.kind === 'offline') return router.replace({ pathname: '/o', params: { code: scanned.code } })
@@ -554,7 +557,7 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
             setProblem(null)
           }}
           onSubmitEditing={() => go(text)}
-          placeholder="Name, address or link"
+          placeholder="Name, phone, address or link"
           placeholderTextColor="#8C9799"
           autoCapitalize="none"
           autoCorrect={false}
@@ -576,6 +579,8 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
         </Txt>
       ) : null}
 
+      {phoneInput(text) ? <Pressable accessibilityRole="button" onPress={() => go(text)} style={styles.direct}><Txt weight="semi" color={colors.white}>Send to {phoneInput(text)}</Txt></Pressable> : null}
+      {!query ? <Pressable accessibilityRole="button" onPress={() => router.replace('/send/phone')} style={styles.direct}><Txt weight="semi" color={colors.white}>Send to a phone number</Txt></Pressable> : null}
       {direct && direct.kind === 'person' ? (
         <Pressable accessibilityRole="button" onPress={() => go(text)} style={({ pressed }) => [styles.direct, pressed && { transform: [{ scale: 0.98 }] }]}>
           <Avatar name={direct.name ?? direct.address} id={direct.address} size={48} />

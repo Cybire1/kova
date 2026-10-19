@@ -1,3 +1,4 @@
+import { apiUrl, network } from '@/lib/network'
 import type { Metadata } from 'next'
 import { Brand } from '@/components/brand'
 import { type Bakery, TryChecklist, TryMainnet } from '@/components/try-checklist'
@@ -33,7 +34,7 @@ function bakerySlug(param: string | string[] | undefined) {
 /** The bakery as its menu says today, kept five minutes: its name, the croissant and its card. */
 async function bakery(slug: string): Promise<Bakery> {
   const plain: Bakery = { slug, name: 'Ada’s Bakery', croissant: null, every: null }
-  const api = process.env.KOVA_API_URL ?? 'http://localhost:4000'
+  const api = apiUrl
   try {
     const response = await fetch(`${api}/v1/public/stalls/${encodeURIComponent(slug)}`, {
       next: { revalidate: 300 },
@@ -58,7 +59,7 @@ export default async function TryPage(props: {
 }) {
   const params = await props.searchParams
   const ref = cleanRef(typeof params.ref === 'string' ? params.ref : null)
-  const mainnet = process.env.KOVA_NETWORK === 'mainnet'
+  const mainnet = network === 'mainnet'
 
   return (
     <main className="gr-page gr-try">

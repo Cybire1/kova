@@ -176,19 +176,19 @@ function SetUp({ busy, error, dial, onSubmit }: { busy: string | null; error: st
           How it works
         </Txt>
         <Txt size={14} color={colors.muted} style={{ lineHeight: 20 }}>
-          USSD can’t use your passkey, so you set aside a small pocket that Kova holds for you, up to your limit. Your main wallet
+          USSD can’t use your passkey, so you set aside a small pocket that Kova holds for you, with a daily spending limit. Your main wallet
           stays yours alone. Take the pocket back whenever you like.
         </Txt>
       </Sticker>
       <View style={{ gap: 14, marginTop: 20 }}>
-        <Field label="Your phone number" value={phone} onChangeText={setPhone} placeholder="+254 711 000 111" keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" />
+        <Field label="Your phone number" value={phone} onChangeText={setPhone} placeholder="+234 801 234 5678" keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" />
         <Field label="A PIN for USSD (4 to 6 digits)" value={pin} onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, 6))} placeholder="••••" keyboardType="number-pad" secureTextEntry />
         {pinIssue ? <Txt size={13} color={colors.danger}>{pinIssue}</Txt> : null}
         <Field label="The PIN again" value={again} onChangeText={(v) => setAgain(v.replace(/\D/g, '').slice(0, 6))} placeholder="••••" keyboardType="number-pad" secureTextEntry />
         {mismatch ? <Txt size={13} color={colors.danger}>The PINs don’t match.</Txt> : null}
         <View style={{ gap: 8 }}>
           <Txt weight="semi" size={14}>
-            The most it holds and spends in a day
+            Your daily spending limit
           </Txt>
           <View style={{ flexDirection: 'row', gap: 10 }}>
             {CAPS.map((c) => (

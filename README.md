@@ -5,14 +5,51 @@ private and across borders, and every card, person or AI agent that spends it ha
 Every payment settles in AUSD on [Monad](https://monad.xyz) in about a second, and Kova pays the
 gas, so nobody needs a crypto token, a seed phrase or an exchange to pay or get paid.
 
-- **Try it free, in a minute:** [mykova.app/try](https://mykova.app/try) (Monad testnet, $5 of test dollars a day)
-- **Live on Monad mainnet:** [mykova.app](https://mykova.app)
-- **iPhone:** [TestFlight](https://testflight.apple.com/join/RPEhxUWv)
+- **Try the testnet demo:** [mykova.app/wallet](https://mykova.app/wallet) (test AUSD; temporarily switched for the phone-payment demo)
+- **Free testnet demo:** [web-monad.up.railway.app/try](https://web-monad.up.railway.app/try) ($5 of test AUSD a day)
+- **iOS:** [TestFlight](https://testflight.apple.com/join/RPEhxUWv)
 - **Built for:** Monad Metropolis, Track 02: Consumer Products & Payments
 - **Demo videos:** the product demo, the Agora cross-border cut and the Chainlink CRE run are linked in the submission (sources in [`film/`](film))
 - **Licence:** [MIT](LICENSE)
 
-## New on Monad, proven on-chain (13–14 Oct 2026)
+## Deployment status (checked 19 October 2026)
+
+**Mainnet API and iOS remain live; mykova.app currently runs the testnet demo.** On 19 October,
+the website was explicitly switched to Monad testnet, chain 10143, for phone-payment and USSD
+testing. The mainnet API, deployed contracts and current iOS build remain on chain 143.
+Test dollars, receipts and activity totals are labelled separately from mainnet.
+
+| Capability | Mainnet | Testnet |
+|---|---|---|
+| Web wallet and API | [API health](https://api-monad-mainnet.up.railway.app/health) reports chain 143; mykova.app is temporarily serving the testnet demo | [mykova.app](https://mykova.app/wallet), separate [demo](https://web-monad.up.railway.app/try) and [API](https://api-monad.up.railway.app/health) |
+| Checkout activity | [Stats API](https://api-monad-mainnet.up.railway.app/v1/public/stats) reported **0 checkout payments / $0.00** at this check | Demonstrations and testing; these totals are not mainnet adoption |
+| KovaCard | [Contract deployed](https://monadscan.com/address/0x9bee9F2D59d9675F2723B274e1276F5931Ef325E); mainnet card-payment proof is still pending | Card-backed keys and spending demonstrated in the receipts below |
+| Exchange rates | [Fixed reference table](https://api-monad-mainnet.up.railway.app/v1/rates); no mainnet KovaRates contract configured | Chainlink CRE report broadcasts to KovaRates; workflow automation on a DON is still pending |
+| Naira funding and cash-out | [Disabled](https://api-monad-mainnet.up.railway.app/v1/naira) | Paystack test mode |
+| Pay by USSD | Disabled | [Simulator beta](https://web-monad.up.railway.app/wallet/ussd): phone verification, PIN pocket, till/phone payments and recovery; provider/funded manual testing remains |
+| US account, dollar card and savings | Partner access required; not live | Screens and server integration behind partner keys |
+
+The public stats API counts settled Kova checkout records. Ordinary wallet transfers are indexed
+separately and do not increase that checkout count. Counts include our own testing; a deployed
+contract or a successful transfer is not evidence of customer adoption. See [current testnet stats](https://mykova.app/stats)
+and [release verification](docs/mainnet-release.md).
+
+### Verified mainnet transfer receipts
+
+Checked directly against Monad mainnet on 19 October 2026: each receipt succeeded, emitted an
+AUSD transfer for the amount shown, and was submitted by Kova's mainnet relayer. These are
+existing wallet transfers, not card or merchant-checkout payment proofs.
+
+| Transfer | Amount | Mainnet transaction |
+|---|---|---|
+| Gas-sponsored AUSD transfer | $1.00 | [`0x98b3d548…`](https://monadscan.com/tx/0x98b3d548bd1e6c726b1687718de8e08ed7fc1895f90b8004416cdbc4deef7ba4) |
+| Gas-sponsored AUSD transfer | $1.00 | [`0x370e22dd…`](https://monadscan.com/tx/0x370e22dd3791638643ecaa10a610874cea9093222757bbe1e5b6da9ad3104930) |
+| Gas-sponsored AUSD transfer | $1.00 | [`0xd7e2300f…`](https://monadscan.com/tx/0xd7e2300fc3a2fa639fa922871466a4abe39f7a345425c5ecf342896f790fe528) |
+
+## Feature demonstrations on Monad testnet (13–14 Oct 2026)
+
+These receipts verify testnet functionality. They are not mainnet payment proofs. Latency examples
+in this README were measured on testnet unless explicitly labelled otherwise.
 
 | Feature | What works | Proof on Monad testnet |
 |---|---|---|
@@ -53,9 +90,10 @@ see dollars, their own currency beside them, and Face ID. Nothing else.
   by each wallet). Kova stores ciphertext it can't read.
 - **From guest to Kova.** Someone who paid a shop with email or Google can keep their change: one
   passkey makes a Kova wallet, and the email wallet moves what's left into it, gas-free.
-- **From another chain.** Each wallet gets permanent deposit addresses (EVM chains, Solana, Tron,
-  Bitcoin) through Aurora Intents (NEAR Intents); USDC, USDT, ETH, SOL or BTC sent there arrives as
-  dollars on Monad. Built; it opens with Kova's move to mainnet, where Intents has its liquidity.
+- **Crypto deposits.** MON on Monad and supported tokens from other networks convert into AUSD
+  through Relay. Preview the conversion, then scan or copy the route's deposit address. Enabled on the web and
+  iOS build 14; live quotes and tracking are verified. A funded settlement check remains.
+  See [setup and verification](docs/multichain-deposits.md).
 - **Your shop, inside the wallet.** Open a shop from your wallet; its sales land in the same wallet.
   A stall page to share, a catalogue, a till (the phone becomes a terminal: keypad, items or
   barcode scanner, then a QR code for the customer), orders, and the day's takings, live.
@@ -101,12 +139,13 @@ see dollars, their own currency beside them, and Face ID. Nothing else.
 - **Charges carry their reference on-chain.** A checkout's reference rides in the authorization's
   nonce, so Kova's chain watcher settles a payment no matter who submits it (another relayer, or
   the payer's own wallet), and indexes transfers for wallets.
-- **Exchange rates from Chainlink.** A Chainlink CRE workflow ([apps/rates](apps/rates)) fetches
+- **Exchange rates: Chainlink on testnet, reference table on mainnet.** A Chainlink CRE workflow ([apps/rates](apps/rates)) fetches
   two independent FX sources, drops any currency where they disagree by more than 2%, reaches
   consensus across nodes, and writes a signed report to the `KovaRates` contract on Monad. Kova's
-  API reads the contract, and the app and web label every local price "Chainlink rate from 3 min
-  ago". Reports are published with the CRE CLI (`cre workflow simulate --broadcast`) until the
-  workflow is deployed to a DON.
+  testnet API reads that contract and labels rates with their source and age. Mainnet currently
+  uses the fixed reference table and does not claim those rates come from Chainlink. Reports are
+  published with the CRE CLI (`cre workflow simulate --broadcast`); an automated production DON
+  deployment is still pending.
 
 - **Privacy on a public chain, by permission.** Private takings and private sends follow the idea of
   Monad's Private Settlement design (private by default, visible only to whom you allow) with what
@@ -208,7 +247,7 @@ flowchart LR
 
 ## Tech stack
 
-TypeScript throughout · Monad testnet · [viem](https://viem.sh) · AUSD by
+TypeScript throughout · Monad mainnet (chain 143) and a separate testnet demo (chain 10143) · [viem](https://viem.sh) · AUSD by
 [Agora](https://agora.finance) · passkey wallets with [Mera](https://www.npmjs.com/package/@category-labs/mera)
 (WebAuthn PRF) · [Hono](https://hono.dev) on Node 22 · PostgreSQL with
 [Drizzle](https://orm.drizzle.team) · [Next.js](https://nextjs.org) 16 and React 19 ·
