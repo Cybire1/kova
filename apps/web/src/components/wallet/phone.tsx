@@ -1,13 +1,13 @@
 'use client'
 
-import { getNetwork, phoneInput, type PhonePayment, type PhoneResolution } from '@kova/monad'
+import { getNetwork, type PhonePayment, type PhoneResolution, phoneInput } from '@kova/monad'
 import Link from 'next/link'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { parseUnits } from 'viem'
 import { newLinkKey, settleLinkKey } from '@/lib/wallet/dollar-links'
-import { phoneClient } from '@/lib/wallet/phone'
 import { formatUsd } from '@/lib/wallet/money'
+import { phoneClient } from '@/lib/wallet/phone'
 import { ScreenHead } from './activity'
 import { useWallet } from './provider'
 import { SlideToSend } from './send'
@@ -73,7 +73,10 @@ export function PhoneSend() {
       if (target.address) {
         // Re-check the verified mapping immediately before signing the actual transfer.
         const fresh = await client.resolve(signMessage, profile.address, target.phone)
-        if (fresh.address?.toLowerCase() !== target.address.toLowerCase() || fresh.destination !== target.destination)
+        if (
+          fresh.address?.toLowerCase() !== target.address.toLowerCase() ||
+          fresh.destination !== target.destination
+        )
           throw new Error('The recipient changed. Go back and check the number again.')
         const done = await send({ address: target.address, name: target.phone }, value, note, {
           privately: false,
@@ -171,7 +174,7 @@ export function PhoneSend() {
                   Note (optional)
                   <input value={note} maxLength={140} onChange={(e) => setNote(e.target.value)} />
                 </label>
-                <button className="mini mini-ink" disabled={busy || !valid}>
+                <button type="submit" className="mini mini-ink" disabled={busy || !valid}>
                   {busy ? 'Checking…' : 'Review transfer'}
                 </button>
               </form>
@@ -198,6 +201,7 @@ export function PhoneSend() {
                   onSend={() => void pay()}
                 />
                 <button
+                  type="button"
                   className="textlink"
                   disabled={busy || Boolean(pending)}
                   onClick={() => setTarget(null)}
@@ -330,6 +334,7 @@ export function PhonePaymentScreen({ id }: { id: string }) {
                     <CopyButton text={payment.url} />
                     {payment.status === 'open' ? (
                       <button
+                        type="button"
                         className="mini"
                         disabled={busy}
                         onClick={() =>
@@ -346,6 +351,7 @@ export function PhonePaymentScreen({ id }: { id: string }) {
                       </button>
                     ) : null}
                     <button
+                      type="button"
                       className="mini"
                       disabled={busy}
                       onClick={() =>
@@ -372,7 +378,13 @@ export function PhonePaymentScreen({ id }: { id: string }) {
                             await client.claim(signMessage, profile!.address, id)
                             return
                           } catch (error) {
-                            if (!(error instanceof Error) || !error.message.includes('Verify the recipient phone number with this wallet first.')) throw error
+                            if (
+                              !(error instanceof Error) ||
+                              !error.message.includes(
+                                'Verify the recipient phone number with this wallet first.',
+                              )
+                            )
+                              throw error
                           }
                           await client.requestCode(signMessage, profile!.address, id, normalized)
                           setCodeSent(true)
@@ -415,7 +427,7 @@ export function PhonePaymentScreen({ id }: { id: string }) {
                         />
                       </label>
                     ) : null}
-                    <button className="mini mini-ink" disabled={busy}>
+                    <button type="submit" className="mini mini-ink" disabled={busy}>
                       {busy
                         ? 'Please wait…'
                         : verified
@@ -441,6 +453,7 @@ export function PhonePaymentScreen({ id }: { id: string }) {
                 ) : null}
                 {['claiming', 'returning'].includes(payment.status) ? (
                   <button
+                    type="button"
                     className="mini"
                     disabled={busy}
                     onClick={() =>

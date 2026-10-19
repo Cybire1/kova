@@ -56,7 +56,8 @@ type Rates = Record<Code, bigint>
 const SCALE = 100_000_000
 
 const SOURCE_A = 'https://open.er-api.com/v6/latest/USD'
-const SOURCE_B = 'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'
+const SOURCE_B =
+  'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json'
 
 function fetchJson(sendRequester: HTTPSendRequester, url: string): unknown {
   const response = sendRequester.sendRequest({ url, method: 'GET' }).result()
@@ -74,7 +75,8 @@ function readRates(sendRequester: HTTPSendRequester, config: Config): Rates {
     const y = b[code.toLowerCase()]
     const good = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0
     let value = 0
-    if (good(x) && good(y)) value = Math.abs(x - y) / Math.min(x, y) <= config.maxSpread ? (x + y) / 2 : 0
+    if (good(x) && good(y))
+      value = Math.abs(x - y) / Math.min(x, y) <= config.maxSpread ? (x + y) / 2 : 0
     rates[code] = BigInt(Math.round(value * SCALE))
   }
   return rates
@@ -86,39 +88,65 @@ function publish(runtime: Runtime<Config>, _payload: CronPayload): string {
     .sendRequest(
       runtime,
       readRates,
-      ConsensusAggregationByFields<Rates>({ NGN: median, KES: median, EUR: median, GBP: median, MXN: median }),
+      ConsensusAggregationByFields<Rates>({
+        NGN: median,
+        KES: median,
+        EUR: median,
+        GBP: median,
+        MXN: median,
+      }),
     )(config)
     .result()
 
   const asOf = BigInt(Math.floor(runtime.now().getTime() / 1000))
   const codes = CODES.map((code) => toHex(code, { size: 3 }))
   const values = CODES.map((code) => rates[code])
-  runtime.log(`rates at ${asOf}: ${CODES.map((code, i) => `${code} ${Number(values[i]) / SCALE}`).join(', ')}`)
+  runtime.log(
+    `rates at ${asOf}: ${CODES.map((code, i) => `${code} ${Number(values[i]) / SCALE}`).join(', ')}`,
+  )
 
   // Local simulation ends here: no report, no client, nothing that could write.
-  if (config.mode === 'local-simulation') return `local-simulation: ${values.filter((v) => v > 0n).length} rates agreed`
-  if (config.mode !== 'production') throw new Error(`unknown mode ${(config as { mode: unknown }).mode}`)
+  if (config.mode === 'local-simulation')
+    return `local-simulation: ${values.filter((v) => v > 0n).length} rates agreed`
+  if (config.mode !== 'production')
+    throw new Error(`unknown mode ${(config as { mode: unknown }).mode}`)
   if (!/^0x[0-9a-fA-F]{40}$/.test(config.receiver) || /^0x0{40}$/.test(config.receiver))
     throw new Error('receiver must be KovaRates’ address')
 
-  const payload = encodeAbiParameters(parseAbiParameters('uint64 asOf, bytes3[] codes, uint256[] perUsdE8'), [asOf, codes, values])
+  const payload = encodeAbiParameters(
+    parseAbiParameters('uint64 asOf, bytes3[] codes, uint256[] perUsdE8'),
+    [asOf, codes, values],
+  )
   const report = runtime.report(prepareReportRequest(payload)).result()
 
-  const network = getNetwork({ chainFamily: 'evm', chainSelectorName: config.chainSelectorName, isTestnet: true })
+  const network = getNetwork({
+    chainFamily: 'evm',
+    chainSelectorName: config.chainSelectorName,
+    isTestnet: true,
+  })
   if (!network) throw new Error(`unknown chain ${config.chainSelectorName}`)
   const written = new cre.capabilities.EVMClient(network.chainSelector.selector)
-    .writeReport(runtime, { receiver: config.receiver, report, gasConfig: { gasLimit: config.gasLimit } })
+    .writeReport(runtime, {
+      receiver: config.receiver,
+      report,
+      gasConfig: { gasLimit: config.gasLimit },
+    })
     .result()
-  if (written.txStatus !== TxStatus.SUCCESS) throw new Error(`writing the rates failed: ${written.errorMessage ?? written.txStatus}`)
+  if (written.txStatus !== TxStatus.SUCCESS)
+    throw new Error(`writing the rates failed: ${written.errorMessage ?? written.txStatus}`)
   // A success with no transaction is not a success.
-  if (!written.txHash || written.txHash.length === 0) throw new Error('the write reported success without a transaction')
+  if (!written.txHash || written.txHash.length === 0)
+    throw new Error('the write reported success without a transaction')
   const hash = toHex(written.txHash)
   runtime.log(`published to ${config.receiver} in ${hash}`)
   return hash
 }
 
 const initWorkflow = (config: Config) => [
-  cre.handler(new cre.capabilities.CronCapability().trigger({ schedule: config.schedule }), publish),
+  cre.handler(
+    new cre.capabilities.CronCapability().trigger({ schedule: config.schedule }),
+    publish,
+  ),
 ]
 
 export async function main() {

@@ -12,16 +12,16 @@ import { useEffect } from 'react'
 import { Platform, Settings } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { OfflineProvider } from '@/lib/offline'
 import { GoogleWalletProvider } from '@/lib/google-wallet'
+import { OfflineProvider } from '@/lib/offline'
 import { PrefsProvider, usePrefs } from '@/lib/prefs'
 import { PrivateProvider } from '@/lib/private'
 import { useLiveRates } from '@/lib/rates'
 import { StallProvider } from '@/lib/stall'
 import { TakingsProvider } from '@/lib/takings'
-import { TravelProvider } from '@/lib/travel'
 import { TerminalProvider } from '@/lib/terminal'
 import { colors } from '@/lib/theme'
+import { TravelProvider } from '@/lib/travel'
 import { useWallet, WalletProvider } from '@/lib/wallet'
 import { OrderWatcher } from '@/lib/watch'
 
@@ -59,7 +59,13 @@ function ArrivalWatcher() {
         hash: arrival.hash,
         ...(arrival.note ? { note: arrival.note } : {}),
         // Arrived privately: the arrival screen says so, and offers to move it in.
-        ...(arrival.privately ? { private: '1', ...(arrival.oneTime ? { oneTime: arrival.oneTime } : {}), ...(arrival.unconfirmed ? { unconfirmed: '1' } : {}) } : {}),
+        ...(arrival.privately
+          ? {
+              private: '1',
+              ...(arrival.oneTime ? { oneTime: arrival.oneTime } : {}),
+              ...(arrival.unconfirmed ? { unconfirmed: '1' } : {}),
+            }
+          : {}),
       },
     })
     clearArrival()
@@ -77,7 +83,12 @@ const sendSheet = {
 } as const
 
 export default function RootLayout() {
-  const [loaded] = useFonts({ Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold })
+  const [loaded] = useFonts({
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+  })
   // Local prices on the first screen should already use today's rates.
   const ratesReady = useLiveRates()
 
@@ -93,45 +104,122 @@ export default function RootLayout() {
         <PrefsProvider>
           <TerminalProvider>
             <GoogleWalletProvider>
-            <WalletProvider>
-              <StallProvider>
-                <TakingsProvider>
-                <PrivateProvider>
-                <OfflineProvider>
-                <TravelProvider>
-                <StatusBar style="dark" />
-                <ArrivalWatcher />
-                <OrderWatcher />
-                <DevLaunch />
-                <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.paper } }}>
-                  <Stack.Screen name="index" options={{ animation: 'none' }} />
-                  <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-                  <Stack.Screen name="scan" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="received" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-                  <Stack.Screen name="ready/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-                  <Stack.Screen name="terminal" options={{ animation: 'fade' }} />
-                  <Stack.Screen name="open-stall" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="cash-out" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="add-naira" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="card/link" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="card/pin" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="s/[slug]" options={{ animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="travel" options={{ animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="send/index" options={sendSheet} />
-                  <Stack.Screen name="send/[to]" options={sendSheet} />
-                  <Stack.Screen name="send/link" options={sendSheet} />
-                  <Stack.Screen name="send/phone" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="phone/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="c/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="o" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-                  <Stack.Screen name="offline/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-                </Stack>
-                </TravelProvider>
-                </OfflineProvider>
-                </PrivateProvider>
-                </TakingsProvider>
-              </StallProvider>
-            </WalletProvider>
+              <WalletProvider>
+                <StallProvider>
+                  <TakingsProvider>
+                    <PrivateProvider>
+                      <OfflineProvider>
+                        <TravelProvider>
+                          <StatusBar style="dark" />
+                          <ArrivalWatcher />
+                          <OrderWatcher />
+                          <DevLaunch />
+                          <Stack
+                            screenOptions={{
+                              headerShown: false,
+                              contentStyle: { backgroundColor: colors.paper },
+                            }}
+                          >
+                            <Stack.Screen name="index" options={{ animation: 'none' }} />
+                            <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+                            <Stack.Screen
+                              name="scan"
+                              options={{
+                                presentation: 'fullScreenModal',
+                                animation: 'slide_from_bottom',
+                              }}
+                            />
+                            <Stack.Screen
+                              name="received"
+                              options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+                            />
+                            <Stack.Screen
+                              name="ready/[id]"
+                              options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+                            />
+                            <Stack.Screen name="terminal" options={{ animation: 'fade' }} />
+                            <Stack.Screen
+                              name="open-stall"
+                              options={{
+                                presentation: 'fullScreenModal',
+                                animation: 'slide_from_bottom',
+                              }}
+                            />
+                            <Stack.Screen
+                              name="cash-out"
+                              options={{
+                                presentation: 'fullScreenModal',
+                                animation: 'slide_from_bottom',
+                              }}
+                            />
+                            <Stack.Screen
+                              name="add-naira"
+                              options={{
+                                presentation: 'fullScreenModal',
+                                animation: 'slide_from_bottom',
+                              }}
+                            />
+                            <Stack.Screen
+                              name="card/link"
+                              options={{
+                                presentation: 'fullScreenModal',
+                                animation: 'slide_from_bottom',
+                              }}
+                            />
+                            <Stack.Screen
+                              name="card/pin"
+                              options={{
+                                presentation: 'fullScreenModal',
+                                animation: 'slide_from_bottom',
+                              }}
+                            />
+                            <Stack.Screen
+                              name="s/[slug]"
+                              options={{ animation: 'slide_from_bottom' }}
+                            />
+                            <Stack.Screen
+                              name="travel"
+                              options={{ animation: 'slide_from_bottom' }}
+                            />
+                            <Stack.Screen name="send/index" options={sendSheet} />
+                            <Stack.Screen name="send/[to]" options={sendSheet} />
+                            <Stack.Screen name="send/link" options={sendSheet} />
+                            <Stack.Screen
+                              name="send/phone"
+                              options={{
+                                presentation: 'fullScreenModal',
+                                animation: 'slide_from_bottom',
+                              }}
+                            />
+                            <Stack.Screen
+                              name="phone/[id]"
+                              options={{
+                                presentation: 'fullScreenModal',
+                                animation: 'slide_from_bottom',
+                              }}
+                            />
+                            <Stack.Screen
+                              name="c/[id]"
+                              options={{
+                                presentation: 'fullScreenModal',
+                                animation: 'slide_from_bottom',
+                              }}
+                            />
+                            <Stack.Screen
+                              name="o"
+                              options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+                            />
+                            <Stack.Screen
+                              name="offline/[id]"
+                              options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+                            />
+                          </Stack>
+                        </TravelProvider>
+                      </OfflineProvider>
+                    </PrivateProvider>
+                  </TakingsProvider>
+                </StallProvider>
+              </WalletProvider>
             </GoogleWalletProvider>
           </TerminalProvider>
         </PrefsProvider>

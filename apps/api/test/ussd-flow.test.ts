@@ -1,5 +1,3 @@
-import { Hono } from 'hono'
-import { eq } from 'drizzle-orm'
 import { runMigrations, schema, uuidv7 } from '@kova/db'
 import {
   createPocketClient,
@@ -9,6 +7,8 @@ import {
   pocketMessage,
   pocketPinCommitment,
 } from '@kova/monad'
+import { eq } from 'drizzle-orm'
+import { Hono } from 'hono'
 import {
   encodeAbiParameters,
   encodeEventTopics,
@@ -147,8 +147,9 @@ function receipt(
 }
 
 beforeAll(async () => {
-  if (!config.DATABASE_URL.endsWith('/kova_ussd_test_20261019'))
-    throw Error('Use the dedicated isolated USSD test database.')
+  // These tests delete every row they touch: only ever run them on a database named for tests.
+  if (!/\/[^/?]*test[^/?]*(\?|$)/.test(config.DATABASE_URL))
+    throw Error('Run these tests on a test database (its name must contain "test").')
   await runMigrations(config.DATABASE_URL)
 })
 beforeEach(async () => {

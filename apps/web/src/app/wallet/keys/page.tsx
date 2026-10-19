@@ -1,6 +1,6 @@
-import { publicApiUrl } from '@/lib/network'
 import type { Metadata } from 'next'
 import { KeysScreen } from '@/components/wallet/keys'
+import { publicApiUrl } from '@/lib/network'
 
 export const metadata: Metadata = { title: 'Keys' }
 export const dynamic = 'force-dynamic'

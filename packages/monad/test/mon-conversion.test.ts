@@ -191,7 +191,13 @@ describe('MON held in the Kova wallet', () => {
     expect(transaction.value).toBe(parseEther('100'))
     expect(transaction.gas).toBe(plan.gas)
     expect(transaction.gasPrice).toBe(plan.gasPrice)
-    expect(await recoverTransactionAddress({ serializedTransaction: raw as Parameters<typeof recoverTransactionAddress>[0]['serializedTransaction'] })).toBe(account.address)
+    expect(
+      await recoverTransactionAddress({
+        serializedTransaction: raw as Parameters<
+          typeof recoverTransactionAddress
+        >[0]['serializedTransaction'],
+      }),
+    ).toBe(account.address)
   })
   it('never mistakes a previous successful transfer at a reused address for this conversion', () => {
     const pending = {

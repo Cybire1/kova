@@ -30,7 +30,10 @@ await db.insert(schema.apiKeys).values({
   isTest: true,
 })
 const pairing = (await (
-  await fetch(`${api}/v1/terminals/pairings`, { method: 'POST', headers: { authorization: `Bearer ${key.secret}` } })
+  await fetch(`${api}/v1/terminals/pairings`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${key.secret}` },
+  })
 ).json()) as { code: string }
 console.log(JSON.stringify({ key: key.secret, code: pairing.code.replace('-', '') }))
 process.exit(0)

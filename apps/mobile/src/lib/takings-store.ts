@@ -13,7 +13,8 @@ import { load, save } from './storage'
  * behind Face ID, like the wallet's own secret, and is only read to move takings home. Either can
  * be made again from the wallet with one signature, so losing them loses nothing.
  */
-const keyName = (kind: 'view' | 'spend', shop: string) => `kova.monad.takings.${kind}.v2.${shop.replace(/[^\w.-]/g, '')}`
+const keyName = (kind: 'view' | 'spend', shop: string) =>
+  `kova.monad.takings.${kind}.v2.${shop.replace(/[^\w.-]/g, '')}`
 /** The shops whose keys this phone holds, so signing out forgets every one. */
 const SHOPS = 'kova.monad.takings.shops.v1'
 /** One-time addresses this phone has found to be the shop's: checked once, named in the wallet. */
@@ -28,7 +29,12 @@ export interface SavedView {
   view: string
 }
 
-export async function keepTakingsKeys(owner: Address, shop: string, keys: StealthKeys, locked: boolean): Promise<SavedView> {
+export async function keepTakingsKeys(
+  owner: Address,
+  shop: string,
+  keys: StealthKeys,
+  locked: boolean,
+): Promise<SavedView> {
   const shops = await load<string[]>(SHOPS, [])
   if (!shops.includes(shop)) await save(SHOPS, [...shops, shop])
   // The spending key first: a phone that has the view but not the key would show money it can't move.
@@ -38,11 +44,20 @@ export async function keepTakingsKeys(owner: Address, shop: string, keys: Stealt
     keyName('spend', shop),
     keys.spendingPrivateKey,
     locked
-      ? { requireAuthentication: true, keychainAccessible: SecureStore.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY }
+      ? {
+          requireAuthentication: true,
+          keychainAccessible: SecureStore.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY,
+        }
       : { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY },
   )
-  const saved: SavedView = { owner: owner.toLowerCase(), meta: stealthMetaAddress(keys), view: stealthViewKey(keys) }
-  await SecureStore.setItemAsync(keyName('view', shop), JSON.stringify(saved), { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY })
+  const saved: SavedView = {
+    owner: owner.toLowerCase(),
+    meta: stealthMetaAddress(keys),
+    view: stealthViewKey(keys),
+  }
+  await SecureStore.setItemAsync(keyName('view', shop), JSON.stringify(saved), {
+    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  })
   return saved
 }
 
@@ -64,12 +79,15 @@ export async function readTakingsView(owner: Address, shop: string): Promise<Sav
  */
 export async function readSpendingKey(shop: string, prompt: string): Promise<Hex | null> {
   try {
-    const key = await SecureStore.getItemAsync(keyName('spend', shop), { authenticationPrompt: prompt })
+    const key = await SecureStore.getItemAsync(keyName('spend', shop), {
+      authenticationPrompt: prompt,
+    })
     return key && /^0x[0-9a-fA-F]{64}$/.test(key) ? (key as Hex) : null
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     if (/cancel/i.test(message)) throw new Error('Face ID was cancelled. Nothing moved.')
-    if (/authentication failed/i.test(message)) throw new Error('Face ID didn’t work. Nothing moved.')
+    if (/authentication failed/i.test(message))
+      throw new Error('Face ID didn’t work. Nothing moved.')
     // Gone from the Keychain: the wallet can make it again.
     return null
   }
@@ -88,7 +106,8 @@ export async function forgetTakingsKeys() {
 
 let found: { meta: string; addresses: Set<string> } = { meta: '', addresses: new Set() }
 const loaded = load<{ meta: string; addresses: string[] } | null>(FOUND, null).then((saved) => {
-  if (saved) found = { meta: saved.meta, addresses: new Set([...saved.addresses, ...found.addresses]) }
+  if (saved)
+    found = { meta: saved.meta, addresses: new Set([...saved.addresses, ...found.addresses]) }
 })
 
 /** The addresses already found for these keys, so they aren't checked again. */

@@ -11,7 +11,12 @@ import { db } from '../db.js'
 import { KovaError, notFound } from '../errors.js'
 import { decodeId, encodeId } from '../ids.js'
 import { clientIp, limit } from '../limits.js'
-import { createChallenge, openSession, spendChallenge, verifyChallenge } from '../services/sign-in.js'
+import {
+  createChallenge,
+  openSession,
+  spendChallenge,
+  verifyChallenge,
+} from '../services/sign-in.js'
 
 /**
  * A shop's own account: opening it, signing in to it, its settings, and the keys that act for it.
@@ -106,10 +111,23 @@ const slugify = (name: string) =>
       .slice(0, 32) || 'shop'
   }-${randomBytes(3).toString('hex')}`
 
-async function audit(merchantId: string, keyId: string, action: string, metadata?: Record<string, unknown>) {
+async function audit(
+  merchantId: string,
+  keyId: string,
+  action: string,
+  metadata?: Record<string, unknown>,
+) {
   await db
     .insert(schema.auditLogs)
-    .values({ id: uuidv7(), actorType: 'api_key', actorId: keyId, action, targetType: 'merchant', targetId: merchantId, metadata: metadata ?? null })
+    .values({
+      id: uuidv7(),
+      actorType: 'api_key',
+      actorId: keyId,
+      action,
+      targetType: 'merchant',
+      targetId: merchantId,
+      metadata: metadata ?? null,
+    })
     .catch(() => {})
 }
 
@@ -119,16 +137,32 @@ export const accountRoutes = new Hono()
     // A speed bump for scripts, invisible to people. Everyone who opens a shop on the website
     // arrives from the web server's one address, so this has room for all of them; a wallet
     // opening shop after shop meets the tighter limit below.
-    limit(`signup-ip:${clientIp(c)}`, 60, 3_600_000, 'Too many new shops from here. Try again in an hour.')
+    limit(
+      `signup-ip:${clientIp(c)}`,
+      60,
+      3_600_000,
+      'Too many new shops from here. Try again in an hour.',
+    )
     const parsed = signupBody.safeParse(await c.req.json().catch(() => ({})))
     if (!parsed.success)
-      throw new KovaError('invalid_request', parsed.error.issues[0]?.message ?? 'Invalid request', { issues: parsed.error.issues })
+      throw new KovaError('invalid_request', parsed.error.issues[0]?.message ?? 'Invalid request', {
+        issues: parsed.error.issues,
+      })
 
     const owner = parsed.data.owner
-      ? await verifyChallenge({ ...parsed.data.owner, signature: parsed.data.owner.signature as Hex, purpose: 'open_shop' })
+      ? await verifyChallenge({
+          ...parsed.data.owner,
+          signature: parsed.data.owner.signature as Hex,
+          purpose: 'open_shop',
+        })
       : undefined
     if (owner) {
-      limit(`signup-owner:${owner.address}`, 5, 3_600_000, 'That wallet has opened a few shops already. Try again in an hour.')
+      limit(
+        `signup-owner:${owner.address}`,
+        5,
+        3_600_000,
+        'That wallet has opened a few shops already. Try again in an hour.',
+      )
       await spendChallenge(owner.nonce)
     }
 
@@ -165,7 +199,14 @@ export const accountRoutes = new Hono()
     })
     if (owner) {
       const session = await openSession(merchant)
-      return c.json({ ...serializeMerchant(merchant), key: session.secret, key_expires_at: session.expiresAt.toISOString() }, 201)
+      return c.json(
+        {
+          ...serializeMerchant(merchant),
+          key: session.secret,
+          key_expires_at: session.expiresAt.toISOString(),
+        },
+        201,
+      )
     }
     return c.json({ ...serializeMerchant(merchant), key: key.secret, key_expires_at: null }, 201)
   })
@@ -173,11 +214,29 @@ export const accountRoutes = new Hono()
   /** Public: the message a wallet signs to sign in to its shop, or to open one. Good once, for ten minutes. */
   .post('/sign_in/challenge', async (c) => {
     const parsed = challengeBody.safeParse(await c.req.json().catch(() => ({})))
-    if (!parsed.success) throw new KovaError('invalid_request', parsed.error.issues[0]?.message ?? 'Invalid request')
-    limit(`challenge:${parsed.data.address.toLowerCase()}`, 20, 600_000, 'That’s a lot of sign-ins for one wallet. Try again in a few minutes.')
-    limit(`challenge-ip:${clientIp(c)}`, 300, 600_000, 'That’s a lot of sign-ins from here. Try again in a few minutes.')
+    if (!parsed.success)
+      throw new KovaError('invalid_request', parsed.error.issues[0]?.message ?? 'Invalid request')
+    limit(
+      `challenge:${parsed.data.address.toLowerCase()}`,
+      20,
+      600_000,
+      'That’s a lot of sign-ins for one wallet. Try again in a few minutes.',
+    )
+    limit(
+      `challenge-ip:${clientIp(c)}`,
+      300,
+      600_000,
+      'That’s a lot of sign-ins from here. Try again in a few minutes.',
+    )
     const challenge = await createChallenge(parsed.data)
-    return c.json({ object: 'sign_in_challenge', message: challenge.message, expires_at: challenge.expiresAt.toISOString() }, 201)
+    return c.json(
+      {
+        object: 'sign_in_challenge',
+        message: challenge.message,
+        expires_at: challenge.expiresAt.toISOString(),
+      },
+      201,
+    )
   })
 
   /**
@@ -187,15 +246,31 @@ export const accountRoutes = new Hono()
    */
   .post('/sign_in', async (c) => {
     const parsed = signInBody.safeParse(await c.req.json().catch(() => ({})))
-    if (!parsed.success) throw new KovaError('invalid_request', parsed.error.issues[0]?.message ?? 'Invalid request')
-    limit(`sign-in-ip:${clientIp(c)}`, 300, 600_000, 'That’s a lot of sign-ins from here. Try again in a few minutes.')
-    const { address: owner, nonce } = await verifyChallenge({ ...parsed.data, signature: parsed.data.signature as Hex, purpose: 'sign_in' })
+    if (!parsed.success)
+      throw new KovaError('invalid_request', parsed.error.issues[0]?.message ?? 'Invalid request')
+    limit(
+      `sign-in-ip:${clientIp(c)}`,
+      300,
+      600_000,
+      'That’s a lot of sign-ins from here. Try again in a few minutes.',
+    )
+    const { address: owner, nonce } = await verifyChallenge({
+      ...parsed.data,
+      signature: parsed.data.signature as Hex,
+      purpose: 'sign_in',
+    })
 
     const shops = await db.query.merchants.findMany({
-      where: and(eq(schema.merchants.ownerAddress, owner.toLowerCase()), eq(schema.merchants.status, 'active')),
+      where: and(
+        eq(schema.merchants.ownerAddress, owner.toLowerCase()),
+        eq(schema.merchants.status, 'active'),
+      ),
       orderBy: desc(schema.merchants.createdAt),
     })
-    if (shops.length === 0) throw new KovaError('not_found', 'No shop signs in with this wallet yet.', { reason: 'no_shop' })
+    if (shops.length === 0)
+      throw new KovaError('not_found', 'No shop signs in with this wallet yet.', {
+        reason: 'no_shop',
+      })
     const chosen = parsed.data.merchant ? decodeId('merchant', parsed.data.merchant) : null
     const shop = chosen
       ? shops.find((s) => s.id === chosen)
@@ -206,25 +281,42 @@ export const accountRoutes = new Hono()
       if (chosen) throw notFound('shop', parsed.data.merchant ?? '')
       throw new KovaError('conflict', 'This wallet signs in to more than one shop. Choose one.', {
         reason: 'choose_shop',
-        shops: shops.map((s) => ({ id: encodeId('merchant', s.id), name: s.name, created_at: s.createdAt.toISOString() })),
+        shops: shops.map((s) => ({
+          id: encodeId('merchant', s.id),
+          name: s.name,
+          created_at: s.createdAt.toISOString(),
+        })),
       })
     }
 
     await spendChallenge(nonce)
     const session = await openSession(shop)
     await audit(shop.id, session.id, 'session.opened', { wallet: owner })
-    return c.json({ object: 'session', key: session.secret, expires_at: session.expiresAt.toISOString(), merchant: serializeMerchant(shop) }, 201)
+    return c.json(
+      {
+        object: 'session',
+        key: session.secret,
+        expires_at: session.expiresAt.toISOString(),
+        merchant: serializeMerchant(shop),
+      },
+      201,
+    )
   })
 
   /** Signs this browser out: its session key stops working. A shop's secret keys are left alone. */
   .post('/sign_out', requireApiKey, async (c) => {
     const key = c.get('apiKey')
     if (key.expiresAt)
-      await db.update(schema.apiKeys).set({ revokedAt: new Date() }).where(and(eq(schema.apiKeys.id, key.id), isNull(schema.apiKeys.revokedAt)))
+      await db
+        .update(schema.apiKeys)
+        .set({ revokedAt: new Date() })
+        .where(and(eq(schema.apiKeys.id, key.id), isNull(schema.apiKeys.revokedAt)))
     return c.json({ object: 'session', signed_out: true })
   })
 
-  .get('/account', requireApiKey, requireMerchantKey, (c) => c.json(serializeMerchant(c.get('merchant'))))
+  .get('/account', requireApiKey, requireMerchantKey, (c) =>
+    c.json(serializeMerchant(c.get('merchant'))),
+  )
 
   /**
    * Makes a wallet this shop's owner, so its passkey signs in to the shop from now on, on the web
@@ -234,7 +326,11 @@ export const accountRoutes = new Hono()
   .post('/account/owner', requireApiKey, requireMerchantKey, async (c) => {
     const parsed = signedMessage.safeParse(await c.req.json().catch(() => ({})))
     if (!parsed.success) throw new KovaError('invalid_request', 'Expected { message, signature }.')
-    const { address: owner, nonce } = await verifyChallenge({ ...parsed.data, signature: parsed.data.signature as Hex, purpose: 'own_shop' })
+    const { address: owner, nonce } = await verifyChallenge({
+      ...parsed.data,
+      signature: parsed.data.signature as Hex,
+      purpose: 'own_shop',
+    })
     await spendChallenge(nonce)
     const before = c.get('merchant')
     const [merchant] = await db
@@ -244,25 +340,34 @@ export const accountRoutes = new Hono()
       .returning()
     if (!merchant) throw notFound('merchant', encodeId('merchant', before.id))
     // Who can sign in to a shop is as sensitive as where its money goes: keep a record.
-    await audit(before.id, c.get('apiKey').id, 'merchant.owner.updated', { from: before.ownerAddress, to: owner })
+    await audit(before.id, c.get('apiKey').id, 'merchant.owner.updated', {
+      from: before.ownerAddress,
+      to: owner,
+    })
     return c.json(serializeMerchant(merchant))
   })
 
   .patch('/account', requireApiKey, requireMerchantKey, async (c) => {
     const parsed = updateBody.safeParse(await c.req.json().catch(() => ({})))
-    if (!parsed.success) throw new KovaError('invalid_request', parsed.error.issues[0]?.message ?? 'Invalid request')
+    if (!parsed.success)
+      throw new KovaError('invalid_request', parsed.error.issues[0]?.message ?? 'Invalid request')
     const before = c.get('merchant')
     const [merchant] = await db
       .update(schema.merchants)
       .set({
         ...(parsed.data.name ? { name: parsed.data.name } : {}),
-        ...(parsed.data.settlement_address ? { settlementAddress: parsed.data.settlement_address } : {}),
+        ...(parsed.data.settlement_address
+          ? { settlementAddress: parsed.data.settlement_address }
+          : {}),
         updatedAt: new Date(),
       })
       .where(eq(schema.merchants.id, before.id))
       .returning()
     if (!merchant) throw notFound('merchant', encodeId('merchant', before.id))
-    if (parsed.data.settlement_address && parsed.data.settlement_address !== before.settlementAddress)
+    if (
+      parsed.data.settlement_address &&
+      parsed.data.settlement_address !== before.settlementAddress
+    )
       // Where money goes is the most sensitive setting a shop has: keep a record of every change.
       await audit(before.id, c.get('apiKey').id, 'merchant.settlement_address.updated', {
         from: before.settlementAddress,
@@ -274,7 +379,12 @@ export const accountRoutes = new Hono()
   .get('/api_keys', requireApiKey, requireMerchantKey, async (c) => {
     const rows = await db.query.apiKeys.findMany({
       // Paired phones and signed-in browsers have keys too, but they aren't the shop's secret keys.
-      where: and(eq(schema.apiKeys.merchantId, c.get('merchant').id), isNull(schema.apiKeys.terminalId), isNull(schema.apiKeys.expiresAt), isNull(schema.apiKeys.revokedAt)),
+      where: and(
+        eq(schema.apiKeys.merchantId, c.get('merchant').id),
+        isNull(schema.apiKeys.terminalId),
+        isNull(schema.apiKeys.expiresAt),
+        isNull(schema.apiKeys.revokedAt),
+      ),
       orderBy: desc(schema.apiKeys.createdAt),
     })
     return c.json({ object: 'list', data: rows.map((k) => serializeKey(k, c.get('apiKey').id)) })
@@ -298,7 +408,9 @@ export const accountRoutes = new Hono()
       })
       .returning()
     if (!row) throw new KovaError('internal', 'Could not create the key')
-    await audit(merchant.id, c.get('apiKey').id, 'api_key.created', { key: encodeId('apiKey', row.id) })
+    await audit(merchant.id, c.get('apiKey').id, 'api_key.created', {
+      key: encodeId('apiKey', row.id),
+    })
     return c.json({ ...serializeKey(row), secret: key.secret }, 201)
   })
 
@@ -306,7 +418,11 @@ export const accountRoutes = new Hono()
     const id = c.req.param('id')
     const uuid = decodeId('apiKey', id)
     // Revoking the key you are signed in with would lock you out mid-click.
-    if (uuid === c.get('apiKey').id) throw new KovaError('conflict', 'You are signed in with this key. Sign in with another key to revoke it.')
+    if (uuid === c.get('apiKey').id)
+      throw new KovaError(
+        'conflict',
+        'You are signed in with this key. Sign in with another key to revoke it.',
+      )
     const [row] = uuid
       ? await db
           .update(schema.apiKeys)

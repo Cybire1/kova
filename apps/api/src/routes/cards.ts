@@ -19,10 +19,10 @@ import {
   completeTap,
   getTap,
   holderNonce,
-  permitState,
   linkCard,
   MAX_DAILY_LIMIT,
   NO_PIN_LIMIT,
+  permitState,
   prepareTap,
   requireCards,
   serializeCard,
@@ -64,7 +64,10 @@ async function activeCard(value: string) {
   return row
 }
 
-const bodyOf = async <T extends z.ZodTypeAny>(c: { req: { json: () => Promise<unknown> } }, shape: T): Promise<z.infer<T>> => {
+const bodyOf = async <T extends z.ZodTypeAny>(
+  c: { req: { json: () => Promise<unknown> } },
+  shape: T,
+): Promise<z.infer<T>> => {
   const parsed = shape.safeParse(await c.req.json().catch(() => ({})))
   if (!parsed.success)
     throw new KovaError('invalid_request', 'Invalid request body', { issues: parsed.error.issues })
@@ -78,7 +81,13 @@ const linkBody = z.object({
   deadline: z.coerce.number().int().positive(),
   holder_signature: hex,
   card_signature: hex,
-  permit: z.object({ value: z.string().regex(/^\d+$/), deadline: z.coerce.number().int().positive(), signature: hex }).nullable(),
+  permit: z
+    .object({
+      value: z.string().regex(/^\d+$/),
+      deadline: z.coerce.number().int().positive(),
+      signature: hex,
+    })
+    .nullable(),
   pin: z.string(),
   label: z.string().max(40).optional(),
 })
@@ -111,7 +120,11 @@ export const cardRoutes = new Hono()
     const holder = c.req.param('address')
     if (!isAddress(holder)) throw new KovaError('invalid_request', 'Not a Monad address.')
     const wallet = getAddress(holder)
-    const [rows, nonce, permit] = await Promise.all([cardsOf(wallet), holderNonce(wallet), permitState(wallet)])
+    const [rows, nonce, permit] = await Promise.all([
+      cardsOf(wallet),
+      holderNonce(wallet),
+      permitState(wallet),
+    ])
     return c.json({
       object: 'list',
       // What the wallet's next card signature must carry, and where its allowance to cards stands.
@@ -125,12 +138,27 @@ export const cardRoutes = new Hono()
     requireCards()
     const row = await cardRow(cardParam(c.req.param('card')))
     if (!row || row.status !== 'active') return c.json({ object: 'card_status', linked: false })
-    return c.json({ object: 'card_status', linked: true, holder: getAddress(row.holderAddress), last_four: row.lastFour })
+    return c.json({
+      object: 'card_status',
+      linked: true,
+      holder: getAddress(row.holderAddress),
+      last_four: row.lastFour,
+    })
   })
   .post('/cards/link', async (c) => {
     const body = await bodyOf(c, linkBody)
-    limit(`card-link:${body.holder.toLowerCase()}`, 10, 3_600_000, 'That’s a lot of cards in an hour. Try again later.')
-    limit(`card-link-ip:${ip(c)}`, 30, 3_600_000, 'That’s a lot of cards from here. Try again later.')
+    limit(
+      `card-link:${body.holder.toLowerCase()}`,
+      10,
+      3_600_000,
+      'That’s a lot of cards in an hour. Try again later.',
+    )
+    limit(
+      `card-link-ip:${ip(c)}`,
+      30,
+      3_600_000,
+      'That’s a lot of cards from here. Try again later.',
+    )
     const row = await linkCard({
       holder: getAddress(body.holder),
       card: getAddress(body.card),
@@ -139,7 +167,11 @@ export const cardRoutes = new Hono()
       holderSignature: body.holder_signature as Hex,
       cardSignature: body.card_signature as Hex,
       permit: body.permit
-        ? { value: BigInt(body.permit.value), deadline: BigInt(body.permit.deadline), signature: body.permit.signature as Hex }
+        ? {
+            value: BigInt(body.permit.value),
+            deadline: BigInt(body.permit.deadline),
+            signature: body.permit.signature as Hex,
+          }
         : null,
       pin: body.pin,
       label: body.label,
@@ -149,7 +181,12 @@ export const cardRoutes = new Hono()
   .post('/cards/:card/update', async (c) => {
     const row = await activeCard(c.req.param('card'))
     const body = await bodyOf(c, updateBody)
-    limit(`card-update:${row.address}`, 30, 600_000, 'That’s a lot of changes. Try again in a few minutes.')
+    limit(
+      `card-update:${row.address}`,
+      30,
+      600_000,
+      'That’s a lot of changes. Try again in a few minutes.',
+    )
     const updated = await updateCard(row, {
       dailyLimit: parseAmount(body.daily_limit),
       frozen: body.frozen,
@@ -160,15 +197,28 @@ export const cardRoutes = new Hono()
   })
   .post('/cards/:card/unlink', async (c) => {
     const row = await activeCard(c.req.param('card'))
-    const body = await bodyOf(c, z.object({ deadline: z.coerce.number().int().positive(), holder_signature: hex }))
-    await unlinkCard(row, { deadline: BigInt(body.deadline), holderSignature: body.holder_signature as Hex })
+    const body = await bodyOf(
+      c,
+      z.object({ deadline: z.coerce.number().int().positive(), holder_signature: hex }),
+    )
+    await unlinkCard(row, {
+      deadline: BigInt(body.deadline),
+      holderSignature: body.holder_signature as Hex,
+    })
     return c.json({ object: 'card', address: getAddress(row.address), unlinked: true })
   })
   .post('/cards/:card/pin', async (c) => {
     const row = await activeCard(c.req.param('card'))
-    const body = await bodyOf(c, z.object({ pin: z.string(), signed_at: z.coerce.number().int(), signature: hex }))
+    const body = await bodyOf(
+      c,
+      z.object({ pin: z.string(), signed_at: z.coerce.number().int(), signature: hex }),
+    )
     limit(`card-pin:${row.address}`, 10, 3_600_000, 'That’s a lot of PIN changes. Try again later.')
-    await changePin(row, { pin: body.pin, signedAt: body.signed_at, signature: body.signature as Hex })
+    await changePin(row, {
+      pin: body.pin,
+      signedAt: body.signed_at,
+      signature: body.signature as Hex,
+    })
     return c.json({ object: 'card', address: getAddress(row.address), pin_changed: true })
   })
 
@@ -201,10 +251,18 @@ export const cardTapRoutes = new Hono()
     if (!intentId) throw notFound('payment intent', body.payment_intent)
     const merchant = c.get('merchant')
     const intent = await db.query.paymentIntents.findFirst({
-      where: and(eq(schema.paymentIntents.id, intentId), eq(schema.paymentIntents.merchantId, merchant.id)),
+      where: and(
+        eq(schema.paymentIntents.id, intentId),
+        eq(schema.paymentIntents.merchantId, merchant.id),
+      ),
     })
     if (!intent) throw notFound('payment intent', body.payment_intent)
-    limit(`card-tap:${body.card.toLowerCase()}`, 20, 600_000, 'That card has been tapped a lot. Try again shortly.')
+    limit(
+      `card-tap:${body.card.toLowerCase()}`,
+      20,
+      600_000,
+      'That card has been tapped a lot. Try again shortly.',
+    )
     const { tap } = await prepareTap({
       intent,
       card: getAddress(body.card),
@@ -227,10 +285,19 @@ export const cardTapRoutes = new Hono()
     const tap = await getTap(tapUuid(c.req.param('id')))
     if (!tap) throw notFound('card tap', c.req.param('id'))
     // Only the shop whose charge it is can finish the tap.
-    const intent = await db.query.paymentIntents.findFirst({ where: eq(schema.paymentIntents.id, tap.intentId) })
-    if (!intent || intent.merchantId !== c.get('merchant').id) throw notFound('card tap', c.req.param('id'))
-    const body = await bodyOf(c, z.object({ card_signature: hex, pin: z.string().max(6).optional() }))
-    const done = await completeTap(tap, { cardSignature: body.card_signature as Hex, pin: body.pin })
+    const intent = await db.query.paymentIntents.findFirst({
+      where: eq(schema.paymentIntents.id, tap.intentId),
+    })
+    if (!intent || intent.merchantId !== c.get('merchant').id)
+      throw notFound('card tap', c.req.param('id'))
+    const body = await bodyOf(
+      c,
+      z.object({ card_signature: hex, pin: z.string().max(6).optional() }),
+    )
+    const done = await completeTap(tap, {
+      cardSignature: body.card_signature as Hex,
+      pin: body.pin,
+    })
     return c.json({
       object: 'card_tap',
       id: encodeId('cardTap', done.tap.id),

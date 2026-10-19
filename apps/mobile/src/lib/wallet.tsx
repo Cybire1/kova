@@ -32,6 +32,7 @@ import {
 } from 'viem'
 import { generatePrivateKey } from 'viem/accounts'
 import { type Checkout, demoSignIn } from './api'
+import { confirmWithFace } from './auth'
 import {
   type CashOutToPay,
   claimLink,
@@ -47,20 +48,19 @@ import {
 } from './chain'
 import { passkeyDomain } from './config'
 import { useGoogleWallet } from './google-wallet'
-import { confirmWithFace } from './auth'
-import { signOfflinePayment } from './offline-core'
-import { offlineArrival, offlineEntryId } from './offline-store'
 import { openSigningSession } from './keys'
 import { type DisplayCurrency, formatUsd } from './money'
-import { kovaWebAuthnClient, takeVaultOutput } from './passkey'
-import { endSession, sessionAccount, spend, startSession } from './session'
-import { forgetLink, linkArrival, linkKey, markClaiming, newLinkKey, setLinkId } from './paylinks'
-import { load, remove, save } from './storage'
-import { forgetVaultSecret, keepVaultSecret, openVault, saveVault } from './vault'
 import { ensureNoteKey, myNoteKeys, readNote, theirNoteKey } from './notes'
+import { signOfflinePayment } from './offline-core'
+import { offlineArrival, offlineEntryId } from './offline-store'
+import { kovaWebAuthnClient, takeVaultOutput } from './passkey'
+import { forgetLink, linkArrival, linkKey, markClaiming, newLinkKey, setLinkId } from './paylinks'
 import { fetchReceivingKey, type PrivateReceipt, UntrustedKey } from './private-core'
 import { ensureReceiving, forgetReceiving, isPrivateAddress, resetScan } from './private-store'
+import { endSession, sessionAccount, spend, startSession } from './session'
+import { load, remove, save } from './storage'
 import { forgetTakingsKeys, isTakingsAddress } from './takings-store'
+import { forgetVaultSecret, keepVaultSecret, openVault, saveVault } from './vault'
 
 /**
  * The wallet is a passkey (Mera). Creating it takes one Face ID: the passkey, which iCloud

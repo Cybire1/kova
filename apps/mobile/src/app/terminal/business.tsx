@@ -1,6 +1,13 @@
 import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native'
 import { type Business, getBusiness, getTeamKeys, type TeamKey } from '@/lib/api'
 import { monthName, usd } from '@/lib/business'
 import { useShop } from '@/lib/shop'
@@ -65,7 +72,8 @@ export default function BusinessHome() {
           <View style={styles.empty}>
             <Kovi pose="key" size={130} />
             <Txt size={15} color={colors.muted} style={{ textAlign: 'center', lineHeight: 21 }}>
-              Payroll and suppliers belong to the shop’s owner. Open them on the phone whose wallet owns {shop.name}.
+              Payroll and suppliers belong to the shop’s owner. Open them on the phone whose wallet
+              owns {shop.name}.
             </Txt>
           </View>
         ) : !summary && !problem ? (
@@ -79,7 +87,14 @@ export default function BusinessHome() {
                   <Txt weight="semi" size={15} color="#DCEBEA">
                     Paid out in {monthName()}
                   </Txt>
-                  <Txt weight="bold" size={44} color={colors.white} style={{ letterSpacing: -1.5, marginTop: 2 }} numberOfLines={1} adjustsFontSizeToFit>
+                  <Txt
+                    weight="bold"
+                    size={44}
+                    color={colors.white}
+                    style={{ letterSpacing: -1.5, marginTop: 2 }}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
                     {usd(payroll + suppliers)}
                   </Txt>
                   <Txt size={14} color="#DCEBEA" style={{ marginTop: 6, lineHeight: 19 }}>
@@ -123,7 +138,7 @@ export default function BusinessHome() {
               </Txt>
               {[
                 'Each person’s pay goes to an address made for that payment alone, from their own key.',
-                'Monad shows the business paying addresses nobody can tie to your people.',
+                'On Monad, the business pays addresses nobody can tie to your people.',
                 `They find it with their own keys, with a sealed note from ${shop.name}.`,
               ].map((line, i) => (
                 <View key={line} style={styles.step}>
@@ -143,9 +158,28 @@ export default function BusinessHome() {
   )
 }
 
-function Tile({ icon, tint, title, amount, sub, onPress }: { icon: IconName; tint: string; title: string; amount: string; sub: string; onPress: () => void }) {
+function Tile({
+  icon,
+  tint,
+  title,
+  amount,
+  sub,
+  onPress,
+}: {
+  icon: IconName
+  tint: string
+  title: string
+  amount: string
+  sub: string
+  onPress: () => void
+}) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${title}, ${amount} ${sub}`} onPress={onPress} style={({ pressed }) => [styles.tile, pressed && { opacity: 0.8 }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${amount} ${sub}`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.tile, pressed && { opacity: 0.8 }]}
+    >
       <View style={[styles.tileIcon, { backgroundColor: tint }]}>
         <Icon name={icon} size={20} />
       </View>
@@ -167,8 +201,32 @@ function Tile({ icon, tint, title, amount, sub, onPress }: { icon: IconName; tin
 
 const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: 12, paddingTop: 60, paddingHorizontal: 12 },
-  hero: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 18, borderRadius: 26, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.teal },
-  tile: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface },
-  tileIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 18,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.teal,
+  },
+  tile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 14,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
+  tileIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   step: { flexDirection: 'row', gap: 10, marginTop: 10 },
 })

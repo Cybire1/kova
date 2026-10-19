@@ -53,6 +53,7 @@ export function useSpendingCategories(activity: Entry[]) {
   }, [activity, known])
 
   /** An entry's category, or null while it hasn't been sorted yet. */
-  const of = (e: Entry): SpendingCategory | null => (e.kind === 'sent' ? 'people' : e.kind === 'paid' ? (known[e.id] ?? null) : null)
+  const of = (e: Entry): SpendingCategory | null =>
+    e.kind === 'sent' ? 'people' : e.kind === 'paid' ? (known[e.id] ?? null) : null
   return { of, spending }
 }

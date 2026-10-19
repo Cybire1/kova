@@ -32,7 +32,9 @@ export function PaidInASecond() {
     <section className="lp-section lp-moves" id="how" ref={ref}>
       <div className="lp-moves-head">
         <h2 className="lp-h2">Three moves, and it’s paid</h2>
-        <p className="lp-moves-lead">Start to finish, about a second. This is it, at the speed it happens.</p>
+        <p className="lp-moves-lead">
+          Start to finish, about a second. This is it, at the speed it happens.
+        </p>
       </div>
 
       {/* Remounting the track restarts its animation. */}
@@ -52,7 +54,10 @@ export function PaidInASecond() {
             <Art name="scene-faceid" size={200} />
           </div>
           <h3>They tap or scan</h3>
-          <p>With Kova Pay it’s one tap and Face ID. Any Monad wallet can scan the code and pay, and Kova covers the network fee.</p>
+          <p>
+            With Kova Pay it’s one tap and Face ID. Any Monad wallet can scan the code and pay, and
+            Kova covers the network fee.
+          </p>
         </li>
         <li className="lp-stop">
           <span className="lp-clock">0.9s</span>
@@ -63,7 +68,10 @@ export function PaidInASecond() {
             </span>
           </div>
           <h3>It lands</h3>
-          <p>Your till shows Paid, your dashboard updates, and the dollars are already in your wallet.</p>
+          <p>
+            Your till shows Paid, your dashboard updates, and the dollars are already in your
+            wallet.
+          </p>
         </li>
       </ol>
 

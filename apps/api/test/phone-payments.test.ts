@@ -1,21 +1,21 @@
-import { Hono } from 'hono'
-import { eq } from 'drizzle-orm'
 import { runMigrations, schema } from '@kova/db'
 import {
   createPhoneClient,
   getNetwork,
   getToken,
-  phoneMessage,
-  phonePaymentNonce,
   type PhoneApproval,
   type PhonePayment,
+  phoneMessage,
+  phonePaymentNonce,
 } from '@kova/monad'
+import { eq } from 'drizzle-orm'
+import { Hono } from 'hono'
 import {
+  type Address,
   encodeAbiParameters,
   encodeEventTopics,
   erc20Abi,
   getAddress,
-  type Address,
   type Hex,
   type TransactionReceipt,
 } from 'viem'
@@ -132,8 +132,9 @@ async function verified(test: Awaited<ReturnType<typeof funded>>, recipient = wa
   return recipient
 }
 beforeAll(async () => {
-  if (!config.DATABASE_URL.endsWith('/kova_ussd_test_20261019'))
-    throw Error('Use the isolated USSD test database.')
+  // These tests delete every row they touch: only ever run them on a database named for tests.
+  if (!/\/[^/?]*test[^/?]*(\?|$)/.test(config.DATABASE_URL))
+    throw Error('Run these tests on a test database (its name must contain "test").')
   await runMigrations(config.DATABASE_URL)
 })
 beforeEach(async () => {
@@ -418,15 +419,13 @@ describe('phone payments', () => {
       owner = wallet(),
       other = wallet()
     const p = await pocketFor(owner)
-    await db
-      .insert(schema.phoneAccounts)
-      .values({
-        id: crypto.randomUUID(),
-        network: 'testnet',
-        phone: p.phone,
-        wallet: other.address.toLowerCase(),
-        verifiedAt: new Date(),
-      })
+    await db.insert(schema.phoneAccounts).values({
+      id: crypto.randomUUID(),
+      network: 'testnet',
+      phone: p.phone,
+      wallet: other.address.toLowerCase(),
+      verifiedAt: new Date(),
+    })
     expect(await client.resolve(sign(sender), sender.address, p.phone)).toEqual({
       address: null,
       destination: null,

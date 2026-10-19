@@ -21,12 +21,25 @@ export function Sheet({
   const insets = useSafeAreaInsets()
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <Pressable accessibilityLabel="Close" style={styles.backdrop} onPress={onClose} />
-        <View style={[styles.sheet, tall && { height: '86%' }, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View
+          style={[
+            styles.sheet,
+            tall && { height: '86%' },
+            { paddingBottom: Math.max(insets.bottom, 16) },
+          ]}
+        >
           <View style={styles.grip} />
           {title ? (
-            <Txt weight="bold" size={22} style={{ letterSpacing: -0.5, marginTop: 12, marginBottom: 6 }}>
+            <Txt
+              weight="bold"
+              size={22}
+              style={{ letterSpacing: -0.5, marginTop: 12, marginBottom: 6 }}
+            >
               {title}
             </Txt>
           ) : null}
@@ -39,6 +52,19 @@ export function Sheet({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(11,26,29,0.32)' },
-  sheet: { maxHeight: '90%', backgroundColor: colors.paper, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 10 },
-  grip: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: 'rgba(11,26,29,0.16)' },
+  sheet: {
+    maxHeight: '90%',
+    backgroundColor: colors.paper,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  grip: {
+    alignSelf: 'center',
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(11,26,29,0.16)',
+  },
 })

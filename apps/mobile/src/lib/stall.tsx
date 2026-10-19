@@ -1,5 +1,13 @@
 import * as SecureStore from 'expo-secure-store'
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react'
 import { AppState } from 'react-native'
 import {
   createOwnerKey,
@@ -47,7 +55,10 @@ interface StallState {
   refresh: () => Promise<StallDetail | null>
   /** Shows a change at once; the server's answer replaces it on the next refresh. */
   patch: (next: StallDetail) => void
-  open: (input: { name: string; tagline?: string; phone: string; settleTo: string }, onStep?: (step: OpenStep) => void) => Promise<void>
+  open: (
+    input: { name: string; tagline?: string; phone: string; settleTo: string },
+    onStep?: (step: OpenStep) => void,
+  ) => Promise<void>
   /**
    * Brings back the shop this wallet owns, on a phone that doesn't hold its key: signs in with the
    * wallet, keeps a lasting owner key, and makes this phone its till. False if it owns none.
@@ -74,7 +85,9 @@ export function useStall(): StallState {
 type Saved = Owned & { key: string; owner?: string }
 
 async function save(saved: Saved) {
-  await SecureStore.setItemAsync(STORE, JSON.stringify(saved), { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY })
+  await SecureStore.setItemAsync(STORE, JSON.stringify(saved), {
+    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  })
 }
 
 export function StallProvider({ children }: { children: ReactNode }) {
@@ -193,7 +206,13 @@ export function StallProvider({ children }: { children: ReactNode }) {
         setOwnerKey(shop.key)
         const lasting = await createOwnerKey('Kova app')
         setOwnerKey(lasting.secret)
-        current = { merchantId: shop.id, name: shop.name, stallId: null, key: lasting.secret, owner: me.toLowerCase() }
+        current = {
+          merchantId: shop.id,
+          name: shop.name,
+          stallId: null,
+          key: lasting.secret,
+          owner: me.toLowerCase(),
+        }
         await remember(current)
       }
       if (!current.stallId) {
@@ -257,7 +276,8 @@ export function StallProvider({ children }: { children: ReactNode }) {
       .then((shop) => {
         if (!live) return
         const owner = shop.owner_address?.toLowerCase() ?? null
-        if (owner && saved.current && !saved.current.owner) void remember({ ...saved.current, owner })
+        if (owner && saved.current && !saved.current.owner)
+          void remember({ ...saved.current, owner })
         setOwnerLinked(owner === me)
       })
       .catch(() => {})
@@ -284,7 +304,21 @@ export function StallProvider({ children }: { children: ReactNode }) {
   const shown = mine ? owned : null
   const complete = Boolean(shown?.stallId) && terminal.paired?.merchantId === shown?.merchantId
   return (
-    <Ctx.Provider value={{ ready, owned: shown, complete, stall: mine ? stall : null, refresh, patch: setStall, open, recover, revealKey, ownerLinked, linkOwner }}>
+    <Ctx.Provider
+      value={{
+        ready,
+        owned: shown,
+        complete,
+        stall: mine ? stall : null,
+        refresh,
+        patch: setStall,
+        open,
+        recover,
+        revealKey,
+        ownerLinked,
+        linkOwner,
+      }}
+    >
       {children}
     </Ctx.Provider>
   )

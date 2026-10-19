@@ -24,12 +24,22 @@ export default function Scan() {
     handled.current = true
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
     // A payment someone signed with no signal: checked on this phone, no network needed.
-    if (scanned.kind === 'offline') router.replace({ pathname: '/o', params: { code: scanned.code } })
-    else if (scanned.kind === 'charge') router.replace({ pathname: '/pay/[id]', params: { id: scanned.id } })
-    else if (scanned.kind === 'stall') router.replace({ pathname: '/s/[slug]', params: { slug: scanned.slug, ...(scanned.table ? { table: scanned.table } : {}) } })
-    else if (scanned.kind === 'pair') router.replace({ pathname: '/terminal/setup', params: { code: scanned.code } })
+    if (scanned.kind === 'offline')
+      router.replace({ pathname: '/o', params: { code: scanned.code } })
+    else if (scanned.kind === 'charge')
+      router.replace({ pathname: '/pay/[id]', params: { id: scanned.id } })
+    else if (scanned.kind === 'stall')
+      router.replace({
+        pathname: '/s/[slug]',
+        params: { slug: scanned.slug, ...(scanned.table ? { table: scanned.table } : {}) },
+      })
+    else if (scanned.kind === 'pair')
+      router.replace({ pathname: '/terminal/setup', params: { code: scanned.code } })
     else if (scanned.kind === 'claim')
-      router.replace({ pathname: '/c/[id]', params: { id: scanned.id, ...(scanned.key ? { key: scanned.key } : {}) } })
+      router.replace({
+        pathname: '/c/[id]',
+        params: { id: scanned.id, ...(scanned.key ? { key: scanned.key } : {}) },
+      })
     else
       router.replace({
         pathname: '/send/[to]',
@@ -58,7 +68,12 @@ export default function Scan() {
   }
 
   const close = (
-    <RoundButton icon="close" label="Close" fill={colors.surface} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+    <RoundButton
+      icon="close"
+      label="Close"
+      fill={colors.surface}
+      onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+    />
   )
 
   return (
@@ -82,10 +97,48 @@ export default function Scan() {
 
       <View style={styles.frameWrap} pointerEvents="none">
         <View style={styles.frame}>
-          <View style={[styles.corner, { top: 0, left: 0, borderTopWidth: 6, borderLeftWidth: 6, borderTopLeftRadius: 28 }]} />
-          <View style={[styles.corner, { top: 0, right: 0, borderTopWidth: 6, borderRightWidth: 6, borderTopRightRadius: 28 }]} />
-          <View style={[styles.corner, { bottom: 0, left: 0, borderBottomWidth: 6, borderLeftWidth: 6, borderBottomLeftRadius: 28 }]} />
-          <View style={[styles.corner, { bottom: 0, right: 0, borderBottomWidth: 6, borderRightWidth: 6, borderBottomRightRadius: 28 }]} />
+          <View
+            style={[
+              styles.corner,
+              { top: 0, left: 0, borderTopWidth: 6, borderLeftWidth: 6, borderTopLeftRadius: 28 },
+            ]}
+          />
+          <View
+            style={[
+              styles.corner,
+              {
+                top: 0,
+                right: 0,
+                borderTopWidth: 6,
+                borderRightWidth: 6,
+                borderTopRightRadius: 28,
+              },
+            ]}
+          />
+          <View
+            style={[
+              styles.corner,
+              {
+                bottom: 0,
+                left: 0,
+                borderBottomWidth: 6,
+                borderLeftWidth: 6,
+                borderBottomLeftRadius: 28,
+              },
+            ]}
+          />
+          <View
+            style={[
+              styles.corner,
+              {
+                bottom: 0,
+                right: 0,
+                borderBottomWidth: 6,
+                borderRightWidth: 6,
+                borderBottomRightRadius: 28,
+              },
+            ]}
+          />
           {permission?.granted ? null : <Kovi pose="wave" size={150} />}
         </View>
       </View>
@@ -121,7 +174,11 @@ export default function Scan() {
               Paste a link
             </Txt>
           </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => router.replace('/receive')} style={styles.option}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.replace('/receive')}
+            style={styles.option}
+          >
             <Icon name="receive" size={20} />
             <Txt weight="semi" size={15}>
               Show my code

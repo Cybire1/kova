@@ -18,7 +18,10 @@ export const metadata: Metadata = { title: 'Table poster' }
  * On screen it is a preview of the printed page: everything is sized to the page's width, so on
  * a phone it is the same poster, smaller.
  */
-export default async function PosterPage(props: { params: Promise<{ slug: string }>; searchParams: Promise<{ tables?: string }> }) {
+export default async function PosterPage(props: {
+  params: Promise<{ slug: string }>
+  searchParams: Promise<{ tables?: string }>
+}) {
   const [{ slug }, { tables }] = await Promise.all([props.params, props.searchParams])
   let stall: PublicStall
   try {
@@ -32,13 +35,23 @@ export default async function PosterPage(props: { params: Promise<{ slug: string
   }
   const url = `${await publicUrl()}/s/${stall.slug}`
   // High error correction, so the coin in the middle never stops the code scanning.
-  const qr = await qrSvg(url, { type: 'svg', margin: 0, errorCorrectionLevel: 'H', color: { dark: '#0b1a1d', light: '#ffffff' } })
+  const qr = await qrSvg(url, {
+    type: 'svg',
+    margin: 0,
+    errorCorrectionLevel: 'H',
+    color: { dark: '#0b1a1d', light: '#ffffff' },
+  })
   const count = stall.table_count ?? 0
 
   if (tables === '1' && count > 0) {
     const codes = await Promise.all(
       Array.from({ length: count }, (_, i) =>
-        qrSvg(`${url}?table=${i + 1}`, { type: 'svg', margin: 0, errorCorrectionLevel: 'H', color: { dark: '#0b1a1d', light: '#ffffff' } }),
+        qrSvg(`${url}?table=${i + 1}`, {
+          type: 'svg',
+          margin: 0,
+          errorCorrectionLevel: 'H',
+          color: { dark: '#0b1a1d', light: '#ffffff' },
+        }),
       ),
     )
     return (
@@ -71,7 +84,9 @@ export default async function PosterPage(props: { params: Promise<{ slug: string
                   </span>
                 </div>
                 <p className="table-card-ask">Scan to order and pay</p>
-                <p className="table-card-small">We bring it to your table. Your phone tells you when it’s ready.</p>
+                <p className="table-card-small">
+                  We bring it to your table. Your phone tells you when it’s ready.
+                </p>
                 <div className="table-card-foot">
                   <Wordmark height={14} />
                 </div>
@@ -107,7 +122,9 @@ export default async function PosterPage(props: { params: Promise<{ slug: string
               <LogoMark size={46} />
             </span>
           </div>
-          <p className="poster-small">No app needed. Pay in dollars with Kova Pay or any Monad wallet. No card fees.</p>
+          <p className="poster-small">
+            No app needed. Pay in dollars with Kova Pay or any Monad wallet. No card fees.
+          </p>
           <div className="poster-foot">
             <Art name="kovi-wave" size={104} />
             <div>

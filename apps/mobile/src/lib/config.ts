@@ -6,7 +6,8 @@ import { getNetwork, getToken, type NetworkId } from '@kova/monad'
  * The Tempo build's EXPO_PUBLIC_KOVA_API_URL and _WEB_URL don't apply here: one untracked `.env`
  * serves both branches, and reading them sent this build to Tempo's API.
  */
-export const apiUrl = process.env.EXPO_PUBLIC_KOVA_MONAD_API_URL ?? 'https://api-monad-mainnet.up.railway.app'
+export const apiUrl =
+  process.env.EXPO_PUBLIC_KOVA_MONAD_API_URL ?? 'https://api-monad-mainnet.up.railway.app'
 export const webUrl = process.env.EXPO_PUBLIC_KOVA_MONAD_WEB_URL ?? 'https://mykova.app'
 
 /** Public Privy identifiers; the native client must allow this app's bundle ID and kova scheme. */
@@ -27,7 +28,8 @@ export const isTestnet = networkId === 'testnet'
  * the testnet page. (webUrl stays mykova.app on both: passkey sign-in is bound to it.)
  */
 export const shareWebUrl =
-  process.env.EXPO_PUBLIC_KOVA_MONAD_WEB_URL ?? (isTestnet ? 'https://web-monad.up.railway.app' : 'https://mykova.app')
+  process.env.EXPO_PUBLIC_KOVA_MONAD_WEB_URL ??
+  (isTestnet ? 'https://web-monad.up.railway.app' : 'https://mykova.app')
 
 /**
  * The domain Kova Pay's passkeys belong to: iOS shows it when you make or use one, and a wallet

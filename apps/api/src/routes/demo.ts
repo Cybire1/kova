@@ -10,7 +10,12 @@ import { checkDemoLogin, demoReady, demoSignIn } from '../services/demo.js'
  */
 export const demoRoutes = new Hono().post('/demo/sign_in', async (c) => {
   if (!demoReady()) throw new KovaError('not_found', 'There’s no demo account on this server.')
-  limit(`demo-ip:${clientIp(c)}`, 20, 3_600_000, 'That’s a lot of tries. Wait a while and try again.')
+  limit(
+    `demo-ip:${clientIp(c)}`,
+    20,
+    3_600_000,
+    'That’s a lot of tries. Wait a while and try again.',
+  )
   const parsed = z
     .object({ username: z.string().max(100), password: z.string().max(200) })
     .safeParse(await c.req.json().catch(() => ({})))

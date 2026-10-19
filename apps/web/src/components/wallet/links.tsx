@@ -169,7 +169,11 @@ function Row({
   const [stage, setStage] = useState<'idle' | 'sure' | 'taking'>('idle')
   const [problem, setProblem] = useState<string | null>(null)
   const amount = linkBase(link)
-  const url = link.phone_payment ? `${origin}/wallet/phone/${link.id}` : kept ? linkUrl(origin, link.id, kept.key) : null
+  const url = link.phone_payment
+    ? `${origin}/wallet/phone/${link.id}`
+    : kept
+      ? linkUrl(origin, link.id, kept.key)
+      : null
   const whatsapp = url
     ? `https://wa.me/?text=${encodeURIComponent(shareMessage(sender, amount, url, link.note))}`
     : ''
@@ -199,12 +203,23 @@ function Row({
         <span className="lk-row-amount">
           {formatUsd(amount)}
           <small>
-            {!['claimed', 'returned'].includes(link.status) ? 'Waiting' : link.status === 'claimed' ? 'Claimed' : 'Back'}
+            {!['claimed', 'returned'].includes(link.status)
+              ? 'Waiting'
+              : link.status === 'claimed'
+                ? 'Claimed'
+                : 'Back'}
           </small>
         </span>
       </div>
 
-      {link.phone_payment ? <div className="lk-row-actions"><Link className="textlink" href={`/wallet/phone/${link.id}`}>Open phone payment</Link>{url ? <CopyButton text={url} label="Copy invitation" /> : null}</div> : link.status === 'open' && kept && url && onTakeBack ? (
+      {link.phone_payment ? (
+        <div className="lk-row-actions">
+          <Link className="textlink" href={`/wallet/phone/${link.id}`}>
+            Open phone payment
+          </Link>
+          {url ? <CopyButton text={url} label="Copy invitation" /> : null}
+        </div>
+      ) : link.status === 'open' && kept && url && onTakeBack ? (
         <div className="lk-row-actions">
           {stage === 'sure' ? (
             <>
@@ -219,12 +234,7 @@ function Row({
           ) : (
             <>
               <CopyButton text={url} label="Copy link" />
-              <a
-                className="w-copy"
-                href={whatsapp}
-                target="_blank"
-                rel="noreferrer"
-              >
+              <a className="w-copy" href={whatsapp} target="_blank" rel="noreferrer">
                 <Icon name="whatsapp" size={15} /> WhatsApp
               </a>
               <button

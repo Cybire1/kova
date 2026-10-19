@@ -26,26 +26,46 @@ export function GoogleSignInButton() {
         onPress={() => {
           setBusy(true)
           setError(null)
-          void signInGoogle().then(() => {
-            void stall.recover().catch(() => {})
-            router.replace('/(tabs)')
-          }).catch((error: unknown) => {
-            setError(error instanceof Error ? error.message : 'Google sign-in failed. Try again.')
-          }).finally(() => setBusy(false))
+          void signInGoogle()
+            .then(() => {
+              void stall.recover().catch(() => {})
+              router.replace('/(tabs)')
+            })
+            .catch((error: unknown) => {
+              setError(error instanceof Error ? error.message : 'Google sign-in failed. Try again.')
+            })
+            .finally(() => setBusy(false))
         }}
       >
-        {working ? <ActivityIndicator color={colors.ink} /> : <AntDesign name="google" size={20} color="#4285F4" />}
-        <Txt weight="semi" size={16}>{working ? 'Opening your wallet…' : 'Continue with Google'}</Txt>
+        {working ? (
+          <ActivityIndicator color={colors.ink} />
+        ) : (
+          <AntDesign name="google" size={20} color="#4285F4" />
+        )}
+        <Txt weight="semi" size={16}>
+          {working ? 'Opening your wallet…' : 'Continue with Google'}
+        </Txt>
       </Pressable>
-      {error ? <Txt size={13} color={colors.danger} accessibilityLiveRegion="polite">{error}</Txt> : null}
+      {error ? (
+        <Txt size={13} color={colors.danger} accessibilityLiveRegion="polite">
+          {error}
+        </Txt>
+      ) : null}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 56, borderRadius: 30, backgroundColor: colors.surface,
-    borderWidth: 2, borderColor: colors.ink, flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center', gap: 12, paddingHorizontal: 20,
+    minHeight: 56,
+    borderRadius: 30,
+    backgroundColor: colors.surface,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
   },
 })

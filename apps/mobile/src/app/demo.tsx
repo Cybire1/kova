@@ -46,7 +46,10 @@ export default function DemoSignIn() {
 
   return (
     <Screen bg={colors.paper}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <Header />
         <Rise style={styles.copy}>
           <Kovi pose="key" size={110} />
@@ -54,8 +57,8 @@ export default function DemoSignIn() {
             Demo account
           </Txt>
           <Txt size={16} color={colors.muted} style={styles.body}>
-            A test wallet with test dollars, a shop and a Kova Card, so you can try everything. Your own wallet is a
-            passkey: create one from the start screen.
+            A test wallet with test dollars, a shop and a Kova Card, so you can try everything. Your
+            own wallet is a passkey: create one from the start screen.
           </Txt>
         </Rise>
         <View style={styles.form}>
@@ -96,7 +99,12 @@ export default function DemoSignIn() {
           ) : null}
         </View>
         <View style={styles.footer}>
-          <PillButton label="Sign in" disabled={!ready} loading={busy} onPress={() => void signIn()} />
+          <PillButton
+            label="Sign in"
+            disabled={!ready}
+            loading={busy}
+            onPress={() => void signIn()}
+          />
         </View>
       </KeyboardAvoidingView>
     </Screen>

@@ -1,7 +1,13 @@
 import * as Haptics from 'expo-haptics'
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
-import { baseToNumber, currencyInfo, type DisplayCurrency, displayCurrencies, formatUsd } from '@/lib/money'
+import {
+  baseToNumber,
+  currencyInfo,
+  type DisplayCurrency,
+  displayCurrencies,
+  formatUsd,
+} from '@/lib/money'
 import { rateLabel, ratesLive } from '@/lib/rates'
 import { colors, fonts } from '@/lib/theme'
 import { Coin } from '@/ui/art'
@@ -19,13 +25,25 @@ import { Sheet } from '@/ui/travel/Sheet'
  */
 
 /** A small, everyday amount in each currency, so the example reads like a real request. */
-const EXAMPLE: Record<DisplayCurrency, number> = { USD: 12, EUR: 11, GBP: 9.5, NGN: 12_500, KES: 1_500, MXN: 220 }
+const EXAMPLE: Record<DisplayCurrency, number> = {
+  USD: 12,
+  EUR: 11,
+  GBP: 9.5,
+  NGN: 12_500,
+  KES: 1_500,
+  MXN: 220,
+}
 
 const PAINTED_COINS = new Set(['$', '€', '£', '₦'])
 
 function initials(name: string) {
   const words = name.trim().split(/\s+/).filter(Boolean)
-  return words.length === 0 ? '' : words.slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('')
+  return words.length === 0
+    ? ''
+    : words
+        .slice(0, 2)
+        .map((w) => w[0]?.toUpperCase() ?? '')
+        .join('')
 }
 
 function local(amount: number, currency: DisplayCurrency) {
@@ -109,7 +127,11 @@ export function ProfileForm({
             <View style={{ flexShrink: 1 }}>
               <View style={styles.amountLine}>
                 <Txt weight="bold" size={24} style={styles.amount}>
-                  {restored ? (balance === null ? '…' : formatUsd(balance)) : local(example, currency)}
+                  {restored
+                    ? balance === null
+                      ? '…'
+                      : formatUsd(balance)
+                    : local(example, currency)}
                 </Txt>
                 {restored ? (
                   balance !== null && currency !== 'USD' ? (
@@ -136,7 +158,11 @@ export function ProfileForm({
                 <Icon name="chevronDown" size={14} />
               </Pressable>
             </View>
-            <View style={styles.payChip} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <View
+              style={styles.payChip}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            >
               <Txt weight="bold" size={14}>
                 {restored ? 'Open' : 'Pay'}
               </Txt>
@@ -194,16 +220,32 @@ export function CurrencySheet({
               accessibilityState={{ selected: on }}
               accessibilityLabel={c.name}
               onPress={() => onPick(code)}
-              style={({ pressed }) => [styles.tile, on && styles.tileOn, pressed && { transform: [{ scale: 0.97 }] }]}
+              style={({ pressed }) => [
+                styles.tile,
+                on && styles.tileOn,
+                pressed && { transform: [{ scale: 0.97 }] },
+              ]}
             >
-              <Txt weight="bold" size={26} color={on ? colors.white : colors.ink} style={{ letterSpacing: -0.5 }}>
+              <Txt
+                weight="bold"
+                size={26}
+                color={on ? colors.white : colors.ink}
+                style={{ letterSpacing: -0.5 }}
+              >
                 {c.symbol}
               </Txt>
-              <Txt weight="semi" size={15} color={on ? colors.white : colors.ink} style={{ marginTop: 6 }}>
+              <Txt
+                weight="semi"
+                size={15}
+                color={on ? colors.white : colors.ink}
+                style={{ marginTop: 6 }}
+              >
                 {c.name}
               </Txt>
               <Txt size={12} color={on ? colors.onInk : colors.muted} style={{ marginTop: 2 }}>
-                {code === 'USD' ? 'No conversion' : `$1 = ${c.symbol}${c.perUsd.toLocaleString('en-US', { maximumFractionDigits: c.decimals === 0 ? 0 : 3 })}`}
+                {code === 'USD'
+                  ? 'No conversion'
+                  : `$1 = ${c.symbol}${c.perUsd.toLocaleString('en-US', { maximumFractionDigits: c.decimals === 0 ? 0 : 3 })}`}
               </Txt>
             </Pressable>
           )
@@ -242,7 +284,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  markEmpty: { backgroundColor: 'transparent', borderWidth: 2, borderStyle: 'dashed', borderColor: colors.onTint },
+  markEmpty: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.onTint,
+  },
   name: {
     marginTop: 10,
     paddingVertical: 2,
@@ -251,8 +298,21 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     color: colors.ink,
   },
-  writeLine: { height: 0, borderBottomWidth: 2, borderStyle: 'dashed', borderColor: colors.ink, opacity: 0.35, marginTop: 2 },
-  cardBottom: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginTop: 14 },
+  writeLine: {
+    height: 0,
+    borderBottomWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.ink,
+    opacity: 0.35,
+    marginTop: 2,
+  },
+  cardBottom: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 14,
+  },
   amountLine: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
   amount: { letterSpacing: -0.6 },
   payChip: {
@@ -265,7 +325,14 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: colors.coral,
   },
-  payCap: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  payCap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   currencyChip: {
     flexDirection: 'row',
     alignSelf: 'flex-start',
@@ -292,5 +359,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   tileOn: { backgroundColor: colors.ink },
-  provenance: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, marginBottom: 4 },
+  provenance: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 14,
+    marginBottom: 4,
+  },
 })

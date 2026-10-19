@@ -221,7 +221,7 @@ const direction = { paid: 'to', sent: 'to', received: 'from', added: 'from' } as
 
 /** One payment, as a receipt: who, what for, when, how long it took, what it cost, and proof on Monadscan. */
 export function Receipt({ id }: { id: string }) {
-  const { activity, renameContact, moveIn, movingIn } = useWallet()
+  const { activity, renameContact } = useWallet()
   const entry = activity.find((e) => e.id === id || e.txHash.toLowerCase() === id.toLowerCase())
   const [naming, setNaming] = useState(false)
   const [name, setName] = useState('')
@@ -390,16 +390,16 @@ export function Receipt({ id }: { id: string }) {
                   entry.used ? (
                     'Change, still private'
                   ) : (
-                    'Private, ready to spend'
+                    'Private, in your balance'
                   )
                 ) : entry.movedIn ? (
                   <a href={entry.movedIn.explorer} target="_blank" rel="noreferrer">
-                    In your balance
+                    Made public
                   </a>
                 ) : entry.used ? (
                   'Spent privately'
                 ) : (
-                  'In your balance'
+                  'Made public'
                 )}
               </dd>
             </div>
@@ -411,7 +411,7 @@ export function Receipt({ id }: { id: string }) {
               </dt>
               <dd>
                 Private dollars
-                <small>A one-time address paid it: Monad can’t tie it to you</small>
+                <small>An address only you can open paid it: Monad can’t tie it to you</small>
               </dd>
             </div>
           ) : null}
@@ -457,20 +457,11 @@ export function Receipt({ id }: { id: string }) {
           </a>
         ) : null}
       </article>
-      {entry.oneTime && entry.kind === 'received' && entry.waiting ? (
-        <>
-          <MoveInHere busy={movingIn !== null} onMove={moveIn} />
-          <p className="w-fine w-center w-receipt-public">
-            Moving in is public on Monad: it shows these dollars reaching your wallet. Paying a shop
-            or a friend straight from private dollars keeps them private.
-          </p>
-        </>
-      ) : null}
       {person && entry.address ? (
         <Link
           href={`/wallet/send/${entry.address}${isUnnamed(entry.name) ? '' : `?name=${encodeURIComponent(entry.name)}`}`}
           className="pill pill-block w-receipt-again"
-          data-tone={entry.oneTime && entry.waiting ? 'light' : 'coral'}
+          data-tone="coral"
         >
           <span className="pill-label">
             {entry.kind === 'received' ? `Send some back to ${first}` : `Send ${first} more`}
@@ -481,36 +472,6 @@ export function Receipt({ id }: { id: string }) {
         </Link>
       ) : null}
     </div>
-  )
-}
-
-/** On a private payment's receipt: bring it, and anything else waiting, into the wallet. */
-function MoveInHere({ busy, onMove }: { busy: boolean; onMove: () => Promise<unknown> }) {
-  const [problem, setProblem] = useState<string | null>(null)
-  return (
-    <>
-      <button
-        type="button"
-        className="pill pill-block w-receipt-again"
-        data-tone="coral"
-        disabled={busy}
-        onClick={async () => {
-          setProblem(null)
-          try {
-            await onMove()
-          } catch (error) {
-            const message = error instanceof Error ? error.message : 'Kova couldn’t move it in.'
-            if (!/cancel|not allowed|abort/i.test(message)) setProblem(message)
-          }
-        }}
-      >
-        <span className="pill-label">{busy ? 'Moving in…' : 'Move into my balance'}</span>
-        <span className="pill-cap">
-          {busy ? <span className="spinner" aria-hidden="true" /> : <Icon name="down" size={18} />}
-        </span>
-      </button>
-      {problem ? <p className="form-error">{problem}</p> : null}
-    </>
   )
 }
 

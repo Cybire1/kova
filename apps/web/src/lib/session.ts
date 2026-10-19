@@ -16,7 +16,9 @@ const MAX_AGE = 60 * 60 * 24 * 30
 function secret() {
   const value = process.env.SESSION_SECRET
   if (!value && process.env.NODE_ENV === 'production') throw new Error('SESSION_SECRET is not set')
-  return createHash('sha256').update(value ?? 'kova-dev-session-secret').digest()
+  return createHash('sha256')
+    .update(value ?? 'kova-dev-session-secret')
+    .digest()
 }
 
 function seal(text: string) {

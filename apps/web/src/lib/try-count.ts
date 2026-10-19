@@ -9,7 +9,11 @@ import { cleanRef, REF_KEY, TRY_KEY } from './growth'
 export function countNewWallet(address: string) {
   try {
     const ref = cleanRef(JSON.parse(localStorage.getItem(REF_KEY) ?? 'null'))
-    const memory = JSON.parse(localStorage.getItem(TRY_KEY) ?? '{}') as { first?: number; had?: boolean; wallet?: string }
+    const memory = JSON.parse(localStorage.getItem(TRY_KEY) ?? '{}') as {
+      first?: number
+      had?: boolean
+      wallet?: string
+    }
     if (!ref || !memory.first || memory.had || memory.wallet) return
     localStorage.setItem(TRY_KEY, JSON.stringify({ ...memory, wallet: address }))
     void countTryStep(ref, 'wallet')

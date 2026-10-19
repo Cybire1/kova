@@ -1,4 +1,5 @@
 import { failure, kovaPublic } from '@/lib/api'
+
 async function proxy(request: Request, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params
   const target = path.join('/')

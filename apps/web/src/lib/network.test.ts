@@ -41,7 +41,11 @@ describe('public network configuration', () => {
   })
 
   it('falls back to the selected chain when Docker build arguments are empty', async () => {
-    const config = await settings({ KOVA_NETWORK: 'testnet', KOVA_API_URL: '', KOVA_PUBLIC_API_URL: '' })
+    const config = await settings({
+      KOVA_NETWORK: 'testnet',
+      KOVA_API_URL: '',
+      KOVA_PUBLIC_API_URL: '',
+    })
     expect(config.apiUrl).toBe('https://api-monad.up.railway.app')
     expect(config.publicApiUrl).toBe(config.apiUrl)
   })

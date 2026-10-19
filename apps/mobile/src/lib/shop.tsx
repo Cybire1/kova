@@ -1,9 +1,9 @@
 import { createContext, type ReactNode, useContext, useEffect, useState } from 'react'
 import { AppState } from 'react-native'
 import { getSummary } from './api'
-import { useTerminal } from './terminal'
 import type { DisplayCurrency } from './money'
 import { load, save } from './storage'
+import { useTerminal } from './terminal'
 
 interface Shop {
   name: string
@@ -13,7 +13,12 @@ interface Shop {
   setCurrency: (c: DisplayCurrency) => void
 }
 
-const ShopContext = createContext<Shop>({ name: 'Your shop', terminal: 'Kova Terminal', currency: 'USD', setCurrency: () => {} })
+const ShopContext = createContext<Shop>({
+  name: 'Your shop',
+  terminal: 'Kova Terminal',
+  currency: 'USD',
+  setCurrency: () => {},
+})
 export const useShop = () => useContext(ShopContext)
 
 /** The merchant side shares one idea of the shop: its name and the currency it prices in. */
@@ -45,6 +50,10 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ShopContext.Provider value={{ name, terminal: paired?.name ?? 'Kova Terminal', currency, setCurrency }}>{children}</ShopContext.Provider>
+    <ShopContext.Provider
+      value={{ name, terminal: paired?.name ?? 'Kova Terminal', currency, setCurrency }}
+    >
+      {children}
+    </ShopContext.Provider>
   )
 }

@@ -1,5 +1,10 @@
 import { schema } from '@kova/db'
-import { ERC5564_ANNOUNCER, erc5564AnnouncerAbi, STEALTH_SCHEME_ID, stealthMetadata } from '@kova/monad'
+import {
+  ERC5564_ANNOUNCER,
+  erc5564AnnouncerAbi,
+  STEALTH_SCHEME_ID,
+  stealthMetadata,
+} from '@kova/monad'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { type Address, encodeFunctionData, type Hash, type Hex } from 'viem'
 import { publicClient } from '../chain.js'
@@ -41,7 +46,12 @@ async function nextPending(): Promise<Pending[]> {
   const sends = await db
     .select()
     .from(schema.stealthAnnouncements)
-    .where(and(eq(schema.stealthAnnouncements.network, config.KOVA_NETWORK), isNull(schema.stealthAnnouncements.announceTx)))
+    .where(
+      and(
+        eq(schema.stealthAnnouncements.network, config.KOVA_NETWORK),
+        isNull(schema.stealthAnnouncements.announceTx),
+      ),
+    )
     .orderBy(asc(schema.stealthAnnouncements.id))
     .limit(10)
   const sales = await db
@@ -66,7 +76,11 @@ async function nextPending(): Promise<Pending[]> {
       token: a.tokenAddress,
       amount: a.amount,
       sealed: a.sealed,
-      save: (tx: Hash) => db.update(schema.stealthAnnouncements).set({ announceTx: tx }).where(eq(schema.stealthAnnouncements.id, a.id)),
+      save: (tx: Hash) =>
+        db
+          .update(schema.stealthAnnouncements)
+          .set({ announceTx: tx })
+          .where(eq(schema.stealthAnnouncements.id, a.id)),
     })),
     ...sales.map(({ sale, intent }) => ({
       key: `sale:${sale.id}`,
@@ -76,7 +90,11 @@ async function nextPending(): Promise<Pending[]> {
       token: intent.tokenAddress,
       amount: intent.amount,
       sealed: null,
-      save: (tx: Hash) => db.update(schema.stealthPayments).set({ announceTx: tx }).where(eq(schema.stealthPayments.id, sale.id)),
+      save: (tx: Hash) =>
+        db
+          .update(schema.stealthPayments)
+          .set({ announceTx: tx })
+          .where(eq(schema.stealthPayments.id, sale.id)),
     })),
   ].filter((p) => Date.now() - (failedAt.get(p.key) ?? 0) > RETRY_MS)
 }
@@ -89,11 +107,17 @@ async function announce(p: Pending): Promise<Hash> {
       BigInt(STEALTH_SCHEME_ID),
       p.stealthAddress as Address,
       p.ephemeralPublicKey as Hex,
-      stealthMetadata({ viewTag: p.viewTag as Hex, token: p.token as Address, amount: p.amount, sealed: p.sealed as Hex | null }),
+      stealthMetadata({
+        viewTag: p.viewTag as Hex,
+        token: p.token as Address,
+        amount: p.amount,
+        sealed: p.sealed as Hex | null,
+      }),
     ],
   })
   const receipt = await sendFromRelayer(ERC5564_ANNOUNCER, data, { maxGas: MAX_GAS })
-  if (receipt.status !== 'success') throw new Error(`announcement reverted (${receipt.transactionHash})`)
+  if (receipt.status !== 'success')
+    throw new Error(`announcement reverted (${receipt.transactionHash})`)
   return receipt.transactionHash
 }
 
@@ -122,12 +146,20 @@ export function startAnnouncer(): void {
           failedAt.delete(p.key)
         } catch (error) {
           failedAt.set(p.key, Date.now())
-          console.error('[announcer] not posted', p.key, error instanceof Error ? error.message.split('\n')[0] : error)
+          console.error(
+            '[announcer] not posted',
+            p.key,
+            error instanceof Error ? error.message.split('\n')[0] : error,
+          )
         }
       }
     } catch (error) {
       // A read that failed (the code check, the queue): tried again on the next tick.
-      if (ready === undefined) console.error('[announcer] check failed', error instanceof Error ? error.message.split('\n')[0] : error)
+      if (ready === undefined)
+        console.error(
+          '[announcer] check failed',
+          error instanceof Error ? error.message.split('\n')[0] : error,
+        )
     } finally {
       running = false
     }

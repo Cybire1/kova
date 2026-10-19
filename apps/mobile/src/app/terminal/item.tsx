@@ -2,9 +2,28 @@ import * as Haptics from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { type ReactNode, useEffect, useState } from 'react'
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native'
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TextInput,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { type CatalogItem, createItem, findSimilarItem, getCatalog, removeItem, updateItem, updateStall, uploadImage } from '@/lib/api'
+import {
+  type CatalogItem,
+  createItem,
+  findSimilarItem,
+  getCatalog,
+  removeItem,
+  updateItem,
+  updateStall,
+  uploadImage,
+} from '@/lib/api'
 import { currencyInfo, type DisplayCurrency, formatLocal, localToUsd } from '@/lib/money'
 import { type PhotoSource, takePhoto } from '@/lib/photos'
 import { useShop } from '@/lib/shop'
@@ -15,7 +34,11 @@ import { Icon, type IconName } from '@/ui/Icon'
 import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
 import { dollars, ItemFace } from '@/ui/StallParts'
 
-type Photo = { kind: 'none' } | { kind: 'saved'; url: string; id: string } | { kind: 'remote'; url: string } | { kind: 'local'; uri: string }
+type Photo =
+  | { kind: 'none' }
+  | { kind: 'saved'; url: string; id: string }
+  | { kind: 'remote'; url: string }
+  | { kind: 'local'; uri: string }
 
 const MAX = 10_000
 
@@ -25,7 +48,12 @@ const MAX = 10_000
  * Opened from a scan at the till, it arrives filled in with what the barcode says.
  */
 export default function ItemEditor() {
-  const params = useLocalSearchParams<{ id?: string; barcode?: string; name?: string; photo?: string }>()
+  const params = useLocalSearchParams<{
+    id?: string
+    barcode?: string
+    name?: string
+    photo?: string
+  }>()
   const insets = useSafeAreaInsets()
   const shop = useShop()
   const { stall, refresh } = useStall()
@@ -33,7 +61,9 @@ export default function ItemEditor() {
 
   const [item, setItem] = useState<CatalogItem | null>(null)
   const [loading, setLoading] = useState(editing)
-  const [photo, setPhoto] = useState<Photo>(params.photo ? { kind: 'remote', url: params.photo } : { kind: 'none' })
+  const [photo, setPhoto] = useState<Photo>(
+    params.photo ? { kind: 'remote', url: params.photo } : { kind: 'none' },
+  )
   const [name, setName] = useState(params.name ?? '')
   const [description, setDescription] = useState('')
   const [currency, setCurrency] = useState<DisplayCurrency>(shop.currency)
@@ -53,7 +83,9 @@ export default function ItemEditor() {
   useEffect(() => {
     if (!params.id) return
     void (async () => {
-      const found = stall?.items.find((i) => i.id === params.id) ?? (await getCatalog().catch(() => [])).find((i) => i.id === params.id)
+      const found =
+        stall?.items.find((i) => i.id === params.id) ??
+        (await getCatalog().catch(() => [])).find((i) => i.id === params.id)
       if (found) {
         setItem(found)
         setName(found.name)
@@ -63,7 +95,8 @@ export default function ItemEditor() {
         setBarcode(found.barcode ?? '')
         setSoldOut(found.sold_out)
         setOnStall(Boolean(stall?.item_ids?.includes(found.id)))
-        if (found.image_url && found.image_id) setPhoto({ kind: 'saved', url: found.image_url, id: found.image_id })
+        if (found.image_url && found.image_id)
+          setPhoto({ kind: 'saved', url: found.image_url, id: found.image_id })
       } else setProblem('This item is no longer in your catalogue.')
       setLoading(false)
     })()
@@ -78,7 +111,8 @@ export default function ItemEditor() {
 
   const info = currencyInfo[currency]
   const typed = Number(price.replace(/,/g, ''))
-  const usd = typed > 0 ? (currency === 'USD' ? typed.toFixed(2) : localToUsd(typed, currency)) : null
+  const usd =
+    typed > 0 ? (currency === 'USD' ? typed.toFixed(2) : localToUsd(typed, currency)) : null
   const valid = name.trim().length > 0 && usd !== null && Number(usd) > 0 && Number(usd) <= MAX
 
   const pick = async (from: PhotoSource) => {
@@ -112,7 +146,10 @@ export default function ItemEditor() {
       let imageId: string | null | undefined
       if (photo.kind === 'local') imageId = (await uploadImage(photo.uri)).id
       // A product photo from the barcode lookup is a nice start, not a requirement.
-      else if (photo.kind === 'remote') imageId = await uploadImage(photo.url).then((r) => r.id).catch(() => undefined)
+      else if (photo.kind === 'remote')
+        imageId = await uploadImage(photo.url)
+          .then((r) => r.id)
+          .catch(() => undefined)
       else if (photo.kind === 'none') imageId = null
 
       const fields = {
@@ -128,7 +165,9 @@ export default function ItemEditor() {
         const listed = Boolean(stall?.item_ids?.includes(item.id))
         if (stall && listed !== onStall) {
           const ids = stall.item_ids ?? []
-          await updateStall(stall.id, { item_ids: onStall ? [...ids, item.id] : ids.filter((id) => id !== item.id) })
+          await updateStall(stall.id, {
+            item_ids: onStall ? [...ids, item.id] : ids.filter((id) => id !== item.id),
+          })
         }
       } else {
         await createItem({ ...fields, stall_ids: stall && onStall ? [stall.id] : [] })
@@ -161,7 +200,10 @@ export default function ItemEditor() {
 
   return (
     <Screen bg={colors.paper} edges={['bottom']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={{ paddingTop: Platform.OS === 'ios' ? 8 : insets.top }}>
           <Header title={editing ? 'Edit item' : 'New item'} backIcon="close" />
         </View>
@@ -173,7 +215,13 @@ export default function ItemEditor() {
             <View style={styles.photoRow}>
               <View style={styles.photoWell}>
                 {shown ? (
-                  <Image source={{ uri: shown }} style={styles.photo} contentFit="cover" transition={150} accessibilityLabel={`Photo of ${name || 'the item'}`} />
+                  <Image
+                    source={{ uri: shown }}
+                    style={styles.photo}
+                    contentFit="cover"
+                    transition={150}
+                    accessibilityLabel={`Photo of ${name || 'the item'}`}
+                  />
                 ) : (
                   <ItemFace item={{ name: name || '?', image_url: null }} size={112} radius={26} />
                 )}
@@ -184,9 +232,24 @@ export default function ItemEditor() {
                 ) : null}
               </View>
               <View style={{ flex: 1, gap: 8 }}>
-                <PhotoButton icon="camera" label="Take a photo" onPress={() => void pick('camera')} />
-                <PhotoButton icon="image" label="Choose a photo" onPress={() => void pick('library')} />
-                {shown ? <PhotoButton icon="trash" label="No photo" onPress={() => setPhoto({ kind: 'none' })} quiet /> : null}
+                <PhotoButton
+                  icon="camera"
+                  label="Take a photo"
+                  onPress={() => void pick('camera')}
+                />
+                <PhotoButton
+                  icon="image"
+                  label="Choose a photo"
+                  onPress={() => void pick('library')}
+                />
+                {shown ? (
+                  <PhotoButton
+                    icon="trash"
+                    label="No photo"
+                    onPress={() => setPhoto({ kind: 'none' })}
+                    quiet
+                  />
+                ) : null}
               </View>
             </View>
             {photo.kind === 'remote' ? (
@@ -196,12 +259,23 @@ export default function ItemEditor() {
             ) : null}
 
             <Label>Name</Label>
-            <TextInput value={name} onChangeText={setName} placeholder="Jollof and chicken" placeholderTextColor="#8C9799" maxLength={80} style={styles.input} />
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder="Jollof and chicken"
+              placeholderTextColor="#8C9799"
+              maxLength={80}
+              style={styles.input}
+            />
 
             <Label>Price</Label>
             <View style={styles.priceRow}>
               {shop.currency !== 'USD' ? (
-                <View style={styles.curToggle} accessibilityRole="radiogroup" accessibilityLabel="Price currency">
+                <View
+                  style={styles.curToggle}
+                  accessibilityRole="radiogroup"
+                  accessibilityLabel="Price currency"
+                >
                   {(['USD', shop.currency] as DisplayCurrency[]).map((c) => {
                     const on = c === currency
                     return (
@@ -213,7 +287,14 @@ export default function ItemEditor() {
                           if (on) return
                           void Haptics.selectionAsync()
                           // Keep the same value, re-expressed in the other currency.
-                          if (usd) setPrice(c === 'USD' ? usd : String(Math.round(Number(usd) * currencyInfo[c].perUsd * 100) / 100))
+                          if (usd)
+                            setPrice(
+                              c === 'USD'
+                                ? usd
+                                : String(
+                                    Math.round(Number(usd) * currencyInfo[c].perUsd * 100) / 100,
+                                  ),
+                            )
                           setCurrency(c)
                         }}
                         style={[styles.curItem, on && { backgroundColor: colors.ink }]}
@@ -232,7 +313,9 @@ export default function ItemEditor() {
                 </Txt>
                 <TextInput
                   value={price}
-                  onChangeText={(v) => setPrice(v.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'))}
+                  onChangeText={(v) =>
+                    setPrice(v.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'))
+                  }
                   placeholder={currency === 'NGN' ? '6,000' : '4.50'}
                   placeholderTextColor="#8C9799"
                   keyboardType="decimal-pad"
@@ -241,7 +324,11 @@ export default function ItemEditor() {
                 />
               </View>
             </View>
-            <Txt size={13} color={Number(usd) > MAX ? colors.danger : colors.muted} style={{ marginTop: 6, marginLeft: 4, lineHeight: 19 }}>
+            <Txt
+              size={13}
+              color={Number(usd) > MAX ? colors.danger : colors.muted}
+              style={{ marginTop: 6, marginLeft: 4, lineHeight: 19 }}
+            >
               {!usd
                 ? 'Buyers pay in dollars. Type it in whichever currency you think in.'
                 : Number(usd) > MAX
@@ -269,15 +356,29 @@ export default function ItemEditor() {
                 <Txt weight="semi" size={16} style={{ flex: 1, letterSpacing: 1 }}>
                   {barcode}
                 </Txt>
-                <Pressable accessibilityRole="button" accessibilityLabel="Scan a different barcode" hitSlop={8} onPress={() => setScanning(true)}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Scan a different barcode"
+                  hitSlop={8}
+                  onPress={() => setScanning(true)}
+                >
                   <Icon name="scan" size={20} />
                 </Pressable>
-                <Pressable accessibilityRole="button" accessibilityLabel="Remove the barcode" hitSlop={8} onPress={() => setBarcode('')}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove the barcode"
+                  hitSlop={8}
+                  onPress={() => setBarcode('')}
+                >
                   <Icon name="close" size={20} />
                 </Pressable>
               </View>
             ) : (
-              <Pressable accessibilityRole="button" onPress={() => setScanning(true)} style={styles.scanButton}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setScanning(true)}
+                style={styles.scanButton}
+              >
                 <Icon name="barcode" size={20} />
                 <View style={{ flex: 1 }}>
                   <Txt weight="semi" size={15}>
@@ -293,9 +394,20 @@ export default function ItemEditor() {
 
             <View style={styles.switches}>
               {stall ? (
-                <SwitchRow label="On your stall" hint={`People can order it from ${stall.name}`} value={onStall} onChange={setOnStall} />
+                <SwitchRow
+                  label="On your stall"
+                  hint={`People can order it from ${stall.name}`}
+                  value={onStall}
+                  onChange={setOnStall}
+                />
               ) : null}
-              <SwitchRow label="Sold out" hint="Still shown, but nobody can order it" value={soldOut} onChange={setSoldOut} last />
+              <SwitchRow
+                label="Sold out"
+                hint="Still shown, but nobody can order it"
+                value={soldOut}
+                onChange={setSoldOut}
+                last
+              />
             </View>
 
             {item ? (
@@ -309,12 +421,23 @@ export default function ItemEditor() {
                       It comes off your stall and the till. Past orders keep it.
                     </Txt>
                     <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-                      <Pressable accessibilityRole="button" onPress={() => setConfirmDelete(false)} style={[styles.small, { backgroundColor: colors.surface }]}>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setConfirmDelete(false)}
+                        style={[styles.small, { backgroundColor: colors.surface }]}
+                      >
                         <Txt weight="semi" size={15}>
                           Keep it
                         </Txt>
                       </Pressable>
-                      <Pressable accessibilityRole="button" onPress={remove} style={[styles.small, { backgroundColor: colors.danger, borderColor: colors.danger }]}>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={remove}
+                        style={[
+                          styles.small,
+                          { backgroundColor: colors.danger, borderColor: colors.danger },
+                        ]}
+                      >
                         {busy === 'delete' ? (
                           <ActivityIndicator color={colors.white} />
                         ) : (
@@ -326,7 +449,11 @@ export default function ItemEditor() {
                     </View>
                   </View>
                 ) : (
-                  <Pressable accessibilityRole="button" hitSlop={10} onPress={() => setConfirmDelete(true)}>
+                  <Pressable
+                    accessibilityRole="button"
+                    hitSlop={10}
+                    onPress={() => setConfirmDelete(true)}
+                  >
                     <Txt weight="semi" size={15} color={colors.danger}>
                       Remove from catalogue
                     </Txt>
@@ -355,14 +482,17 @@ export default function ItemEditor() {
                   accessibilityRole="button"
                   onPress={async () => {
                     // Same product: keep one item, and give it this barcode if it didn't have one.
-                    if (barcode && !twin.barcode) await updateItem(twin.id, { barcode }).catch(() => {})
+                    if (barcode && !twin.barcode)
+                      await updateItem(twin.id, { barcode }).catch(() => {})
                     await refresh().catch(() => {})
                     router.back()
                   }}
                   style={[styles.twinButton, { backgroundColor: colors.ink }]}
                 >
                   <Txt weight="semi" size={14} color={colors.white}>
-                    {barcode && !twin.barcode ? 'Same: add the barcode to it' : 'Same: keep that one'}
+                    {barcode && !twin.barcode
+                      ? 'Same: add the barcode to it'
+                      : 'Same: keep that one'}
                   </Txt>
                 </Pressable>
                 <Pressable
@@ -381,11 +511,22 @@ export default function ItemEditor() {
             </View>
           ) : null}
           {problem ? (
-            <Txt weight="medium" size={14} color={colors.danger} style={{ marginBottom: 10, textAlign: 'center' }}>
+            <Txt
+              weight="medium"
+              size={14}
+              color={colors.danger}
+              style={{ marginBottom: 10, textAlign: 'center' }}
+            >
               {problem}
             </Txt>
           ) : null}
-          <PillButton label={editing ? 'Save changes' : 'Add item'} icon="check" disabled={!valid || busy === 'photo'} loading={busy === 'save'} onPress={save} />
+          <PillButton
+            label={editing ? 'Save changes' : 'Add item'}
+            icon="check"
+            disabled={!valid || busy === 'photo'}
+            loading={busy === 'save'}
+            onPress={save}
+          />
         </View>
       </KeyboardAvoidingView>
       <BarcodeSheet
@@ -404,17 +545,35 @@ function Label({ children, optional }: { children: ReactNode; optional?: boolean
   return (
     <Txt weight="semi" size={14} color={colors.muted} style={styles.label}>
       {children}
-      {optional ? <Txt size={13} color="#8C9799">{'  '}optional</Txt> : null}
+      {optional ? (
+        <Txt size={13} color="#8C9799">
+          {'  '}optional
+        </Txt>
+      ) : null}
     </Txt>
   )
 }
 
-function PhotoButton({ icon, label, onPress, quiet }: { icon: IconName; label: string; onPress: () => void; quiet?: boolean }) {
+function PhotoButton({
+  icon,
+  label,
+  onPress,
+  quiet,
+}: {
+  icon: IconName
+  label: string
+  onPress: () => void
+  quiet?: boolean
+}) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.photoButton, quiet && { borderColor: 'transparent', backgroundColor: 'transparent' }, pressed && { opacity: 0.7 }]}
+      style={({ pressed }) => [
+        styles.photoButton,
+        quiet && { borderColor: 'transparent', backgroundColor: 'transparent' },
+        pressed && { opacity: 0.7 },
+      ]}
     >
       <Icon name={icon} size={18} />
       <Txt weight="semi" size={15}>
@@ -424,7 +583,19 @@ function PhotoButton({ icon, label, onPress, quiet }: { icon: IconName; label: s
   )
 }
 
-function SwitchRow({ label, hint, value, onChange, last }: { label: string; hint: string; value: boolean; onChange: (v: boolean) => void; last?: boolean }) {
+function SwitchRow({
+  label,
+  hint,
+  value,
+  onChange,
+  last,
+}: {
+  label: string
+  hint: string
+  value: boolean
+  onChange: (v: boolean) => void
+  last?: boolean
+}) {
   return (
     <View style={[styles.switchRow, !last && styles.rule]}>
       <View style={{ flex: 1 }}>
@@ -451,9 +622,24 @@ function SwitchRow({ label, hint, value, onChange, last }: { label: string; hint
 const styles = StyleSheet.create({
   body: { paddingHorizontal: 20, paddingBottom: 24, paddingTop: 8 },
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  photoWell: { width: 132, height: 132, borderRadius: 32, borderWidth: 2, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+  photoWell: {
+    width: 132,
+    height: 132,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
   photo: { width: '100%', height: '100%' },
-  photoBusy: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(241,239,234,0.7)', alignItems: 'center', justifyContent: 'center' },
+  photoBusy: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(241,239,234,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   photoButton: {
     height: 42,
     paddingHorizontal: 14,
@@ -478,7 +664,15 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  curToggle: { flexDirection: 'row', padding: 3, gap: 2, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface },
+  curToggle: {
+    flexDirection: 'row',
+    padding: 3,
+    gap: 2,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
   curItem: { height: 44, paddingHorizontal: 12, borderRadius: 19, justifyContent: 'center' },
   priceInput: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
   priceText: { flex: 1, height: '100%', fontFamily: fonts.bold, fontSize: 22, color: colors.ink },
@@ -504,13 +698,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  switches: { marginTop: 22, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, paddingHorizontal: 14 },
+  switches: {
+    marginTop: 22,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+  },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   rule: { borderBottomWidth: 1, borderColor: colors.sunken },
-  confirm: { alignSelf: 'stretch', borderRadius: 22, borderWidth: 2, borderColor: colors.ink, padding: 16, backgroundColor: colors.surface },
-  small: { flex: 1, height: 44, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  confirm: {
+    alignSelf: 'stretch',
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    padding: 16,
+    backgroundColor: colors.surface,
+  },
+  small: {
+    flex: 1,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   footer: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 12 },
-  twin: { marginBottom: 12, padding: 14, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.tealSoft },
+  twin: {
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.tealSoft,
+  },
   twinButton: {
     flex: 1,
     minHeight: 44,

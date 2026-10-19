@@ -24,21 +24,30 @@ describe('USSD pocket secrets', () => {
 describe('pocket messages and inputs', () => {
   it('signs exactly what changes, and nothing else', () => {
     const wallet = '0x00000000000000000000000000000000000000AA'
-    expect(pocketMessage({ action: 'setup', wallet, chainId:10143,phone: '+254711000111', cap: 50_000_000n, signedAt: 1 })).toBe(
+    expect(
+      pocketMessage({
+        action: 'setup',
+        wallet,
+        chainId: 10143,
+        phone: '+254711000111',
+        cap: 50_000_000n,
+        signedAt: 1,
+      }),
+    ).toBe(
       'Kova USSD pocket v2\nChain 10143\nAction setup\nWallet 0x00000000000000000000000000000000000000aa\nPhone +254711000111\nCap 50000000\nSigned at 1',
     )
-    expect(pocketMessage({ action: 'close', wallet, chainId:10143,signedAt: 2 })).toBe(
+    expect(pocketMessage({ action: 'close', wallet, chainId: 10143, signedAt: 2 })).toBe(
       'Kova USSD pocket v2\nChain 10143\nAction close\nWallet 0x00000000000000000000000000000000000000aa\nSigned at 2',
     )
   })
 
-  it('binds a PIN commitment to the PIN, secret nonce, wallet and chain',()=>{
-    const wallet='0x00000000000000000000000000000000000000AA'
-    const nonce=`0x${'11'.repeat(32)}` as const
-    const commitment=pocketPinCommitment(wallet,10143,'4821',nonce)
-    expect(pocketPinCommitment(wallet,10143,'4822',nonce)).not.toBe(commitment)
-    expect(pocketPinCommitment(wallet,143,'4821',nonce)).not.toBe(commitment)
-    expect(pocketPinCommitment(wallet,10143,'4821',`0x${'22'.repeat(32)}`)).not.toBe(commitment)
+  it('binds a PIN commitment to the PIN, secret nonce, wallet and chain', () => {
+    const wallet = '0x00000000000000000000000000000000000000AA'
+    const nonce = `0x${'11'.repeat(32)}` as const
+    const commitment = pocketPinCommitment(wallet, 10143, '4821', nonce)
+    expect(pocketPinCommitment(wallet, 10143, '4822', nonce)).not.toBe(commitment)
+    expect(pocketPinCommitment(wallet, 143, '4821', nonce)).not.toBe(commitment)
+    expect(pocketPinCommitment(wallet, 10143, '4821', `0x${'22'.repeat(32)}`)).not.toBe(commitment)
   })
 
   it('reads phone numbers with their country code', () => {

@@ -17,7 +17,7 @@ import {
 import { HDKey } from '@scure/bip32'
 import { entropyToMnemonic, mnemonicToSeed } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english.js'
-import { and, desc, eq, gt, isNull } from 'drizzle-orm'
+import { and, desc, eq, gt, isNull, sql } from 'drizzle-orm'
 import {
   type Address,
   bytesToHex,
@@ -29,13 +29,26 @@ import {
   stringToHex,
 } from 'viem'
 import { type PrivateKeyAccount, privateKeyToAccount } from 'viem/accounts'
-import { feePayerAccount, network, publicClient, settlementCurrency, settlementToken } from '../chain.js'
+import {
+  feePayerAccount,
+  network,
+  publicClient,
+  settlementCurrency,
+  settlementToken,
+} from '../chain.js'
 import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
 import { encodeId } from '../ids.js'
 import { relayAuthorization, sendFromRelayer } from '../relay.js'
-import { cardContract, cardsReady, completeTap, linkCard, prepareTap, tapTypedData } from './cards.js'
+import {
+  cardContract,
+  cardsReady,
+  completeTap,
+  linkCard,
+  prepareTap,
+  tapTypedData,
+} from './cards.js'
 import { slugify } from './catalog.js'
 import { createIntent, type PaymentIntent } from './intents.js'
 import { placeOrder } from './orders.js'
@@ -70,10 +83,30 @@ const OTHER_SHOP = { name: 'Corner Bakery', slug: 'corner-bakery-review' }
 const FRIENDS = ['Ade Okafor', 'Lena Park', 'Diego Ruiz'] as const
 
 const ITEMS = [
-  { name: 'Mountain blanket', price: 48_000_000n, description: 'Handwoven wool, three weeks on the loom', photo: 'blanket.png' },
-  { name: 'Wool scarf', price: 22_000_000n, description: 'Soft, warm, striped in saffron', photo: 'scarf.png' },
-  { name: 'Table runner', price: 16_000_000n, description: 'Diamond weave, finished by hand', photo: 'runner.png' },
-  { name: 'Woven pouch', price: 9_000_000n, description: 'For coins, keys, small treasures', photo: 'pouch.png' },
+  {
+    name: 'Mountain blanket',
+    price: 48_000_000n,
+    description: 'Handwoven wool, three weeks on the loom',
+    photo: 'blanket.png',
+  },
+  {
+    name: 'Wool scarf',
+    price: 22_000_000n,
+    description: 'Soft, warm, striped in saffron',
+    photo: 'scarf.png',
+  },
+  {
+    name: 'Table runner',
+    price: 16_000_000n,
+    description: 'Diamond weave, finished by hand',
+    photo: 'runner.png',
+  },
+  {
+    name: 'Woven pouch',
+    price: 9_000_000n,
+    description: 'For coins, keys, small treasures',
+    photo: 'pouch.png',
+  },
 ] as const
 /** Sold at the till only, so the Stall tab's "Only at the till" has something in it. */
 const TILL_ONLY = { name: 'Gift wrap', price: 2_000_000n, description: 'Brown paper and twine' }
@@ -85,7 +118,11 @@ const secret = (): Hex => {
 
 /** A key of the demo's own, for a role: its customer, its card, a friend. Same secret, same keys. */
 const derived = (role: string): PrivateKeyAccount =>
-  privateKeyToAccount(keccak256(new Uint8Array([...hexToBytes(secret()), ...hexToBytes(stringToHex(`kova.demo.${role}`))])))
+  privateKeyToAccount(
+    keccak256(
+      new Uint8Array([...hexToBytes(secret()), ...hexToBytes(stringToHex(`kova.demo.${role}`))]),
+    ),
+  )
 
 /** The wallet the app opens from the secret: Mera's derivation, as for a passkey's PRF output. */
 export async function demoWallet(): Promise<PrivateKeyAccount> {
@@ -97,6 +134,22 @@ export async function demoWallet(): Promise<PrivateKeyAccount> {
 
 const friends = () => FRIENDS.map((name, i) => ({ name, account: derived(`friend.${i}`) }))
 
+/**
+ * Every address the demo account acts as (Sam, the customer, the bakery, the card and Sam's
+ * friends), lowercase, so public numbers can leave Kova's own demo out. Empty without a demo.
+ */
+export async function demoAddresses(): Promise<string[]> {
+  if (!demoReady()) return []
+  const wallet = await demoWallet()
+  return [
+    wallet.address,
+    derived('customer').address,
+    derived('bakery').address,
+    derived('card').address,
+    ...friends().map((f) => f.account.address),
+  ].map((a) => a.toLowerCase())
+}
+
 // ── Sign-in ─────────────────────────────────────────────────────────────────────────────────
 
 const equal = (a: string, b: string) => {
@@ -107,7 +160,10 @@ const equal = (a: string, b: string) => {
 
 export function checkDemoLogin(username: string, password: string): boolean {
   if (!demoReady()) return false
-  const userOk = equal(username.trim().toLowerCase(), (config.KOVA_DEMO_USERNAME ?? '').toLowerCase())
+  const userOk = equal(
+    username.trim().toLowerCase(),
+    (config.KOVA_DEMO_USERNAME ?? '').toLowerCase(),
+  )
   const passOk = equal(password, config.KOVA_DEMO_PASSWORD ?? '')
   return userOk && passOk
 }
@@ -125,7 +181,12 @@ export async function demoSignIn() {
 // ── Stocking ────────────────────────────────────────────────────────────────────────────────
 
 const balanceOf = (address: Address) =>
-  publicClient.readContract({ address: settlementToken.address, abi: eip3009Abi, functionName: 'balanceOf', args: [address] })
+  publicClient.readContract({
+    address: settlementToken.address,
+    abi: eip3009Abi,
+    functionName: 'balanceOf',
+    args: [address],
+  })
 
 /** Tops a wallet up to `target` from Kova's treasury, or Agora's testnet faucet when that's low. */
 async function topUp(address: Address, target: bigint): Promise<void> {
@@ -191,7 +252,10 @@ async function uniqueSlug(name: string) {
 /** The demo wallet's own shop, with a stall of photographed items. Opened once. */
 async function demoShop(owner: Address) {
   const existing = await db.query.merchants.findFirst({
-    where: and(eq(schema.merchants.ownerAddress, owner.toLowerCase()), eq(schema.merchants.status, 'active')),
+    where: and(
+      eq(schema.merchants.ownerAddress, owner.toLowerCase()),
+      eq(schema.merchants.status, 'active'),
+    ),
     orderBy: desc(schema.merchants.createdAt),
   })
   if (existing) {
@@ -211,7 +275,9 @@ async function demoShop(owner: Address) {
       network: 'testnet',
       isTest: true,
     })
-  const merchant = (await db.query.merchants.findFirst({ where: eq(schema.merchants.id, merchantId) }))!
+  const merchant = (await db.query.merchants.findFirst({
+    where: eq(schema.merchants.id, merchantId),
+  }))!
 
   const stallId = uuidv7()
   await db.insert(schema.stalls).values({
@@ -225,7 +291,9 @@ async function demoShop(owner: Address) {
   for (const item of ITEMS) {
     const bytes = await readFile(new URL(`../../assets/demo/${item.photo}`, import.meta.url))
     const imageId = uuidv7()
-    await db.insert(schema.images).values({ id: imageId, merchantId, contentType: 'image/png', bytes, size: bytes.length })
+    await db
+      .insert(schema.images)
+      .values({ id: imageId, merchantId, contentType: 'image/png', bytes, size: bytes.length })
     const itemId = uuidv7()
     await db.insert(schema.catalogItems).values({
       id: itemId,
@@ -238,7 +306,9 @@ async function demoShop(owner: Address) {
     })
     await db.insert(schema.stallItems).values({ stallId, itemId, position: position++ })
   }
-  await db.insert(schema.catalogItems).values({ id: uuidv7(), merchantId, ...TILL_ONLY, position: position++ })
+  await db
+    .insert(schema.catalogItems)
+    .values({ id: uuidv7(), merchantId, ...TILL_ONLY, position: position++ })
   const stall = (await db.query.stalls.findFirst({ where: eq(schema.stalls.id, stallId) }))!
   console.log(`[demo] opened ${SHOP.name} for ${owner}`)
   return { merchant, stall }
@@ -246,7 +316,9 @@ async function demoShop(owner: Address) {
 
 /** Another shop the demo wallet has bought from, so its history has someone else in it. */
 async function otherShop() {
-  const existing = await db.query.merchants.findFirst({ where: eq(schema.merchants.slug, OTHER_SHOP.slug) })
+  const existing = await db.query.merchants.findFirst({
+    where: eq(schema.merchants.slug, OTHER_SHOP.slug),
+  })
   if (existing) return existing
   const id = uuidv7()
   await db.insert(schema.merchants).values({
@@ -264,12 +336,24 @@ async function otherShop() {
 async function demoCard(holder: PrivateKeyAccount, bakery: typeof schema.merchants.$inferSelect) {
   if (!cardsReady() || !cardContract) return
   const card = derived('card')
-  const row = await db.query.kovaCards.findFirst({ where: eq(schema.kovaCards.address, card.address.toLowerCase()) })
+  const row = await db.query.kovaCards.findFirst({
+    where: eq(schema.kovaCards.address, card.address.toLowerCase()),
+  })
   if (!row || row.status !== 'active') {
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 300)
     const [nonce, permitNonce] = await Promise.all([
-      publicClient.readContract({ address: cardContract, abi: kovaCardAbi, functionName: 'nonces', args: [holder.address] }),
-      publicClient.readContract({ address: settlementToken.address, abi: permitAbi, functionName: 'nonces', args: [holder.address] }),
+      publicClient.readContract({
+        address: cardContract,
+        abi: kovaCardAbi,
+        functionName: 'nonces',
+        args: [holder.address],
+      }),
+      publicClient.readContract({
+        address: settlementToken.address,
+        abi: permitAbi,
+        functionName: 'nonces',
+        args: [holder.address],
+      }),
     ])
     const holderSignature = await holder.signTypedData(
       linkTypedData(network.chainId, cardContract, {
@@ -281,7 +365,11 @@ async function demoCard(holder: PrivateKeyAccount, bakery: typeof schema.merchan
       }),
     )
     const cardSignature = await card.signTypedData(
-      claimTypedData(network.chainId, cardContract, { card: card.address, holder: holder.address, deadline }),
+      claimTypedData(network.chainId, cardContract, {
+        card: card.address,
+        holder: holder.address,
+        deadline,
+      }),
     )
     const permit = await holder.signTypedData(
       permitTypedData(settlementToken, network.chainId, {
@@ -305,14 +393,22 @@ async function demoCard(holder: PrivateKeyAccount, bakery: typeof schema.merchan
     console.log(`[demo] linked card ${card.address}`)
   }
   const taps = await db.query.cardTaps.findMany({
-    where: and(eq(schema.cardTaps.cardAddress, card.address.toLowerCase()), eq(schema.cardTaps.status, 'paid')),
+    where: and(
+      eq(schema.cardTaps.cardAddress, card.address.toLowerCase()),
+      eq(schema.cardTaps.status, 'paid'),
+    ),
     limit: 2,
   })
   for (const sale of [
     { amount: '3.25', reference: 'Croissant' },
     { amount: '3.75', reference: 'Cinnamon bun' },
   ].slice(taps.length)) {
-    const intent = await createIntent({ merchant: bakery, amount: sale.amount, currency: settlementCurrency, reference: sale.reference })
+    const intent = await createIntent({
+      merchant: bakery,
+      amount: sale.amount,
+      currency: settlementCurrency,
+      reference: sale.reference,
+    })
     const { tap } = await prepareTap({ intent, card: card.address, terminalId: null })
     const signature = await card.signTypedData(tapTypedData(cardContract, tap))
     await completeTap(tap, { cardSignature: signature })
@@ -348,15 +444,22 @@ export function stockDemo(): Promise<void> {
       }
 
       // Things Sam bought at the bakery, by QR.
+      // Payments keep the payer as the chain wrote it (mixed case): compare in lowercase, or this
+      // never matches and Sam buys again every 20 minutes.
       const bought = await db.query.payments.findFirst({
-        where: eq(schema.payments.payerAddress, wallet.address.toLowerCase()),
+        where: sql`lower(${schema.payments.payerAddress}) = ${wallet.address.toLowerCase()}`,
       })
       if (!bought)
         for (const sale of [
           { amount: '3.20', reference: 'Flat white' },
           { amount: '6.50', reference: 'Sourdough loaf' },
         ]) {
-          const intent = await createIntent({ merchant: bakery, amount: sale.amount, currency: settlementCurrency, reference: sale.reference })
+          const intent = await createIntent({
+            merchant: bakery,
+            amount: sale.amount,
+            currency: settlementCurrency,
+            reference: sale.reference,
+          })
           await payFrom(wallet, intent)
         }
 
@@ -381,9 +484,14 @@ async function keepShopBusy(
   customer: PrivateKeyAccount,
 ) {
   const items = await db.query.catalogItems.findMany({
-    where: and(eq(schema.catalogItems.merchantId, merchant.id), isNull(schema.catalogItems.archivedAt)),
+    where: and(
+      eq(schema.catalogItems.merchantId, merchant.id),
+      isNull(schema.catalogItems.archivedAt),
+    ),
   })
-  const onStall = await db.query.stallItems.findMany({ where: eq(schema.stallItems.stallId, stall.id) })
+  const onStall = await db.query.stallItems.findMany({
+    where: eq(schema.stallItems.stallId, stall.id),
+  })
   const stallItems = items.filter((i) => onStall.some((s) => s.itemId === i.id))
   if (stallItems.length === 0) return
   const pick = <T>(list: T[]) => list[Math.floor(Math.random() * list.length)] as T
@@ -422,7 +530,11 @@ async function keepShopBusy(
       stall,
       items: [{ id: encodeId('catalogItem', item.id), quantity: 1 }],
       customerName: pick(['Priya', 'Tomás', 'Grace', 'Kwame']),
-      note: pick(['It’s a gift, could you wrap it?', 'I’ll pick it up at five.', 'No rush, thank you!']),
+      note: pick([
+        'It’s a gift, could you wrap it?',
+        'I’ll pick it up at five.',
+        'No rush, thank you!',
+      ]),
     })
     await payFrom(customer, intent)
   }
@@ -430,7 +542,9 @@ async function keepShopBusy(
   await topUp(customer.address, 100_000_000n)
   const wallet = await demoWallet()
   await topUp(wallet.address, 150_000_000n)
-  console.log(`[demo] ${SHOP.name} is stocked; Sam has $${formatAmount(await balanceOf(wallet.address))}`)
+  console.log(
+    `[demo] ${SHOP.name} is stocked; Sam has $${formatAmount(await balanceOf(wallet.address))}`,
+  )
 }
 
 /** Stocks the demo account at startup and every 20 minutes. */

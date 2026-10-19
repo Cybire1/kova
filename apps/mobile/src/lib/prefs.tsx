@@ -33,7 +33,10 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void load(PREFS, defaults).then((saved) => {
-      setState({ mode: saved.mode ?? defaults.mode, hideBalance: saved.hideBalance ?? defaults.hideBalance })
+      setState({
+        mode: saved.mode ?? defaults.mode,
+        hideBalance: saved.hideBalance ?? defaults.hideBalance,
+      })
       setReady(true)
     })
   }, [])

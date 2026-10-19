@@ -1,8 +1,19 @@
-import { type StealthKeys, stealthMetaAddress, stealthRegistrationMessage, stealthViewKey } from '@kova/monad'
+import {
+  type StealthKeys,
+  stealthMetaAddress,
+  stealthRegistrationMessage,
+  stealthViewKey,
+} from '@kova/monad'
 import * as SecureStore from 'expo-secure-store'
 import type { Address, Hex, LocalAccount } from 'viem'
 import { apiUrl } from './config'
-import { fetchReceivingKey, type PrivateReceipt, publishReceivingKey, receivingKeys, UntrustedKey } from './private-core'
+import {
+  fetchReceivingKey,
+  type PrivateReceipt,
+  publishReceivingKey,
+  receivingKeys,
+  UntrustedKey,
+} from './private-core'
 import { load, remove, save } from './storage'
 
 /**
@@ -37,7 +48,9 @@ export interface SavedReceiving {
 }
 
 const listeners = new Set<() => void>()
-const changed = () => listeners.forEach((listener) => listener())
+const changed = () => {
+  for (const listener of listeners) listener()
+}
 
 /** Hears when this phone makes the keys or Kova takes them. */
 export function onReceivingChange(listener: () => void) {
@@ -47,7 +60,12 @@ export function onReceivingChange(listener: () => void) {
   }
 }
 
-async function keepReceivingKeys(owner: Address, keys: StealthKeys, signature: Hex, locked: boolean): Promise<SavedReceiving> {
+async function keepReceivingKeys(
+  owner: Address,
+  keys: StealthKeys,
+  signature: Hex,
+  locked: boolean,
+): Promise<SavedReceiving> {
   const owners = await load<string[]>(OWNERS, [])
   if (!owners.includes(owner.toLowerCase())) await save(OWNERS, [...owners, owner.toLowerCase()])
   // The spending key first: a phone with the view but not the key would show money it can't move.
@@ -57,11 +75,21 @@ async function keepReceivingKeys(owner: Address, keys: StealthKeys, signature: H
     spendName(owner),
     keys.spendingPrivateKey,
     locked
-      ? { requireAuthentication: true, keychainAccessible: SecureStore.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY }
+      ? {
+          requireAuthentication: true,
+          keychainAccessible: SecureStore.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY,
+        }
       : { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY },
   )
-  const saved: SavedReceiving = { owner: owner.toLowerCase(), meta: stealthMetaAddress(keys), view: stealthViewKey(keys), signature }
-  await SecureStore.setItemAsync(viewName(owner), JSON.stringify(saved), { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY })
+  const saved: SavedReceiving = {
+    owner: owner.toLowerCase(),
+    meta: stealthMetaAddress(keys),
+    view: stealthViewKey(keys),
+    signature,
+  }
+  await SecureStore.setItemAsync(viewName(owner), JSON.stringify(saved), {
+    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  })
   return saved
 }
 
@@ -71,7 +99,9 @@ export async function readReceivingView(owner: Address): Promise<SavedReceiving 
   if (!raw) return null
   try {
     const saved = JSON.parse(raw) as SavedReceiving
-    return saved.owner === owner.toLowerCase() && saved.meta && saved.view && saved.signature ? saved : null
+    return saved.owner === owner.toLowerCase() && saved.meta && saved.view && saved.signature
+      ? saved
+      : null
   } catch {
     return null
   }
@@ -88,7 +118,8 @@ export async function readReceivingSpendKey(owner: Address, prompt: string): Pro
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     if (/cancel/i.test(message)) throw new Error('Face ID was cancelled. Nothing moved.')
-    if (/authentication failed/i.test(message)) throw new Error('Face ID didn’t work. Nothing moved.')
+    if (/authentication failed/i.test(message))
+      throw new Error('Face ID didn’t work. Nothing moved.')
     return null
   }
 }
@@ -100,7 +131,11 @@ let making: Promise<SavedReceiving> | null = null
  * one that makes the keys, one over their public half for Kova to publish. One at a time, so
  * opening the wallet and setting up at once make them once.
  */
-export function makeReceiving(owner: Address, sign: (message: string) => Promise<Hex>, locked: boolean): Promise<SavedReceiving> {
+export function makeReceiving(
+  owner: Address,
+  sign: (message: string) => Promise<Hex>,
+  locked: boolean,
+): Promise<SavedReceiving> {
   making ??= (async () => {
     const existing = await readReceivingView(owner)
     if (existing) return existing
@@ -122,7 +157,11 @@ export function makeReceiving(owner: Address, sign: (message: string) => Promise
  * each time the wallet opens; after the first time it only reads the Keychain.
  */
 export async function ensureReceiving(account: LocalAccount, locked: boolean): Promise<void> {
-  const saved = await makeReceiving(account.address, (message) => account.signMessage({ message }), locked)
+  const saved = await makeReceiving(
+    account.address,
+    (message) => account.signMessage({ message }),
+    locked,
+  )
   await publishReceiving(saved)
 }
 
@@ -154,14 +193,16 @@ export function publishReceiving(saved: SavedReceiving): Promise<boolean> {
     if (current !== saved.meta) {
       await publishReceivingKey(owner, saved.meta, saved.signature)
       // Never published anywhere before: nothing paid before now can be for this wallet.
-      if (current === null) await save(FRESH, { api: apiUrl, owner: saved.owner, meta: saved.meta, at: Date.now() })
+      if (current === null)
+        await save(FRESH, { api: apiUrl, owner: saved.owner, meta: saved.meta, at: Date.now() })
     }
     await save(PUBLISHED, publishedMark(saved))
     changed()
     return true
   })()
     .catch((error) => {
-      if (__DEV__) console.log('[private] key not published', error instanceof Error ? error.message : error)
+      if (__DEV__)
+        console.log('[private] key not published', error instanceof Error ? error.message : error)
       return false
     })
     .finally(() => {
@@ -172,8 +213,13 @@ export function publishReceiving(saved: SavedReceiving): Promise<boolean> {
 
 /** When this phone first published the key, less a margin for the phone's clock: where the first look at the feed starts. */
 export async function freshSince(owner: string, meta: string): Promise<number | null> {
-  const fresh = await load<{ api: string; owner: string; meta: string; at: number } | null>(FRESH, null)
-  return fresh && fresh.api === apiUrl && fresh.owner === owner.toLowerCase() && fresh.meta === meta ? fresh.at - 10 * 60_000 : null
+  const fresh = await load<{ api: string; owner: string; meta: string; at: number } | null>(
+    FRESH,
+    null,
+  )
+  return fresh && fresh.api === apiUrl && fresh.owner === owner.toLowerCase() && fresh.meta === meta
+    ? fresh.at - 10 * 60_000
+    : null
 }
 
 export interface ScanState {
@@ -202,8 +248,18 @@ const loaded = load<ScanState | null>(SCAN, null).then((saved) => {
 
 export async function loadScan(owner: string, meta: string): Promise<ScanState> {
   const saved = await load<ScanState | null>(SCAN, null)
-  if (saved && saved.api === apiUrl && saved.owner === owner.toLowerCase() && saved.meta === meta) return saved
-  return { api: apiUrl, owner: owner.toLowerCase(), meta, cursor: null, checked: [], since: null, caughtUp: false, receipts: [] }
+  if (saved && saved.api === apiUrl && saved.owner === owner.toLowerCase() && saved.meta === meta)
+    return saved
+  return {
+    api: apiUrl,
+    owner: owner.toLowerCase(),
+    meta,
+    cursor: null,
+    checked: [],
+    since: null,
+    caughtUp: false,
+    receipts: [],
+  }
 }
 
 export async function saveScan(state: ScanState) {

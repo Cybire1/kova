@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { Art, Brand, Icon, Pill } from '@/components/brand'
 import type { PaymentIntent } from '@/lib/api'
-import { cancelCharge } from '../actions'
 import { usd } from '@/lib/format'
+import { cancelCharge } from '../actions'
 
 type Stage = 'amount' | 'waiting' | 'paid' | 'problem'
 
@@ -50,13 +50,23 @@ export function Charge() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         // One key per charge attempt: a double click or a retried request can't charge twice.
-        body: JSON.stringify({ amount: Number(amount).toFixed(2), reference: reference.trim() || undefined, idempotency_key: crypto.randomUUID() }),
+        body: JSON.stringify({
+          amount: Number(amount).toFixed(2),
+          reference: reference.trim() || undefined,
+          idempotency_key: crypto.randomUUID(),
+        }),
       })
       const body = (await response.json()) as PaymentIntent & { error?: string }
       if (response.status === 401) return window.location.assign('/signin?expired=1')
       if (!response.ok) throw new Error(body.error ?? 'Could not start the charge')
-      const { toString } = await import('qrcode')
-      setQr(await toString(`${window.location.origin}/pay/${body.id}`, { type: 'svg', margin: 0, color: { dark: '#0b1a1d', light: '#ffffff' } }))
+      const { toString: toSvg } = await import('qrcode')
+      setQr(
+        await toSvg(`${window.location.origin}/pay/${body.id}`, {
+          type: 'svg',
+          margin: 0,
+          color: { dark: '#0b1a1d', light: '#ffffff' },
+        }),
+      )
       setIntent(body)
       setStage('waiting')
     } catch (caught) {
@@ -72,7 +82,8 @@ export function Charge() {
     if (stage !== 'amount') return
     const onKey = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement) return
-      if (/^[0-9.]$/.test(event.key)) setAmount((v) => applyKey(v, event.key as (typeof keys)[number]))
+      if (/^[0-9.]$/.test(event.key))
+        setAmount((v) => applyKey(v, event.key as (typeof keys)[number]))
       else if (event.key === 'Backspace') setAmount((v) => applyKey(v, 'del'))
       else if (event.key === 'Enter' && canCharge && !busy) void start()
     }
@@ -161,9 +172,18 @@ export function Charge() {
           <section className="await">
             <div className="await-card">
               <p className="await-amount">{usd(intent.amount)}</p>
-              <p className="await-label">{intent.reference ?? 'Scan with Kova Pay or any Monad wallet'}</p>
-              {/* biome-ignore lint/security/noDangerouslySetInnerHtml: locally generated SVG */}
-              {qr ? <div className="qr qr-big" aria-label="Payment QR code" dangerouslySetInnerHTML={{ __html: qr }} /> : null}
+              <p className="await-label">
+                {intent.reference ?? 'Scan with Kova Pay or any Monad wallet'}
+              </p>
+              {qr ? (
+                <div
+                  className="qr qr-big"
+                  role="img"
+                  aria-label="Payment QR code"
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: an SVG the qrcode package drew from our own link, not user HTML
+                  dangerouslySetInnerHTML={{ __html: qr }}
+                />
+              ) : null}
               <p className="waiting">
                 <Icon name="tap" size={20} />
                 Waiting for payment
@@ -212,7 +232,11 @@ export function Charge() {
       <main className="page page-narrow">
         {top}
         <section className="amount">
-          <p className="amount-value" data-empty={amount === '' ? 'true' : undefined} aria-live="polite">
+          <p
+            className="amount-value"
+            data-empty={amount === '' ? 'true' : undefined}
+            aria-live="polite"
+          >
             {typedDollars(amount)}
           </p>
           <p className="amount-sub">Customer pays {usd(amount || '0')} in AUSD</p>

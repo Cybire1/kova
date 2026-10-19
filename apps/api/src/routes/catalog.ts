@@ -313,15 +313,13 @@ export const catalogRoutes = new Hono()
     const contentType = sniffImage(bytes)
     if (!contentType) throw new KovaError('invalid_request', 'Send a JPEG, PNG or WebP image')
     const id = uuidv7()
-    await db
-      .insert(schema.images)
-      .values({
-        id,
-        merchantId: c.get('merchant').id,
-        contentType,
-        bytes: Buffer.from(bytes),
-        size: bytes.length,
-      })
+    await db.insert(schema.images).values({
+      id,
+      merchantId: c.get('merchant').id,
+      contentType,
+      bytes: Buffer.from(bytes),
+      size: bytes.length,
+    })
     return c.json(
       {
         object: 'image',

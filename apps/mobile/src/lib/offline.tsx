@@ -1,12 +1,27 @@
-import { decodeOfflinePayment, type OfflineCheck, offlinePaymentId, type OfflinePayment, verifyOfflinePayment } from '@kova/monad'
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  decodeOfflinePayment,
+  type OfflineCheck,
+  type OfflinePayment,
+  offlinePaymentId,
+  verifyOfflinePayment,
+} from '@kova/monad'
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { AppState } from 'react-native'
 import { type Address, isAddressEqual } from 'viem'
 import { network, settlementToken } from './config'
 import { handIn, OFFLINE_MAX, offlineStatus, reachable } from './offline-core'
 import {
-  offlineEntryId,
   type OfflineItem,
+  offlineEntryId,
   offlineItems,
   offlineReady,
   onOfflineChange,
@@ -27,7 +42,15 @@ export type Accepted =
   | { kind: 'own'; item: OfflineItem | null; payment: OfflinePayment }
   /** A genuine payment, but to someone else. */
   | { kind: 'theirs'; payment: OfflinePayment }
-  | { kind: 'invalid'; reason: Extract<OfflineCheck, { ok: false }>['reason'] | 'not-a-code' | 'other-network' | 'no-wallet'; payment: OfflinePayment | null }
+  | {
+      kind: 'invalid'
+      reason:
+        | Extract<OfflineCheck, { ok: false }>['reason']
+        | 'not-a-code'
+        | 'other-network'
+        | 'no-wallet'
+      payment: OfflinePayment | null
+    }
 
 /**
  * Paying and getting paid with no signal. Knows whether Kova can be reached; keeps this wallet's
@@ -154,32 +177,38 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
   latest.current = { recordOffline, refresh, nameFor }
 
   /** It settled: into activity as a normal payment, and the balance looks again. */
-  const settled = useCallback(async (item: OfflineItem, outcome: { txHash: `0x${string}`; ms?: number; by: 'me' | 'them' }) => {
-    const entryId = offlineEntryId(item.id)
-    await patchOffline(item.id, {
-      status: 'settled',
-      txHash: outcome.txHash,
-      by: outcome.by,
-      settledAt: item.settledAt ?? Date.now(),
-      entryId,
-      problem: null,
-      ...(outcome.ms ? { ms: outcome.ms } : {}),
-    })
-    const other = item.direction === 'out' ? item.to : item.from
-    await latest.current.recordOffline({
-      id: entryId,
-      kind: item.direction === 'out' ? 'sent' : 'received',
-      amount: item.amount,
-      name: latest.current.nameFor(other) ?? item.name,
-      detail: 'Paid with a code',
-      address: other,
-      txHash: outcome.txHash,
-      ...(outcome.ms ? { ms: outcome.ms } : {}),
-      at: item.at,
-      offline: true,
-    })
-    void latest.current.refresh()
-  }, [])
+  const settled = useCallback(
+    async (
+      item: OfflineItem,
+      outcome: { txHash: `0x${string}`; ms?: number; by: 'me' | 'them' },
+    ) => {
+      const entryId = offlineEntryId(item.id)
+      await patchOffline(item.id, {
+        status: 'settled',
+        txHash: outcome.txHash,
+        by: outcome.by,
+        settledAt: item.settledAt ?? Date.now(),
+        entryId,
+        problem: null,
+        ...(outcome.ms ? { ms: outcome.ms } : {}),
+      })
+      const other = item.direction === 'out' ? item.to : item.from
+      await latest.current.recordOffline({
+        id: entryId,
+        kind: item.direction === 'out' ? 'sent' : 'received',
+        amount: item.amount,
+        name: latest.current.nameFor(other) ?? item.name,
+        detail: 'Paid with a code',
+        address: other,
+        txHash: outcome.txHash,
+        ...(outcome.ms ? { ms: outcome.ms } : {}),
+        at: item.at,
+        offline: true,
+      })
+      void latest.current.refresh()
+    },
+    [],
+  )
 
   // Hands every waiting payment to Kova, one at a time (the relayer signs them in turn).
   const busy = useRef(false)
@@ -201,22 +230,46 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
           continue
         }
         // Tried and refused: again in 20 s, then less and less often, never more than ten minutes apart.
-        if (item.problem && now - item.problem.at < Math.min(RETRY_MS * 2 ** Math.min(Math.max(item.tries - 1, 0), 5), 600_000)) continue
+        if (
+          item.problem &&
+          now - item.problem.at <
+            Math.min(RETRY_MS * 2 ** Math.min(Math.max(item.tries - 1, 0), 5), 600_000)
+        )
+          continue
         const result = await handIn(item.code)
-        if (__DEV__) console.log(`[offline] ${item.direction === 'out' ? 'outbox' : 'inbox'} ${item.id.slice(0, 10)} handed in: ${result.kind}${'txHash' in result ? ` ${result.txHash}` : ''}`)
-        if (result.kind === 'settled') await settled(item, { txHash: result.txHash, ms: result.ms, by: 'me' })
+        if (__DEV__)
+          console.log(
+            `[offline] ${item.direction === 'out' ? 'outbox' : 'inbox'} ${item.id.slice(0, 10)} handed in: ${result.kind}${'txHash' in result ? ` ${result.txHash}` : ''}`,
+          )
+        if (result.kind === 'settled')
+          await settled(item, { txHash: result.txHash, ms: result.ms, by: 'me' })
         else if (result.kind === 'already') {
           // The other phone got there first. Kova says which transaction it was.
           const status = await offlineStatus(item.from, item.nonce)
           if (status?.txHash) await settled(item, { txHash: status.txHash, by: 'them' })
-          else await patchOffline(item.id, { status: 'settled', by: 'them', settledAt: now, problem: null })
+          else
+            await patchOffline(item.id, {
+              status: 'settled',
+              by: 'them',
+              settledAt: now,
+              problem: null,
+            })
         } else if (result.kind === 'short')
-          await patchOffline(item.id, { status: 'failed', problem: { kind: 'balance', text: result.text, at: now }, tries: item.tries + 1 })
+          await patchOffline(item.id, {
+            status: 'failed',
+            problem: { kind: 'balance', text: result.text, at: now },
+            tries: item.tries + 1,
+          })
         else if (result.kind === 'expired') await patchOffline(item.id, { status: 'expired' })
         else if (result.kind === 'unreachable') {
           setReach(false)
           break
-        } else await patchOffline(item.id, { problem: { kind: 'other', text: result.text, at: now }, tries: item.tries + 1, ...(result.retry ? {} : { status: 'failed' as const }) })
+        } else
+          await patchOffline(item.id, {
+            problem: { kind: 'other', text: result.text, at: now },
+            tries: item.tries + 1,
+            ...(result.retry ? {} : { status: 'failed' as const }),
+          })
       }
     } finally {
       busy.current = false
@@ -242,7 +295,8 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
       const promised = offlineItems()
         .filter((i) => i.direction === 'out' && open(i))
         .reduce((total, i) => total + BigInt(i.amount), 0n)
-      if (balance === null || amount > balance - promised) throw new Error('That’s more than you can promise offline. Send less.')
+      if (balance === null || amount > balance - promised)
+        throw new Error('That’s more than you can promise offline. Send less.')
       const { code, payment } = await signOffline(to, amount)
       const item: OfflineItem = {
         id: offlinePaymentId(payment),
@@ -261,7 +315,10 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
         tries: 0,
       }
       await putOffline(item)
-      if (__DEV__) console.log(`[offline] signed ${amount} base units to ${to.address} with no network: ${item.id} code ${code}`)
+      if (__DEV__)
+        console.log(
+          `[offline] signed ${amount} base units to ${to.address} with no network: ${item.id} code ${code}`,
+        )
       return item
     },
     [me, balance, signOffline],
@@ -271,14 +328,18 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
     async (code: string): Promise<Accepted> => {
       const payment = decodeOfflinePayment(code)
       if (!payment) return { kind: 'invalid', reason: 'not-a-code', payment: null }
-      if (payment.chainId !== network.chainId || !isAddressEqual(payment.token, settlementToken.address))
+      if (
+        payment.chainId !== network.chainId ||
+        !isAddressEqual(payment.token, settlementToken.address)
+      )
         return { kind: 'invalid', reason: 'other-network', payment }
       const check = await verifyOfflinePayment(payment)
       if (!check.ok) return { kind: 'invalid', reason: check.reason, payment }
       if (!me) return { kind: 'invalid', reason: 'no-wallet', payment }
       await offlineReady()
       const id = offlinePaymentId(payment)
-      if (isAddressEqual(payment.authorization.from, me)) return { kind: 'own', item: offlineItems().find((i) => i.id === id) ?? null, payment }
+      if (isAddressEqual(payment.authorization.from, me))
+        return { kind: 'own', item: offlineItems().find((i) => i.id === id) ?? null, payment }
       if (!isAddressEqual(payment.authorization.to, me)) return { kind: 'theirs', payment }
       const kept = offlineItems().find((i) => i.id === id)
       if (kept) return { kind: 'mine', item: kept }
@@ -300,7 +361,10 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
         tries: 0,
       }
       await putOffline(item)
-      if (__DEV__) console.log(`[offline] accepted ${item.amount} base units from ${from}, checked with no network: ${id}`)
+      if (__DEV__)
+        console.log(
+          `[offline] accepted ${item.amount} base units from ${from}, checked with no network: ${id}`,
+        )
       return { kind: 'mine', item }
     },
     [me, nameFor],
@@ -314,7 +378,10 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Offline>(() => {
     const waiting = items.filter(open).sort((a, b) => b.at - a.at)
-    const sum = (direction: 'out' | 'in') => waiting.filter((i) => i.direction === direction).reduce((total, i) => total + BigInt(i.amount), 0n)
+    const sum = (direction: 'out' | 'in') =>
+      waiting
+        .filter((i) => i.direction === direction)
+        .reduce((total, i) => total + BigInt(i.amount), 0n)
     const outWaiting = sum('out')
     const inWaiting = sum('in')
     return {
@@ -337,12 +404,21 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
 }
 
 /** Who the other side of an offline payment is, by your name for them first. */
-export function useOfflineName(item: OfflineItem | undefined): { name: string; first: string; claimedOnly: boolean } {
+export function useOfflineName(item: OfflineItem | undefined): {
+  name: string
+  first: string
+  claimedOnly: boolean
+} {
   const { contacts } = useWallet()
   if (!item) return { name: '', first: '', claimedOnly: false }
   const other = item.direction === 'out' ? item.to : item.from
   const saved = contacts.find((c) => isAddressEqual(c.address, other))?.name
-  const name = saved && !isUnnamed(saved) ? saved : item.direction === 'in' ? (item.claimed ?? short(other)) : item.name
+  const name =
+    saved && !isUnnamed(saved)
+      ? saved
+      : item.direction === 'in'
+        ? (item.claimed ?? short(other))
+        : item.name
   return {
     name,
     first: isUnnamed(name) || name.startsWith('0x') ? name : (name.split(' ')[0] ?? name),

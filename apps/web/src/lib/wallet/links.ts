@@ -29,8 +29,7 @@ export function parseScanned(raw: string): Scanned | null {
   if (pairing?.[1]) return { kind: 'pair', code: pairing[1] }
   const claim =
     /^(?:https?:\/\/[^/]+|kova:\/)\/c\/(lnk_[0-9a-z]{26})\/?(?:\?[^#]*)?(?:#(.*))?$/i.exec(value)
-  if (claim?.[1])
-    return { kind: 'claim', id: claim[1].toLowerCase(), key: linkKeyFrom(claim[2]) }
+  if (claim?.[1]) return { kind: 'claim', id: claim[1].toLowerCase(), key: linkKeyFrom(claim[2]) }
   const charge =
     /\/pay\/([A-Za-z0-9_]+)/.exec(value) ?? /^kova:\/\/pay\/([A-Za-z0-9_]+)/.exec(value)
   if (charge?.[1]) return { kind: 'charge', id: charge[1] }

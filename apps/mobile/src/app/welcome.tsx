@@ -2,12 +2,12 @@ import { router } from 'expo-router'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '@/lib/theme'
+import { useWallet } from '@/lib/wallet'
 import { Flyer, PlanetScene, welcomeScene } from '@/ui/art'
+import { GoogleSignInButton } from '@/ui/GoogleSignInButton'
 import { LogoMark, Wordmark } from '@/ui/Logo'
 import { Flight } from '@/ui/motion'
 import { PillButton, Rise, TextLink, Txt } from '@/ui/primitives'
-import { GoogleSignInButton } from '@/ui/GoogleSignInButton'
-import { useWallet } from '@/lib/wallet'
 
 /**
  * The first thing anyone sees: Kovi flies money from a shop to a home, across a little
@@ -36,7 +36,13 @@ export default function Welcome() {
       <View style={{ position: 'absolute', top: sceneTop, left: sceneLeft }}>
         <PlanetScene width={sceneW} />
       </View>
-      <Flight from={shift(route.from)} via={shift(route.via)} to={shift(route.to)} size={130} duration={7000}>
+      <Flight
+        from={shift(route.from)}
+        via={shift(route.via)}
+        to={shift(route.to)}
+        size={130}
+        duration={7000}
+      >
         <Flyer size={130} />
       </Flight>
 
@@ -51,7 +57,11 @@ export default function Welcome() {
         </Rise>
         <View style={styles.actions}>
           <GoogleSignInButton />
-          <PillButton label="Create with a passkey" disabled={googleBusy} onPress={() => router.push('/setup')} />
+          <PillButton
+            label="Create with a passkey"
+            disabled={googleBusy}
+            onPress={() => router.push('/setup')}
+          />
           <View style={styles.links}>
             <TextLink label="I already have Kova" onPress={() => router.push('/restore')} />
             <TextLink label="I run a shop" onPress={() => router.push('/terminal/setup')} />

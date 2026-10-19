@@ -10,5 +10,11 @@ export default async function StallsPage() {
     kova<{ data: Order[] }>('/v1/orders?limit=30&source=stall'),
     kova<{ data: CatalogItem[] }>('/v1/catalog/items'),
   ])
-  return <StallsHome stalls={stalls.data} initialOrders={orders.data} catalogueSize={items.data.length} />
+  return (
+    <StallsHome
+      stalls={stalls.data}
+      initialOrders={orders.data}
+      catalogueSize={items.data.length}
+    />
+  )
 }

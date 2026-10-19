@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { privateKeyToAccount } from 'viem/accounts'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { UssdScreen } from './ussd'
 
 const state = vi.hoisted(() => ({
@@ -74,15 +74,16 @@ afterEach(() => {
 })
 
 describe('USSD setup screen', () => {
-  it('keeps the replacement setup form open when a background refresh still sees the old challenge',async()=>{
-    pocket={...active(),status:'pending'}
+  it('keeps the replacement setup form open when a background refresh still sees the old challenge', async () => {
+    pocket = { ...active(), status: 'pending' }
     render(<UssdScreen />)
     await screen.findByLabelText('Verification code')
-    fireEvent.click(screen.getByRole('button',{name:'Request a new code or change number'}))
+    fireEvent.click(screen.getByRole('button', { name: 'Request a new code or change number' }))
     await screen.findByText('Link your number')
-    const fetch=vi.mocked(globalThis.fetch),before=fetch.mock.calls.length
-    fireEvent(document,new Event('visibilitychange'))
-    await waitFor(()=>expect(fetch.mock.calls.length).toBeGreaterThan(before+1))
+    const fetch = vi.mocked(globalThis.fetch),
+      before = fetch.mock.calls.length
+    fireEvent(document, new Event('visibilitychange'))
+    await waitFor(() => expect(fetch.mock.calls.length).toBeGreaterThan(before + 1))
     expect(screen.getByLabelText('Choose a USSD PIN')).toBeTruthy()
     expect(screen.queryByLabelText('Verification code')).toBeNull()
   })

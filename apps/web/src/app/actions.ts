@@ -187,10 +187,21 @@ export async function updateAccount(_: FormState, form: FormData): Promise<FormS
  * Makes this browser's Kova wallet the shop's owner, so the passkey signs in to it from now on,
  * and, if asked, has the shop's money land in that wallet too.
  */
-export async function linkShopOwner(input: { message: string; signature: string; settleTo?: string }): Promise<FormState> {
+export async function linkShopOwner(input: {
+  message: string
+  signature: string
+  settleTo?: string
+}): Promise<FormState> {
   try {
-    await kova('/v1/account/owner', { method: 'POST', body: JSON.stringify({ message: input.message, signature: input.signature }) })
-    if (input.settleTo) await kova<Merchant>('/v1/account', { method: 'PATCH', body: JSON.stringify({ settlement_address: input.settleTo }) })
+    await kova('/v1/account/owner', {
+      method: 'POST',
+      body: JSON.stringify({ message: input.message, signature: input.signature }),
+    })
+    if (input.settleTo)
+      await kova<Merchant>('/v1/account', {
+        method: 'PATCH',
+        body: JSON.stringify({ settlement_address: input.settleTo }),
+      })
   } catch (error) {
     return { error: message(error) }
   }
@@ -201,7 +212,10 @@ export async function linkShopOwner(input: { message: string; signature: string;
 /** Has the shop's money land in its owner's Kova wallet, where the app and the web both show it. */
 export async function settleToWallet(address: string): Promise<FormState> {
   try {
-    await kova<Merchant>('/v1/account', { method: 'PATCH', body: JSON.stringify({ settlement_address: address }) })
+    await kova<Merchant>('/v1/account', {
+      method: 'PATCH',
+      body: JSON.stringify({ settlement_address: address }),
+    })
   } catch (error) {
     return { error: message(error) }
   }

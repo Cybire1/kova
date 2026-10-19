@@ -1,6 +1,13 @@
 import { explorerTxUrl, generateStealthPayment, parseAmount } from '@kova/monad'
 import { type Address, getAddress, type Hash, type LocalAccount } from 'viem'
-import { type PayrollPayment, type PayrollRun, recordSupplierPayment, reportPayrollPayment, type Supplier, type SupplierPayment } from './api'
+import {
+  type PayrollPayment,
+  type PayrollRun,
+  recordSupplierPayment,
+  reportPayrollPayment,
+  type Supplier,
+  type SupplierPayment,
+} from './api'
 import { sendMoney } from './chain'
 import { network } from './config'
 import { fetchReceivingKey } from './private-core'
@@ -21,7 +28,13 @@ export type Reach = 'checking' | 'private' | 'none'
 /** Whether each wallet can be paid privately: a private-receiving key its own wallet signed. */
 export async function reachOf(wallets: string[]): Promise<Record<string, Reach>> {
   const found = await Promise.all(
-    wallets.map(async (w) => [w.toLowerCase(), (await fetchReceivingKey(getAddress(w)).catch(() => null)) ? 'private' : 'none'] as const),
+    wallets.map(
+      async (w) =>
+        [
+          w.toLowerCase(),
+          (await fetchReceivingKey(getAddress(w)).catch(() => null)) ? 'private' : 'none',
+        ] as const,
+    ),
   )
   return Object.fromEntries(found)
 }
@@ -32,7 +45,8 @@ export type LineState =
   | { state: 'paid'; ms: number; explorer: string }
   | { state: 'failed'; why: string }
 
-const why = (error: unknown) => (error instanceof Error && error.message ? error.message : 'It didn’t go through.')
+const why = (error: unknown) =>
+  error instanceof Error && error.message ? error.message : 'It didn’t go through.'
 
 /** Pays a payroll Kova has just written into the book: one approval, then each person privately. */
 export async function payPayroll(options: {
@@ -53,18 +67,35 @@ export async function payPayroll(options: {
       const wallet = wallets[p.id]
       if (!wallet) throw new Error('No wallet for them in the book.')
       const meta = await fetchReceivingKey(getAddress(wallet))
-      if (!meta) throw new Error(`${p.name.split(' ')[0]} can’t receive privately yet: they open Kova once to turn it on.`)
-      const made = generateStealthPayment(meta, { from: account.address, name: business, note: run.label, kind: 'send' })
+      if (!meta)
+        throw new Error(
+          `${p.name.split(' ')[0]} can’t receive privately yet: they open Kova once to turn it on.`,
+        )
+      const made = generateStealthPayment(meta, {
+        from: account.address,
+        name: business,
+        note: run.label,
+        kind: 'send',
+      })
       const sent = await sendMoney(account, made.stealthAddress, parseAmount(p.amount), undefined, {
         ephemeralPublicKey: made.ephemeralPublicKey,
         viewTag: made.viewTag,
         sealed: made.sealed,
       })
-      await reportPayrollPayment(run.id, p.id, { stealth_address: made.stealthAddress, tx_hash: sent.hash })
+      await reportPayrollPayment(run.id, p.id, {
+        stealth_address: made.stealthAddress,
+        tx_hash: sent.hash,
+      })
       paid += parseAmount(p.amount)
-      onLine(p.id, { state: 'paid', ms: sent.ms, explorer: explorerTxUrl(network, sent.hash as Hash) })
+      onLine(p.id, {
+        state: 'paid',
+        ms: sent.ms,
+        explorer: explorerTxUrl(network, sent.hash as Hash),
+      })
     } catch (error) {
-      await reportPayrollPayment(run.id, p.id, { failure: why(error).slice(0, 300) }).catch(() => {})
+      await reportPayrollPayment(run.id, p.id, { failure: why(error).slice(0, 300) }).catch(
+        () => {},
+      )
       onLine(p.id, { state: 'failed', why: why(error) })
     }
   }
@@ -84,7 +115,11 @@ export async function paySupplier(options: {
   const account = await approve(value)
   const sent = await sendMoney(account, getAddress(supplier.wallet_address) as Address, value)
   spend(value)
-  const payment = await recordSupplierPayment(supplier.id, { amount, tx_hash: sent.hash, note: note || null })
+  const payment = await recordSupplierPayment(supplier.id, {
+    amount,
+    tx_hash: sent.hash,
+    note: note || null,
+  })
   return { payment, ms: sent.ms }
 }
 
@@ -93,9 +128,15 @@ export const usd = (value: string | number) =>
 
 export const shortAddress = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`
 
-export const amountOk = (value: string) => /^\d{1,6}(\.\d{1,2})?$/.test(value.trim()) && Number(value) > 0
+export const amountOk = (value: string) =>
+  /^\d{1,6}(\.\d{1,2})?$/.test(value.trim()) && Number(value) > 0
 
 export const monthName = () => new Date().toLocaleDateString('en-GB', { month: 'long' })
 
 export const whenLabel = (at: string) =>
-  new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  new Date(at).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })

@@ -15,7 +15,9 @@ async function time<T>(label: string, fn: () => Promise<T>): Promise<T> {
 }
 
 const api = `http://localhost:${config.PORT}`
-const merchant = await db.query.merchants.findFirst({ where: eq(schema.merchants.slug, 'demo-merchant') })
+const merchant = await db.query.merchants.findFirst({
+  where: eq(schema.merchants.slug, 'demo-merchant'),
+})
 if (!merchant) throw new Error('run setup:dev')
 
 const customer = newCustomer()

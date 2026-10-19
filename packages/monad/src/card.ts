@@ -108,7 +108,12 @@ export function linkTypedData(
   contract: Address,
   message: { holder: Address; card: Address; dailyLimit: bigint; nonce: bigint; deadline: bigint },
 ) {
-  return { domain: domain(chainId, contract), types: { Link: cardTypes.Link }, primaryType: 'Link' as const, message }
+  return {
+    domain: domain(chainId, contract),
+    types: { Link: cardTypes.Link },
+    primaryType: 'Link' as const,
+    message,
+  }
 }
 
 /** What the card signs to prove it is the card being linked. */
@@ -117,13 +122,25 @@ export function claimTypedData(
   contract: Address,
   message: { card: Address; holder: Address; deadline: bigint },
 ) {
-  return { domain: domain(chainId, contract), types: { Claim: cardTypes.Claim }, primaryType: 'Claim' as const, message }
+  return {
+    domain: domain(chainId, contract),
+    types: { Claim: cardTypes.Claim },
+    primaryType: 'Claim' as const,
+    message,
+  }
 }
 
 export function updateTypedData(
   chainId: number,
   contract: Address,
-  message: { holder: Address; card: Address; dailyLimit: bigint; frozen: boolean; nonce: bigint; deadline: bigint },
+  message: {
+    holder: Address
+    card: Address
+    dailyLimit: bigint
+    frozen: boolean
+    nonce: bigint
+    deadline: bigint
+  },
 ) {
   return {
     domain: domain(chainId, contract),
@@ -220,7 +237,10 @@ export interface CardPaymentLog {
 }
 
 /** Every CardPayment the KovaCard contract emitted in these logs. */
-export function decodeCardPayments(logs: readonly Log[], contract: Address | null): CardPaymentLog[] {
+export function decodeCardPayments(
+  logs: readonly Log[],
+  contract: Address | null,
+): CardPaymentLog[] {
   if (!contract) return []
   const found: CardPaymentLog[] = []
   logs.forEach((log, position) => {
@@ -237,7 +257,11 @@ export function decodeCardPayments(logs: readonly Log[], contract: Address | nul
 }
 
 /** What a holder signs (personal_sign) to change their card's PIN. */
-export function cardPinMessage(change: { card: Address; holder: Address; signedAt: number }): string {
+export function cardPinMessage(change: {
+  card: Address
+  holder: Address
+  signedAt: number
+}): string {
   return [
     'Kova Card: change PIN',
     `Card: ${getAddress(change.card)}`,
@@ -250,6 +274,7 @@ export function cardPinMessage(change: { card: Address; holder: Address; signedA
 export function cardPinProblem(pin: string): string | null {
   if (!/^\d{4,6}$/.test(pin)) return 'A PIN is 4 to 6 digits.'
   if (/^(\d)\1+$/.test(pin)) return 'Pick a PIN that isn’t one digit repeated.'
-  if ('0123456789'.includes(pin) || '9876543210'.includes(pin)) return 'Pick a PIN that isn’t a run of digits.'
+  if ('0123456789'.includes(pin) || '9876543210'.includes(pin))
+    return 'Pick a PIN that isn’t a run of digits.'
   return null
 }

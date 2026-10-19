@@ -4,10 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { linkShopOwner, settleToWallet, walletChallenge } from '@/app/actions'
-import {
-  passkeyDomain,
-  passkeyHome,
-} from '@/lib/passkey'
+import { passkeyDomain, passkeyHome } from '@/lib/passkey'
 import { openWalletSigner, type WalletIdentity } from '@/lib/wallet/signer'
 import { Icon } from './brand'
 

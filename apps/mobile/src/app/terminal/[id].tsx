@@ -3,18 +3,27 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import QRCode from 'react-native-qrcode-svg'
-import { settlementToken } from '@/lib/config'
 import { cancelCharge, getCharge, type PaymentIntent, payLinkFor } from '@/lib/api'
 import { CardError, finishTap, isCancelled, type ReadTap, readTap } from '@/lib/card'
+import { settlementToken } from '@/lib/config'
 import { useShop } from '@/lib/shop'
 import { colors } from '@/lib/theme'
 import { KoviPeek, peekEdge } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Ping } from '@/ui/motion'
-import { PinEntry } from '@/ui/PinEntry'
 import { PaidScene } from '@/ui/PaidScene'
+import { PinEntry } from '@/ui/PinEntry'
+import {
+  Chip,
+  PillButton,
+  Rise,
+  RoundButton,
+  Screen,
+  Sticker,
+  TextLink,
+  Txt,
+} from '@/ui/primitives'
 import { Stage as KoviStage } from '@/ui/Stage'
-import { Chip, PillButton, Rise, RoundButton, Screen, Sticker, TextLink, Txt } from '@/ui/primitives'
 
 /**
  * The screen the merchant turns toward the customer. Read from across a counter, so it says
@@ -45,7 +54,8 @@ export default function CustomerDisplay() {
       const details = error instanceof CardError ? error.details : {}
       const message = error instanceof Error ? error.message : 'That didn’t work. Tap again.'
       // A wrong PIN keeps the same signed tap: the customer just tries the PIN again.
-      if (details.pin_required && pin !== undefined) setTap({ at: 'pin', read, signature, pin: '', problem: message })
+      if (details.pin_required && pin !== undefined)
+        setTap({ at: 'pin', read, signature, pin: '', problem: message })
       else setTap({ at: 'idle', problem: message })
     }
   }
@@ -57,7 +67,14 @@ export default function CustomerDisplay() {
       if (read.pin_required) setTap({ at: 'pin', read, signature, pin: '' })
       else await pay(read, signature)
     } catch (error) {
-      setTap(isCancelled(error) ? { at: 'idle' } : { at: 'idle', problem: error instanceof Error ? error.message : 'That didn’t work. Tap again.' })
+      setTap(
+        isCancelled(error)
+          ? { at: 'idle' }
+          : {
+              at: 'idle',
+              problem: error instanceof Error ? error.message : 'That didn’t work. Tap again.',
+            },
+      )
     }
   }
 
@@ -72,7 +89,8 @@ export default function CustomerDisplay() {
           clearInterval(poll)
           setTookMs(Date.now() - started.current)
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-        } else if (latest.status !== 'requires_payment' && latest.status !== 'processing') clearInterval(poll)
+        } else if (latest.status !== 'requires_payment' && latest.status !== 'processing')
+          clearInterval(poll)
       } catch {
         // A missed poll is not a failed payment. Keep waiting.
       }
@@ -118,7 +136,10 @@ export default function CustomerDisplay() {
             <View style={styles.stats}>
               <Stat label="Took" value={tookMs ? `${(tookMs / 1000).toFixed(1)}s` : '—'} />
               <Stat label="Card fees" value="$0.00" />
-              <Stat label="Time" value={new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} />
+              <Stat
+                label="Time"
+                value={new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              />
             </View>
           </Sticker>
         </View>
@@ -136,7 +157,11 @@ export default function CustomerDisplay() {
           <Txt weight="semi" size={30} style={{ marginTop: 12 }}>
             {status === 'expired' ? 'Nobody paid in time' : 'This charge stopped'}
           </Txt>
-          <Txt size={16} color={colors.onTint} style={{ textAlign: 'center', marginTop: 8, lineHeight: 23 }}>
+          <Txt
+            size={16}
+            color={colors.onTint}
+            style={{ textAlign: 'center', marginTop: 8, lineHeight: 23 }}
+          >
             {status === 'expired'
               ? 'No money moved. Start the charge again when the customer is ready.'
               : status === 'held'
@@ -161,7 +186,13 @@ export default function CustomerDisplay() {
           <Chip label="Card •••" icon="tap" />
         </View>
         <View style={{ alignItems: 'center', marginTop: 24, paddingHorizontal: 24 }}>
-          <Txt weight="bold" size={56} style={{ letterSpacing: -2 }} numberOfLines={1} adjustsFontSizeToFit>
+          <Txt
+            weight="bold"
+            size={56}
+            style={{ letterSpacing: -2 }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {price}
           </Txt>
           <Txt weight="semi" size={24} style={{ marginTop: 8 }}>
@@ -204,18 +235,32 @@ export default function CustomerDisplay() {
         <Chip label={status === 'processing' ? 'Confirming' : 'Waiting'} dot={colors.coral} />
       </View>
       <View style={styles.center}>
-        <Txt weight="bold" size={64} style={{ letterSpacing: -2.5 }} numberOfLines={1} adjustsFontSizeToFit>
+        <Txt
+          weight="bold"
+          size={64}
+          style={{ letterSpacing: -2.5 }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
           {price}
         </Txt>
         <Txt weight="medium" size={16} color={colors.onTint}>
-          {price.startsWith('$') ? `in ${settlementToken.symbol}` : `$${usd} ${settlementToken.symbol}`}
+          {price.startsWith('$')
+            ? `in ${settlementToken.symbol}`
+            : `$${usd} ${settlementToken.symbol}`}
           {intent?.reference ? `  ·  ${intent.reference}` : ''}
         </Txt>
         {/* Room above the code for Kovi's head, so he never covers what's being paid for. */}
         <View style={{ marginTop: 56 }}>
           <Sticker radius={34} style={{ width: qr + 52, height: qr + 52 }}>
             <View style={styles.qr}>
-              <QRCode value={payLinkFor(id)} size={qr} color={colors.ink} backgroundColor={colors.surface} ecl="M" />
+              <QRCode
+                value={payLinkFor(id)}
+                size={qr}
+                color={colors.ink}
+                backgroundColor={colors.surface}
+                ecl="M"
+              />
             </View>
           </Sticker>
           <View style={styles.peek} pointerEvents="none">
@@ -232,7 +277,12 @@ export default function CustomerDisplay() {
           </Txt>
         </View>
         {tap.at === 'idle' && tap.problem ? (
-          <Txt weight="medium" size={15} color={colors.danger} style={{ textAlign: 'center', marginTop: 12 }}>
+          <Txt
+            weight="medium"
+            size={15}
+            color={colors.danger}
+            style={{ textAlign: 'center', marginTop: 12 }}
+          >
             {tap.problem}
           </Txt>
         ) : null}
@@ -240,7 +290,13 @@ export default function CustomerDisplay() {
       <View style={[styles.footer, { alignItems: 'center', gap: 12 }]}>
         <View style={{ alignSelf: 'stretch' }}>
           <PillButton
-            label={tap.at === 'paying' ? 'Paying…' : tap.at === 'reading' ? 'Hold the card to the phone' : 'Tap a Kova Card'}
+            label={
+              tap.at === 'paying'
+                ? 'Paying…'
+                : tap.at === 'reading'
+                  ? 'Hold the card to the phone'
+                  : 'Tap a Kova Card'
+            }
             icon="tap"
             tone="white"
             loading={tap.at === 'reading' || tap.at === 'paying'}
@@ -273,12 +329,27 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12 },
+  top: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   qr: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   peek: { position: 'absolute', top: -65 * peekEdge + 1, right: 30 },
   how: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 22 },
-  tapDisc: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.coral, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  tapDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.coral,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   stats: { flexDirection: 'row', paddingVertical: 12 },
   footer: { paddingHorizontal: 20, paddingBottom: 16, paddingTop: 12, marginTop: 'auto' },
 })

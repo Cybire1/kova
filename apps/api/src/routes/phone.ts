@@ -1,14 +1,14 @@
 import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
-import { isAddress, type Address, type Hex } from 'viem'
+import { type Address, type Hex, isAddress } from 'viem'
 import { z } from 'zod'
 import { network } from '../chain.js'
 import { config } from '../config.js'
-import { KovaError, errorHandler } from '../errors.js'
+import { errorHandler, KovaError } from '../errors.js'
 import { clientIp, limit } from '../limits.js'
 import {
-  checkPhoneApproval,
   checkedPhone,
+  checkPhoneApproval,
   confirmPhoneFunding,
   finishPhonePayment,
   invitePhoneRecipient,

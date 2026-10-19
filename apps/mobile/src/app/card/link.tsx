@@ -41,13 +41,17 @@ export default function LinkCard() {
     if (step === 'pin') setPin('')
   }
 
-  const steps = step === 'intro' || step === 'done' ? null : (
-    <View accessibilityLabel={`Step ${order.indexOf(step) + 1} of ${order.length}`} style={styles.steps}>
-      {order.map((s) => (
-        <View key={s} style={[styles.step, s === step && styles.stepOn]} />
-      ))}
-    </View>
-  )
+  const steps =
+    step === 'intro' || step === 'done' ? null : (
+      <View
+        accessibilityLabel={`Step ${order.indexOf(step) + 1} of ${order.length}`}
+        style={styles.steps}
+      >
+        {order.map((s) => (
+          <View key={s} style={[styles.step, s === step && styles.stepOn]} />
+        ))}
+      </View>
+    )
 
   const choosePin = (next: string) => {
     setProblem(null)
@@ -80,12 +84,16 @@ export default function LinkCard() {
     setBusy(true)
     setProblem(null)
     try {
-      const card = await linkCard({ holder: profile.address, dailyLimit: limit, pin }, signTypedData)
+      const card = await linkCard(
+        { holder: profile.address, dailyLimit: limit, pin },
+        signTypedData,
+      )
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
       setLinked(card)
       setStep('done')
     } catch (error) {
-      if (!isCancelled(error)) setProblem(error instanceof Error ? error.message : 'That didn’t work. Try again.')
+      if (!isCancelled(error))
+        setProblem(error instanceof Error ? error.message : 'That didn’t work. Try again.')
     } finally {
       setBusy(false)
     }
@@ -105,8 +113,8 @@ export default function LinkCard() {
             Your card is ready.
           </Txt>
           <Txt size={17} color={colors.onTint} style={styles.body}>
-            Tap it at any Kova till. It can spend up to ${linked.daily_limit} a day from your wallet, and asks for your
-            PIN over ${linked.no_pin_limit}.
+            Tap it at any Kova till. It can spend up to ${linked.daily_limit} a day from your
+            wallet, and asks for your PIN over ${linked.no_pin_limit}.
           </Txt>
         </Rise>
         <View style={styles.footer}>
@@ -136,7 +144,8 @@ export default function LinkCard() {
             Hold your card to the top of your iPhone.
           </Txt>
           <Txt size={17} color={colors.onTint} style={styles.body}>
-            Keep it there until the phone says it’s read, about a second. Then Face ID approves the link.
+            Keep it there until the phone says it’s read, about a second. Then Face ID approves the
+            link.
           </Txt>
           {problem ? (
             <Txt weight="medium" size={15} color={colors.danger} style={{ marginTop: 12 }}>
@@ -145,7 +154,12 @@ export default function LinkCard() {
           ) : null}
         </Rise>
         <View style={styles.footer}>
-          <PillButton label={problem ? 'Try again' : 'Read my card'} icon="tap" loading={busy} onPress={link} />
+          <PillButton
+            label={problem ? 'Try again' : 'Read my card'}
+            icon="tap"
+            loading={busy}
+            onPress={link}
+          />
         </View>
       </Screen>
     )
@@ -185,8 +199,8 @@ export default function LinkCard() {
             How much can it spend in a day?
           </Txt>
           <Txt size={16} color={colors.muted} style={styles.body}>
-            The card pays from your wallet, never more than this a day. It’s kept on Monad, so nobody but you can raise
-            it. You can change it whenever you like.
+            The card pays from your wallet, never more than this a day. It’s kept on Monad, so
+            nobody but you can raise it. You can change it whenever you like.
           </Txt>
         </Rise>
         <View style={styles.limits} accessibilityRole="radiogroup">
@@ -204,7 +218,12 @@ export default function LinkCard() {
                 }}
                 style={[styles.limit, on && styles.limitOn]}
               >
-                <Txt weight="bold" size={30} color={on ? colors.white : colors.ink} style={{ letterSpacing: -1 }}>
+                <Txt
+                  weight="bold"
+                  size={30}
+                  color={on ? colors.white : colors.ink}
+                  style={{ letterSpacing: -1 }}
+                >
                   ${l}
                 </Txt>
                 <Txt size={14} color={on ? colors.white : colors.muted}>
@@ -233,9 +252,15 @@ export default function LinkCard() {
           Link your Kova Card.
         </Txt>
         <View style={{ gap: 12, marginTop: 14 }}>
-          <Fact icon="tap" text="Tap it at a Kova till to pay. No phone, no data, no signal needed." />
+          <Fact
+            icon="tap"
+            text="Tap it at a Kova till to pay. No phone, no data, no signal needed."
+          />
           <Fact icon="card" text="It spends straight from your wallet. Nothing to top up." />
-          <Fact icon="lock" text="A PIN over $25, a daily limit you choose, and a freeze that works at once." />
+          <Fact
+            icon="lock"
+            text="A PIN over $25, a daily limit you choose, and a freeze that works at once."
+          />
         </View>
       </Rise>
       <View style={styles.footer}>

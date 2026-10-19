@@ -816,20 +816,27 @@ export const paymentLinks = pgTable(
     phoneCheckedAt: timestamp('phone_checked_at', { withTimezone: true }).notNull().defaultNow(),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex('payment_links_address_idx').on(t.linkAddress), index('payment_links_sender_idx').on(t.senderAddress)],
+  (t) => [
+    uniqueIndex('payment_links_address_idx').on(t.linkAddress),
+    index('payment_links_sender_idx').on(t.senderAddress),
+  ],
 )
 
 // --- Kova Travel ---------------------------------------------------------------------------
 
 /** A pending phone account becomes active only after number verification. No auth secrets here. */
-export const phoneAccounts = pgTable('phone_accounts', {
-  id: id(),
-  network: network('network').notNull(),
-  phone: text('phone').notNull(),
-  wallet: address('wallet'),
-  verifiedAt: timestamp('verified_at', { withTimezone: true }),
-  createdAt: createdAt(),
-}, (t) => [uniqueIndex('phone_accounts_network_phone_idx').on(t.network, t.phone)])
+export const phoneAccounts = pgTable(
+  'phone_accounts',
+  {
+    id: id(),
+    network: network('network').notNull(),
+    phone: text('phone').notNull(),
+    wallet: address('wallet'),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('phone_accounts_network_phone_idx').on(t.network, t.phone)],
+)
 
 export const tripKind = pgEnum('trip_kind', ['flight', 'stay'])
 export const tripStatus = pgEnum('trip_status', [
@@ -1093,7 +1100,10 @@ export const cardTaps = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('card_taps_card_idx').on(t.cardAddress, t.createdAt), index('card_taps_intent_idx').on(t.intentId)],
+  (t) => [
+    index('card_taps_card_idx').on(t.cardAddress, t.createdAt),
+    index('card_taps_intent_idx').on(t.intentId),
+  ],
 )
 
 /**
@@ -1136,7 +1146,10 @@ export const cashOuts = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index('cash_outs_wallet_idx').on(t.walletAddress, t.createdAt), uniqueIndex('cash_outs_tx_idx').on(t.txHash)],
+  (t) => [
+    index('cash_outs_wallet_idx').on(t.walletAddress, t.createdAt),
+    uniqueIndex('cash_outs_tx_idx').on(t.txHash),
+  ],
 )
 
 /**
@@ -1167,7 +1180,10 @@ export const nairaTopUps = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex('naira_top_ups_reference_idx').on(t.reference), index('naira_top_ups_wallet_idx').on(t.walletAddress, t.createdAt)],
+  (t) => [
+    uniqueIndex('naira_top_ups_reference_idx').on(t.reference),
+    index('naira_top_ups_wallet_idx').on(t.walletAddress, t.createdAt),
+  ],
 )
 
 // --- Money in, card and savings (partners) ------------------------------------------------------
@@ -1247,7 +1263,10 @@ export const dollarCards = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex('dollar_cards_token_idx').on(t.providerCardToken), index('dollar_cards_wallet_idx').on(t.wallet, t.network)],
+  (t) => [
+    uniqueIndex('dollar_cards_token_idx').on(t.providerCardToken),
+    index('dollar_cards_wallet_idx').on(t.wallet, t.network),
+  ],
 )
 
 /** Each move into or out of savings, so "earned" is what the vault holds less what went in. */
@@ -1266,7 +1285,10 @@ export const savingsMoves = pgTable(
     txHash: text('tx_hash').notNull(),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex('savings_moves_tx_idx').on(t.txHash), index('savings_moves_wallet_idx').on(t.wallet, t.network)],
+  (t) => [
+    uniqueIndex('savings_moves_tx_idx').on(t.txHash),
+    index('savings_moves_wallet_idx').on(t.wallet, t.network),
+  ],
 )
 
 // --- Kova for Business -----------------------------------------------------------------------------
@@ -1404,7 +1426,11 @@ export const walletKeys = pgTable(
     period: integer('period').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     /** An agent's rules: the most one payment can be, the line above which it asks, who it may pay. */
-    rules: jsonb('rules').$type<{ perPayment: string; approveAbove: string; payees: 'anyone' | string[] }>(),
+    rules: jsonb('rules').$type<{
+      perPayment: string
+      approveAbove: string
+      payees: 'anyone' | string[]
+    }>(),
     /** An agent's private key, sealed under KOVA_KEYS_MASTER_KEY. */
     sealedKey: text('sealed_key'),
     /** The start of an agent's token, to find it by; the whole token is only stored hashed. */
@@ -1466,4 +1492,27 @@ export const keyPayments = pgTable(
     index('key_payments_key_idx').on(t.walletKeyId, t.createdAt),
     index('key_payments_status_idx').on(t.status),
   ],
+)
+
+// --- Kova for iPhone, in TestFlight ------------------------------------------------------------
+
+/**
+ * People asking for Kova's iPhone beta (mykova.app/iphone). Kova keeps their email, and their name
+ * and country when they give them, only to send the TestFlight invite; invited_at is set once it
+ * has gone out.
+ */
+export const iosBetaRequests = pgTable(
+  'ios_beta_requests',
+  {
+    id: id(),
+    /** Lowercase. */
+    email: text('email').notNull(),
+    name: text('name'),
+    country: text('country'),
+    /** Where they asked from: iphone-page, home or try. */
+    source: text('source').notNull().default('iphone-page'),
+    createdAt: createdAt(),
+    invitedAt: timestamp('invited_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('ios_beta_requests_email_idx').on(t.email)],
 )

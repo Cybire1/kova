@@ -1,4 +1,11 @@
-import { type Address, decodeEventLog, type Hex, isAddressEqual, type Log, type TransactionReceipt } from 'viem'
+import {
+  type Address,
+  decodeEventLog,
+  type Hex,
+  isAddressEqual,
+  type Log,
+  type TransactionReceipt,
+} from 'viem'
 import { eip3009Abi } from './authorization.js'
 import { decodeCardPayments } from './card.js'
 
@@ -19,7 +26,10 @@ export interface AuthorizedTransfer {
  * the two side by side, so a batch of several authorizations from one payer still pairs up
  * exactly. Anything else in the receipt is ignored.
  */
-export function decodeAuthorizedTransfers(logs: readonly Log[], token: Address): AuthorizedTransfer[] {
+export function decodeAuthorizedTransfers(
+  logs: readonly Log[],
+  token: Address,
+): AuthorizedTransfer[] {
   const used: { authorizer: Address; nonce: Hex; logIndex: number }[] = []
   const transfers: { from: Address; to: Address; value: bigint; logIndex: number }[] = []
   logs.forEach((log, position) => {
@@ -38,11 +48,21 @@ export function decodeAuthorizedTransfers(logs: readonly Log[], token: Address):
     let best: (typeof transfers)[number] | undefined
     for (const t of transfers) {
       if (taken.has(t.logIndex) || !isAddressEqual(t.from, u.authorizer)) continue
-      if (!best || Math.abs(t.logIndex - u.logIndex) < Math.abs(best.logIndex - u.logIndex)) best = t
+      if (!best || Math.abs(t.logIndex - u.logIndex) < Math.abs(best.logIndex - u.logIndex))
+        best = t
     }
     if (!best) return []
     taken.add(best.logIndex)
-    return [{ authorizer: u.authorizer, nonce: u.nonce, to: best.to, value: best.value, logIndex: u.logIndex, transferLogIndex: best.logIndex }]
+    return [
+      {
+        authorizer: u.authorizer,
+        nonce: u.nonce,
+        to: best.to,
+        value: best.value,
+        logIndex: u.logIndex,
+        transferLogIndex: best.logIndex,
+      },
+    ]
   })
 }
 
@@ -52,7 +72,11 @@ export function decodeAuthorizedTransfers(logs: readonly Log[], token: Address):
  * same shape as an authorization, the holder as the authorizer and the memo as the nonce, so a
  * card tap settles and indexes exactly like any other Kova payment.
  */
-export function decodeCardTransfers(logs: readonly Log[], token: Address, cardContract: Address | null | undefined): AuthorizedTransfer[] {
+export function decodeCardTransfers(
+  logs: readonly Log[],
+  token: Address,
+  cardContract: Address | null | undefined,
+): AuthorizedTransfer[] {
   const payments = decodeCardPayments(logs, cardContract ?? null)
   if (payments.length === 0) return []
   const transfers: { from: Address; to: Address; value: bigint; logIndex: number }[] = []
@@ -60,7 +84,8 @@ export function decodeCardTransfers(logs: readonly Log[], token: Address, cardCo
     if (!isAddressEqual(log.address, token)) return
     try {
       const event = decodeEventLog({ abi: eip3009Abi, data: log.data, topics: log.topics })
-      if (event.eventName === 'Transfer') transfers.push({ ...event.args, logIndex: log.logIndex ?? position })
+      if (event.eventName === 'Transfer')
+        transfers.push({ ...event.args, logIndex: log.logIndex ?? position })
     } catch {
       // Not a token event.
     }
@@ -68,11 +93,26 @@ export function decodeCardTransfers(logs: readonly Log[], token: Address, cardCo
   const taken = new Set<number>()
   return payments.flatMap((p) => {
     const match = transfers
-      .filter((t) => !taken.has(t.logIndex) && isAddressEqual(t.from, p.holder) && isAddressEqual(t.to, p.to) && t.value === p.amount)
+      .filter(
+        (t) =>
+          !taken.has(t.logIndex) &&
+          isAddressEqual(t.from, p.holder) &&
+          isAddressEqual(t.to, p.to) &&
+          t.value === p.amount,
+      )
       .sort((a, b) => Math.abs(a.logIndex - p.logIndex) - Math.abs(b.logIndex - p.logIndex))[0]
     if (!match) return []
     taken.add(match.logIndex)
-    return [{ authorizer: p.holder, nonce: p.memo, to: p.to, value: p.amount, logIndex: p.logIndex, transferLogIndex: match.logIndex }]
+    return [
+      {
+        authorizer: p.holder,
+        nonce: p.memo,
+        to: p.to,
+        value: p.amount,
+        logIndex: p.logIndex,
+        transferLogIndex: match.logIndex,
+      },
+    ]
   })
 }
 
@@ -92,8 +132,15 @@ export interface TokenTransfer {
  * own signature and does not enforce an eventName, so an AuthorizationUsed log "decodes" too,
  * with no from or to.
  */
-export function decodeTokenTransfers(logs: readonly Log[], token: Address, cardContract?: Address | null): TokenTransfer[] {
-  const authorized = [...decodeAuthorizedTransfers(logs, token), ...decodeCardTransfers(logs, token, cardContract)]
+export function decodeTokenTransfers(
+  logs: readonly Log[],
+  token: Address,
+  cardContract?: Address | null,
+): TokenTransfer[] {
+  const authorized = [
+    ...decodeAuthorizedTransfers(logs, token),
+    ...decodeCardTransfers(logs, token, cardContract),
+  ]
   const transfers: TokenTransfer[] = []
   logs.forEach((log, position) => {
     if (!isAddressEqual(log.address, token)) return
@@ -139,7 +186,10 @@ export interface PaymentVerdict {
  * moving exactly the amount, in the right token, to the merchant. A transfer that matches on
  * everything but the memo is reported, never counted.
  */
-export function verifyPayment(receipt: Pick<TransactionReceipt, 'status' | 'logs'>, expected: ExpectedPayment): PaymentVerdict {
+export function verifyPayment(
+  receipt: Pick<TransactionReceipt, 'status' | 'logs'>,
+  expected: ExpectedPayment,
+): PaymentVerdict {
   if (receipt.status !== 'success') return { status: 'failed' }
   const moves = [
     ...decodeAuthorizedTransfers(receipt.logs, expected.token),
@@ -147,9 +197,14 @@ export function verifyPayment(receipt: Pick<TransactionReceipt, 'status' | 'logs
   ]
   const exact = moves.find((m) => m.nonce.toLowerCase() === expected.memo.toLowerCase())
   if (exact) {
-    if (!isAddressEqual(exact.to, expected.payTo) || exact.value !== expected.amount) return { status: 'unmatched' }
+    if (!isAddressEqual(exact.to, expected.payTo) || exact.value !== expected.amount)
+      return { status: 'unmatched' }
     return { status: 'paid', payer: exact.authorizer }
   }
-  const lookalike = moves.find((m) => isAddressEqual(m.to, expected.payTo) && m.value === expected.amount)
-  return lookalike ? { status: 'memo_mismatch', payer: lookalike.authorizer } : { status: 'unmatched' }
+  const lookalike = moves.find(
+    (m) => isAddressEqual(m.to, expected.payTo) && m.value === expected.amount,
+  )
+  return lookalike
+    ? { status: 'memo_mismatch', payer: lookalike.authorizer }
+    : { status: 'unmatched' }
 }

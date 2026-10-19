@@ -5,10 +5,10 @@ import { useEffect, useState } from 'react'
 import { Art, Icon } from '@/components/brand'
 import { formatUsd } from '@/lib/wallet/money'
 import { ScreenHead } from './activity'
-import { NairaRow } from './naira'
-import { FromAbroadRow } from './money'
-import { useWallet } from './provider'
 import { MonConversionEntry } from './mon'
+import { FromAbroadRow } from './money'
+import { NairaRow } from './naira'
+import { useWallet } from './provider'
 
 type Stage =
   | { at: 'ready' }
@@ -35,7 +35,11 @@ export function AddMoney() {
         </div>
         {chainDeposits ? <FromAnotherChain /> : null}
         <MonConversionEntry />
-        <NairaRow href="/wallet/add/naira" title="From your bank, in naira" detail="Bank transfer, card or USSD, with Paystack" />
+        <NairaRow
+          href="/wallet/add/naira"
+          title="From your bank, in naira"
+          detail="Bank transfer, card or USSD, with Paystack"
+        />
         <FromAbroadRow />
         <CardOrBank />
         <Link href="/wallet/receive" className="pill pill-block" data-tone="ink">
@@ -118,7 +122,11 @@ export function AddMoney() {
             <Icon name="plus" size={18} />
           </span>
         </button>
-        <NairaRow href="/wallet/add/naira" title="From your bank, in naira" detail="Bank transfer, card or USSD, with Paystack" />
+        <NairaRow
+          href="/wallet/add/naira"
+          title="From your bank, in naira"
+          detail="Bank transfer, card or USSD, with Paystack"
+        />
         <FromAbroadRow />
       </div>
     </div>
@@ -135,11 +143,16 @@ function FromAnotherChain() {
   useEffect(() => {
     let active = true
     setAvailable(false)
-    if (address) void fetch(`/api/wallet/${address}/chain-deposit-sources`, { cache: 'no-store' })
-      .then((r) => r.ok ? r.json() : null)
-      .then((r) => { if (active) setAvailable(r?.live === true) })
-      .catch(() => {})
-    return () => { active = false }
+    if (address)
+      void fetch(`/api/wallet/${address}/chain-deposit-sources`, { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((r) => {
+          if (active) setAvailable(r?.live === true)
+        })
+        .catch(() => {})
+    return () => {
+      active = false
+    }
   }, [address])
   if (!available) return null
   return (

@@ -1,8 +1,8 @@
-import { network } from '@/lib/network'
 import type { Metadata } from 'next'
 import { Brand } from '@/components/brand'
 import { OfflinePaymentView } from '@/components/offline-payment'
 import { WalletProvider } from '@/components/wallet/provider'
+import { network } from '@/lib/network'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,11 +28,7 @@ export const metadata: Metadata = {
  */
 export default function OfflinePaymentPage() {
   return (
-    <WalletProvider
-      network={network}
-      shop={null}
-      initialRates={null}
-    >
+    <WalletProvider network={network} shop={null} initialRates={null}>
       <main className="lk-page of-page">
         <header className="lk-top">
           <Brand />

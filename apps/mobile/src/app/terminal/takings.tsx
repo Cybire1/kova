@@ -7,7 +7,15 @@ import type { PrivateSale } from '@/lib/takings-core'
 import { colors } from '@/lib/theme'
 import { Kovi } from '@/ui/art'
 import { Header, Rise, Screen, Txt } from '@/ui/primitives'
-import { AccountantCard, freshMove, PrivateSaleRow, SalesFlow, TakingsCard, TakingsInvite, TakingsState } from '@/ui/Takings'
+import {
+  AccountantCard,
+  freshMove,
+  PrivateSaleRow,
+  SalesFlow,
+  TakingsCard,
+  TakingsInvite,
+  TakingsState,
+} from '@/ui/Takings'
 
 /** "Today", "Yesterday", or the date: how the private sales are grouped. */
 function dayOf(at: string | null) {
@@ -51,7 +59,11 @@ export default function PrivateTakings() {
 
   return (
     <Screen edges={['top']}>
-      <Header title="Private takings" subtitle={shop.name} right={t.owner && t.ready ? <TakingsState /> : null} />
+      <Header
+        title="Private takings"
+        subtitle={shop.name}
+        right={t.owner && t.ready ? <TakingsState /> : null}
+      />
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 48 }}
         refreshControl={
@@ -70,7 +82,8 @@ export default function PrivateTakings() {
           <View style={styles.empty}>
             <Kovi pose="key" size={130} />
             <Txt size={15} color={colors.muted} style={{ textAlign: 'center', lineHeight: 21 }}>
-              Private takings belong to the shop’s owner. Open them on the phone whose wallet owns {shop.name}.
+              Private takings belong to the shop’s owner. Open them on the phone whose wallet owns{' '}
+              {shop.name}.
             </Txt>
           </View>
         ) : !t.ready ? (
@@ -85,8 +98,9 @@ export default function PrivateTakings() {
             <View style={styles.explain}>
               <SalesFlow sales={t.sales} />
               <Txt size={14} color={colors.onTint} style={{ marginTop: 14, lineHeight: 20 }}>
-                Each sale is paid to an address made for that sale alone. Customers pay exactly as before. Only your shop’s keys can tell
-                these addresses are yours, so nobody reading Monad can add up what you take.
+                Each sale is paid to an address made for that sale alone. Customers pay exactly as
+                before. Only your shop’s keys can tell these addresses are yours, so nobody reading
+                Monad can add up what you take.
               </Txt>
             </View>
 
@@ -118,7 +132,11 @@ export default function PrivateTakings() {
                   </Txt>
                   <View style={styles.list}>
                     {group.sales.map((sale, i) => (
-                      <PrivateSaleRow key={sale.stealth_address} sale={sale} last={i === group.sales.length - 1} />
+                      <PrivateSaleRow
+                        key={sale.stealth_address}
+                        sale={sale}
+                        last={i === group.sales.length - 1}
+                      />
                     ))}
                   </View>
                 </View>
@@ -139,9 +157,33 @@ export default function PrivateTakings() {
 const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: 12, paddingTop: 60, paddingHorizontal: 12 },
   section: { marginTop: 28, marginBottom: 12, letterSpacing: -0.4 },
-  sectionRow: { marginTop: 28, marginBottom: 12, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  explain: { borderRadius: 24, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, padding: 14 },
-  none: { borderRadius: 22, borderWidth: 2, borderColor: colors.ink, borderStyle: 'dashed', padding: 16 },
+  sectionRow: {
+    marginTop: 28,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+  },
+  explain: {
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    padding: 14,
+  },
+  none: {
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    borderStyle: 'dashed',
+    padding: 16,
+  },
   day: { marginBottom: 8, marginLeft: 4 },
-  list: { borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, overflow: 'hidden' },
+  list: {
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
 })

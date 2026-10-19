@@ -51,8 +51,8 @@ export function InAppNote({ href }: { href?: string } = {}) {
     <div className="w-inapp" role="note">
       <strong>Open Kova in {browser}</strong>
       <span>
-        Kova opens with a passkey, and {where.app ? `${where.app}’s built-in browser` : 'this browser'}{' '}
-        often can’t use one.
+        Kova opens with a passkey, and{' '}
+        {where.app ? `${where.app}’s built-in browser` : 'this browser'} often can’t use one.
       </span>
       <div className="w-inapp-actions">
         {open ? (

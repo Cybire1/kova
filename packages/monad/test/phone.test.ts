@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { phoneInput, phoneMessage, phonePaymentNonce } from '../src/phone.js'
+
 describe('phone payments', () => {
   it('requires explicit country codes and ignores wallet addresses and local numbers', () => {
     expect(phoneInput('+234 (801) 234-5678')).toBe('+2348012345678')

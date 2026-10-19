@@ -16,8 +16,8 @@ import {
   keccak256,
   parseEventLogs,
   recoverMessageAddress,
-  toHex,
   type TransactionReceipt,
+  toHex,
 } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { network, publicClient, settlementToken } from '../chain.js'
@@ -27,9 +27,9 @@ import { KovaError } from '../errors.js'
 import { relayAuthorization, relayReady } from '../relay.js'
 import { hashSecret, openKey, sealKey, secretMatches } from '../secrets.js'
 import type { PaymentIntent } from './intents.js'
+import { verifiedWalletForPhone } from './phone-payments.js'
 import { settleFromReceipt } from './settle.js'
 import { sendSms, sendSmsLater, smsReady } from './sms.js'
-import { verifiedWalletForPhone } from './phone-payments.js'
 
 export type Pocket = typeof schema.ussdPockets.$inferSelect
 export type Spend = typeof schema.ussdSpends.$inferSelect

@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PhonePaymentScreen, PhoneSend } from './phone'
+
 const state = vi.hoisted(() => ({
   sign: vi.fn(),
   send: vi.fn(),
@@ -56,7 +57,7 @@ vi.mock('./provider', () => ({
 }))
 vi.mock('./send', () => ({
   SlideToSend: (p: any) => (
-    <button disabled={p.disabled || p.busy} onClick={p.onSend}>
+    <button type="button" disabled={p.disabled || p.busy} onClick={p.onSend}>
       {p.label}
     </button>
   ),
@@ -66,7 +67,7 @@ vi.mock('./ui', () => ({ CopyButton: () => null }))
 beforeEach(() => {
   address = sender
   localStorage.clear()
-  Object.values(state.client).forEach((fn) => fn.mockReset())
+  for (const fn of Object.values(state.client)) fn.mockReset()
   state.client.info.mockResolvedValue({ enabled: true, network: 'testnet', mode: 'sandbox' })
   state.client.get.mockResolvedValue(payment())
   state.client.resolve.mockResolvedValue({ address: null })
@@ -132,14 +133,22 @@ describe('phone Send', () => {
     await review()
     expect(screen.getByText(/Goes directly to their USSD balance/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Slide to send' }))
-    await waitFor(() => expect(state.send).toHaveBeenCalledWith(
-      { address: pocket, name: '+2348012345678' }, 1_000_000n, '', { privately: false },
-    ))
+    await waitFor(() =>
+      expect(state.send).toHaveBeenCalledWith(
+        { address: pocket, name: '+2348012345678' },
+        1_000_000n,
+        '',
+        { privately: false },
+      ),
+    )
     expect(state.client.reserve).not.toHaveBeenCalled()
   })
   it('requires another review if the USSD pocket closes before sending', async () => {
     state.client.resolve
-      .mockResolvedValueOnce({ address: '0x3333333333333333333333333333333333333333', destination: 'ussd-pocket' })
+      .mockResolvedValueOnce({
+        address: '0x3333333333333333333333333333333333333333',
+        destination: 'ussd-pocket',
+      })
       .mockResolvedValueOnce({ address: recipient, destination: 'wallet' })
     render(<PhoneSend />)
     await review()
@@ -169,7 +178,9 @@ describe('phone Send', () => {
     address = recipient
     state.client.requestCode.mockResolvedValue({ sent: true })
     state.client.verify.mockResolvedValue({ verified: true })
-    state.client.claim.mockRejectedValueOnce(new Error('Verify the recipient phone number with this wallet first.')).mockResolvedValue(payment())
+    state.client.claim
+      .mockRejectedValueOnce(new Error('Verify the recipient phone number with this wallet first.'))
+      .mockResolvedValue(payment())
     render(<PhonePaymentScreen id={payment().id} />)
     fireEvent.change(await screen.findByLabelText('Your full phone number'), {
       target: { value: '+2348012345678' },
@@ -188,7 +199,9 @@ describe('phone Send', () => {
     address = recipient
     state.client.claim.mockResolvedValue(payment())
     render(<PhonePaymentScreen id={payment().id} />)
-    fireEvent.change(await screen.findByLabelText('Your full phone number'), { target: { value: '+2348012345678' } })
+    fireEvent.change(await screen.findByLabelText('Your full phone number'), {
+      target: { value: '+2348012345678' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Continue to claim' }))
     await waitFor(() => expect(state.client.claim).toHaveBeenCalledTimes(1))
     expect(state.client.requestCode).not.toHaveBeenCalled()

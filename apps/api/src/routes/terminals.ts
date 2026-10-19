@@ -22,7 +22,10 @@ const CODE_LENGTH = 6
 const TTL_MS = 10 * 60 * 1000
 
 const normalize = (code: string) => code.toUpperCase().replace(/[^0-9A-Z]/g, '')
-const hash = (code: string) => createHash('sha256').update(`kova-pair:${normalize(code)}`).digest('hex')
+const hash = (code: string) =>
+  createHash('sha256')
+    .update(`kova-pair:${normalize(code)}`)
+    .digest('hex')
 
 function newCode() {
   return Array.from({ length: CODE_LENGTH }, () => ALPHABET[randomInt(ALPHABET.length)]).join('')
@@ -57,7 +60,9 @@ export const terminalRoutes = new Hono()
     const merchant = c.get('merchant')
     const code = newCode()
     const expiresAt = new Date(Date.now() + TTL_MS)
-    await db.insert(schema.terminalPairings).values({ id: uuidv7(), merchantId: merchant.id, codeHash: hash(code), expiresAt })
+    await db
+      .insert(schema.terminalPairings)
+      .values({ id: uuidv7(), merchantId: merchant.id, codeHash: hash(code), expiresAt })
     return c.json(
       {
         object: 'terminal_pairing',
@@ -72,7 +77,10 @@ export const terminalRoutes = new Hono()
   /** Merchant: the terminals paired to this shop. */
   .get('/', requireApiKey, requireMerchantKey, async (c) => {
     const rows = await db.query.terminals.findMany({
-      where: and(eq(schema.terminals.merchantId, c.get('merchant').id), eq(schema.terminals.status, 'active')),
+      where: and(
+        eq(schema.terminals.merchantId, c.get('merchant').id),
+        eq(schema.terminals.status, 'active'),
+      ),
       orderBy: (t, { asc }) => [asc(t.createdAt)],
     })
     return c.json({
@@ -122,12 +130,23 @@ export const terminalRoutes = new Hono()
         .returning()
       if (!pairing) return null
 
-      const merchant = await tx.query.merchants.findFirst({ where: eq(schema.merchants.id, pairing.merchantId) })
+      const merchant = await tx.query.merchants.findFirst({
+        where: eq(schema.merchants.id, pairing.merchantId),
+      })
       if (!merchant || merchant.status !== 'active') return null
 
       const terminalId = uuidv7()
-      await tx.insert(schema.terminals).values({ id: terminalId, merchantId: merchant.id, name, device: device ?? null, lastSeenAt: new Date() })
-      await tx.update(schema.terminalPairings).set({ terminalId }).where(eq(schema.terminalPairings.id, pairing.id))
+      await tx.insert(schema.terminals).values({
+        id: terminalId,
+        merchantId: merchant.id,
+        name,
+        device: device ?? null,
+        lastSeenAt: new Date(),
+      })
+      await tx
+        .update(schema.terminalPairings)
+        .set({ terminalId })
+        .where(eq(schema.terminalPairings.id, pairing.id))
 
       const key = generateApiKey(merchant.isTest)
       await tx.insert(schema.apiKeys).values({
@@ -143,7 +162,11 @@ export const terminalRoutes = new Hono()
       return { merchant, terminalId, secret: key.secret }
     })
 
-    if (!result) throw new KovaError('not_found', 'That code has expired or was already used. Ask for a new one.')
+    if (!result)
+      throw new KovaError(
+        'not_found',
+        'That code has expired or was already used. Ask for a new one.',
+      )
     return c.json(
       {
         object: 'terminal',

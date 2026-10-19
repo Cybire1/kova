@@ -7,10 +7,10 @@ import { useStall } from '@/lib/stall'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { KeyScene } from '@/ui/art'
-import { Bob } from '@/ui/motion'
-import { Header, PillButton, Rise, Screen, TextLink, Txt } from '@/ui/primitives'
-import { ProfileForm } from '@/ui/ProfileForm'
 import { GoogleSignInButton } from '@/ui/GoogleSignInButton'
+import { Bob } from '@/ui/motion'
+import { ProfileForm } from '@/ui/ProfileForm'
+import { Header, PillButton, Rise, Screen, TextLink, Txt } from '@/ui/primitives'
 
 /**
  * A wallet coming back: on a new phone, or this one after it was removed. The passkey from
@@ -50,7 +50,10 @@ export default function Restore() {
   if (step === 'name')
     return (
       <Screen bg={colors.paper}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <Header />
           <ProfileForm
             heading="Your wallet is back."
@@ -93,8 +96,16 @@ export default function Restore() {
         ) : null}
       </Rise>
       <View style={styles.footer}>
-        <View style={{ marginBottom: 12 }}><GoogleSignInButton /></View>
-        <PillButton label="Use my passkey" icon="face" loading={busy} disabled={googleBusy} onPress={usePasskey} />
+        <View style={{ marginBottom: 12 }}>
+          <GoogleSignInButton />
+        </View>
+        <PillButton
+          label="Use my passkey"
+          icon="face"
+          loading={busy}
+          disabled={googleBusy}
+          onPress={usePasskey}
+        />
         {isTestnet ? (
           <View style={{ alignItems: 'center', marginTop: 14 }}>
             <TextLink label="Sign in with a demo account" onPress={() => router.push('/demo')} />

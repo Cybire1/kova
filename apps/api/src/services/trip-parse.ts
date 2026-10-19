@@ -28,7 +28,8 @@ export interface UnderstoodTrip {
 
 export const understandReady = () => ai !== null
 
-const weekday = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'UTC' })
+const weekday = (iso: string) =>
+  new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'UTC' })
 
 export async function understandTrip(text: string, today: string): Promise<UnderstoodTrip> {
   if (!ai) throw new KovaError('invalid_request', 'Typing a trip is not set up on this server yet.')
@@ -43,20 +44,48 @@ export async function understandTrip(text: string, today: string): Promise<Under
         input_schema: {
           type: 'object',
           properties: {
-            kind: { type: 'string', enum: ['flight', 'stay'], description: 'flight for flying somewhere; stay for a hotel or somewhere to sleep.' },
-            from: { type: 'string', description: 'Flights: where they fly from, a city or airport as written (e.g. "Lagos"). Empty if not said.' },
+            kind: {
+              type: 'string',
+              enum: ['flight', 'stay'],
+              description: 'flight for flying somewhere; stay for a hotel or somewhere to sleep.',
+            },
+            from: {
+              type: 'string',
+              description:
+                'Flights: where they fly from, a city or airport as written (e.g. "Lagos"). Empty if not said.',
+            },
             to: { type: 'string', description: 'Flights: where they fly to. Empty if not said.' },
-            depart: { type: 'string', description: 'Flights: departure date as YYYY-MM-DD. Empty if not said.' },
-            return: { type: 'string', description: 'Flights: return date as YYYY-MM-DD for a return trip, else empty.' },
-            adults: { type: 'integer', description: 'Adults travelling or staying, 1 if not said.' },
+            depart: {
+              type: 'string',
+              description: 'Flights: departure date as YYYY-MM-DD. Empty if not said.',
+            },
+            return: {
+              type: 'string',
+              description: 'Flights: return date as YYYY-MM-DD for a return trip, else empty.',
+            },
+            adults: {
+              type: 'integer',
+              description: 'Adults travelling or staying, 1 if not said.',
+            },
             children: { type: 'integer', description: 'Children aged 2 to 11, 0 if not said.' },
             infants: { type: 'integer', description: 'Babies under 2, 0 if not said.' },
-            cabin: { type: 'string', enum: ['economy', 'premium_economy', 'business', 'first'], description: 'economy unless they ask otherwise.' },
-            city: { type: 'string', description: 'Stays: the city or area to stay in. Empty if not said.' },
+            cabin: {
+              type: 'string',
+              enum: ['economy', 'premium_economy', 'business', 'first'],
+              description: 'economy unless they ask otherwise.',
+            },
+            city: {
+              type: 'string',
+              description: 'Stays: the city or area to stay in. Empty if not said.',
+            },
             check_in: { type: 'string', description: 'Stays: YYYY-MM-DD. Empty if not said.' },
             check_out: { type: 'string', description: 'Stays: YYYY-MM-DD. Empty if not said.' },
             rooms: { type: 'integer', description: 'Stays: rooms, 1 if not said.' },
-            wishes: { type: 'string', description: 'Any other preference in their own words (non-stop, arrive before 6pm, breakfast, near the beach). Empty if none.' },
+            wishes: {
+              type: 'string',
+              description:
+                'Any other preference in their own words (non-stop, arrive before 6pm, breakfast, near the beach). Empty if none.',
+            },
           },
           required: ['kind'],
         },
@@ -71,12 +100,15 @@ export async function understandTrip(text: string, today: string): Promise<Under
     ],
   })
   const call = response.content.find((block) => block.type === 'tool_use')
-  if (!call || call.type !== 'tool_use') throw new KovaError('invalid_request', 'Couldn’t read that trip. Try saying where and when.')
+  if (!call || call.type !== 'tool_use')
+    throw new KovaError('invalid_request', 'Couldn’t read that trip. Try saying where and when.')
   const t = call.input as Partial<Record<keyof UnderstoodTrip, unknown>>
   const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 80) : null)
   const date = (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)
   const count = (v: unknown, min: number, max: number, fallback: number) =>
-    typeof v === 'number' && Number.isFinite(v) ? Math.max(min, Math.min(max, Math.round(v))) : fallback
+    typeof v === 'number' && Number.isFinite(v)
+      ? Math.max(min, Math.min(max, Math.round(v)))
+      : fallback
   return {
     kind: t.kind === 'stay' ? 'stay' : 'flight',
     from: str(t.from),
@@ -86,7 +118,10 @@ export async function understandTrip(text: string, today: string): Promise<Under
     adults: count(t.adults, 1, 9, 1),
     children: count(t.children, 0, 8, 0),
     infants: count(t.infants, 0, 4, 0),
-    cabin: t.cabin === 'premium_economy' || t.cabin === 'business' || t.cabin === 'first' ? t.cabin : 'economy',
+    cabin:
+      t.cabin === 'premium_economy' || t.cabin === 'business' || t.cabin === 'first'
+        ? t.cabin
+        : 'economy',
     city: str(t.city),
     check_in: date(t.check_in),
     check_out: date(t.check_out),

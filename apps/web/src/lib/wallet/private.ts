@@ -4,6 +4,7 @@ import {
   openStealthMemo,
   parseStealthMetaAddress,
   personalStealthKeysMessage,
+  planPrivateSpend,
   type StealthKeys,
   type StealthMemo,
   stealthKeysFromSignature,
@@ -24,8 +25,8 @@ import { type LocalAccount, privateKeyToAccount } from 'viem/accounts'
 import type { Announcement } from '@/lib/api'
 import { baseOf, scan, type ViewKey } from '@/lib/takings'
 import { balanceOf, type StealthAnnouncement } from './chain'
-import { inTurns, signMoves } from './takings'
 import { networkStorageKey } from './storage'
+import { inTurns, signMoves } from './takings'
 
 /**
  * Private sends between people, in the browser: the app's keys and cryptography (packages/monad
@@ -340,24 +341,17 @@ export function oneTimeAccount(
 
 /**
  * Where a private payment of `amount` comes from: the smallest one address that holds enough, so
- * the rest stay apart; else the fewest addresses, largest first, to gather into one first.
+ * the rest stay apart; else the fewest addresses, largest first, to gather into one first. The
+ * rule is the privacy router's, shared with the app (@kova/monad).
  */
 export function planSpend(
   spendable: { payment: FoundPayment; held: bigint }[],
   amount: bigint,
 ): { from: FoundPayment } | { gather: FoundPayment[] } | null {
-  const order = (a: bigint, b: bigint) => (a < b ? -1 : a > b ? 1 : 0)
-  const enough = spendable.filter((s) => s.held >= amount).sort((a, b) => order(a.held, b.held))
-  if (enough[0]) return { from: enough[0].payment }
-  const gather: FoundPayment[] = []
-  let sum = 0n
-  for (const s of [...spendable].sort((a, b) => order(b.held, a.held))) {
-    if (sum >= amount) break
-    if (s.held <= 0n) continue
-    gather.push(s.payment)
-    sum += s.held
-  }
-  return sum >= amount ? { gather } : null
+  return planPrivateSpend(
+    spendable.map((s) => ({ item: s.payment, held: s.held })),
+    amount,
+  )
 }
 
 /**

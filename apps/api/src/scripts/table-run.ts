@@ -12,12 +12,18 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { networkByChainId, toSignedAuthorization, tokenByAddress, transferAuthorizationTypedData } from '@kova/monad'
+import {
+  networkByChainId,
+  tokenByAddress,
+  toSignedAuthorization,
+  transferAuthorizationTypedData,
+} from '@kova/monad'
 import { type Hex, parseUnits, toHex } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { type Checkout, getCheckout, pay } from './customer.js'
 
-const [api = 'https://api-monad.up.railway.app', slug = 'adas-bakery', table = '3', part = 'all'] = process.argv.slice(2)
+const [api = 'https://api-monad.up.railway.app', slug = 'adas-bakery', table = '3', part = 'all'] =
+  process.argv.slice(2)
 const funderKey = process.env.FUNDER_KEY as Hex | undefined
 if (!funderKey) throw new Error('FUNDER_KEY is required')
 
@@ -33,13 +39,20 @@ interface Placed {
 }
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${api}${path}`, { ...init, headers: { 'content-type': 'application/json' } })
+  const res = await fetch(`${api}${path}`, {
+    ...init,
+    headers: { 'content-type': 'application/json' },
+  })
   const body = await res.json()
   if (!res.ok) throw new Error(`${path}: ${res.status} ${JSON.stringify(body)}`)
   return body as T
 }
 
-const health = await call<{ chain_id: number; network: string; settlement_token: { address: Hex } }>('/health')
+const health = await call<{
+  chain_id: number
+  network: string
+  settlement_token: { address: Hex }
+}>('/health')
 if (health.network !== 'testnet') throw new Error('table-run is testnet only')
 const network = networkByChainId(health.chain_id)
 const stall = await call<Stall>(`/v1/public/stalls/${slug}`)
@@ -65,9 +78,16 @@ if (!resumed) {
     validBefore: BigInt(Math.floor(Date.now() / 1000) + 600),
     nonce: toHex(BigInt(generatePrivateKey()), { size: 32 }),
   }
-  const sendSig = await funder.signTypedData(transferAuthorizationTypedData(token, network.chainId, send))
-  const funded = await call<{ tx_hash?: string }>('/v1/transfers', { method: 'POST', body: JSON.stringify(toSignedAuthorization(token.address, send, sendSig)) })
-  console.log(`customer ${customer.address}, funded $40 (${funded.tx_hash ?? JSON.stringify(funded)})`)
+  const sendSig = await funder.signTypedData(
+    transferAuthorizationTypedData(token, network.chainId, send),
+  )
+  const funded = await call<{ tx_hash?: string }>('/v1/transfers', {
+    method: 'POST',
+    body: JSON.stringify(toSignedAuthorization(token.address, send, sendSig)),
+  })
+  console.log(
+    `customer ${customer.address}, funded $40 (${funded.tx_hash ?? JSON.stringify(funded)})`,
+  )
 }
 
 async function visit(lines: [string, number][], atTable?: string) {
@@ -100,9 +120,18 @@ let first: Awaited<ReturnType<typeof visit>>
 if (part === 'stamps') {
   first = JSON.parse(readFileSync(runFile, 'utf8')).tableOrder
 } else {
-  first = await visit([['Flat white', 1], ['Croissant', 1]], table)
+  first = await visit(
+    [
+      ['Flat white', 1],
+      ['Croissant', 1],
+    ],
+    table,
+  )
   if (part === 'table') {
-    writeFileSync(runFile, `${JSON.stringify({ slug, table, customer: customer.address, total: `$${first.amount}`, seconds: first.seconds, tableOrder: first, every: stall.loyalty_every }, null, 2)}\n`)
+    writeFileSync(
+      runFile,
+      `${JSON.stringify({ slug, table, customer: customer.address, total: `$${first.amount}`, seconds: first.seconds, tableOrder: first, every: stall.loyalty_every }, null, 2)}\n`,
+    )
     // A throwaway testnet key, kept out of the log, so the second part can carry on as the same customer.
     const keyFile = join(tmpdir(), 'kova-table-run.key')
     writeFileSync(keyFile, customerKey, { mode: 0o600 })
@@ -112,10 +141,14 @@ if (part === 'stamps') {
 }
 const visits = [first]
 for (let i = 1; i < stall.loyalty_every; i++) visits.push(await visit([['Croissant', 1]]))
-const card = await call<{ stamps: number; ready: boolean }>(`/v1/public/stalls/${slug}/stamps?payer=${customer.address}`)
+const card = await call<{ stamps: number; ready: boolean }>(
+  `/v1/public/stalls/${slug}/stamps?payer=${customer.address}`,
+)
 console.log('card', JSON.stringify(card))
 const free = await visit([['Croissant', 1]])
-const after = await call<{ stamps: number }>(`/v1/public/stalls/${slug}/stamps?payer=${customer.address}`)
+const after = await call<{ stamps: number }>(
+  `/v1/public/stalls/${slug}/stamps?payer=${customer.address}`,
+)
 
 const run = {
   note: `Real run at ${stall.name} on Monad testnet, ${new Date().toISOString()} (apps/api/src/scripts/table-run.ts).`,

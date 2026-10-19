@@ -1,7 +1,7 @@
-import { network } from '@/lib/network'
 import type { Metadata } from 'next'
 import { Books } from '@/components/books'
 import { Brand, Icon } from '@/components/brand'
+import { network } from '@/lib/network'
 
 // The network comes from this server's environment when the page is asked for, not at build.
 export const dynamic = 'force-dynamic'

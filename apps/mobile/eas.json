@@ -29,6 +29,13 @@
         "EXPO_PUBLIC_KOVA_MONAD_WEB_URL": "https://mykova.app"
       }
     },
+    "testflight": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_KOVA_NETWORK": "testnet",
+        "EXPO_PUBLIC_KOVA_MONAD_API_URL": "https://api-monad.up.railway.app"
+      }
+    },
     "simulator": {
       "developmentClient": true,
       "distribution": "internal",

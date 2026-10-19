@@ -10,7 +10,10 @@ import { formatAmount, parseAmount } from '@kova/monad'
 export const displayCurrencies = ['USD', 'EUR', 'GBP', 'NGN', 'KES', 'MXN'] as const
 export type DisplayCurrency = (typeof displayCurrencies)[number]
 
-export const currencyInfo: Record<DisplayCurrency, { symbol: string; name: string; perUsd: number; decimals: number }> = {
+export const currencyInfo: Record<
+  DisplayCurrency,
+  { symbol: string; name: string; perUsd: number; decimals: number }
+> = {
   USD: { symbol: '$', name: 'US dollars', perUsd: 1, decimals: 2 },
   EUR: { symbol: '€', name: 'Euros', perUsd: 0.92, decimals: 2 },
   GBP: { symbol: '£', name: 'British pounds', perUsd: 0.79, decimals: 2 },
@@ -19,7 +22,28 @@ export const currencyInfo: Record<DisplayCurrency, { symbol: string; name: strin
   MXN: { symbol: 'MX$', name: 'Mexican pesos', perUsd: 18.4, decimals: 2 },
 }
 
-const EURO_REGIONS = new Set(['AT', 'BE', 'CY', 'DE', 'EE', 'ES', 'FI', 'FR', 'GR', 'HR', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PT', 'SI', 'SK'])
+const EURO_REGIONS = new Set([
+  'AT',
+  'BE',
+  'CY',
+  'DE',
+  'EE',
+  'ES',
+  'FI',
+  'FR',
+  'GR',
+  'HR',
+  'IE',
+  'IT',
+  'LT',
+  'LU',
+  'LV',
+  'MT',
+  'NL',
+  'PT',
+  'SI',
+  'SK',
+])
 
 /** A first guess at the currency someone thinks in, from their phone's region. They can change it. */
 export function guessCurrency(): DisplayCurrency {
@@ -37,7 +61,10 @@ export function guessCurrency(): DisplayCurrency {
 }
 
 function grouped(value: number, decimals: number) {
-  return value.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })
 }
 
 /** Base units (6 decimals) → "$1,240.50". */

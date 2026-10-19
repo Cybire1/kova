@@ -52,15 +52,27 @@ export function ShopRail({ state, navigation }: BottomTabBarProps) {
               accessibilityLabel={count ? `${item.label}, ${count} to hand over` : item.label}
               accessibilityState={{ selected: focused }}
               onPress={() => {
-                const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true })
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                })
                 if (!focused && !event.defaultPrevented) {
                   void Haptics.selectionAsync()
                   navigation.navigate(route.name)
                 }
               }}
-              style={({ pressed }) => [styles.item, focused && styles.itemOn, pressed && !focused && { backgroundColor: 'rgba(255,255,255,0.08)' }]}
+              style={({ pressed }) => [
+                styles.item,
+                focused && styles.itemOn,
+                pressed && !focused && { backgroundColor: 'rgba(255,255,255,0.08)' },
+              ]}
             >
-              {item.icon === 'shop' ? <Icon name="info" size={24} color={color} /> : <NavIcon name={item.icon} active={focused} size={26} color={color} />}
+              {item.icon === 'shop' ? (
+                <Icon name="info" size={24} color={color} />
+              ) : (
+                <NavIcon name={item.icon} active={focused} size={26} color={color} />
+              )}
               <Txt weight="semi" size={12} color={color}>
                 {item.label}
               </Txt>
@@ -76,7 +88,13 @@ export function ShopRail({ state, navigation }: BottomTabBarProps) {
         })}
       </View>
       <View style={{ flex: 1 }} />
-      <Txt weight="semi" size={11} color={colors.onInk} style={{ textAlign: 'center' }} numberOfLines={2}>
+      <Txt
+        weight="semi"
+        size={11}
+        color={colors.onInk}
+        style={{ textAlign: 'center' }}
+        numberOfLines={2}
+      >
         {shop.terminal}
       </Txt>
     </View>
@@ -85,8 +103,23 @@ export function ShopRail({ state, navigation }: BottomTabBarProps) {
 
 const styles = StyleSheet.create({
   rail: { width: RAIL, backgroundColor: colors.ink, alignItems: 'center', paddingHorizontal: 12 },
-  mark: { width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: colors.yellow, alignItems: 'center', justifyContent: 'center' },
-  item: { width: 88, height: 66, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  mark: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: colors.yellow,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  item: {
+    width: 88,
+    height: 66,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
   itemOn: { backgroundColor: colors.surface },
   count: {
     position: 'absolute',

@@ -49,7 +49,11 @@ export default function Request() {
           <PillButton
             label="Share request"
             icon="share"
-            onPress={() => void Share.share({ message: `${profile.name} asked you for $${fixed}${note ? ` for ${note}` : ''} on Kova: ${link}` })}
+            onPress={() =>
+              void Share.share({
+                message: `${profile.name} asked you for $${fixed}${note ? ` for ${note}` : ''} on Kova: ${link}`,
+              })
+            }
           />
           <View style={{ alignItems: 'center' }}>
             <TextLink label="Change amount" onPress={() => setReady(false)} />
@@ -62,7 +66,13 @@ export default function Request() {
     <Screen bg={colors.paper}>
       <Header title="Request" backIcon="close" />
       <View style={styles.entry}>
-        <Txt weight="semi" size={72} style={[{ letterSpacing: -2.5 }, typed === '' && { color: '#B4B9B8' }]} numberOfLines={1} adjustsFontSizeToFit>
+        <Txt
+          weight="semi"
+          size={72}
+          style={[{ letterSpacing: -2.5 }, typed === '' && { color: '#B4B9B8' }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
           ${groupTyped(typed)}
         </Txt>
         <TextInput
@@ -76,14 +86,25 @@ export default function Request() {
       </View>
       <Keypad onKey={(key) => setTyped((v) => applyKey(v, key))} size={60} />
       <View style={[styles.footer, { marginTop: 14 }]}>
-        <PillButton label="Create request" icon="request" disabled={amount <= 0} onPress={() => setReady(true)} />
+        <PillButton
+          label="Create request"
+          icon="request"
+          disabled={amount <= 0}
+          onPress={() => setReady(true)}
+        />
       </View>
     </Screen>
   )
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, gap: 2 },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    gap: 2,
+  },
   entry: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
   note: {
     marginTop: 16,

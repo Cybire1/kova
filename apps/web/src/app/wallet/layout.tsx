@@ -1,8 +1,8 @@
-import { network } from '@/lib/network'
 import type { Metadata } from 'next'
 import { type ShopToday, WalletProvider } from '@/components/wallet/provider'
 import { WalletShell } from '@/components/wallet/shell'
 import { kovaPublic, type Merchant, type Summary } from '@/lib/api'
+import { network } from '@/lib/network'
 import { getSession } from '@/lib/session'
 import { timeZone, tzQuery } from '@/lib/tz'
 import type { LiveRates } from '@/lib/wallet/money'
@@ -32,11 +32,7 @@ export default async function WalletLayout({ children }: { children: React.React
     kovaPublic<LiveRates>('/v1/rates').catch(() => null),
   ])
   return (
-    <WalletProvider
-      network={network}
-      shop={shop}
-      initialRates={rates}
-    >
+    <WalletProvider network={network} shop={shop} initialRates={rates}>
       <WalletShell>{children}</WalletShell>
     </WalletProvider>
   )

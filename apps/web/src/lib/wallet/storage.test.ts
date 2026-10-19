@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
+import { dropLinkKey, keptLinks, newLinkKey, settleLinkKey } from './dollar-links'
 import { readLedger, writeLedger } from './private'
-import { keptLinks, newLinkKey, dropLinkKey, settleLinkKey } from './dollar-links'
 import { networkStorageKey } from './storage'
 
 afterEach(() => localStorage.clear())
@@ -11,7 +11,9 @@ describe('switching the website network', () => {
     expect(networkStorageKey('receipts', 'mainnet', 'mykova.app')).toBe('receipts')
     expect(networkStorageKey('receipts', 'testnet', 'mykova.app')).toBe('receipts.testnet')
     expect(networkStorageKey('receipts', 'testnet', 'web-monad.up.railway.app')).toBe('receipts')
-    expect(networkStorageKey('receipts', 'mainnet', 'web-monad.up.railway.app')).toBe('receipts.mainnet')
+    expect(networkStorageKey('receipts', 'mainnet', 'web-monad.up.railway.app')).toBe(
+      'receipts.mainnet',
+    )
   })
 
   it('does not reuse a mainnet private-feed cursor or receipts on testnet', () => {

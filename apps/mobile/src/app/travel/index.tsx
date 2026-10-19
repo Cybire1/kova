@@ -2,11 +2,20 @@ import * as Haptics from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Keyboard, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Keyboard,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { type Place, travelStatus, understandTrip } from '@/lib/api'
-import { addDays, day, today, useTravel } from '@/lib/travel'
 import { colors, fonts } from '@/lib/theme'
+import { addDays, day, today, useTravel } from '@/lib/travel'
 import { CitiesScene, Flyer, sendScene } from '@/ui/art'
 import { Icon, type IconName } from '@/ui/Icon'
 import { Flight } from '@/ui/motion'
@@ -26,7 +35,11 @@ export default function Travel() {
   const { width } = useWindowDimensions()
   const insets = useSafeAreaInsets()
   const { trips } = useTravel()
-  const [status, setStatus] = useState<{ ready: boolean; test_mode: boolean; understands: boolean } | null>(null)
+  const [status, setStatus] = useState<{
+    ready: boolean
+    test_mode: boolean
+    understands: boolean
+  } | null>(null)
   const [kind, setKind] = useState<Kind>('flight')
   const [from, setFrom] = useState<Place | null>(null)
   const [to, setTo] = useState<Place | null>(null)
@@ -34,7 +47,13 @@ export default function Travel() {
   const [start, setStart] = useState<string | null>(addDays(today(), 14))
   const [end, setEnd] = useState<string | null>(addDays(today(), 17))
   const [oneWay, setOneWay] = useState(false)
-  const [people, setPeople] = useState<People>({ adults: 1, children: 0, infants: 0, cabin: 'economy', rooms: 1 })
+  const [people, setPeople] = useState<People>({
+    adults: 1,
+    children: 0,
+    infants: 0,
+    cabin: 'economy',
+    rooms: 1,
+  })
   const [wishes, setWishes] = useState('')
   const [sentence, setSentence] = useState('')
   const [reading, setReading] = useState(false)
@@ -70,18 +89,38 @@ export default function Travel() {
         if (t.check_out) setEnd(t.check_out)
         else if (t.check_in) setEnd(addDays(t.check_in, 1))
       }
-      setPeople({ adults: t.adults, children: t.children, infants: t.infants, cabin: t.cabin, rooms: t.rooms })
+      setPeople({
+        adults: t.adults,
+        children: t.children,
+        infants: t.infants,
+        cabin: t.cabin,
+        rooms: t.rooms,
+      })
       setWishes(t.wishes ?? '')
-      const missing = t.kind === 'flight' ? [!t.from_place && 'where from', !t.to_place && 'where to', !t.depart && 'when'].filter(Boolean) : [!t.city_place && 'where', !t.check_in && 'when'].filter(Boolean)
-      setUnderstood(missing.length ? `Got most of it. Add ${missing.join(' and ')} below.` : 'Here’s what Kova understood. Check it, then search.')
+      const missing =
+        t.kind === 'flight'
+          ? [!t.from_place && 'where from', !t.to_place && 'where to', !t.depart && 'when'].filter(
+              Boolean,
+            )
+          : [!t.city_place && 'where', !t.check_in && 'when'].filter(Boolean)
+      setUnderstood(
+        missing.length
+          ? `Got most of it. Add ${missing.join(' and ')} below.`
+          : 'Here’s what Kova understood. Check it, then search.',
+      )
     } catch (error) {
-      setProblem(error instanceof Error ? error.message : 'Couldn’t read that. Try saying where and when.')
+      setProblem(
+        error instanceof Error ? error.message : 'Couldn’t read that. Try saying where and when.',
+      )
     } finally {
       setReading(false)
     }
   }
 
-  const canSearch = kind === 'flight' ? Boolean(from && to && start && (oneWay || end)) : Boolean(city && start && end)
+  const canSearch =
+    kind === 'flight'
+      ? Boolean(from && to && start && (oneWay || end))
+      : Boolean(city && start && end)
   const search = () => {
     if (!canSearch) return
     if (kind === 'flight' && from && to && start)
@@ -121,9 +160,16 @@ export default function Travel() {
   const scene = width - 40
   return (
     <View style={{ flex: 1, backgroundColor: colors.paper }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 32 }}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
-          <RoundButton icon="close" label="Close" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+          <RoundButton
+            icon="close"
+            label="Close"
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+          />
           {status?.test_mode ? (
             <View style={styles.test}>
               <View style={styles.testDot} />
@@ -166,8 +212,18 @@ export default function Travel() {
                 style={styles.sentenceInput}
                 accessibilityLabel="Describe your trip"
               />
-              <Pressable accessibilityRole="button" accessibilityLabel="Fill in the search" disabled={reading || sentence.trim().length < 3} onPress={read} style={[styles.go, sentence.trim().length < 3 && { opacity: 0.35 }]}>
-                {reading ? <ActivityIndicator color={colors.white} /> : <Icon name="arrow" color={colors.white} strokeWidth={2.4} />}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Fill in the search"
+                disabled={reading || sentence.trim().length < 3}
+                onPress={read}
+                style={[styles.go, sentence.trim().length < 3 && { opacity: 0.35 }]}
+              >
+                {reading ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Icon name="arrow" color={colors.white} strokeWidth={2.4} />
+                )}
               </Pressable>
             </View>
           ) : null}
@@ -213,7 +269,13 @@ export default function Travel() {
           <View style={styles.form}>
             {kind === 'flight' ? (
               <>
-                <Field icon="send" label="From" value={from ? `${from.city} (${from.iata})` : null} placeholder="Where are you flying from?" onPress={() => setPicking('from')} />
+                <Field
+                  icon="send"
+                  label="From"
+                  value={from ? `${from.city} (${from.iata})` : null}
+                  placeholder="Where are you flying from?"
+                  onPress={() => setPicking('from')}
+                />
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Swap from and to"
@@ -226,21 +288,53 @@ export default function Travel() {
                 >
                   <Icon name="swap" size={18} />
                 </Pressable>
-                <Field icon="down" label="To" value={to ? `${to.city} (${to.iata})` : null} placeholder="Where to?" onPress={() => setPicking('to')} />
+                <Field
+                  icon="down"
+                  label="To"
+                  value={to ? `${to.city} (${to.iata})` : null}
+                  placeholder="Where to?"
+                  onPress={() => setPicking('to')}
+                />
                 <Field
                   icon="clock"
                   label={oneWay ? 'Depart' : 'Depart and return'}
-                  value={start ? (oneWay || !end ? day(start) : `${day(start)} to ${day(end)}`) : null}
+                  value={
+                    start ? (oneWay || !end ? day(start) : `${day(start)} to ${day(end)}`) : null
+                  }
                   placeholder="When?"
                   onPress={() => setPicking('dates')}
                 />
-                <Field icon="user" label="Who" value={peopleText(people, 'flight')} onPress={() => setPicking('people')} last />
+                <Field
+                  icon="user"
+                  label="Who"
+                  value={peopleText(people, 'flight')}
+                  onPress={() => setPicking('people')}
+                  last
+                />
               </>
             ) : (
               <>
-                <Field icon="home" label="Where" value={city ? city.city : null} placeholder="City or area" onPress={() => setPicking('city')} />
-                <Field icon="clock" label="Check in and out" value={start && end ? `${day(start)} to ${day(end)}` : null} placeholder="When?" onPress={() => setPicking('dates')} />
-                <Field icon="user" label="Who" value={peopleText(people, 'stay')} onPress={() => setPicking('people')} last />
+                <Field
+                  icon="home"
+                  label="Where"
+                  value={city ? city.city : null}
+                  placeholder="City or area"
+                  onPress={() => setPicking('city')}
+                />
+                <Field
+                  icon="clock"
+                  label="Check in and out"
+                  value={start && end ? `${day(start)} to ${day(end)}` : null}
+                  placeholder="When?"
+                  onPress={() => setPicking('dates')}
+                />
+                <Field
+                  icon="user"
+                  label="Who"
+                  value={peopleText(people, 'stay')}
+                  onPress={() => setPicking('people')}
+                  last
+                />
               </>
             )}
           </View>
@@ -250,7 +344,11 @@ export default function Travel() {
             <TextInput
               value={wishes}
               onChangeText={setWishes}
-              placeholder={kind === 'flight' ? 'Anything that matters? Non-stop, arrive by 6pm…' : 'Anything that matters? Breakfast, a pool…'}
+              placeholder={
+                kind === 'flight'
+                  ? 'Anything that matters? Non-stop, arrive by 6pm…'
+                  : 'Anything that matters? Breakfast, a pool…'
+              }
               placeholderTextColor="#8C9799"
               maxLength={200}
               style={styles.wishesInput}
@@ -274,29 +372,49 @@ export default function Travel() {
                 Booking isn’t switched on yet
               </Txt>
               <Txt size={14} color={colors.muted} style={{ marginTop: 2, lineHeight: 20 }}>
-                This Kova server doesn’t have its travel supplier connected yet. Searches will work once it does.
+                This Kova server doesn’t have its travel supplier connected yet. Searches will work
+                once it does.
               </Txt>
             </View>
           ) : null}
 
           <View style={{ marginTop: 18 }}>
-            <PillButton label={kind === 'flight' ? 'Search flights' : 'Search hotels'} icon="arrow" disabled={!canSearch} onPress={search} />
+            <PillButton
+              label={kind === 'flight' ? 'Search flights' : 'Search hotels'}
+              icon="arrow"
+              disabled={!canSearch}
+              onPress={search}
+            />
           </View>
 
           {trips.length ? (
             <>
-              <Txt weight="bold" size={22} style={{ letterSpacing: -0.5, marginTop: 30, marginBottom: 10 }}>
+              <Txt
+                weight="bold"
+                size={22}
+                style={{ letterSpacing: -0.5, marginTop: 30, marginBottom: 10 }}
+              >
                 Your trips
               </Txt>
               {trips.map((t) => (
                 <Pressable
                   key={t.id}
                   accessibilityRole="button"
-                  onPress={() => router.push({ pathname: '/travel/trip/[id]', params: { id: t.id } })}
+                  onPress={() =>
+                    router.push({ pathname: '/travel/trip/[id]', params: { id: t.id } })
+                  }
                   style={({ pressed }) => [styles.trip, pressed && { opacity: 0.8 }]}
                 >
                   <View style={styles.tripArt}>
-                    {t.image ? <Image source={{ uri: t.image }} style={{ width: '100%', height: '100%' }} contentFit={t.kind === 'flight' ? 'contain' : 'cover'} /> : <Icon name={t.kind === 'flight' ? 'send' : 'home'} />}
+                    {t.image ? (
+                      <Image
+                        source={{ uri: t.image }}
+                        style={{ width: '100%', height: '100%' }}
+                        contentFit={t.kind === 'flight' ? 'contain' : 'cover'}
+                      />
+                    ) : (
+                      <Icon name={t.kind === 'flight' ? 'send' : 'home'} />
+                    )}
                   </View>
                   <View style={{ flex: 1 }}>
                     <Txt weight="semi" size={16} numberOfLines={1}>
@@ -330,7 +448,11 @@ export default function Travel() {
         onClose={() => setPicking(null)}
         start={start}
         end={end}
-        labels={kind === 'flight' ? { start: 'Depart', end: 'Return' } : { start: 'Check in', end: 'Check out' }}
+        labels={
+          kind === 'flight'
+            ? { start: 'Depart', end: 'Return' }
+            : { start: 'Check in', end: 'Check out' }
+        }
         oneWay={kind === 'flight' ? oneWay : undefined}
         onOneWay={kind === 'flight' ? setOneWay : undefined}
         onDone={(a, b) => {
@@ -353,9 +475,32 @@ export default function Travel() {
   )
 }
 
-function Field({ icon, label, value, placeholder, onPress, last }: { icon: IconName; label: string; value: string | null; placeholder?: string; onPress: () => void; last?: boolean }) {
+function Field({
+  icon,
+  label,
+  value,
+  placeholder,
+  onPress,
+  last,
+}: {
+  icon: IconName
+  label: string
+  value: string | null
+  placeholder?: string
+  onPress: () => void
+  last?: boolean
+}) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${value ?? placeholder}`} onPress={onPress} style={({ pressed }) => [styles.field, !last && styles.fieldRule, pressed && { opacity: 0.7 }]}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value ?? placeholder}`}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.field,
+        !last && styles.fieldRule,
+        pressed && { opacity: 0.7 },
+      ]}
+    >
       <View style={styles.fieldIcon}>
         <Icon name={icon} size={18} />
       </View>
@@ -372,8 +517,21 @@ function Field({ icon, label, value, placeholder, onPress, last }: { icon: IconN
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
-  test: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: colors.coralSoft },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  test: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    backgroundColor: colors.coralSoft,
+  },
   testDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.coral },
   sentence: {
     marginTop: 16,
@@ -387,16 +545,66 @@ const styles = StyleSheet.create({
     borderColor: colors.ink,
     backgroundColor: colors.surface,
   },
-  sentenceInput: { flex: 1, minHeight: 44, maxHeight: 110, paddingTop: 11, paddingBottom: 11, fontFamily: fonts.semi, fontSize: 17, color: colors.ink },
-  go: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.coral, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  understood: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 10, padding: 12, borderRadius: 18, backgroundColor: colors.tealSoft },
+  sentenceInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 110,
+    paddingTop: 11,
+    paddingBottom: 11,
+    fontFamily: fonts.semi,
+    fontSize: 17,
+    color: colors.ink,
+  },
+  go: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.coral,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  understood: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: colors.tealSoft,
+  },
   kinds: { flexDirection: 'row', gap: 8, marginTop: 18 },
-  kind: { flex: 1, height: 48, borderRadius: 24, borderWidth: 2, borderColor: colors.ink, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  kind: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   kindOn: { backgroundColor: colors.ink },
-  form: { marginTop: 12, borderRadius: 26, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, paddingHorizontal: 14 },
+  form: {
+    marginTop: 12,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+  },
   field: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   fieldRule: { borderBottomWidth: 1, borderColor: colors.sunken },
-  fieldIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.tealSoft, alignItems: 'center', justifyContent: 'center' },
+  fieldIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.tealSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   swap: {
     position: 'absolute',
     right: 14,
@@ -411,9 +619,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  wishes: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 10, height: 46, paddingHorizontal: 16, borderRadius: 23, backgroundColor: colors.sunken },
+  wishes: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    height: 46,
+    paddingHorizontal: 16,
+    borderRadius: 23,
+    backgroundColor: colors.sunken,
+  },
   wishesInput: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: colors.ink },
   notReady: { marginTop: 14, padding: 14, borderRadius: 20, backgroundColor: colors.coralSoft },
-  trip: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, paddingRight: 14, marginBottom: 10, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface },
-  tripArt: { width: 46, height: 46, borderRadius: 14, backgroundColor: colors.paper, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  trip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 10,
+    paddingRight: 14,
+    marginBottom: 10,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
+  tripArt: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: colors.paper,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })

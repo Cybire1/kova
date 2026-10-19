@@ -27,7 +27,7 @@ import {
 } from '@/lib/wallet/money'
 import { sessionCovers } from '@/lib/wallet/session'
 import { Home } from './home'
-import { MoveInFirst, privateCovers } from './private'
+import { stepLine, TopUpLine, usePaymentRoute } from './private'
 import { short, useWallet } from './provider'
 import { Fact, Fit, SlideToSend, wait } from './send'
 import { CopyButton, Keypad } from './ui'
@@ -46,7 +46,7 @@ type Phase = 'idle' | 'funding' | 'recording'
  */
 export function LinkSheet() {
   const router = useRouter()
-  const { balance, fundLink, profile, rates, network, privateBalance } = useWallet()
+  const { balance, fundLink, profile, rates, network, privateBalance, moveInFor } = useWallet()
   const [step, setStep] = useState<Step>('amount')
   const [back, setBack] = useState(false)
   const [typed, setTyped] = useState('')
@@ -74,9 +74,12 @@ export function LinkSheet() {
       return 0n
     }
   }, [typed])
-  const over = balance !== null && amount > balance
-  /** Short, but private dollars waiting to move in would cover it. */
-  const coverable = privateCovers(balance, privateBalance, amount)
+  // A link is paid from the balance; one balance counts private dollars in, and when the balance
+  // alone is short, just enough of them move in first.
+  const [moving, setMoving] = useState(false)
+  const { route } = usePaymentRoute({ amount, direct: false, paying: busy || moving })
+  const over = route.from === 'short'
+  const have = balance === null ? null : balance + privateBalance
   const local =
     profile && profile.currency !== 'USD'
       ? formatLocal(baseToNumber(amount), profile.currency, rates)
@@ -133,6 +136,18 @@ export function LinkSheet() {
         setProblem(recordProblem(e))
       }
       return
+    }
+    if (route.from === 'top-up') {
+      setMoving(true)
+      try {
+        await moveInFor(route.shortfall)
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Your private dollars didn’t move.'
+        if (!/cancel|not allowed|abort/i.test(message)) setProblem(message)
+        return
+      } finally {
+        setMoving(false)
+      }
     }
     const kept = newLinkKey(amount, note.trim() || null, network)
     setPhase('funding')
@@ -206,14 +221,9 @@ export function LinkSheet() {
                   {local && amount > 0n ? (
                     <span className="w-sheet-pill w-sheet-pill-teal">≈ {local}</span>
                   ) : null}
-                  {balance !== null ? (
+                  {have !== null ? (
                     <span className={`w-sheet-pill${over ? ' w-sheet-pill-over' : ''}`}>
-                      {over ? `You have ${formatUsd(balance)}` : `${formatUsd(balance)} available`}
-                    </span>
-                  ) : null}
-                  {over && privateBalance > 0n ? (
-                    <span className="w-sheet-pill w-sheet-pill-private">
-                      <Icon name="lock" size={12} />+{formatUsd(privateBalance)} private
+                      {over ? `You have ${formatUsd(have)}` : `${formatUsd(have)} available`}
                     </span>
                   ) : null}
                 </div>
@@ -226,22 +236,18 @@ export function LinkSheet() {
                   aria-label="A note, shown with the link"
                 />
                 <Keypad onKey={onKey} />
-                {coverable ? (
-                  <MoveInFirst />
-                ) : (
-                  <button
-                    type="button"
-                    className="pill pill-block"
-                    data-tone="ink"
-                    disabled={amount === 0n || over}
-                    onClick={() => moveTo('review')}
-                  >
-                    <span className="pill-label">{over ? 'More than you have' : 'Review'}</span>
-                    <span className="pill-cap">
-                      <Icon name="arrow" size={18} />
-                    </span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="pill pill-block"
+                  data-tone="ink"
+                  disabled={amount === 0n || over}
+                  onClick={() => moveTo('review')}
+                >
+                  <span className="pill-label">{over ? 'More than you have' : 'Review'}</span>
+                  <span className="pill-cap">
+                    <Icon name="arrow" size={18} />
+                  </span>
+                </button>
               </div>
             ) : null}
 
@@ -283,6 +289,7 @@ export function LinkSheet() {
                     hint="From Your links, on this browser"
                   />
                 </dl>
+                {unrecorded ? null : <TopUpLine route={route} />}
                 {problem ? (
                   <p className="w-sheet-problem" role="alert">
                     <Icon name="info" size={16} />
@@ -297,14 +304,16 @@ export function LinkSheet() {
                         ? 'Slide to try again'
                         : `Slide to make a ${plainUsd(amount)} link`
                   }
-                  busy={busy}
+                  busy={busy || moving}
                   disabled={over || amount === 0n}
                   onSend={() => void go()}
                 />
-                <p className="w-fine w-center">
-                  {quick
-                    ? 'Your wallet is open, so this one needs no passkey.'
-                    : 'Your passkey approves it. The dollars wait in the link until someone claims them.'}
+                <p className="w-fine w-center" aria-live="polite">
+                  {moving && route.from === 'top-up'
+                    ? `${stepLine('moving', route.moving)} Kova covers every fee.`
+                    : quick
+                      ? 'Your wallet is open, so this one needs no passkey.'
+                      : 'Your passkey approves it. The dollars wait in the link until someone claims them.'}
                 </p>
               </div>
             ) : null}
@@ -361,8 +370,8 @@ export function LinkSheet() {
                   </a>
                 </div>
                 <p className="w-fine w-center">
-                  Anyone with this link can claim the dollars, so send it only to them. Not
-                  claimed? Take it back from Your links.
+                  Anyone with this link can claim the dollars, so send it only to them. Not claimed?
+                  Take it back from Your links.
                 </p>
                 <div className="lk-made-end">
                   <Link href="/wallet/links" className="textlink">

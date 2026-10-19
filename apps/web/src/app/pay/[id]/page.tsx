@@ -101,9 +101,11 @@ export default async function PayPage(context: { params: Promise<{ id: string }>
               Pay with the wallet that holds the card.
             </p>
           ) : null}
-          {c.network==='mainnet'?<Pill href={`kova://pay/${c.id}`} icon="tap" tone="coral" wide>
-            Pay with the Kova app
-          </Pill>:null}
+          {c.network === 'mainnet' ? (
+            <Pill href={`kova://pay/${c.id}`} icon="tap" tone="coral" wide>
+              Pay with the Kova app
+            </Pill>
+          ) : null}
           {/* The same wallet in the browser, opened with the app's passkey (or made here in a moment). */}
           <Pill
             href={`/wallet/pay/${c.id}`}
@@ -112,7 +114,7 @@ export default async function PayPage(context: { params: Promise<{ id: string }>
             wide
             className="pay-kova-web"
           >
-            {c.network==='testnet'?'Pay with my test wallet':'Pay with my Kova wallet'}
+            {c.network === 'testnet' ? 'Pay with my test wallet' : 'Pay with my Kova wallet'}
           </Pill>
           {c.ussd ? (
             <div
@@ -125,7 +127,6 @@ export default async function PayPage(context: { params: Promise<{ id: string }>
                 enter:
               </p>
               <p
-                aria-label={`USSD payment code ${c.ussd.code}`}
                 style={{
                   fontSize: '2rem',
                   fontWeight: 700,

@@ -1,4 +1,3 @@
-import { apiUrl, network as siteNetwork, publicApiUrl } from '@/lib/network'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Art, Brand, Icon, type IconName, Pill } from '@/components/brand'
@@ -13,6 +12,7 @@ import {
   together,
   whole,
 } from '@/lib/growth'
+import { apiUrl, publicApiUrl, network as siteNetwork } from '@/lib/network'
 import '@/styles/growth.css'
 
 /** The API holds its numbers a minute; so does this page. */

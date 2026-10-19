@@ -50,7 +50,9 @@ export const reportRoutes = new Hono()
         eq(schema.paymentIntents.merchantId, merchantId),
         status ? eq(schema.paymentIntents.status, status) : undefined,
         before ? lt(schema.paymentIntents.createdAt, new Date(before)) : undefined,
-        q ? ilike(schema.paymentIntents.reference, `%${q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`) : undefined,
+        q
+          ? ilike(schema.paymentIntents.reference, `%${q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`)
+          : undefined,
       ),
       orderBy: desc(schema.paymentIntents.createdAt),
       limit: limit + 1,
@@ -69,7 +71,9 @@ export const reportRoutes = new Hono()
       object: 'list',
       data: page.map((r) => ({
         ...serializeIntent(r),
-        terminal: r.terminalId ? { id: encodeId('terminal', r.terminalId), name: names.get(r.terminalId) ?? 'Terminal' } : null,
+        terminal: r.terminalId
+          ? { id: encodeId('terminal', r.terminalId), name: names.get(r.terminalId) ?? 'Terminal' }
+          : null,
         order: orders.get(r.id) ?? null,
       })),
       has_more: rows.length > limit,
@@ -85,26 +89,36 @@ export const reportRoutes = new Hono()
     const merchantId = c.get('merchant').id
     const tz = zone(c.req.query('tz'))
     const midnight = sql`timezone(${tz}, date_trunc('day', timezone(${tz}, now())))`
-    const paid = and(eq(schema.paymentIntents.merchantId, merchantId), eq(schema.paymentIntents.status, 'paid'))
+    const paid = and(
+      eq(schema.paymentIntents.merchantId, merchantId),
+      eq(schema.paymentIntents.status, 'paid'),
+    )
     const totals = {
       total: sql<string>`coalesce(sum(${schema.paymentIntents.amount}), 0)`,
       count: sql<number>`count(*)::int`,
     }
 
-    const [[today], [allTime], [open], last, hourly, daily, byTerminal, byStall] = await Promise.all([
-      db.select(totals).from(schema.paymentIntents).where(and(paid, sql`${schema.paymentIntents.paidAt} >= ${midnight}`)),
-      db.select(totals).from(schema.paymentIntents).where(paid),
-      db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(schema.paymentIntents)
-        .where(
-          and(
-            eq(schema.paymentIntents.merchantId, merchantId),
-            inArray(schema.paymentIntents.status, ['requires_payment', 'processing']),
+    const [[today], [allTime], [open], last, hourly, daily, byTerminal, byStall] =
+      await Promise.all([
+        db
+          .select(totals)
+          .from(schema.paymentIntents)
+          .where(and(paid, sql`${schema.paymentIntents.paidAt} >= ${midnight}`)),
+        db.select(totals).from(schema.paymentIntents).where(paid),
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(schema.paymentIntents)
+          .where(
+            and(
+              eq(schema.paymentIntents.merchantId, merchantId),
+              inArray(schema.paymentIntents.status, ['requires_payment', 'processing']),
+            ),
           ),
-        ),
-      db.query.paymentIntents.findFirst({ where: paid, orderBy: desc(schema.paymentIntents.paidAt) }),
-      db.execute<{ hour: number; total: string; count: number }>(sql`
+        db.query.paymentIntents.findFirst({
+          where: paid,
+          orderBy: desc(schema.paymentIntents.paidAt),
+        }),
+        db.execute<{ hour: number; total: string; count: number }>(sql`
         select h.hour::int as hour, coalesce(sum(i.amount), 0)::text as total, count(i.id)::int as count
         from generate_series(0, 23) as h(hour)
         left join payment_intents i
@@ -114,7 +128,7 @@ export const reportRoutes = new Hono()
         group by h.hour
         order by h.hour
       `),
-      db.execute<{ day: string; total: string; count: number }>(sql`
+        db.execute<{ day: string; total: string; count: number }>(sql`
         select to_char(d.day, 'YYYY-MM-DD') as day, coalesce(sum(i.amount), 0)::text as total, count(i.id)::int as count
         from generate_series(timezone(${tz}, now())::date - 13, timezone(${tz}, now())::date, interval '1 day') as d(day)
         left join payment_intents i
@@ -123,7 +137,12 @@ export const reportRoutes = new Hono()
         group by d.day
         order by d.day
       `),
-      db.execute<{ terminal_id: string | null; name: string | null; total: string; count: number }>(sql`
+        db.execute<{
+          terminal_id: string | null
+          name: string | null
+          total: string
+          count: number
+        }>(sql`
         select i.terminal_id, t.name, coalesce(sum(i.amount), 0)::text as total, count(*)::int as count
         from payment_intents i
         left join terminals t on t.id = i.terminal_id
@@ -132,7 +151,13 @@ export const reportRoutes = new Hono()
         group by i.terminal_id, t.name
         order by sum(i.amount) desc
       `),
-      db.execute<{ stall_id: string; name: string; slug: string; total: string; count: number }>(sql`
+        db.execute<{
+          stall_id: string
+          name: string
+          slug: string
+          total: string
+          count: number
+        }>(sql`
         select s.id as stall_id, s.name, s.slug, coalesce(sum(i.amount), 0)::text as total, count(*)::int as count
         from orders o
         join payment_intents i on i.id = o.intent_id
@@ -141,7 +166,7 @@ export const reportRoutes = new Hono()
         group by s.id, s.name, s.slug
         order by sum(i.amount) desc
       `),
-    ])
+      ])
 
     const merchant = c.get('merchant')
     return c.json({
@@ -157,8 +182,16 @@ export const reportRoutes = new Hono()
       all_time: { total: formatAmount(BigInt(allTime?.total ?? 0)), count: allTime?.count ?? 0 },
       open_intents: open?.count ?? 0,
       last_paid_at: last?.paidAt?.toISOString() ?? null,
-      hourly: [...hourly].map((h) => ({ hour: h.hour, total: formatAmount(BigInt(h.total)), count: h.count })),
-      daily: [...daily].map((d) => ({ date: d.day, total: formatAmount(BigInt(d.total)), count: d.count })),
+      hourly: [...hourly].map((h) => ({
+        hour: h.hour,
+        total: formatAmount(BigInt(h.total)),
+        count: h.count,
+      })),
+      daily: [...daily].map((d) => ({
+        date: d.day,
+        total: formatAmount(BigInt(d.total)),
+        count: d.count,
+      })),
       /** Today's takings per stall. */
       by_stall: [...byStall].map((s) => ({
         stall: { id: encodeId('stall', s.stall_id), name: s.name, slug: s.slug },
@@ -167,7 +200,9 @@ export const reportRoutes = new Hono()
       })),
       /** Today's takings per terminal; `terminal: null` is everything else taken through the API. */
       by_terminal: [...byTerminal].map((t) => ({
-        terminal: t.terminal_id ? { id: encodeId('terminal', t.terminal_id), name: t.name ?? 'Terminal' } : null,
+        terminal: t.terminal_id
+          ? { id: encodeId('terminal', t.terminal_id), name: t.name ?? 'Terminal' }
+          : null,
         total: formatAmount(BigInt(t.total)),
         count: t.count,
       })),

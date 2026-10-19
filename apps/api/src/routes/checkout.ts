@@ -12,10 +12,10 @@ import { decodeId } from '../ids.js'
 import { relayAuthorization } from '../relay.js'
 import { type PaymentIntent, serializeIntent } from '../services/intents.js'
 import { ordersForIntents } from '../services/orders.js'
-import { stampsAt } from '../services/stamps.js'
-import { confirmTransaction, settleFromReceipt } from '../services/settle.js'
-import { tripForCheckout } from '../services/travel.js'
 import { tillCodeFor } from '../services/pockets.js'
+import { confirmTransaction, settleFromReceipt } from '../services/settle.js'
+import { stampsAt } from '../services/stamps.js'
+import { tripForCheckout } from '../services/travel.js'
 
 /**
  * The payer's side of a charge. No API key: anyone holding the charge's id (it is in the QR)

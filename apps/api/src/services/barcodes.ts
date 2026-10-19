@@ -25,14 +25,23 @@ async function openFoodFacts(code: string): Promise<BarcodeSuggestion | null> {
   if (!response.ok) return null
   const body = (await response.json()) as {
     status?: number
-    product?: { product_name?: string; brands?: string; quantity?: string; image_front_small_url?: string }
+    product?: {
+      product_name?: string
+      brands?: string
+      quantity?: string
+      image_front_small_url?: string
+    }
   }
   const p = body.product
   if (body.status !== 1 || !p?.product_name) return null
   const brand = p.brands?.split(',')[0]?.trim() || null
   // Pack sizes often end in the ℮ estimate mark ("400 g ℮"); it means nothing to a buyer.
   const quantity = p.quantity?.replace(/\s*[e℮]$/u, '').trim()
-  const name = [brand && !p.product_name.toLowerCase().includes(brand.toLowerCase()) ? brand : null, p.product_name, quantity]
+  const name = [
+    brand && !p.product_name.toLowerCase().includes(brand.toLowerCase()) ? brand : null,
+    p.product_name,
+    quantity,
+  ]
     .filter(Boolean)
     .join(' ')
   return { name, brand, image_url: p.image_front_small_url ?? null, source: 'open_food_facts' }
@@ -44,10 +53,17 @@ async function upcItemDb(code: string): Promise<BarcodeSuggestion | null> {
     signal: AbortSignal.timeout(TIMEOUT),
   })
   if (!response.ok) return null
-  const body = (await response.json()) as { items?: { title?: string; brand?: string; images?: string[] }[] }
+  const body = (await response.json()) as {
+    items?: { title?: string; brand?: string; images?: string[] }[]
+  }
   const item = body.items?.[0]
   if (!item?.title) return null
-  return { name: item.title, brand: item.brand ?? null, image_url: item.images?.[0] ?? null, source: 'upcitemdb' }
+  return {
+    name: item.title,
+    brand: item.brand ?? null,
+    image_url: item.images?.[0] ?? null,
+    source: 'upcitemdb',
+  }
 }
 
 /** A day of memory, so scanning the same tin twice does not ask the internet twice. */

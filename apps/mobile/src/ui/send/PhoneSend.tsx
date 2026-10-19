@@ -1,12 +1,12 @@
-import { phoneInput, type PhonePayment, type PhoneResolution } from '@kova/monad'
+import { type PhonePayment, type PhoneResolution, phoneInput } from '@kova/monad'
 import { router } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { parseUnits } from 'viem'
-import { newLinkKey, setLinkId } from '@/lib/paylinks'
-import { phoneClient } from '@/lib/phone'
 import { isTestnet } from '@/lib/config'
 import { formatUsd } from '@/lib/money'
+import { newLinkKey, setLinkId } from '@/lib/paylinks'
+import { phoneClient } from '@/lib/phone'
 import { colors, fonts } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Header, PillButton, Screen, TextLink, Txt } from '../primitives'
@@ -66,7 +66,10 @@ export function PhoneSend({ initialPhone = '' }: { initialPhone?: string }) {
     try {
       if (target.address) {
         const fresh = await phoneClient.resolve(signMessage, profile.address, target.phone)
-        if (fresh.address?.toLowerCase() !== target.address.toLowerCase() || fresh.destination !== target.destination)
+        if (
+          fresh.address?.toLowerCase() !== target.address.toLowerCase() ||
+          fresh.destination !== target.destination
+        )
           throw new Error('The recipient changed. Check the number again.')
         await send({ address: target.address, name: target.phone }, value, note, {
           privately: false,

@@ -79,25 +79,43 @@ function Connect({
   // The embedded wallet appears moments after sign-in.
   useEffect(() => {
     if (!cleared || !authenticated || !walletsReady || delivered.current) return
-    const embedded = wallets.filter((w) => w.walletClientType === 'privy')
+    const embedded = wallets
+      .filter((w) => w.walletClientType === 'privy')
       .sort((a, b) => (a.walletIndex ?? 0) - (b.walletIndex ?? 0))[0]
     if (!embedded) {
       if (!creating.current) {
         creating.current = true
-        void createWallet().catch(onCancel).finally(() => { creating.current = false })
+        void createWallet()
+          .catch(onCancel)
+          .finally(() => {
+            creating.current = false
+          })
       }
       return
     }
     delivered.current = true
-    void embedded.getEthereumProvider().then((provider) =>
-      onWallet({
-        address: embedded.address as `0x${string}`,
-        provider,
-        signedInAs: user?.email?.address ?? user?.google?.email ?? 'your email',
-        logout,
-      }),
-    ).catch(onCancel)
-  }, [cleared, authenticated, walletsReady, wallets, user, onWallet, logout, createWallet, onCancel])
+    void embedded
+      .getEthereumProvider()
+      .then((provider) =>
+        onWallet({
+          address: embedded.address as `0x${string}`,
+          provider,
+          signedInAs: user?.email?.address ?? user?.google?.email ?? 'your email',
+          logout,
+        }),
+      )
+      .catch(onCancel)
+  }, [
+    cleared,
+    authenticated,
+    walletsReady,
+    wallets,
+    user,
+    onWallet,
+    logout,
+    createWallet,
+    onCancel,
+  ])
 
   return null
 }

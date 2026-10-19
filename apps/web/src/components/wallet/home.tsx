@@ -1,14 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Awning } from '@/components/awning'
 import { Art, Icon } from '@/components/brand'
 import { formatUsd, toBase } from '@/lib/wallet/money'
-import { MoneyRow } from './money'
 import { KeysOnHome } from './keys'
-import { PrivateWaiting } from './private'
 import { MonWalletCard } from './mon'
+import { MoneyRow } from './money'
 import { isUnnamed, useWallet } from './provider'
 import { ActionTile, Avatar, BalanceCard, EntryRow } from './ui'
 
@@ -76,8 +75,6 @@ export function Home() {
 
       <KeysOnHome />
 
-      <PrivateWaiting />
-
       <ShopCard />
 
       <MoneyRow />
@@ -105,6 +102,8 @@ export function Home() {
           <span className="w-notice-cta">Add</span>
         </Link>
       ) : null}
+
+      <IosBeta />
 
       <h2 className="w-section">Send again</h2>
       <div className="w-people">
@@ -218,5 +217,48 @@ function NameYourself() {
         </button>
       </div>
     </form>
+  )
+}
+
+const IOS_BETA_AWAY = 'kova.iosBeta.away'
+
+/**
+ * Kova for iOS is in beta: an invite on Home until it's tapped or put away. Hidden until the browser
+ * says it wasn't put away before, so it never flashes. The link tells the waitlist it came from here.
+ */
+function IosBeta() {
+  const [away, setAway] = useState(true)
+  useEffect(() => {
+    try {
+      setAway(localStorage.getItem(IOS_BETA_AWAY) === '1')
+    } catch {
+      setAway(false)
+    }
+  }, [])
+  if (away) return null
+  const putAway = () => {
+    try {
+      localStorage.setItem(IOS_BETA_AWAY, '1')
+    } catch {
+      // Private mode: it comes back next visit, which is fine.
+    }
+    setAway(true)
+  }
+  return (
+    <div className="w-ios">
+      <a href="https://mykova.app/waitlist?ref=wallet" className="w-notice" onClick={putAway}>
+        <span className="w-notice-icon">
+          <Icon name="terminal" size={18} />
+        </span>
+        <span className="w-notice-text">
+          <strong>Kova for iOS</strong>
+          <span>Join the beta. The app comes through TestFlight.</span>
+        </span>
+        <span className="w-notice-cta">Join</span>
+      </a>
+      <button type="button" className="w-ios-away" aria-label="Not now" onClick={putAway}>
+        <Icon name="close" size={14} />
+      </button>
+    </div>
   )
 }

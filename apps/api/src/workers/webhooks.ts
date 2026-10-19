@@ -33,10 +33,19 @@ export function sign(secret: string, body: string, timestamp = Math.floor(Date.n
 }
 
 function isPrivate(ip: string) {
-  if (ip === '::1' || ip.startsWith('fc') || ip.startsWith('fd') || ip.startsWith('fe80')) return true
+  if (ip === '::1' || ip.startsWith('fc') || ip.startsWith('fd') || ip.startsWith('fe80'))
+    return true
   const [a, b] = ip.split('.').map(Number)
   if (a === undefined || b === undefined) return false
-  return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127)
+  return (
+    a === 10 ||
+    a === 127 ||
+    a === 0 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 100 && b >= 64 && b <= 127)
+  )
 }
 
 /** In production, never let a webhook URL reach Kova's own network. */
@@ -72,7 +81,12 @@ async function deliverDue() {
         db
           .select({ id: schema.webhookDeliveries.id })
           .from(schema.webhookDeliveries)
-          .where(and(eq(schema.webhookDeliveries.status, 'pending'), lte(schema.webhookDeliveries.nextAttemptAt, new Date())))
+          .where(
+            and(
+              eq(schema.webhookDeliveries.status, 'pending'),
+              lte(schema.webhookDeliveries.nextAttemptAt, new Date()),
+            ),
+          )
           .limit(BATCH),
       ),
     )
@@ -83,11 +97,16 @@ async function deliverDue() {
 
 async function deliver(delivery: typeof schema.webhookDeliveries.$inferSelect) {
   const [endpoint, event] = await Promise.all([
-    db.query.webhookEndpoints.findFirst({ where: eq(schema.webhookEndpoints.id, delivery.endpointId) }),
+    db.query.webhookEndpoints.findFirst({
+      where: eq(schema.webhookEndpoints.id, delivery.endpointId),
+    }),
     db.query.events.findFirst({ where: eq(schema.events.id, delivery.eventId) }),
   ])
   if (!endpoint || !event || endpoint.status !== 'active') {
-    await db.update(schema.webhookDeliveries).set({ status: 'failed', lastError: 'Endpoint removed' }).where(eq(schema.webhookDeliveries.id, delivery.id))
+    await db
+      .update(schema.webhookDeliveries)
+      .set({ status: 'failed', lastError: 'Endpoint removed' })
+      .where(eq(schema.webhookDeliveries.id, delivery.id))
     return
   }
 

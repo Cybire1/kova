@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics'
-import * as WebBrowser from 'expo-web-browser'
 import { router } from 'expo-router'
+import * as WebBrowser from 'expo-web-browser'
 import { useEffect, useState } from 'react'
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { naira } from '@/lib/api'
@@ -13,8 +13,8 @@ import { Icon } from '@/ui/Icon'
 import { FromAbroadRow } from '@/ui/Money'
 import { MonConversionEntry } from '@/ui/MonWalletCard'
 import { CoinRain } from '@/ui/motion'
-import { Stage } from '@/ui/Stage'
 import { Header, PillButton, Rise, Screen, Sticker, Txt } from '@/ui/primitives'
+import { Stage } from '@/ui/Stage'
 
 /**
  * Adding money. On testnet, Kova sends $5 of test AUSD a day from its own testnet treasury. On mainnet this is where

@@ -6,7 +6,9 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
   const payer = new URL(request.url).searchParams.get('payer') ?? ''
   try {
     return Response.json(
-      await kovaPublic<StampCard>(`/v1/public/stalls/${encodeURIComponent(slug)}/stamps?payer=${encodeURIComponent(payer)}`),
+      await kovaPublic<StampCard>(
+        `/v1/public/stalls/${encodeURIComponent(slug)}/stamps?payer=${encodeURIComponent(payer)}`,
+      ),
     )
   } catch (error) {
     return failure(error)

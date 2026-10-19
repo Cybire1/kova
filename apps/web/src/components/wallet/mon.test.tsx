@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import {
   type ChainDepositQuote,
   monCardDismissalKey,
@@ -8,6 +7,8 @@ import {
   prepareMonConversion,
   sendMonConversion,
 } from '@kova/monad'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ConvertMon, MonConversionEntry, MonWalletCard } from './mon'
 
 const state = vi.hoisted(() => ({

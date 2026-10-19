@@ -173,15 +173,22 @@
     {
       "idx": 24,
       "version": "7",
-      "when": 1792391700000,
-      "tag": "0024_ussd_active_phone",
+      "when": 1791994839035,
+      "tag": "0024_ios_beta",
       "breakpoints": true
     },
     {
       "idx": 25,
       "version": "7",
+      "when": 1792391700000,
+      "tag": "0025_ussd_active_phone",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
       "when": 1792400000000,
-      "tag": "0025_phone_payments",
+      "tag": "0026_phone_payments",
       "breakpoints": true
     }
   ]

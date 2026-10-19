@@ -1,6 +1,6 @@
 import type { WebAuthnClient } from '@category-labs/mera'
-import { base64urlnopad } from '@scure/base'
 import { sha256 } from '@noble/hashes/sha2.js'
+import { base64urlnopad } from '@scure/base'
 import * as Passkeys from 'react-native-passkeys'
 import { stringToBytes } from 'viem'
 
@@ -27,7 +27,8 @@ export function takeVaultOutput(): Uint8Array | null {
 }
 
 const encode = (bytes: Uint8Array) => base64urlnopad.encode(bytes)
-const decode = (text: string) => base64urlnopad.decode(text.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''))
+const decode = (text: string) =>
+  base64urlnopad.decode(text.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''))
 
 function keepVault(second: string | undefined) {
   vaultOutput = second ? decode(second) : null
@@ -45,7 +46,11 @@ export const kovaWebAuthnClient: WebAuthnClient = {
   async createCredential(request) {
     const created = await Passkeys.create({
       rp: { id: request.rp.id, name: request.rp.name },
-      user: { id: encode(request.user.id), name: request.user.name, displayName: request.user.displayName },
+      user: {
+        id: encode(request.user.id),
+        name: request.user.name,
+        displayName: request.user.displayName,
+      },
       challenge: encode(request.challenge),
       pubKeyCredParams: request.algorithms.map((alg) => ({ type: 'public-key' as const, alg })),
       authenticatorSelection: {
@@ -82,7 +87,11 @@ export const kovaWebAuthnClient: WebAuthnClient = {
                 type: 'public-key' as const,
                 id: encode(request.allowCredential.credentialId),
                 ...(request.allowCredential.transports
-                  ? { transports: [...request.allowCredential.transports] as AuthenticatorTransport[] }
+                  ? {
+                      transports: [
+                        ...request.allowCredential.transports,
+                      ] as AuthenticatorTransport[],
+                    }
                   : {}),
               },
             ],

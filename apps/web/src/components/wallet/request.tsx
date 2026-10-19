@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useCallback, useEffect, useState } from 'react'
 import { Icon } from '@/components/brand'
 import { personLink } from '@/lib/wallet/links'
 import {
@@ -137,13 +137,23 @@ export function Receive() {
           </span>
           <CopyButton text={profile.address} />
         </div>
-        <p className="w-fine w-center">AUSD arrives ready to spend. MON sent here appears separately and needs conversion.</p>
-        {network === 'mainnet' ? <Link className="w-mon-card" href="/wallet/add/chain"><span><strong>Depositing MON or other crypto?</strong><small>Choose a token and network. We convert it to dollars for you.</small></span><Icon name="arrow" size={18} /></Link> : null}
+        <p className="w-fine w-center">
+          AUSD arrives ready to spend. MON sent here appears separately and needs conversion.
+        </p>
+        {network === 'mainnet' ? (
+          <Link className="w-mon-card" href="/wallet/add/chain">
+            <span>
+              <strong>Depositing MON or other crypto?</strong>
+              <small>Choose a token and network. We convert it to dollars for you.</small>
+            </span>
+            <Icon name="arrow" size={18} />
+          </Link>
+        ) : null}
         <p className="w-offline-hint">
           <NoSignal size={15} />
           <span>
-            No signal? A Kova phone can still scan this and pay you. It settles as soon as either
-            of you is back online.
+            No signal? A Kova phone can still scan this and pay you. It settles as soon as either of
+            you is back online.
           </span>
         </p>
         <ShareButton

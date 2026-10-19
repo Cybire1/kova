@@ -24,5 +24,6 @@ export const callbackForm = z.object({
 })
 
 export function redactCallbackLog(message: string): string {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: stops at a terminal colour code (ESC) on purpose
   return message.replace(/(\/v1\/ussd\/)[^?\s\u001b]+/g, '$1[redacted]')
 }

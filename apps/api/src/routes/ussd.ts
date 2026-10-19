@@ -3,8 +3,8 @@ import { Hono } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import { type Address, getAddress, type Hex, isAddress } from 'viem'
 import { z } from 'zod'
-import { config } from '../config.js'
 import { network } from '../chain.js'
+import { config } from '../config.js'
 import { KovaError } from '../errors.js'
 import { clientIp, limit } from '../limits.js'
 import {
@@ -13,10 +13,10 @@ import {
   confirmPhone,
   pocketBalance,
   pocketOf,
-  requirePockets,
-  requirePocketSetup,
   pocketsReady,
   reconcilePocket,
+  requirePocketSetup,
+  requirePockets,
   serializePocket,
   setUpPocket,
   spend,

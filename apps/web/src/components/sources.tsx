@@ -9,17 +9,35 @@ import { Art, Icon } from './brand'
 const MINUTE = 60_000
 
 function status(t: Terminal): { word: string; state: 'live' | 'recent' | 'idle' } {
-  const seen = t.last_seen_at ? Date.now() - new Date(t.last_seen_at).getTime() : Number.POSITIVE_INFINITY
+  const seen = t.last_seen_at
+    ? Date.now() - new Date(t.last_seen_at).getTime()
+    : Number.POSITIVE_INFINITY
   if (seen < 15 * MINUTE) return { word: 'Taking payments', state: 'live' }
-  if (seen < 3 * 60 * MINUTE) return { word: `Used ${ago(t.last_seen_at as string)}`, state: 'recent' }
-  return { word: t.last_seen_at ? `Idle since ${new Date(t.last_seen_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Not used yet', state: 'idle' }
+  if (seen < 3 * 60 * MINUTE)
+    return { word: `Used ${ago(t.last_seen_at as string)}`, state: 'recent' }
+  return {
+    word: t.last_seen_at
+      ? `Idle since ${new Date(t.last_seen_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+      : 'Not used yet',
+    state: 'idle',
+  }
 }
 
 /**
  * Where today's money came from: each paired phone drawn as a phone with its own takings,
  * the API as its own tile, and a place to pair another. An idle phone's Kovi is asleep.
  */
-export function Sources({ terminals, byTerminal, byStall, onAdd }: { terminals: Terminal[]; byTerminal: Summary['by_terminal']; byStall: Summary['by_stall']; onAdd: () => void }) {
+export function Sources({
+  terminals,
+  byTerminal,
+  byStall,
+  onAdd,
+}: {
+  terminals: Terminal[]
+  byTerminal: Summary['by_terminal']
+  byStall: Summary['by_stall']
+  onAdd: () => void
+}) {
   const online = byTerminal.find((b) => b.terminal === null)
   // Nothing to show yet: one line that starts the first phone, not an empty shelf.
   if (terminals.length === 0 && byStall.length === 0 && !online)
@@ -53,7 +71,9 @@ export function Sources({ terminals, byTerminal, byStall, onAdd }: { terminals: 
             <Link key={t.id} href="/dashboard/terminals" className="phone" data-state={s.state}>
               <span className="phone-screen">
                 <span className="phone-notch" aria-hidden="true" />
-                {s.state === 'idle' ? <Art name="kovi-sleep" size={64} className="phone-kovi" /> : null}
+                {s.state === 'idle' ? (
+                  <Art name="kovi-sleep" size={64} className="phone-kovi" />
+                ) : null}
                 <span className="phone-name">{t.name}</span>
                 <span className="phone-status">
                   <span className="phone-dot" />

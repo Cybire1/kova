@@ -1,4 +1,4 @@
-import { keccak256, toHex, type Address, type Hex } from 'viem'
+import { type Address, type Hex, keccak256, toHex } from 'viem'
 import { normalizePhone } from './pocket.js'
 
 export type PhoneAction =

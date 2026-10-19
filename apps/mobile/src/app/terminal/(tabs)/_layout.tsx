@@ -15,7 +15,11 @@ export default function ShopTabs() {
   return (
     <Tabs
       tabBar={(props) => (wide ? <ShopRail {...props} /> : <ShopDock {...props} />)}
-      screenOptions={{ headerShown: false, animation: wide ? 'none' : 'shift', tabBarPosition: wide ? 'left' : 'bottom' }}
+      screenOptions={{
+        headerShown: false,
+        animation: wide ? 'none' : 'shift',
+        tabBarPosition: wide ? 'left' : 'bottom',
+      }}
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="orders" />

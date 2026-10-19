@@ -23,7 +23,12 @@ export interface Token {
   domain: { name: string; version: string }
 }
 
-const token = (currency: Currency, symbol: string, address: string, domain: Token['domain']): Token => ({
+const token = (
+  currency: Currency,
+  symbol: string,
+  address: string,
+  domain: Token['domain'],
+): Token => ({
   currency,
   symbol,
   address: getAddress(address),
@@ -39,12 +44,24 @@ const token = (currency: Currency, symbol: string, address: string, domain: Toke
  */
 export const tokens: Record<NetworkId, Partial<Record<Currency, Token>>> = {
   mainnet: {
-    AUSD: token('AUSD', 'AUSD', '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a', { name: 'Agora Dollar', version: '1' }),
-    USDC: token('USDC', 'USDC', '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', { name: 'USDC', version: '2' }),
+    AUSD: token('AUSD', 'AUSD', '0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a', {
+      name: 'Agora Dollar',
+      version: '1',
+    }),
+    USDC: token('USDC', 'USDC', '0x754704Bc059F8C67012fEd69BC8A327a5aafb603', {
+      name: 'USDC',
+      version: '2',
+    }),
   },
   testnet: {
-    AUSD: token('AUSD', 'AUSD', '0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC', { name: 'Agora Dollar', version: '1' }),
-    USDC: token('USDC', 'USDC', '0x534b2f3A21130d7a60830c2Df862319e593943A3', { name: 'USDC', version: '2' }),
+    AUSD: token('AUSD', 'AUSD', '0xa9012a055bd4e0eDfF8Ce09f960291C09D5322dC', {
+      name: 'Agora Dollar',
+      version: '1',
+    }),
+    USDC: token('USDC', 'USDC', '0x534b2f3A21130d7a60830c2Df862319e593943A3', {
+      name: 'USDC',
+      version: '2',
+    }),
   },
 }
 

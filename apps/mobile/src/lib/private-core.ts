@@ -3,9 +3,11 @@ import {
   generateStealthAddress,
   generateStealthPayment,
   openStealthMemo,
+  type PrivateHolding,
   parseStealthMetaAddress,
   parseStealthViewKey,
   personalStealthKeysMessage,
+  planPrivateSpend,
   STEALTH_SCHEME_ID,
   type StealthKeys,
   stealthKeysFromSignature,
@@ -14,7 +16,15 @@ import {
   stealthRegistrationMessage,
   stealthSender,
 } from '@kova/monad'
-import { type Address, getAddress, type Hash, type Hex, isAddressEqual, type LocalAccount, recoverMessageAddress } from 'viem'
+import {
+  type Address,
+  getAddress,
+  type Hash,
+  type Hex,
+  isAddressEqual,
+  type LocalAccount,
+  recoverMessageAddress,
+} from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { balancesOf, explorerTx, getBalance, sendMoney } from './chain'
 import { apiUrl } from './config'
@@ -104,7 +114,10 @@ export interface ReceivingView {
 export const viewFromKey = (viewKey: string): ReceivingView => parseStealthViewKey(viewKey)
 
 /** This wallet's private-receiving keys, from one signature of a message naming it. Deterministic. */
-export async function receivingKeys(wallet: Address, sign: (message: string) => Promise<Hex>): Promise<StealthKeys> {
+export async function receivingKeys(
+  wallet: Address,
+  sign: (message: string) => Promise<Hex>,
+): Promise<StealthKeys> {
   return stealthKeysFromSignature(await sign(personalStealthKeysMessage(wallet)))
 }
 
@@ -112,14 +125,22 @@ export async function receivingKeys(wallet: Address, sign: (message: string) => 
 export class UntrustedKey extends Error {}
 
 /** Checks a published key against its owner's signature, so Kova can't swap in a key of its own. */
-export async function verifyReceivingKey(wallet: Address, meta: string, signature: Hex): Promise<string> {
+export async function verifyReceivingKey(
+  wallet: Address,
+  meta: string,
+  signature: Hex,
+): Promise<string> {
   try {
     parseStealthMetaAddress(meta)
   } catch {
     throw new UntrustedKey('Kova returned a private key for them that isn’t a real key.')
   }
-  const signer = await recoverMessageAddress({ message: stealthRegistrationMessage(wallet, meta), signature }).catch(() => null)
-  if (!signer || !isAddressEqual(signer, wallet)) throw new UntrustedKey('Kova returned a private key for them that they didn’t sign.')
+  const signer = await recoverMessageAddress({
+    message: stealthRegistrationMessage(wallet, meta),
+    signature,
+  }).catch(() => null)
+  if (!signer || !isAddressEqual(signer, wallet))
+    throw new UntrustedKey('Kova returned a private key for them that they didn’t sign.')
   return meta
 }
 
@@ -132,14 +153,26 @@ export async function fetchReceivingKey(wallet: Address, base = apiUrl): Promise
   const response = await fetch(`${base}/v1/wallets/${getAddress(wallet)}/stealth`)
   if (response.status === 404) return null
   if (!response.ok) throw new Error(`Kova is unreachable (${response.status})`)
-  const body = (await response.json().catch(() => ({}))) as { meta_address?: unknown; signature?: unknown }
-  if (typeof body.meta_address !== 'string' || typeof body.signature !== 'string' || !/^0x[0-9a-fA-F]{130}$/.test(body.signature))
+  const body = (await response.json().catch(() => ({}))) as {
+    meta_address?: unknown
+    signature?: unknown
+  }
+  if (
+    typeof body.meta_address !== 'string' ||
+    typeof body.signature !== 'string' ||
+    !/^0x[0-9a-fA-F]{130}$/.test(body.signature)
+  )
     throw new UntrustedKey('Kova returned a private key for them without their signature.')
   return verifyReceivingKey(wallet, body.meta_address, body.signature as Hex)
 }
 
 /** Gives Kova this wallet's key and the wallet's signature over it. No signing here: it was signed when the keys were made. */
-export async function publishReceivingKey(wallet: Address, meta: string, signature: Hex, base = apiUrl): Promise<void> {
+export async function publishReceivingKey(
+  wallet: Address,
+  meta: string,
+  signature: Hex,
+  base = apiUrl,
+): Promise<void> {
   const response = await fetch(`${base}/v1/wallets/${getAddress(wallet)}/stealth`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
@@ -147,7 +180,9 @@ export async function publishReceivingKey(wallet: Address, meta: string, signatu
   })
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } }
-    throw new Error(body.error?.message ?? `Kova didn’t take the private receiving key (${response.status}).`)
+    throw new Error(
+      body.error?.message ?? `Kova didn’t take the private receiving key (${response.status}).`,
+    )
   }
 }
 
@@ -156,9 +191,16 @@ export async function feedAfter(cursor: string | null, base = apiUrl): Promise<A
   const items: Announcement[] = []
   let after = cursor
   for (let page = 0; page < 20; page += 1) {
-    const response = await fetch(`${base}/v1/public/stealth/announcements?limit=1000${after ? `&after=${encodeURIComponent(after)}` : ''}`)
-    const body = (await response.json().catch(() => ({}))) as { data?: Announcement[]; next?: string | null; error?: { message?: string } }
-    if (!response.ok || !Array.isArray(body.data)) throw new Error(body.error?.message ?? `Kova is unreachable (${response.status})`)
+    const response = await fetch(
+      `${base}/v1/public/stealth/announcements?limit=1000${after ? `&after=${encodeURIComponent(after)}` : ''}`,
+    )
+    const body = (await response.json().catch(() => ({}))) as {
+      data?: Announcement[]
+      next?: string | null
+      error?: { message?: string }
+    }
+    if (!response.ok || !Array.isArray(body.data))
+      throw new Error(body.error?.message ?? `Kova is unreachable (${response.status})`)
     items.push(...body.data)
     if (!body.next) break
     after = body.next
@@ -174,13 +216,20 @@ export const FEED_LAG_MS = 60_000
  * read again until they're older (and skipped as checked), so an entry whose write landed just after
  * a later one's is never jumped over.
  */
-export function advance(items: Announcement[], cursor: string | null, now = Date.now()): { cursor: string | null; recent: string[] } {
+export function advance(
+  items: Announcement[],
+  cursor: string | null,
+  now = Date.now(),
+): { cursor: string | null; recent: string[] } {
   let settled = -1
   items.forEach((item, i) => {
     const at = item.paid_at ? Date.parse(item.paid_at) : 0
     if (!(at > now - FEED_LAG_MS)) settled = i
   })
-  return { cursor: settled >= 0 ? (items[settled]?.id ?? cursor) : cursor, recent: items.slice(settled + 1).map((item) => item.id) }
+  return {
+    cursor: settled >= 0 ? (items[settled]?.id ?? cursor) : cursor,
+    recent: items.slice(settled + 1).map((item) => item.id),
+  }
 }
 
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0))
@@ -203,7 +252,12 @@ export async function findMine(
     if (skip.since !== null && at < skip.since) continue
     let ours = false
     try {
-      ours = checkStealthAddress(view, { ephemeralPublicKey: item.ephemeral_public_key, viewTag: item.view_tag, stealthAddress: item.stealth_address }) !== null
+      ours =
+        checkStealthAddress(view, {
+          ephemeralPublicKey: item.ephemeral_public_key,
+          viewTag: item.view_tag,
+          stealthAddress: item.stealth_address,
+        }) !== null
     } catch {
       ours = false
     }
@@ -220,11 +274,20 @@ export async function findMine(
  * phone (who sent it, their name, their note), and the sender checked against Monad or their
  * signature. Nothing about the one-time address is asked of Kova.
  */
-export async function readReceipt(viewingPrivateKey: Hex, item: Announcement): Promise<PrivateReceipt> {
+export async function readReceipt(
+  viewingPrivateKey: Hex,
+  item: Announcement,
+): Promise<PrivateReceipt> {
   const amount = toBase(item.amount).toString()
   const stealthAddress = getAddress(item.stealth_address)
-  const memo = openStealthMemo(viewingPrivateKey, { ephemeralPublicKey: item.ephemeral_public_key, stealthAddress, sealed: item.sealed })
-  const sender = await stealthSender(memo, { stealthAddress, from: item.from ?? null }).catch(() => null)
+  const memo = openStealthMemo(viewingPrivateKey, {
+    ephemeralPublicKey: item.ephemeral_public_key,
+    stealthAddress,
+    sealed: item.sealed,
+  })
+  const sender = await stealthSender(memo, { stealthAddress, from: item.from ?? null }).catch(
+    () => null,
+  )
   return {
     id: item.id,
     stealthAddress,
@@ -285,8 +348,10 @@ export interface MoveInOutcome {
 /** A move is your own money coming home; Kova's relay speaks of payments. Said for what it is. */
 function moveProblem(error: unknown): string {
   const text = error instanceof Error ? error.message : String(error)
-  if (/did not confirm|in time/i.test(text)) return 'Monad was slow to confirm it. Nothing is lost: move it in again in a moment.'
-  if (/lot of sends/i.test(text)) return 'That’s a lot of moves at once. Move the rest in a few minutes.'
+  if (/did not confirm|in time/i.test(text))
+    return 'Monad was slow to confirm it. Nothing is lost: move it in again in a moment.'
+  if (/lot of sends/i.test(text))
+    return 'That’s a lot of moves at once. Move the rest in a few minutes.'
   return text
 }
 
@@ -310,7 +375,11 @@ export async function moveIn(input: {
   onProgress?.({ step: 'checking', done: 0, total: receipts.length })
   const held = await readHeld(receipts)
 
-  const jobs: { receipt: PrivateReceipt; value: bigint; account: ReturnType<typeof privateKeyToAccount> }[] = []
+  const jobs: {
+    receipt: PrivateReceipt
+    value: bigint
+    account: ReturnType<typeof privateKeyToAccount>
+  }[] = []
   let empty = 0
   let failed = 0
   let reason: string | null = null
@@ -373,30 +442,32 @@ export async function moveIn(input: {
 // --- Spending private dollars ----------------------------------------------------------------------
 
 /** The account that signs for a one-time address, checked to open exactly that address. */
-export function oneTimeAccount(keys: StealthKeys, receipt: Pick<PrivateReceipt, 'stealthAddress' | 'ephemeralPublicKey'>): LocalAccount {
+export function oneTimeAccount(
+  keys: StealthKeys,
+  receipt: Pick<PrivateReceipt, 'stealthAddress' | 'ephemeralPublicKey'>,
+): LocalAccount {
   const account = privateKeyToAccount(stealthPrivateKey(keys, receipt.ephemeralPublicKey))
-  if (!isAddressEqual(account.address, receipt.stealthAddress)) throw new Error('A private payment’s address didn’t open with your keys. Nothing moved.')
+  if (!isAddressEqual(account.address, receipt.stealthAddress))
+    throw new Error('A private payment’s address didn’t open with your keys. Nothing moved.')
   return account
+}
+
+/** Private dollars as the router reads them: each address that still holds some, and how much. */
+export function holdingsOf(receipts: PrivateReceipt[]): PrivateHolding<PrivateReceipt>[] {
+  return receipts.flatMap((r) => (BigInt(r.held) > 0n ? [{ item: r, held: BigInt(r.held) }] : []))
 }
 
 /**
  * Which private dollars pay `amount`: the smallest single address that covers it (the change stays
  * there, still private), or, when none does alone, the largest ones until they cover it together,
- * to be gathered into one address first. Null when they don't cover it at all.
+ * to be gathered into one address first. Null when they don't cover it at all. The rule is the
+ * router's, shared with the web (@kova/monad).
  */
-export function planSpend(receipts: PrivateReceipt[], amount: bigint): { from: PrivateReceipt } | { gather: PrivateReceipt[] } | null {
-  const funded = receipts.filter((r) => BigInt(r.held) > 0n)
-  const single = funded.filter((r) => BigInt(r.held) >= amount).sort((a, b) => (BigInt(a.held) < BigInt(b.held) ? -1 : 1))[0]
-  if (single) return { from: single }
-  const largest = [...funded].sort((a, b) => (BigInt(a.held) > BigInt(b.held) ? -1 : 1))
-  const gather: PrivateReceipt[] = []
-  let sum = 0n
-  for (const r of largest) {
-    if (sum >= amount) break
-    gather.push(r)
-    sum += BigInt(r.held)
-  }
-  return sum >= amount ? { gather } : null
+export function planSpend(
+  receipts: PrivateReceipt[],
+  amount: bigint,
+): { from: PrivateReceipt } | { gather: PrivateReceipt[] } | null {
+  return planPrivateSpend(holdingsOf(receipts), amount)
 }
 
 /**
@@ -418,7 +489,11 @@ export async function gather(input: {
   const e = generatePrivateKey()
   const address = generateStealthAddress(meta, e).stealthAddress
   const proof = await input.sign(stealthMemoMessage(address))
-  const g = generateStealthPayment(meta, { from: me, ...(input.name ? { name: input.name } : {}), kind: 'change', proof }, e)
+  const g = generateStealthPayment(
+    meta,
+    { from: me, ...(input.name ? { name: input.name } : {}), kind: 'change', proof },
+    e,
+  )
   const held = await balancesOf(sources.map((r) => r.stealthAddress))
   const moved: { from: Address; txHash: Hash; amount: bigint }[] = []
   for (const [i, r] of sources.entries()) {
@@ -430,7 +505,9 @@ export async function gather(input: {
       g.stealthAddress,
       value,
       undefined,
-      first ? { ephemeralPublicKey: g.ephemeralPublicKey, viewTag: g.viewTag, sealed: g.sealed } : undefined,
+      first
+        ? { ephemeralPublicKey: g.ephemeralPublicKey, viewTag: g.viewTag, sealed: g.sealed }
+        : undefined,
     )
     moved.push({ from: r.stealthAddress, txHash: sent.hash, amount: value })
     onProgress?.(i + 1, sources.length)

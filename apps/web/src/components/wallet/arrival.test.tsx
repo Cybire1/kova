@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Entry } from './provider'
 import { ArrivalNotice } from './arrival'
+import type { Entry } from './provider'
 
 const state = vi.hoisted(() => ({
   wallet: '0x1111111111111111111111111111111111111111',

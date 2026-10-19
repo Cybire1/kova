@@ -6,8 +6,8 @@ import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { KeyScene } from '@/ui/art'
 import { Bob } from '@/ui/motion'
-import { Header, PillButton, Rise, Screen, Txt } from '@/ui/primitives'
 import { ProfileForm } from '@/ui/ProfileForm'
+import { Header, PillButton, Rise, Screen, Txt } from '@/ui/primitives'
 
 /** Two steps: who you are, then one Face ID makes the passkey that is your wallet. No seed phrase. */
 export default function Setup() {
@@ -52,7 +52,8 @@ export default function Setup() {
             Your wallet is a passkey.
           </Txt>
           <Txt size={17} color={colors.onTint} style={styles.body}>
-            Face ID makes it, and iCloud Keychain keeps it, so it opens your wallet on your next phone too. No seed phrase to write down, and nothing for Kova to hold.
+            Face ID makes it, and iCloud Keychain keeps it, so it opens your wallet on your next
+            phone too. No seed phrase to write down, and nothing for Kova to hold.
           </Txt>
           {problem ? (
             <Txt weight="medium" size={15} color={colors.danger} style={{ marginTop: 12 }}>
@@ -68,10 +69,13 @@ export default function Setup() {
 
   return (
     <Screen bg={colors.paper}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <Header right={steps} />
         <ProfileForm
-          heading={"What should people\ncall you?"}
+          heading={'What should people\ncall you?'}
           note="This is how you show up when you pay someone or ask them for money."
           name={name}
           onName={setName}
@@ -80,7 +84,11 @@ export default function Setup() {
           onSubmit={() => name.trim().length >= 2 && setStep(2)}
         />
         <View style={styles.footer}>
-          <PillButton label="Continue" disabled={name.trim().length < 2} onPress={() => setStep(2)} />
+          <PillButton
+            label="Continue"
+            disabled={name.trim().length < 2}
+            onPress={() => setStep(2)}
+          />
         </View>
       </KeyboardAvoidingView>
     </Screen>

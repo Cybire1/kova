@@ -3,11 +3,11 @@ import {
   createWalletClient,
   custom,
   getAddress,
+  type Hash,
   hexToBytes,
   isAddressEqual,
   keccak256,
   type LocalAccount,
-  type Hash,
   recoverMessageAddress,
   recoverTypedDataAddress,
 } from 'viem'

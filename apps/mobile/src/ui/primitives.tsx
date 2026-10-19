@@ -39,7 +39,12 @@ export function Txt({
     <Text
       {...rest}
       style={[
-        { fontFamily: fonts[weight], fontSize: exact ? size : size * density.text, color, fontVariant: ['tabular-nums'] },
+        {
+          fontFamily: fonts[weight],
+          fontSize: exact ? size : size * density.text,
+          color,
+          fontVariant: ['tabular-nums'],
+        },
         style,
       ]}
     />
@@ -195,7 +200,12 @@ export function RoundButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.round,
-        { width: size, height: size, borderRadius: size / 2, backgroundColor: fill ?? 'rgba(11,26,29,0.07)' },
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: fill ?? 'rgba(11,26,29,0.07)',
+        },
         pressed && { transform: [{ scale: 0.92 }], opacity: 0.8 },
       ]}
     >
@@ -204,7 +214,15 @@ export function RoundButton({
   )
 }
 
-export function TextLink({ label, onPress, color = colors.ink }: { label: string; onPress: () => void; color?: string }) {
+export function TextLink({
+  label,
+  onPress,
+  color = colors.ink,
+}: {
+  label: string
+  onPress: () => void
+  color?: string
+}) {
   return (
     <Pressable accessibilityRole="link" onPress={onPress} hitSlop={10}>
       {({ pressed }) => (
@@ -270,7 +288,11 @@ export function Header({
   return (
     <View style={styles.header}>
       {onBack ? (
-        <RoundButton icon={backIcon} label={backIcon === 'close' ? 'Close' : 'Back'} onPress={onBack} />
+        <RoundButton
+          icon={backIcon}
+          label={backIcon === 'close' ? 'Close' : 'Back'}
+          onPress={onBack}
+        />
       ) : (
         <View style={{ width: 36 }} />
       )}
@@ -305,7 +327,15 @@ export function Chip({ label, dot, icon }: { label: string; dot?: string; icon?:
 }
 
 /** Fades and lifts content in once, when a screen first appears. */
-export function Rise({ children, delay = 0, style }: { children: ReactNode; delay?: number; style?: StyleProp<ViewStyle> }) {
+export function Rise({
+  children,
+  delay = 0,
+  style,
+}: {
+  children: ReactNode
+  delay?: number
+  style?: StyleProp<ViewStyle>
+}) {
   const shown = useSharedValue(0)
   useEffect(() => {
     shown.value = withTiming(1, { duration: 520 + delay })

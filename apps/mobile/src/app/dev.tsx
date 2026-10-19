@@ -1,22 +1,42 @@
+import {
+  checkStealthAddress,
+  personalStealthKeysMessage,
+  stealthKeysFromSignature,
+  stealthMetaAddress,
+  stealthRegistrationMessage,
+} from '@kova/monad'
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Image, Share, View } from 'react-native'
 import type { Address } from 'viem'
-import { checkStealthAddress, personalStealthKeysMessage, stealthKeysFromSignature, stealthMetaAddress, stealthRegistrationMessage } from '@kova/monad'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { createCharge, createItem, getCatalog, getCheckout, listOrders, lookupBarcode, ringUp, setOrderStatus, type StealthReceipt, updateStall, uploadImage } from '@/lib/api'
-import { addPayrollPerson, addSupplier, listPayrollPeople, startPayrollRun } from '@/lib/api'
+import {
+  addPayrollPerson,
+  addSupplier,
+  createCharge,
+  createItem,
+  getCatalog,
+  getCheckout,
+  listOrders,
+  listPayrollPeople,
+  lookupBarcode,
+  ringUp,
+  type StealthReceipt,
+  setOrderStatus,
+  startPayrollRun,
+  updateStall,
+  uploadImage,
+} from '@/lib/api'
 import { payPayroll, reachOf } from '@/lib/business'
-import { apiUrl, shareWebUrl } from '@/lib/config'
 import { finishTap, forgetDevCard, linkCard, readTap } from '@/lib/card'
-import type { DisplayCurrency } from '@/lib/money'
-import { type Mode, usePrefs } from '@/lib/prefs'
+import { apiUrl, shareWebUrl } from '@/lib/config'
 import { stashWallet, unstashWallet } from '@/lib/dev-slots'
+import type { DisplayCurrency } from '@/lib/money'
 import { useOffline } from '@/lib/offline'
-import { publishReceivingKey } from '@/lib/private-core'
 import { clearOffline } from '@/lib/offline-store'
-import { usePrivate } from '@/lib/private'
-import { useStall } from '@/lib/stall'
+import { type Mode, usePrefs } from '@/lib/prefs'
+import { explainedKey, usePrivate } from '@/lib/private'
+import { publishReceivingKey } from '@/lib/private-core'
 import {
   accept as acceptKey,
   freeze as freezeKey,
@@ -25,7 +45,8 @@ import {
   newAgent,
   switchOn,
 } from '@/lib/spend-keys'
-import { save } from '@/lib/storage'
+import { useStall } from '@/lib/stall'
+import { remove, save } from '@/lib/storage'
 import { useTakings } from '@/lib/takings'
 import { viewFrom } from '@/lib/takings-core'
 import { forgetTakingsKeys } from '@/lib/takings-store'
@@ -49,11 +70,12 @@ import { booksMessage } from '@/ui/Takings'
  * `takings=forget` drops this phone's copy of the keys (relaunch to see the phone without them),
  * `charge=8.00,3.25` makes a charge for each amount (with private takings on, each pays its own address), `move=1` moves
  * every private sale into the wallet, and `books=1` opens the share sheet with the accountant's view.
- * Private sends between people: `private=setup` makes this wallet's private-receiving keys and gives Kova
+ * Private sends between people: `private=unexplain` forgets that this wallet's first private arrival was
+ * explained, `private=setup` makes this wallet's private-receiving keys and gives Kova
  * the public half (as opening the wallet does), `private=look` looks through Kova's feed now, `send=…&private=1`
- * sends privately through the real code, and `movein=1` moves every private payment into the balance
- * on the screen it opens (`to=/private`, say). `/send/<address>?amount=…&private=1&autosend=1` films the sheet,
- * and `payfrom=private|balance` picks where payments come from, as the Pay from switch does.
+ * sends privately through the real code, and `movein=1` makes every private payment public (moves it into
+ * the wallet) on the screen it opens (`to=/private`, say). `/send/<address>?amount=…&private=1&autosend=1`
+ * films the sheet; where a payment comes from is the privacy router's to decide.
  * `stash=<name>` keeps this dev wallet whole and signs it out; `unstash=<name>` puts it back for the next launch.
  * Offline payments: `offline=1` makes the app act as if it had no signal (it lasts across launches) and
  * `offline=0` brings it back online, which settles whatever is waiting (`offline=clear` forgets this
@@ -209,8 +231,6 @@ export default function Dev() {
     books?: string
     private?: string
     movein?: string
-    /** Where payments come from, as if chosen: balance or private. */
-    payfrom?: string
     /**
      * `biz=seed` fills this shop's business book: four people (three can be paid privately) and two
      * suppliers. `biz=pay&amount=0.05` pays everyone who can be paid privately that much, through the
@@ -518,8 +538,9 @@ export default function Dev() {
           const entry = await wallet.payCheckout(await getCheckout(params.pay))
           return router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })
         }
-        if (params.payfrom === 'private' || params.payfrom === 'balance')
-          privateRef.current.setSource(params.payfrom)
+        // The first private arrival explains itself once per wallet: forget that, to see it again.
+        if (params.private === 'unexplain' && wallet.profile)
+          await remove(explainedKey(wallet.profile.address))
         if (params.private === 'setup') {
           setStep('making private-receiving keys')
           const ok = await privateRef.current.setUp()
@@ -550,13 +571,33 @@ export default function Dev() {
           for (const [name, amount, receives] of people) {
             const person = privateKeyToAccount(generatePrivateKey())
             if (receives) {
-              const meta = stealthMetaAddress(stealthKeysFromSignature(await person.signMessage({ message: personalStealthKeysMessage(person.address) })))
-              await publishReceivingKey(person.address, meta, await person.signMessage({ message: stealthRegistrationMessage(person.address, meta) }))
+              const meta = stealthMetaAddress(
+                stealthKeysFromSignature(
+                  await person.signMessage({ message: personalStealthKeysMessage(person.address) }),
+                ),
+              )
+              await publishReceivingKey(
+                person.address,
+                meta,
+                await person.signMessage({
+                  message: stealthRegistrationMessage(person.address, meta),
+                }),
+              )
             }
             await addPayrollPerson({ name, wallet_address: person.address, amount })
           }
-          await addSupplier({ name: 'Lisbon Coffee Roasters', wallet_address: privateKeyToAccount(generatePrivateKey()).address, country: 'Portugal', currency: 'EUR' })
-          await addSupplier({ name: 'Shenzhen Parts Co', wallet_address: privateKeyToAccount(generatePrivateKey()).address, country: 'China', currency: 'USD' })
+          await addSupplier({
+            name: 'Lisbon Coffee Roasters',
+            wallet_address: privateKeyToAccount(generatePrivateKey()).address,
+            country: 'Portugal',
+            currency: 'EUR',
+          })
+          await addSupplier({
+            name: 'Shenzhen Parts Co',
+            wallet_address: privateKeyToAccount(generatePrivateKey()).address,
+            country: 'China',
+            currency: 'USD',
+          })
           console.log('[dev] business book filled: 4 people, 2 suppliers')
         }
         if (params.biz === 'pay') {
@@ -575,17 +616,27 @@ export default function Dev() {
           const paying = people.filter((p) => reach[p.wallet_address.toLowerCase()] === 'private')
           const run = await startPayrollRun(
             'October salary',
-            paying.map((p) => ({ person: p.id, name: p.name, amount: params.amount || p.amount || '0.05' })),
+            paying.map((p) => ({
+              person: p.id,
+              name: p.name,
+              amount: params.amount || p.amount || '0.05',
+            })),
           )
           const wallets = Object.fromEntries(
-            run.payments.map((payment) => [payment.id, paying.find((p) => p.id === payment.person)?.wallet_address ?? '']),
+            run.payments.map((payment) => [
+              payment.id,
+              paying.find((p) => p.id === payment.person)?.wallet_address ?? '',
+            ]),
           )
           await payPayroll({
             approve: wallet.approve,
             business: stall.owned?.name ?? 'My shop',
             run,
             wallets,
-            onLine: (id, line) => console.log(`[dev] payroll ${id}: ${line.state}${line.state === 'failed' ? ` (${line.why})` : line.state === 'paid' ? ` in ${line.ms}ms ${line.explorer}` : ''}`),
+            onLine: (id, line) =>
+              console.log(
+                `[dev] payroll ${id}: ${line.state}${line.state === 'failed' ? ` (${line.why})` : line.state === 'paid' ? ` in ${line.ms}ms ${line.explorer}` : ''}`,
+              ),
           })
           return router.replace({ pathname: '/terminal/payroll-run', params: { id: run.id } })
         }

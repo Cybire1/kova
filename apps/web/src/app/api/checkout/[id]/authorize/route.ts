@@ -9,7 +9,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   try {
     const signed = await request.json()
     return Response.json(
-      await kovaPublic<Checkout>(`/v1/checkout/${encodeURIComponent(id)}/authorize`, { method: 'POST', body: JSON.stringify(signed) }),
+      await kovaPublic<Checkout>(`/v1/checkout/${encodeURIComponent(id)}/authorize`, {
+        method: 'POST',
+        body: JSON.stringify(signed),
+      }),
     )
   } catch (error) {
     return failure(error)

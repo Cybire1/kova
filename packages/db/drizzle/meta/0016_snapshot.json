@@ -105,12 +105,8 @@
           "name": "api_keys_merchant_id_merchants_id_fk",
           "tableFrom": "api_keys",
           "tableTo": "merchants",
-          "columnsFrom": [
-            "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["merchant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -118,12 +114,8 @@
           "name": "api_keys_terminal_id_terminals_id_fk",
           "tableFrom": "api_keys",
           "tableTo": "terminals",
-          "columnsFrom": [
-            "terminal_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["terminal_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -365,12 +357,8 @@
           "name": "card_taps_card_address_kova_cards_address_fk",
           "tableFrom": "card_taps",
           "tableTo": "kova_cards",
-          "columnsFrom": [
-            "card_address"
-          ],
-          "columnsTo": [
-            "address"
-          ],
+          "columnsFrom": ["card_address"],
+          "columnsTo": ["address"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -378,12 +366,8 @@
           "name": "card_taps_intent_id_payment_intents_id_fk",
           "tableFrom": "card_taps",
           "tableTo": "payment_intents",
-          "columnsFrom": [
-            "intent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["intent_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -391,12 +375,8 @@
           "name": "card_taps_terminal_id_terminals_id_fk",
           "tableFrom": "card_taps",
           "tableTo": "terminals",
-          "columnsFrom": [
-            "terminal_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["terminal_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -544,12 +524,8 @@
           "name": "catalog_items_merchant_id_merchants_id_fk",
           "tableFrom": "catalog_items",
           "tableTo": "merchants",
-          "columnsFrom": [
-            "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["merchant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -557,12 +533,8 @@
           "name": "catalog_items_image_id_images_id_fk",
           "tableFrom": "catalog_items",
           "tableTo": "images",
-          "columnsFrom": [
-            "image_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["image_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -704,12 +676,8 @@
           "name": "credentials_user_id_users_id_fk",
           "tableFrom": "credentials",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -784,12 +752,8 @@
           "name": "events_merchant_id_merchants_id_fk",
           "tableFrom": "events",
           "tableTo": "merchants",
-          "columnsFrom": [
-            "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["merchant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -876,12 +840,8 @@
           "name": "idempotency_keys_api_key_id_api_keys_id_fk",
           "tableFrom": "idempotency_keys",
           "tableTo": "api_keys",
-          "columnsFrom": [
-            "api_key_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["api_key_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -956,12 +916,8 @@
           "name": "images_merchant_id_merchants_id_fk",
           "tableFrom": "images",
           "tableTo": "merchants",
-          "columnsFrom": [
-            "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["merchant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1348,12 +1304,8 @@
           "name": "merchants_owner_user_id_users_id_fk",
           "tableFrom": "merchants",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1578,12 +1530,8 @@
           "name": "orders_merchant_id_merchants_id_fk",
           "tableFrom": "orders",
           "tableTo": "merchants",
-          "columnsFrom": [
-            "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["merchant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1591,12 +1539,8 @@
           "name": "orders_intent_id_payment_intents_id_fk",
           "tableFrom": "orders",
           "tableTo": "payment_intents",
-          "columnsFrom": [
-            "intent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["intent_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1604,12 +1548,8 @@
           "name": "orders_stall_id_stalls_id_fk",
           "tableFrom": "orders",
           "tableTo": "stalls",
-          "columnsFrom": [
-            "stall_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["stall_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1807,12 +1747,8 @@
           "name": "payment_intents_merchant_id_merchants_id_fk",
           "tableFrom": "payment_intents",
           "tableTo": "merchants",
-          "columnsFrom": [
-            "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["merchant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1820,12 +1756,8 @@
           "name": "payment_intents_terminal_id_terminals_id_fk",
           "tableFrom": "payment_intents",
           "tableTo": "terminals",
-          "columnsFrom": [
-            "terminal_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["terminal_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2138,12 +2070,8 @@
           "name": "payments_intent_id_payment_intents_id_fk",
           "tableFrom": "payments",
           "tableTo": "payment_intents",
-          "columnsFrom": [
-            "intent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["intent_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2151,12 +2079,8 @@
           "name": "payments_credential_id_credentials_id_fk",
           "tableFrom": "payments",
           "tableTo": "credentials",
-          "columnsFrom": [
-            "credential_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["credential_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2232,12 +2156,8 @@
           "name": "policies_credential_id_credentials_id_fk",
           "tableFrom": "policies",
           "tableTo": "credentials",
-          "columnsFrom": [
-            "credential_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["credential_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2245,12 +2165,8 @@
           "name": "policies_user_id_users_id_fk",
           "tableFrom": "policies",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2344,12 +2260,8 @@
           "name": "refunds_payment_id_payments_id_fk",
           "tableFrom": "refunds",
           "tableTo": "payments",
-          "columnsFrom": [
-            "payment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["payment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2440,12 +2352,8 @@
           "name": "stall_items_stall_id_stalls_id_fk",
           "tableFrom": "stall_items",
           "tableTo": "stalls",
-          "columnsFrom": [
-            "stall_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["stall_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2453,12 +2361,8 @@
           "name": "stall_items_item_id_catalog_items_id_fk",
           "tableFrom": "stall_items",
           "tableTo": "catalog_items",
-          "columnsFrom": [
-            "item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["item_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2466,10 +2370,7 @@
       "compositePrimaryKeys": {
         "stall_items_stall_id_item_id_pk": {
           "name": "stall_items_stall_id_item_id_pk",
-          "columns": [
-            "stall_id",
-            "item_id"
-          ]
+          "columns": ["stall_id", "item_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2594,12 +2495,8 @@
           "name": "stalls_merchant_id_merchants_id_fk",
           "tableFrom": "stalls",
           "tableTo": "merchants",
-          "columnsFrom": [
-            "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["merchant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2607,12 +2504,8 @@
           "name": "stalls_cover_image_id_images_id_fk",
           "tableFrom": "stalls",
           "tableTo": "images",
-          "columnsFrom": [
-            "cover_image_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cover_image_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2742,12 +2635,8 @@
           "name": "stealth_payments_merchant_id_merchants_id_fk",
           "tableFrom": "stealth_payments",
           "tableTo": "merchants",
-          "columnsFrom": [
-            "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["merchant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2755,12 +2644,8 @@
           "name": "stealth_payments_intent_id_payment_intents_id_fk",
           "tableFrom": "stealth_payments",
           "tableTo": "payment_intents",
-          "columnsFrom": [
-            "intent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["intent_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2841,12 +2726,8 @@
           "name": "terminal_pairings_merchant_id_merchants_id_fk",
           "tableFrom": "terminal_pairings",
           "tableTo": "merchants",
-          "columnsFrom": [
-            "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["merchant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2854,12 +2735,8 @@
           "name": "terminal_pairings_terminal_id_terminals_id_fk",
           "tableFrom": "terminal_pairings",
           "tableTo": "terminals",
-          "columnsFrom": [
-            "terminal_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["terminal_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2941,12 +2818,8 @@
           "name": "terminals_merchant_id_merchants_id_fk",
           "tableFrom": "terminals",
           "tableTo": "merchants",
-          "columnsFrom": [
-            "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["merchant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3206,12 +3079,8 @@
           "name": "trip_shares_trip_id_trips_id_fk",
           "tableFrom": "trip_shares",
           "tableTo": "trips",
-          "columnsFrom": [
-            "trip_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["trip_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3219,12 +3088,8 @@
           "name": "trip_shares_intent_id_payment_intents_id_fk",
           "tableFrom": "trip_shares",
           "tableTo": "payment_intents",
-          "columnsFrom": [
-            "intent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["intent_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3402,12 +3267,8 @@
           "name": "trips_merchant_id_merchants_id_fk",
           "tableFrom": "trips",
           "tableTo": "merchants",
-          "columnsFrom": [
-            "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["merchant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3806,12 +3667,8 @@
           "name": "ussd_spends_pocket_id_ussd_pockets_id_fk",
           "tableFrom": "ussd_spends",
           "tableTo": "ussd_pockets",
-          "columnsFrom": [
-            "pocket_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["pocket_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3819,12 +3676,8 @@
           "name": "ussd_spends_intent_id_payment_intents_id_fk",
           "tableFrom": "ussd_spends",
           "tableTo": "payment_intents",
-          "columnsFrom": [
-            "intent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["intent_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3887,12 +3740,8 @@
           "name": "ussd_till_codes_intent_id_payment_intents_id_fk",
           "tableFrom": "ussd_till_codes",
           "tableTo": "payment_intents",
-          "columnsFrom": [
-            "intent_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["intent_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4105,12 +3954,8 @@
           "name": "webhook_deliveries_endpoint_id_webhook_endpoints_id_fk",
           "tableFrom": "webhook_deliveries",
           "tableTo": "webhook_endpoints",
-          "columnsFrom": [
-            "endpoint_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["endpoint_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4118,12 +3963,8 @@
           "name": "webhook_deliveries_event_id_events_id_fk",
           "tableFrom": "webhook_deliveries",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4205,12 +4046,8 @@
           "name": "webhook_endpoints_merchant_id_merchants_id_fk",
           "tableFrom": "webhook_endpoints",
           "tableTo": "merchants",
-          "columnsFrom": [
-            "merchant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["merchant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4226,70 +4063,37 @@
     "public.credential_type": {
       "name": "credential_type",
       "schema": "public",
-      "values": [
-        "card",
-        "phone",
-        "agent"
-      ]
+      "values": ["card", "phone", "agent"]
     },
     "public.currency": {
       "name": "currency",
       "schema": "public",
-      "values": [
-        "USDC",
-        "pathUSD",
-        "USDT0",
-        "AUSD"
-      ]
+      "values": ["USDC", "pathUSD", "USDT0", "AUSD"]
     },
     "public.intent_status": {
       "name": "intent_status",
       "schema": "public",
-      "values": [
-        "requires_payment",
-        "processing",
-        "paid",
-        "held",
-        "failed",
-        "canceled",
-        "expired"
-      ]
+      "values": ["requires_payment", "processing", "paid", "held", "failed", "canceled", "expired"]
     },
     "public.network": {
       "name": "network",
       "schema": "public",
-      "values": [
-        "mainnet",
-        "testnet"
-      ]
+      "values": ["mainnet", "testnet"]
     },
     "public.order_source": {
       "name": "order_source",
       "schema": "public",
-      "values": [
-        "stall",
-        "till"
-      ]
+      "values": ["stall", "till"]
     },
     "public.trip_kind": {
       "name": "trip_kind",
       "schema": "public",
-      "values": [
-        "flight",
-        "stay"
-      ]
+      "values": ["flight", "stay"]
     },
     "public.trip_status": {
       "name": "trip_status",
       "schema": "public",
-      "values": [
-        "awaiting_payment",
-        "booking",
-        "booked",
-        "failed",
-        "expired",
-        "canceled"
-      ]
+      "values": ["awaiting_payment", "booking", "booked", "failed", "expired", "canceled"]
     }
   },
   "schemas": {},

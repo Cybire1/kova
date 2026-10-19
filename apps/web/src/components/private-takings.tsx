@@ -236,8 +236,8 @@ export function PrivateTakingsPanel({
       if (!moves.length)
         throw new Error(
           signed.empty.length === 1
-            ? 'Monad shows that address empty, so there’s nothing to move.'
-            : 'Monad shows these addresses empty, so there’s nothing to move.',
+            ? 'That address is empty on Monad, so there’s nothing to move.'
+            : 'These addresses are empty on Monad, so there’s nothing to move.',
         )
       let amount = 0n
       let count = 0

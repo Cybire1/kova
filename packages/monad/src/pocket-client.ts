@@ -1,8 +1,8 @@
 import type { Address, Hex } from 'viem'
 import { randomNonce } from './authorization.js'
 import {
-  type PocketChange,
   normalizePhone,
+  type PocketChange,
   pinProblem,
   pocketMessage,
   pocketPinCommitment,

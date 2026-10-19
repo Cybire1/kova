@@ -1,6 +1,13 @@
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
-import { Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
 import { getSummary } from '@/lib/api'
@@ -17,12 +24,12 @@ import { ActionTile } from '@/ui/ActionTile'
 import { Awning } from '@/ui/Awning'
 import { Avatar, Flyer, ShopBadge } from '@/ui/art'
 import { BalanceCard } from '@/ui/BalanceCard'
-import { MonWalletCard } from '@/ui/MonWalletCard'
 import { dockClearance } from '@/ui/Dock'
 import { EntryRow } from '@/ui/EntryRow'
 import { Icon } from '@/ui/Icon'
+import { KeyIcon, KeysOnHome } from '@/ui/Keys'
 import { MoneyTiles } from '@/ui/Money'
-import { KeysOnHome, KeyIcon } from '@/ui/Keys'
+import { MonWalletCard } from '@/ui/MonWalletCard'
 import { OfflinePill, OfflineRow } from '@/ui/Offline'
 import { RoundButton, Txt } from '@/ui/primitives'
 import { dollars } from '@/ui/StallParts'
@@ -34,6 +41,8 @@ import { dollars } from '@/ui/StallParts'
  */
 export default function Home() {
   const { profile, balance, monBalance, activity, contacts, refresh } = useWallet()
+  // Development only: `split=1` opens Home with the balance's split shown, for screenshots.
+  const { split } = useLocalSearchParams<{ split?: string }>()
   const insets = useSafeAreaInsets()
   const [refreshing, setRefreshing] = useState(false)
   const takings = useTakings()
@@ -55,11 +64,19 @@ export default function Home() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.paper }}
-      contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: dockClearance + insets.bottom, paddingHorizontal: 20 }}
+      contentContainerStyle={{
+        paddingTop: insets.top + 8,
+        paddingBottom: dockClearance + insets.bottom,
+        paddingHorizontal: 20,
+      }}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Profile" onPress={() => router.push('/(tabs)/profile')}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Profile"
+          onPress={() => router.push('/(tabs)/profile')}
+        >
           <Avatar name={profile.name} id={profile.address} size={38} />
         </Pressable>
         <View style={{ flex: 1 }}>
@@ -70,7 +87,12 @@ export default function Home() {
             {profile.name.split(' ')[0]}
           </Txt>
         </View>
-        <RoundButton icon="bell" label="Activity" size={36} onPress={() => router.push('/(tabs)/activity')} />
+        <RoundButton
+          icon="bell"
+          label="Activity"
+          size={36}
+          onPress={() => router.push('/(tabs)/activity')}
+        />
       </View>
 
       <OfflinePill />
@@ -89,10 +111,16 @@ export default function Home() {
               }
             : null
         }
-        privately={privately.waiting > 0n ? { amount: privately.waiting, onPress: () => router.push('/private') } : null}
+        privateAmount={privately.keysHere ? privately.waiting : 0n}
+        splitOpen={__DEV__ && split === '1'}
+        onPrivate={() => router.push('/private')}
         waiting={
           offline.waiting.length > 0
-            ? { out: offline.outWaiting, in: offline.inWaiting, onPress: () => router.push('/(tabs)/activity') }
+            ? {
+                out: offline.outWaiting,
+                in: offline.inWaiting,
+                onPress: () => router.push('/(tabs)/activity'),
+              }
             : null
         }
       />
@@ -151,7 +179,13 @@ export default function Home() {
           <Txt weight="bold" size={18} style={{ letterSpacing: -0.3 }}>
             Keys
           </Txt>
-          <Txt size={12} color={colors.onTint} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+          <Txt
+            size={12}
+            color={colors.onTint}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
             Allowances, your team and AI agents
           </Txt>
         </View>
@@ -168,7 +202,13 @@ export default function Home() {
           <Txt weight="bold" size={20} style={{ letterSpacing: -0.4 }}>
             Travel
           </Txt>
-          <Txt size={12} color={colors.onTint} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+          <Txt
+            size={12}
+            color={colors.onTint}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
             Flights and hotels, paid in dollars
           </Txt>
         </View>
@@ -182,7 +222,11 @@ export default function Home() {
       </Pressable>
 
       {empty ? (
-        <Pressable accessibilityRole="button" onPress={() => router.push('/add-money')} style={styles.notice}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/add-money')}
+          style={styles.notice}
+        >
           <View style={[styles.noticeIcon, { backgroundColor: colors.tealLight }]}>
             <Icon name="plus" />
           </View>
@@ -191,7 +235,9 @@ export default function Home() {
               {isTestnet ? 'Add test dollars to start' : 'Add money to start paying'}
             </Txt>
             <Txt size={13} color={colors.onTint}>
-              {isTestnet ? '$5 a day, free on Monad testnet. Arrives in about a second.' : 'Deposit crypto, or add money by card or bank.'}
+              {isTestnet
+                ? '$5 a day, free on Monad testnet. Arrives in about a second.'
+                : 'Deposit crypto, or add money by card or bank.'}
             </Txt>
           </View>
           <View style={styles.noticeCta}>
@@ -205,8 +251,18 @@ export default function Home() {
       <Txt weight="semi" size={18} style={styles.section}>
         Send again
       </Txt>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 14, paddingRight: 20 }} style={{ marginHorizontal: -20, paddingLeft: 20 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Pay someone new" onPress={() => router.push('/send')} style={styles.person}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 14, paddingRight: 20 }}
+        style={{ marginHorizontal: -20, paddingLeft: 20 }}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Pay someone new"
+          onPress={() => router.push('/send')}
+          style={styles.person}
+        >
           <View style={styles.newPerson}>
             <Icon name="plus" />
           </View>
@@ -219,7 +275,12 @@ export default function Home() {
             key={c.address}
             accessibilityRole="button"
             accessibilityLabel={`Send to ${c.name}`}
-            onPress={() => router.push({ pathname: '/send/[to]', params: { to: c.address, name: c.name, cur: c.currency ?? '' } })}
+            onPress={() =>
+              router.push({
+                pathname: '/send/[to]',
+                params: { to: c.address, name: c.name, cur: c.currency ?? '' },
+              })
+            }
             style={styles.person}
           >
             <Avatar name={c.name} id={c.address} size={48} />
@@ -235,7 +296,11 @@ export default function Home() {
           Recent
         </Txt>
         {activity.length > 3 ? (
-          <Pressable accessibilityRole="link" onPress={() => router.push('/(tabs)/activity')} hitSlop={10}>
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => router.push('/(tabs)/activity')}
+            hitSlop={10}
+          >
             <Txt size={14} color={colors.muted} style={{ textDecorationLine: 'underline' }}>
               See all
             </Txt>
@@ -301,10 +366,25 @@ function ShopCard() {
           go: () => enter('/terminal/today'),
         }
       : till
-        ? { label: 'Your till', title: till.merchantName, line: `This phone is ${till.name}`, go: () => enter('/terminal') }
+        ? {
+            label: 'Your till',
+            title: till.merchantName,
+            line: `This phone is ${till.name}`,
+            go: () => enter('/terminal'),
+          }
         : owned
-          ? { label: 'Your shop', title: 'Finish your shop', line: 'A step or two left', go: () => router.push('/open-stall') }
-          : { label: 'Run a shop?', title: 'Open a shop', line: 'Take payments into this wallet', go: () => router.push('/open-stall') }
+          ? {
+              label: 'Your shop',
+              title: 'Finish your shop',
+              line: 'A step or two left',
+              go: () => router.push('/open-stall'),
+            }
+          : {
+              label: 'Run a shop?',
+              title: 'Open a shop',
+              line: 'Take payments into this wallet',
+              go: () => router.push('/open-stall'),
+            }
 
   return (
     <Pressable
@@ -313,7 +393,12 @@ function ShopCard() {
       onPress={card.go}
       style={({ pressed }) => [styles.shop, pressed && { transform: [{ scale: 0.98 }] }]}
     >
-      <Awning width={width - 44} height={22} stripe={16} tone={shop && !shop.open ? 'teal' : 'coral'} />
+      <Awning
+        width={width - 44}
+        height={22}
+        stripe={16}
+        tone={shop && !shop.open ? 'teal' : 'coral'}
+      />
       <View style={styles.shopBody}>
         <ShopBadge size={42} />
         <View style={{ flex: 1 }}>
@@ -355,8 +440,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
-  shopBody: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 14, paddingRight: 12, paddingTop: 8, paddingBottom: 12 },
-  shopGo: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  shopBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingLeft: 14,
+    paddingRight: 12,
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
+  shopGo: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 46 },
   hero: { flexDirection: 'row', gap: 12, height: 182, marginTop: 12 },
   pay: {
@@ -367,7 +467,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     overflow: 'hidden',
   },
-  payIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  payIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   waves: { position: 'absolute', right: -14, top: 40 },
   small: { flex: 1, padding: 14, paddingHorizontal: 16, justifyContent: 'space-between' },
   travel: {
@@ -385,7 +491,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   travelPlane: { position: 'absolute', right: 58, top: -6, transform: [{ rotate: '-6deg' }] },
-  travelGo: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  travelGo: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   notice: {
     marginTop: 22,
     borderRadius: 24,
@@ -407,9 +520,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  noticeCta: { height: 36, paddingHorizontal: 16, borderRadius: 18, backgroundColor: colors.ink, justifyContent: 'center' },
+  noticeCta: {
+    height: 36,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+    backgroundColor: colors.ink,
+    justifyContent: 'center',
+  },
   section: { marginTop: 26, marginBottom: 12 },
-  sectionRow: { marginTop: 26, marginBottom: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  sectionRow: {
+    marginTop: 26,
+    marginBottom: 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+  },
   person: { alignItems: 'center', gap: 6, width: 54 },
   newPerson: {
     width: 48,

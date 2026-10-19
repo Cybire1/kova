@@ -1,8 +1,8 @@
-import { publicApiUrl } from '@/lib/network'
 import type { Metadata } from 'next'
 import { EventsCard, KeysCard, Quickstart, WebhooksCard } from '@/components/developers'
 import { PageHead } from '@/components/shell'
 import { type ApiKey, type KovaEvent, kova, type WebhookEndpoint } from '@/lib/api'
+import { publicApiUrl } from '@/lib/network'
 
 export const metadata: Metadata = { title: 'Developers' }
 
@@ -15,7 +15,10 @@ export default async function DevelopersPage() {
   const apiUrl = publicApiUrl
   return (
     <>
-      <PageHead title="Developers" sub="Take Kova payments from your own website, app or till software" />
+      <PageHead
+        title="Developers"
+        sub="Take Kova payments from your own website, app or till software"
+      />
       <div className="dev">
         <div className="stack">
           <Quickstart apiUrl={apiUrl} />

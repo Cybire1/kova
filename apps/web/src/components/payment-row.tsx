@@ -18,7 +18,15 @@ export function clock(iso: string) {
 }
 
 /** One charge: what it was for, where it stands, and the money. Opens the charge. */
-export function PaymentRow({ intent, fresh, showDate }: { intent: PaymentIntent; fresh?: boolean; showDate?: boolean }) {
+export function PaymentRow({
+  intent,
+  fresh,
+  showDate,
+}: {
+  intent: PaymentIntent
+  fresh?: boolean
+  showDate?: boolean
+}) {
   const when = intent.paid_at ?? intent.created_at
   const open = intent.status === 'requires_payment' || intent.status === 'processing'
   return (
@@ -32,11 +40,16 @@ export function PaymentRow({ intent, fresh, showDate }: { intent: PaymentIntent;
             {intent.reference ?? 'Payment'}
           </span>
           <span className="row-sub">
-            {statusText[intent.status]}, {showDate ? `${new Date(when).toLocaleDateString([], { day: 'numeric', month: 'short' })}, ` : ''}
+            {statusText[intent.status]},{' '}
+            {showDate
+              ? `${new Date(when).toLocaleDateString([], { day: 'numeric', month: 'short' })}, `
+              : ''}
             {clock(when)}
           </span>
         </span>
-        <span className="row-amount">{intent.status === 'paid' ? `+${usd(intent.amount)}` : usd(intent.amount)}</span>
+        <span className="row-amount">
+          {intent.status === 'paid' ? `+${usd(intent.amount)}` : usd(intent.amount)}
+        </span>
         <span className="row-go" aria-hidden="true">
           <Icon name="chevron" size={16} />
         </span>

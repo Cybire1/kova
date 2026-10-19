@@ -1,3 +1,19 @@
+# What EAS uploads to build the iOS app. The app (apps/mobile) reaches only packages/monad, so the
+# rest of the repo stays here: the film's audio alone is ~200 MB. When this file exists, EAS reads
+# it instead of every .gitignore, so it repeats what must never leave the machine.
+
+# Not part of the iOS app
+film/
+docs/
+apps/api/
+apps/web/
+apps/card/
+apps/rates/
+packages/db/
+packages/tempo/
+
+# Dependencies, builds and secrets (from .gitignore)
+node_modules/
 node_modules/
 .git
 .aws/
@@ -13,6 +29,27 @@ coverage/
 .env.*
 !.env.example
 .DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# The app's own (from apps/mobile/.gitignore): generated native folders, keys, local files
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/web-build/
+apps/mobile/expo-env.d.ts
+apps/mobile/app-example
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
 # card build output
 card/**/build/
 *.cap

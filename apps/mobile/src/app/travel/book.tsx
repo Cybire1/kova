@@ -1,12 +1,20 @@
 import * as Haptics from 'expo-haptics'
 import { Redirect, router } from 'expo-router'
 import { useState } from 'react'
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { createFlightTrip, createStayTrip, type TravellerInput } from '@/lib/api'
 import { formatLocal } from '@/lib/money'
-import { day, flightTotal, nights, useTravel } from '@/lib/travel'
 import { colors, fonts } from '@/lib/theme'
+import { day, flightTotal, nights, useTravel } from '@/lib/travel'
 import { useWallet } from '@/lib/wallet'
 import { Icon, type IconName } from '@/ui/Icon'
 import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
@@ -29,7 +37,9 @@ function birthDate(typed: string) {
   if (!m) return null
   const iso = `${m[3]}-${m[2]}-${m[1]}`
   const t = Date.parse(`${iso}T00:00:00Z`)
-  return Number.isNaN(t) || t > Date.now() || new Date(t).toISOString().slice(0, 10) !== iso ? null : iso
+  return Number.isNaN(t) || t > Date.now() || new Date(t).toISOString().slice(0, 10) !== iso
+    ? null
+    : iso
 }
 
 /** Types a date of birth with the slashes put in for you. */
@@ -59,7 +69,13 @@ export default function Book() {
   const count = flight ? flight.offer.passengers.length : stay ? stay.search.adults : 1
   const [first, ...last] = (profile?.name ?? '').split(' ')
   const [people, setPeople] = useState<Person[]>(() =>
-    Array.from({ length: count }, (_, i) => ({ title: 'mr', given: i === 0 ? (first ?? '') : '', family: i === 0 ? last.join(' ') : '', born: '', gender: null })),
+    Array.from({ length: count }, (_, i) => ({
+      title: 'mr',
+      given: i === 0 ? (first ?? '') : '',
+      family: i === 0 ? last.join(' ') : '',
+      born: '',
+      gender: null,
+    })),
   )
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('+234')
@@ -72,11 +88,19 @@ export default function Book() {
   if (!flight && !stay) return <Redirect href="/travel" />
 
   const total = flight ? flightTotal(flight) : Number(stay?.rate.price.usd ?? 0)
-  const set = (i: number, patch: Partial<Person>) => setPeople((list) => list.map((p, j) => (j === i ? { ...p, ...patch } : p)))
-  const payers = payer === 'me' ? ['You'] : payer === 'someone' ? [someone.trim()] : ['You', ...friends.map((f) => f.trim())]
+  const set = (i: number, patch: Partial<Person>) =>
+    setPeople((list) => list.map((p, j) => (j === i ? { ...p, ...patch } : p)))
+  const payers =
+    payer === 'me'
+      ? ['You']
+      : payer === 'someone'
+        ? [someone.trim()]
+        : ['You', ...friends.map((f) => f.trim())]
   const emailOk = /^\S+@\S+\.\S+$/.test(email.trim())
   const phoneOk = /^\+[1-9]\d{6,14}$/.test(phone.replace(/\s/g, ''))
-  const peopleOk = people.every((p) => p.given.trim() && p.family.trim() && (!flight || (birthDate(p.born) && p.gender)))
+  const peopleOk = people.every(
+    (p) => p.given.trim() && p.family.trim() && (!flight || (birthDate(p.born) && p.gender)),
+  )
   const payersOk = payers.every((p) => p.length > 0) && new Set(payers).size === payers.length
   const ready = peopleOk && emailOk && phoneOk && payersOk
 
@@ -119,7 +143,10 @@ export default function Book() {
           })
         : await createStayTrip({
             rate_id: stay?.rate.id ?? '',
-            guests: people.map((p) => ({ given_name: p.given.trim(), family_name: p.family.trim() })),
+            guests: people.map((p) => ({
+              given_name: p.given.trim(),
+              family_name: p.family.trim(),
+            })),
             email: email.trim(),
             phone_number: phone.replace(/\s/g, ''),
             payers,
@@ -131,7 +158,8 @@ export default function Book() {
       const own = trip.shares.find((s) => s.label === 'You')
       router.dismissAll()
       router.replace({ pathname: '/travel/trip/[id]', params: { id: trip.id } })
-      if (payer === 'me' && own?.link) router.push({ pathname: '/pay/[id]', params: { id: own.checkout ?? '' } })
+      if (payer === 'me' && own?.link)
+        router.push({ pathname: '/pay/[id]', params: { id: own.checkout ?? '' } })
     } catch (error) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
       setProblem(error instanceof Error ? error.message : 'That didn’t work. Try again.')
@@ -140,7 +168,9 @@ export default function Book() {
     }
   }
 
-  const title = flight ? `${flight.offer.slices[0]?.from.city} to ${flight.offer.slices[0]?.to.city}` : (stay?.detail.accommodation.name ?? '')
+  const title = flight
+    ? `${flight.offer.slices[0]?.from.city} to ${flight.offer.slices[0]?.to.city}`
+    : (stay?.detail.accommodation.name ?? '')
   const subtitle = flight
     ? `${flight.offer.owner.name}, ${day(flight.offer.slices[0]?.departs)}`
     : stay
@@ -150,25 +180,45 @@ export default function Book() {
 
   return (
     <Screen bg={colors.paper}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <Header title={title} subtitle={subtitle} />
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }}
+          keyboardShouldPersistTaps="handled"
+        >
           <Txt weight="bold" size={24} style={styles.h}>
             {flight ? 'Who’s flying' : 'Who’s staying'}
           </Txt>
           <Txt size={14} color={colors.muted} style={{ marginBottom: 10, lineHeight: 20 }}>
-            {flight ? 'Names exactly as on each passport.' : 'The names the hotel will have on the booking.'}
+            {flight
+              ? 'Names exactly as on each passport.'
+              : 'The names the hotel will have on the booking.'}
           </Txt>
           {people.map((p, i) => (
             <View key={i} style={styles.card}>
               <Txt weight="semi" size={14} color={colors.muted}>
-                {flight ? `Traveller ${i + 1}${flight.offer.passengers[i]?.type && flight.offer.passengers[i]?.type !== 'adult' ? `, ${flight.offer.passengers[i]?.type.replace(/_/g, ' ')}` : ''}` : `Guest ${i + 1}`}
+                {flight
+                  ? `Traveller ${i + 1}${flight.offer.passengers[i]?.type && flight.offer.passengers[i]?.type !== 'adult' ? `, ${flight.offer.passengers[i]?.type.replace(/_/g, ' ')}` : ''}`
+                  : `Guest ${i + 1}`}
               </Txt>
               {flight ? (
                 <View style={styles.chips}>
                   {titles.map((t) => (
-                    <Pressable key={t.id} accessibilityRole="radio" accessibilityState={{ selected: p.title === t.id }} onPress={() => set(i, { title: t.id })} style={[styles.chip, p.title === t.id && styles.chipOn]}>
-                      <Txt weight="semi" size={13} color={p.title === t.id ? colors.white : colors.ink}>
+                    <Pressable
+                      key={t.id}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: p.title === t.id }}
+                      onPress={() => set(i, { title: t.id })}
+                      style={[styles.chip, p.title === t.id && styles.chipOn]}
+                    >
+                      <Txt
+                        weight="semi"
+                        size={13}
+                        color={p.title === t.id ? colors.white : colors.ink}
+                      >
                         {t.label}
                       </Txt>
                     </Pressable>
@@ -176,21 +226,55 @@ export default function Book() {
                 </View>
               ) : null}
               <View style={styles.twoCol}>
-                <Input value={p.given} onChange={(v) => set(i, { given: v })} placeholder="First name" style={{ flex: 1 }} words />
-                <Input value={p.family} onChange={(v) => set(i, { family: v })} placeholder="Last name" style={{ flex: 1 }} words />
+                <Input
+                  value={p.given}
+                  onChange={(v) => set(i, { given: v })}
+                  placeholder="First name"
+                  style={{ flex: 1 }}
+                  words
+                />
+                <Input
+                  value={p.family}
+                  onChange={(v) => set(i, { family: v })}
+                  placeholder="Last name"
+                  style={{ flex: 1 }}
+                  words
+                />
               </View>
               {flight ? (
                 <View style={styles.twoCol}>
-                  <Input value={p.born} onChange={(v) => set(i, { born: withSlashes(v) })} placeholder="Born DD/MM/YYYY" style={{ flex: 1.3 }} numeric />
-                  <View style={[styles.chips, { flex: 1, marginTop: 0 }]} accessibilityLabel="As on the passport">
+                  <Input
+                    value={p.born}
+                    onChange={(v) => set(i, { born: withSlashes(v) })}
+                    placeholder="Born DD/MM/YYYY"
+                    style={{ flex: 1.3 }}
+                    numeric
+                  />
+                  <View
+                    style={[styles.chips, { flex: 1, marginTop: 0 }]}
+                    accessibilityLabel="As on the passport"
+                  >
                     {(
                       [
                         { id: 'f', label: 'F' },
                         { id: 'm', label: 'M' },
                       ] as { id: 'm' | 'f'; label: string }[]
                     ).map((g) => (
-                      <Pressable key={g.id} accessibilityRole="radio" accessibilityLabel={g.id === 'f' ? 'Female, as on the passport' : 'Male, as on the passport'} accessibilityState={{ selected: p.gender === g.id }} onPress={() => set(i, { gender: g.id })} style={[styles.chip, styles.gender, p.gender === g.id && styles.chipOn]}>
-                        <Txt weight="semi" size={14} color={p.gender === g.id ? colors.white : colors.ink}>
+                      <Pressable
+                        key={g.id}
+                        accessibilityRole="radio"
+                        accessibilityLabel={
+                          g.id === 'f' ? 'Female, as on the passport' : 'Male, as on the passport'
+                        }
+                        accessibilityState={{ selected: p.gender === g.id }}
+                        onPress={() => set(i, { gender: g.id })}
+                        style={[styles.chip, styles.gender, p.gender === g.id && styles.chipOn]}
+                      >
+                        <Txt
+                          weight="semi"
+                          size={14}
+                          color={p.gender === g.id ? colors.white : colors.ink}
+                        >
                           {g.label}
                         </Txt>
                       </Pressable>
@@ -210,31 +294,65 @@ export default function Book() {
             Where the {flight ? 'airline' : 'hotel'} can reach you
           </Txt>
           <View style={styles.twoCol}>
-            <Input value={email} onChange={setEmail} placeholder="Email" style={{ flex: 1.4 }} email />
-            <Input value={phone} onChange={setPhone} placeholder="+2348030000000" style={{ flex: 1 }} phone />
+            <Input
+              value={email}
+              onChange={setEmail}
+              placeholder="Email"
+              style={{ flex: 1.4 }}
+              email
+            />
+            <Input
+              value={phone}
+              onChange={setPhone}
+              placeholder="+2348030000000"
+              style={{ flex: 1 }}
+              phone
+            />
           </View>
 
           <Txt weight="bold" size={24} style={[styles.h, { marginTop: 26 }]}>
             Who’s paying
           </Txt>
           <View style={{ gap: 10 }}>
-            <Choice icon="face" title="I’ll pay" text={`${dollars(total)} from your wallet, with Face ID`} on={payer === 'me'} onPress={() => setPayer('me')} />
+            <Choice
+              icon="face"
+              title="I’ll pay"
+              text={`${dollars(total)} from your wallet, with Face ID`}
+              on={payer === 'me'}
+              onPress={() => setPayer('me')}
+            />
             <Choice
               icon="send"
               title="Ask someone to pay"
               text={
-                flight && flight.offer.holdable && !Object.keys(flight.seats).length && !Object.values(flight.bags).some(Boolean)
+                flight &&
+                flight.offer.holdable &&
+                !Object.keys(flight.seats).length &&
+                !Object.values(flight.bags).some(Boolean)
                   ? 'Family abroad pays by link. The airline holds the fare meanwhile.'
                   : 'Send the fare as a link to whoever’s paying. It has to be paid before the price runs out.'
               }
               on={payer === 'someone'}
               onPress={() => setPayer('someone')}
             />
-            {stay ? <Choice icon="user" title="Split it" text="Each friend pays their share. The room is booked once everyone has." on={payer === 'split'} onPress={() => setPayer('split')} /> : null}
+            {stay ? (
+              <Choice
+                icon="user"
+                title="Split it"
+                text="Each friend pays their share. The room is booked once everyone has."
+                on={payer === 'split'}
+                onPress={() => setPayer('split')}
+              />
+            ) : null}
           </View>
           {payer === 'someone' ? (
             <View style={{ marginTop: 10 }}>
-              <Input value={someone} onChange={setSomeone} placeholder="Who? Like Mum or Uncle Tunde" words />
+              <Input
+                value={someone}
+                onChange={setSomeone}
+                placeholder="Who? Like Mum or Uncle Tunde"
+                words
+              />
             </View>
           ) : null}
           {payer === 'split' ? (
@@ -250,16 +368,31 @@ export default function Book() {
               </View>
               {friends.map((f, i) => (
                 <View key={i} style={styles.friendRow}>
-                  <Input value={f} onChange={(v) => setFriends((list) => list.map((x, j) => (j === i ? v : x)))} placeholder={`Friend ${i + 1}’s name`} style={{ flex: 1 }} words />
+                  <Input
+                    value={f}
+                    onChange={(v) => setFriends((list) => list.map((x, j) => (j === i ? v : x)))}
+                    placeholder={`Friend ${i + 1}’s name`}
+                    style={{ flex: 1 }}
+                    words
+                  />
                   {friends.length > 1 ? (
-                    <Pressable accessibilityRole="button" accessibilityLabel="Remove" hitSlop={8} onPress={() => setFriends((list) => list.filter((_, j) => j !== i))}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Remove"
+                      hitSlop={8}
+                      onPress={() => setFriends((list) => list.filter((_, j) => j !== i))}
+                    >
                       <Icon name="close" size={20} />
                     </Pressable>
                   ) : null}
                 </View>
               ))}
               {friends.length < 7 ? (
-                <Pressable accessibilityRole="button" onPress={() => setFriends((list) => [...list, ''])} style={styles.addFriend}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setFriends((list) => [...list, ''])}
+                  style={styles.addFriend}
+                >
                   <Icon name="plus" size={16} />
                   <Txt weight="semi" size={14}>
                     Add a friend
@@ -289,7 +422,15 @@ export default function Book() {
             ) : null}
           </View>
           <View style={{ width: 200 }}>
-            <PillButton label={payer === 'me' ? 'Book and pay' : payer === 'someone' ? 'Make the link' : 'Split it'} icon={payer === 'me' ? 'face' : 'send'} disabled={!ready} loading={busy} onPress={submit} />
+            <PillButton
+              label={
+                payer === 'me' ? 'Book and pay' : payer === 'someone' ? 'Make the link' : 'Split it'
+              }
+              icon={payer === 'me' ? 'face' : 'send'}
+              disabled={!ready}
+              loading={busy}
+              onPress={submit}
+            />
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -324,7 +465,9 @@ function Input({
       placeholderTextColor="#8C9799"
       autoCapitalize={words ? 'words' : 'none'}
       autoCorrect={false}
-      keyboardType={numeric ? 'number-pad' : email ? 'email-address' : phone ? 'phone-pad' : 'default'}
+      keyboardType={
+        numeric ? 'number-pad' : email ? 'email-address' : phone ? 'phone-pad' : 'default'
+      }
       textContentType={email ? 'emailAddress' : phone ? 'telephoneNumber' : undefined}
       accessibilityLabel={placeholder}
       style={[styles.input, style]}
@@ -332,7 +475,19 @@ function Input({
   )
 }
 
-function Choice({ icon, title, text, on, onPress }: { icon: IconName; title: string; text: string; on: boolean; onPress: () => void }) {
+function Choice({
+  icon,
+  title,
+  text,
+  on,
+  onPress,
+}: {
+  icon: IconName
+  title: string
+  text: string
+  on: boolean
+  onPress: () => void
+}) {
   return (
     <Pressable
       accessibilityRole="radio"
@@ -354,7 +509,9 @@ function Choice({ icon, title, text, on, onPress }: { icon: IconName; title: str
           {text}
         </Txt>
       </View>
-      <View style={[styles.radio, on && styles.radioOn]}>{on ? <View style={styles.radioDot} /> : null}</View>
+      <View style={[styles.radio, on && styles.radioOn]}>
+        {on ? <View style={styles.radioDot} /> : null}
+      </View>
     </Pressable>
   )
 }
@@ -362,9 +519,24 @@ function Choice({ icon, title, text, on, onPress }: { icon: IconName; title: str
 const styles = StyleSheet.create({
   h: { letterSpacing: -0.6, marginTop: 8 },
   label: { marginTop: 20, marginBottom: 8, marginLeft: 4 },
-  card: { marginBottom: 12, padding: 14, gap: 10, borderRadius: 24, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface },
+  card: {
+    marginBottom: 12,
+    padding: 14,
+    gap: 10,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { height: 36, paddingHorizontal: 12, borderRadius: 18, borderWidth: 2, borderColor: colors.ink, justifyContent: 'center' },
+  chip: {
+    height: 36,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    justifyContent: 'center',
+  },
   chipOn: { backgroundColor: colors.ink },
   gender: { flex: 1, alignItems: 'center', height: 44 },
   twoCol: { flexDirection: 'row', gap: 8 },
@@ -379,14 +551,56 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.ink,
   },
-  choice: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 22, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface },
+  choice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
   choiceOn: { backgroundColor: colors.white, borderWidth: 3 },
-  choiceIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.tealSoft, alignItems: 'center', justifyContent: 'center' },
-  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  choiceIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.tealSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   radioOn: { borderColor: colors.ink },
   radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.ink },
   friend: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 44 },
   friendRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  addFriend: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', height: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: colors.sunken },
-  bar: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingTop: 14, backgroundColor: colors.paper, borderTopWidth: 2, borderColor: colors.ink },
+  addFriend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    height: 38,
+    paddingHorizontal: 14,
+    borderRadius: 19,
+    backgroundColor: colors.sunken,
+  },
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    backgroundColor: colors.paper,
+    borderTopWidth: 2,
+    borderColor: colors.ink,
+  },
 })

@@ -1,9 +1,9 @@
 'use client'
 
+import { getNetwork } from '@kova/monad'
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { type Address, getAddress, isAddress } from 'viem'
-import { getNetwork } from '@kova/monad'
 import { Icon, type IconName } from '@/components/brand'
 import {
   answer,

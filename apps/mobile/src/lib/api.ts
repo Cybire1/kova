@@ -51,7 +51,8 @@ async function request<T>(path: string, init: RequestInit & { auth?: Auth } = {}
   })
   const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } }
   if (auth && key && response.status === 401) revoked[auth]?.()
-  if (!response.ok) throw new Error(body.error?.message ?? `Kova is unreachable (${response.status})`)
+  if (!response.ok)
+    throw new Error(body.error?.message ?? `Kova is unreachable (${response.status})`)
   return body as T
 }
 
@@ -66,7 +67,10 @@ export interface DemoAccount {
 
 /** Testnet only: the demo account's username and password, for its wallet's secret. */
 export const demoSignIn = (username: string, password: string) =>
-  request<DemoAccount>('/v1/demo/sign_in', { method: 'POST', body: JSON.stringify({ username, password }) })
+  request<DemoAccount>('/v1/demo/sign_in', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  })
 
 // --- payer ---------------------------------------------------------------------------------
 
@@ -187,12 +191,19 @@ export interface StampCard {
 
 export interface PlacedOrder {
   id: string
-  checkout: { id: string; amount: string; status: Checkout['status']; expires_at: string; link: string }
+  checkout: {
+    id: string
+    amount: string
+    status: Checkout['status']
+    expires_at: string
+    link: string
+  }
   /** Set when the payer's stamp card was full: this item is free, and the charge is lower (it can be $0). */
   reward?: StampReward | null
 }
 
-export const getPublicStall = (slug: string) => request<PublicStall>(`/v1/public/stalls/${encodeURIComponent(slug)}`)
+export const getPublicStall = (slug: string) =>
+  request<PublicStall>(`/v1/public/stalls/${encodeURIComponent(slug)}`)
 
 /** Order from a stall. The server prices every line; the result is a charge to pay, or to send on. */
 export const orderFromStall = (
@@ -207,11 +218,17 @@ export const orderFromStall = (
     /** The wallet that will pay: it earns the stamp, and spends a full card. */
     payer?: string
   },
-) => request<PlacedOrder>(`/v1/public/stalls/${encodeURIComponent(slug)}/orders`, { method: 'POST', body: JSON.stringify(order) })
+) =>
+  request<PlacedOrder>(`/v1/public/stalls/${encodeURIComponent(slug)}/orders`, {
+    method: 'POST',
+    body: JSON.stringify(order),
+  })
 
 /** A wallet's stamp card at a stall. The wallet that pays is the card: there's nothing to sign up for. */
 export const getStampCard = (slug: string, payer: string) =>
-  request<StampCard>(`/v1/public/stalls/${encodeURIComponent(slug)}/stamps?payer=${encodeURIComponent(payer)}`)
+  request<StampCard>(
+    `/v1/public/stalls/${encodeURIComponent(slug)}/stamps?payer=${encodeURIComponent(payer)}`,
+  )
 
 // --- shop: taking payments (device key) ----------------------------------------------------
 
@@ -238,25 +255,33 @@ export interface Summary {
   [key: string]: unknown
 }
 
-export const createCharge = (amount: string, options: { reference?: string; metadata?: Record<string, unknown> } = {}) =>
+export const createCharge = (
+  amount: string,
+  options: { reference?: string; metadata?: Record<string, unknown> } = {},
+) =>
   request<PaymentIntent>('/v1/payment_intents', {
     method: 'POST',
     auth: 'device',
     body: JSON.stringify({ amount, ...options }),
   })
 
-export const getCharge = (id: string) => request<PaymentIntent>(`/v1/payment_intents/${id}`, { auth: 'device' })
+export const getCharge = (id: string) =>
+  request<PaymentIntent>(`/v1/payment_intents/${id}`, { auth: 'device' })
 
 export const cancelCharge = (id: string) =>
   request<PaymentIntent>(`/v1/payment_intents/${id}/cancel`, { method: 'POST', auth: 'device' })
 
 export const getSummary = () => {
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-  return request<Summary>(`/v1/summary${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`, { auth: 'device' })
+  return request<Summary>(`/v1/summary${tz ? `?tz=${encodeURIComponent(tz)}` : ''}`, {
+    auth: 'device',
+  })
 }
 
 export const listCharges = (limit = 25) =>
-  request<{ data: PaymentIntent[] }>(`/v1/payment_intents?limit=${limit}`, { auth: 'device' }).then((r) => r.data)
+  request<{ data: PaymentIntent[] }>(`/v1/payment_intents?limit=${limit}`, { auth: 'device' }).then(
+    (r) => r.data,
+  )
 
 export type OrderStatus = 'new' | 'preparing' | 'ready' | 'collected' | 'cancelled'
 
@@ -286,15 +311,25 @@ export interface Order {
 
 /** Stall orders, newest first. open: paid and not handed over yet; unpaid: still waiting for payment. */
 export const listOrders = (status: 'all' | 'open' | 'collected' | 'unpaid' = 'all', limit = 50) =>
-  request<{ data: Order[] }>(`/v1/orders?status=${status}&source=stall&limit=${limit}`, { auth: 'device' }).then((r) => r.data)
+  request<{ data: Order[] }>(`/v1/orders?status=${status}&source=stall&limit=${limit}`, {
+    auth: 'device',
+  }).then((r) => r.data)
 
 /** Moves an order along the counter: new, preparing, ready, collected or cancelled. */
 export const setOrderStatus = (id: string, status: OrderStatus) =>
-  request<Order>(`/v1/orders/${id}/status`, { method: 'POST', auth: 'device', body: JSON.stringify({ status }) })
+  request<Order>(`/v1/orders/${id}/status`, {
+    method: 'POST',
+    auth: 'device',
+    body: JSON.stringify({ status }),
+  })
 
 /** Handed over, or back to waiting to undo a mistap. */
 export const collectOrder = (id: string, collected = true) =>
-  request<Order>(`/v1/orders/${id}/collect`, { method: 'POST', auth: 'device', body: JSON.stringify({ collected }) })
+  request<Order>(`/v1/orders/${id}/collect`, {
+    method: 'POST',
+    auth: 'device',
+    body: JSON.stringify({ collected }),
+  })
 
 /** A till sale: what was scanned or picked at the counter, priced by Kova from the catalogue. */
 export const ringUp = (items: { id: string; quantity: number }[], note?: string) =>
@@ -304,14 +339,20 @@ export const ringUp = (items: { id: string; quantity: number }[], note?: string)
     body: JSON.stringify({ items, note }),
   })
 
-export const getCatalog = () => request<{ data: CatalogItem[] }>('/v1/catalog/items', { auth: 'device' }).then((r) => r.data)
+export const getCatalog = () =>
+  request<{ data: CatalogItem[] }>('/v1/catalog/items', { auth: 'device' }).then((r) => r.data)
 
 export interface BarcodeLookup {
   code: string
   /** This shop's item with that barcode. */
   item: CatalogItem | null
   /** Otherwise, what open product databases know about it. */
-  suggestion: { name: string; brand: string | null; image_url: string | null; source: string } | null
+  suggestion: {
+    name: string
+    brand: string | null
+    image_url: string | null
+    source: string
+  } | null
 }
 
 export const lookupBarcode = (code: string, auth: Auth = 'device') =>
@@ -326,10 +367,14 @@ export interface PairedTerminal {
 
 /** Redeems a pairing code from the dashboard for this phone's own terminal key. */
 export const pairTerminal = (code: string, name: string, device: Record<string, unknown>) =>
-  request<PairedTerminal>('/v1/terminals/pair', { method: 'POST', body: JSON.stringify({ code, name, device }) })
+  request<PairedTerminal>('/v1/terminals/pair', {
+    method: 'POST',
+    body: JSON.stringify({ code, name, device }),
+  })
 
 /** Tells Kova this phone is no longer a terminal, so its key stops working everywhere. */
-export const unpairTerminal = () => request<{ status: string }>('/v1/terminals/self/unpair', { method: 'POST', auth: 'device' })
+export const unpairTerminal = () =>
+  request<{ status: string }>('/v1/terminals/self/unpair', { method: 'POST', auth: 'device' })
 
 // --- shop: running it (owner key) ----------------------------------------------------------
 
@@ -355,10 +400,18 @@ export const shopChallenge = (address: string, purpose: 'sign_in' | 'open_shop' 
  * Opens a shop whose payments settle in `settlementAddress`: this phone's own wallet. With the
  * wallet's signed "open a shop" message, the wallet owns it: its passkey signs in to it on the web.
  */
-export const openShop = (name: string, settlementAddress: string, owner?: { message: string; signature: string }) =>
+export const openShop = (
+  name: string,
+  settlementAddress: string,
+  owner?: { message: string; signature: string },
+) =>
   request<OpenedShop>('/v1/merchants', {
     method: 'POST',
-    body: JSON.stringify({ name, settlement_address: settlementAddress, ...(owner ? { owner } : {}) }),
+    body: JSON.stringify({
+      name,
+      settlement_address: settlementAddress,
+      ...(owner ? { owner } : {}),
+    }),
   })
 
 /** Signs a wallet in to the shop it owns (its newest, if several): a session key for this phone. */
@@ -370,28 +423,60 @@ export const signInToShop = (message: string, signature: string) =>
 
 /** Who signs in to the shop this phone owns (its owner's wallet, or nobody's yet), and where its payments settle. */
 export const getOwnedShop = () =>
-  request<{ id: string; name: string; owner_address: string | null; settlement_address: `0x${string}` }>('/v1/account', { auth: 'owner' })
+  request<{
+    id: string
+    name: string
+    owner_address: string | null
+    settlement_address: `0x${string}`
+  }>('/v1/account', { auth: 'owner' })
 
 /** Makes a wallet the shop's owner with its signed message, so its passkey signs in on the web. */
 export const linkShopOwner = (message: string, signature: string) =>
-  request<{ owner_address: string | null }>('/v1/account/owner', { method: 'POST', body: JSON.stringify({ message, signature }), auth: 'owner' })
+  request<{ owner_address: string | null }>('/v1/account/owner', {
+    method: 'POST',
+    body: JSON.stringify({ message, signature }),
+    auth: 'owner',
+  })
 
 /** A lasting owner key for this phone: a shop opened with a wallet signs in with a key that lapses. */
 export const createOwnerKey = (name: string) =>
-  request<{ secret: string }>('/v1/api_keys', { method: 'POST', body: JSON.stringify({ name }), auth: 'owner' })
+  request<{ secret: string }>('/v1/api_keys', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+    auth: 'owner',
+  })
 
 /** A one-time code to pair a terminal; the phone that opened the shop pairs itself with one. */
-export const createPairing = () => request<{ code: string; link: string }>('/v1/terminals/pairings', { method: 'POST', auth: 'owner' })
+export const createPairing = () =>
+  request<{ code: string; link: string }>('/v1/terminals/pairings', {
+    method: 'POST',
+    auth: 'owner',
+  })
 
-export const listStalls = () => request<{ data: Stall[] }>('/v1/stalls', { auth: 'owner' }).then((r) => r.data)
+export const listStalls = () =>
+  request<{ data: Stall[] }>('/v1/stalls', { auth: 'owner' }).then((r) => r.data)
 
 export const getStall = (id: string) => request<StallDetail>(`/v1/stalls/${id}`, { auth: 'owner' })
 
 export const createStall = (stall: { name: string; tagline?: string | null }) =>
   request<Stall>('/v1/stalls', { method: 'POST', auth: 'owner', body: JSON.stringify(stall) })
 
-export const updateStall = (id: string, patch: Partial<{ name: string; tagline: string | null; open: boolean; item_ids: string[]; table_count: number | null; loyalty_every: number | null }>) =>
-  request<Stall>(`/v1/stalls/${id}`, { method: 'PATCH', auth: 'owner', body: JSON.stringify(patch) })
+export const updateStall = (
+  id: string,
+  patch: Partial<{
+    name: string
+    tagline: string | null
+    open: boolean
+    item_ids: string[]
+    table_count: number | null
+    loyalty_every: number | null
+  }>,
+) =>
+  request<Stall>(`/v1/stalls/${id}`, {
+    method: 'PATCH',
+    auth: 'owner',
+    body: JSON.stringify(patch),
+  })
 
 export interface ItemInput {
   name: string
@@ -406,38 +491,71 @@ export interface ItemInput {
 }
 
 export const createItem = (item: ItemInput & { stall_ids?: string[] }) =>
-  request<CatalogItem>('/v1/catalog/items', { method: 'POST', auth: 'owner', body: JSON.stringify(item) })
+  request<CatalogItem>('/v1/catalog/items', {
+    method: 'POST',
+    auth: 'owner',
+    body: JSON.stringify(item),
+  })
 
 export const updateItem = (id: string, patch: Partial<ItemInput>) =>
-  request<CatalogItem>(`/v1/catalog/items/${id}`, { method: 'PATCH', auth: 'owner', body: JSON.stringify(patch) })
+  request<CatalogItem>(`/v1/catalog/items/${id}`, {
+    method: 'PATCH',
+    auth: 'owner',
+    body: JSON.stringify(patch),
+  })
 
 /** Before adding a product: does the shop already sell it under another name? (Jev) */
 export const findSimilarItem = (name: string) =>
-  request<{ item: CatalogItem | null; confidence: number | null }>('/v1/catalog/similar', { method: 'POST', auth: 'owner', body: JSON.stringify({ name }) })
+  request<{ item: CatalogItem | null; confidence: number | null }>('/v1/catalog/similar', {
+    method: 'POST',
+    auth: 'owner',
+    body: JSON.stringify({ name }),
+  })
 
-export const removeItem = (id: string) => request<{ deleted: boolean }>(`/v1/catalog/items/${id}`, { method: 'DELETE', auth: 'owner' })
+export const removeItem = (id: string) =>
+  request<{ deleted: boolean }>(`/v1/catalog/items/${id}`, { method: 'DELETE', auth: 'owner' })
 
 /** Uploads a photo already on the phone (a file URI). Returns its id for an item. */
 export async function uploadImage(uri: string, contentType = 'image/jpeg') {
   const bytes = await (await fetch(uri)).blob()
   const response = await fetch(`${apiUrl}/v1/images`, {
     method: 'POST',
-    headers: { 'content-type': contentType, ...(keys.owner ? { authorization: `Bearer ${keys.owner}` } : {}) },
+    headers: {
+      'content-type': contentType,
+      ...(keys.owner ? { authorization: `Bearer ${keys.owner}` } : {}),
+    },
     body: bytes,
   })
-  const body = (await response.json().catch(() => ({}))) as { id?: string; url?: string; error?: { message?: string } }
-  if (!response.ok || !body.id) throw new Error(body.error?.message ?? `The photo didn’t upload (${response.status})`)
+  const body = (await response.json().catch(() => ({}))) as {
+    id?: string
+    url?: string
+    error?: { message?: string }
+  }
+  if (!response.ok || !body.id)
+    throw new Error(body.error?.message ?? `The photo didn’t upload (${response.status})`)
   return { id: body.id, url: body.url ?? null }
 }
 
 export interface MenuImport {
   currency: string
-  items: { name: string; description: string | null; price: string; original: { amount: number; currency: string } }[]
+  items: {
+    name: string
+    description: string | null
+    price: string
+    original: { amount: number; currency: string }
+  }[]
 }
 
 /** Snap your menu: a photo of a menu board or price list in, suggested items out. Nothing is saved. */
-export const readMenuPhoto = (base64: string, mediaType: 'image/jpeg' | 'image/png' | 'image/webp' = 'image/jpeg') =>
-  request<MenuImport>('/v1/catalog/import', { method: 'POST', auth: 'owner', body: JSON.stringify({ image: base64, media_type: mediaType }) })
+export const readMenuPhoto = (
+  base64: string,
+  mediaType: 'image/jpeg' | 'image/png' | 'image/webp' = 'image/jpeg',
+) =>
+  request<MenuImport>('/v1/catalog/import', {
+    method: 'POST',
+    auth: 'owner',
+    body: JSON.stringify({ image: base64, media_type: mediaType }),
+  })
 
 // --- shop: private takings (owner key) -----------------------------------------------------
 
@@ -474,21 +592,38 @@ export interface PrivateTakings {
 
 /** One move from a one-time address into the shop's wallet: done, or why not. */
 export type TakingsMove =
-  | { from: `0x${string}`; to: `0x${string}`; amount: string; tx_hash: `0x${string}`; explorer_url: string; ms: number }
+  | {
+      from: `0x${string}`
+      to: `0x${string}`
+      amount: string
+      tx_hash: `0x${string}`
+      explorer_url: string
+      ms: number
+    }
   | { from: `0x${string}`; error: string }
 
-export const getPrivateTakings = () => request<PrivateTakings>('/v1/private_takings', { auth: 'owner' })
+export const getPrivateTakings = () =>
+  request<PrivateTakings>('/v1/private_takings', { auth: 'owner' })
 
 /** From now on every charge pays a fresh one-time address made from this meta-address. */
 export const turnOnPrivateTakings = (metaAddress: string) =>
-  request<{ enabled: true; meta_address: string }>('/v1/private_takings', { method: 'PUT', auth: 'owner', body: JSON.stringify({ meta_address: metaAddress }) })
+  request<{ enabled: true; meta_address: string }>('/v1/private_takings', {
+    method: 'PUT',
+    auth: 'owner',
+    body: JSON.stringify({ meta_address: metaAddress }),
+  })
 
 /** New charges pay the shop's wallet again. Sales already at one-time addresses stay the shop's to move. */
-export const turnOffPrivateTakings = () => request<{ enabled: false }>('/v1/private_takings', { method: 'DELETE', auth: 'owner' })
+export const turnOffPrivateTakings = () =>
+  request<{ enabled: false }>('/v1/private_takings', { method: 'DELETE', auth: 'owner' })
 
 /** Moves sales into the shop's wallet: transfer authorizations signed with each address's own key, 50 at most. Kova pays the gas. */
 export const moveTakings = (authorizations: unknown[]) =>
-  request<{ data: TakingsMove[] }>('/v1/private_takings/sweep', { method: 'POST', auth: 'owner', body: JSON.stringify({ authorizations }) }).then((r) => r.data)
+  request<{ data: TakingsMove[] }>('/v1/private_takings/sweep', {
+    method: 'POST',
+    auth: 'owner',
+    body: JSON.stringify({ authorizations }),
+  }).then((r) => r.data)
 
 // --- travel --------------------------------------------------------------------------------
 
@@ -560,7 +695,13 @@ export interface ExtraBag {
 }
 
 export type SeatCell =
-  | { kind: 'seat'; designator: string; name: string | null; available: boolean; services: { id: string; passenger_id: string; price: Money }[] }
+  | {
+      kind: 'seat'
+      designator: string
+      name: string | null
+      available: boolean
+      services: { id: string; passenger_id: string; price: Money }[]
+    }
   | { kind: 'exit' | 'space' }
 
 export interface SeatMap {
@@ -624,7 +765,16 @@ export interface Trip {
     title: string
     subtitle: string
     provider: { name: string; image: string | null }
-    legs: { from: string; to: string; departs: string; arrives: string; carrier: string | null; flight: string | null; stops: number; duration: string | null }[]
+    legs: {
+      from: string
+      to: string
+      departs: string
+      arrives: string
+      carrier: string | null
+      flight: string | null
+      stops: number
+      duration: string | null
+    }[]
     room?: { name: string; board: string; cancellation: string }
     extras: string[]
     bookedBy: string
@@ -694,27 +844,43 @@ export interface TravellerInput {
   passenger_id?: string
 }
 
-export const travelStatus = () => request<{ ready: boolean; test_mode: boolean; understands: boolean }>('/v1/travel')
+export const travelStatus = () =>
+  request<{ ready: boolean; test_mode: boolean; understands: boolean }>('/v1/travel')
 
 export const searchPlaces = (q: string) =>
   request<{ data: Place[] }>(`/v1/travel/places?q=${encodeURIComponent(q)}`).then((r) => r.data)
 
 export const understandTrip = (text: string) =>
-  request<UnderstoodTrip>('/v1/travel/understand', { method: 'POST', body: JSON.stringify({ text, today: new Date().toISOString().slice(0, 10) }) })
+  request<UnderstoodTrip>('/v1/travel/understand', {
+    method: 'POST',
+    body: JSON.stringify({ text, today: new Date().toISOString().slice(0, 10) }),
+  })
 
 export const searchFlights = (search: FlightSearch) =>
-  request<{ data: FlightOffer[]; best: string | null; test_mode: boolean }>('/v1/travel/flights/search', { method: 'POST', body: JSON.stringify(search) })
+  request<{ data: FlightOffer[]; best: string | null; test_mode: boolean }>(
+    '/v1/travel/flights/search',
+    { method: 'POST', body: JSON.stringify(search) },
+  )
 
-export const getFlightOffer = (id: string) => request<FlightOffer & { extra_bags: ExtraBag[] }>(`/v1/travel/flights/offers/${id}`)
+export const getFlightOffer = (id: string) =>
+  request<FlightOffer & { extra_bags: ExtraBag[] }>(`/v1/travel/flights/offers/${id}`)
 
-export const getSeatMaps = (offerId: string) => request<{ data: SeatMap[] }>(`/v1/travel/flights/offers/${offerId}/seats`).then((r) => r.data)
+export const getSeatMaps = (offerId: string) =>
+  request<{ data: SeatMap[] }>(`/v1/travel/flights/offers/${offerId}/seats`).then((r) => r.data)
 
 export const searchStays = (search: StaySearch) =>
-  request<{ data: StayResult[]; best: string | null; test_mode: boolean }>('/v1/travel/stays/search', { method: 'POST', body: JSON.stringify(search) })
+  request<{ data: StayResult[]; best: string | null; test_mode: boolean }>(
+    '/v1/travel/stays/search',
+    { method: 'POST', body: JSON.stringify(search) },
+  )
 
-export const getStay = (resultId: string) => request<StayDetail>(`/v1/travel/stays/results/${resultId}`)
+export const getStay = (resultId: string) =>
+  request<StayDetail>(`/v1/travel/stays/results/${resultId}`)
 
-export type CreatedTrip = Omit<Trip, 'shares'> & { token: string; shares: (TripShare & { link: string })[] }
+export type CreatedTrip = Omit<Trip, 'shares'> & {
+  token: string
+  shares: (TripShare & { link: string })[]
+}
 
 export const createFlightTrip = (body: {
   offer_id: string
@@ -723,7 +889,11 @@ export const createFlightTrip = (body: {
   extras: string[]
   payers: string[]
   booked_by: string
-}) => request<CreatedTrip>('/v1/travel/trips', { method: 'POST', body: JSON.stringify({ kind: 'flight', ...body }) })
+}) =>
+  request<CreatedTrip>('/v1/travel/trips', {
+    method: 'POST',
+    body: JSON.stringify({ kind: 'flight', ...body }),
+  })
 
 export const createStayTrip = (body: {
   rate_id: string
@@ -732,13 +902,27 @@ export const createStayTrip = (body: {
   phone_number: string
   payers: string[]
   booked_by: string
-}) => request<CreatedTrip>('/v1/travel/trips', { method: 'POST', body: JSON.stringify({ kind: 'stay', ...body }) })
+}) =>
+  request<CreatedTrip>('/v1/travel/trips', {
+    method: 'POST',
+    body: JSON.stringify({ kind: 'stay', ...body }),
+  })
 
-export const getTrip = (id: string, token: string) => request<Trip>(`/v1/travel/trips/${id}`, { headers: { 'x-trip-token': token } })
+export const getTrip = (id: string, token: string) =>
+  request<Trip>(`/v1/travel/trips/${id}`, { headers: { 'x-trip-token': token } })
 
 // --- insights ------------------------------------------------------------------------------
 
-export type SpendingCategory = 'food' | 'groceries' | 'travel' | 'transport' | 'shopping' | 'bills' | 'health' | 'people' | 'other'
+export type SpendingCategory =
+  | 'food'
+  | 'groceries'
+  | 'travel'
+  | 'transport'
+  | 'shopping'
+  | 'bills'
+  | 'health'
+  | 'people'
+  | 'other'
 
 /** Sorts payments into spending categories (Jev). Nothing is stored on Kova's side. */
 export const categorize = (payments: { id: string; text: string }[]) =>
@@ -756,7 +940,8 @@ export const payLinkFor = (id: string) => `${webUrl}/pay/${id}`
 export const stallLinkFor = (slug: string) => `${webUrl}/s/${slug}`
 
 /** One table's own code: the stall link that remembers the table, so the order is brought to it. */
-export const tableLinkFor = (slug: string, table: string) => `${stallLinkFor(slug)}?table=${encodeURIComponent(table)}`
+export const tableLinkFor = (slug: string, table: string) =>
+  `${stallLinkFor(slug)}?table=${encodeURIComponent(table)}`
 
 /** The printable table poster, on the web. */
 export const posterLinkFor = (slug: string) => `${webUrl}/s/${slug}/poster`
@@ -807,15 +992,24 @@ export const naira = {
   cashOut: (wallet: string, input: { amount: string; bankCode: string; accountNumber: string }) =>
     request<import('./chain').CashOutToPay>(`/v1/wallets/${wallet}/cash-outs`, {
       method: 'POST',
-      body: JSON.stringify({ amount: input.amount, bank_code: input.bankCode, account_number: input.accountNumber }),
+      body: JSON.stringify({
+        amount: input.amount,
+        bank_code: input.bankCode,
+        account_number: input.accountNumber,
+      }),
     }),
   cashOutStatus: (id: string) => request<import('./chain').CashOutToPay>(`/v1/cash-outs/${id}`),
   topUp: (wallet: string, input: { amount: string; email: string; returnUrl: string }) =>
     request<NairaTopUp & { url: string; fee: string }>(`/v1/wallets/${wallet}/naira-top-ups`, {
       method: 'POST',
-      body: JSON.stringify({ amount: input.amount, email: input.email, return_url: input.returnUrl }),
+      body: JSON.stringify({
+        amount: input.amount,
+        email: input.email,
+        return_url: input.returnUrl,
+      }),
     }),
-  verifyTopUp: (reference: string) => request<NairaTopUp>(`/v1/naira-top-ups/${reference}/verify`, { method: 'POST' }),
+  verifyTopUp: (reference: string) =>
+    request<NairaTopUp>(`/v1/naira-top-ups/${reference}/verify`, { method: 'POST' }),
 }
 
 // --- Kova for Business ---------------------------------------------------------------------------
@@ -825,8 +1019,18 @@ export interface Business {
   owner_address: string | null
   settlement_address: string
   month_starts: string
-  payroll: { paid_this_month: string; payments_this_month: number; runs_this_month: number; people: number }
-  suppliers: { paid_this_month: string; paid_today: string; payments_this_month: number; count: number }
+  payroll: {
+    paid_this_month: string
+    payments_this_month: number
+    runs_this_month: number
+    people: number
+  }
+  suppliers: {
+    paid_this_month: string
+    paid_today: string
+    payments_this_month: number
+    count: number
+  }
 }
 
 export interface PayrollPerson {
@@ -896,32 +1100,83 @@ export interface TeamKey {
 }
 
 export const getBusiness = () => request<Business>('/v1/business', { auth: 'owner' })
-export const listPayrollPeople = () => request<{ data: PayrollPerson[] }>('/v1/business/people', { auth: 'owner' }).then((r) => r.data)
-export const addPayrollPerson = (person: { name: string; wallet_address: string; amount?: string | null }) =>
-  request<PayrollPerson>('/v1/business/people', { method: 'POST', auth: 'owner', body: JSON.stringify(person) })
-export const removePayrollPerson = (id: string) => request<{ deleted: true }>(`/v1/business/people/${id}`, { method: 'DELETE', auth: 'owner' })
-export const listPayrollRuns = () => request<{ data: PayrollRun[] }>('/v1/business/payroll', { auth: 'owner' }).then((r) => r.data)
-export const getPayrollRun = (id: string) => request<PayrollRun>(`/v1/business/payroll/${id}`, { auth: 'owner' })
-export const startPayrollRun = (label: string, payments: { person: string | null; name: string; amount: string }[]) =>
-  request<PayrollRun>('/v1/business/payroll', { method: 'POST', auth: 'owner', body: JSON.stringify({ label, payments }) })
-export const reportPayrollPayment = (run: string, payment: string, result: { stealth_address: string; tx_hash: string } | { failure: string }) =>
-  request<PayrollPayment>(`/v1/business/payroll/${run}/payments/${payment}`, { method: 'POST', auth: 'owner', body: JSON.stringify(result) })
-export const listSuppliers = () => request<{ data: Supplier[] }>('/v1/business/suppliers', { auth: 'owner' }).then((r) => r.data)
-export const addSupplier = (supplier: { name: string; wallet_address: string; country?: string | null; currency: string }) =>
-  request<Supplier>('/v1/business/suppliers', { method: 'POST', auth: 'owner', body: JSON.stringify(supplier) })
+export const listPayrollPeople = () =>
+  request<{ data: PayrollPerson[] }>('/v1/business/people', { auth: 'owner' }).then((r) => r.data)
+export const addPayrollPerson = (person: {
+  name: string
+  wallet_address: string
+  amount?: string | null
+}) =>
+  request<PayrollPerson>('/v1/business/people', {
+    method: 'POST',
+    auth: 'owner',
+    body: JSON.stringify(person),
+  })
+export const removePayrollPerson = (id: string) =>
+  request<{ deleted: true }>(`/v1/business/people/${id}`, { method: 'DELETE', auth: 'owner' })
+export const listPayrollRuns = () =>
+  request<{ data: PayrollRun[] }>('/v1/business/payroll', { auth: 'owner' }).then((r) => r.data)
+export const getPayrollRun = (id: string) =>
+  request<PayrollRun>(`/v1/business/payroll/${id}`, { auth: 'owner' })
+export const startPayrollRun = (
+  label: string,
+  payments: { person: string | null; name: string; amount: string }[],
+) =>
+  request<PayrollRun>('/v1/business/payroll', {
+    method: 'POST',
+    auth: 'owner',
+    body: JSON.stringify({ label, payments }),
+  })
+export const reportPayrollPayment = (
+  run: string,
+  payment: string,
+  result: { stealth_address: string; tx_hash: string } | { failure: string },
+) =>
+  request<PayrollPayment>(`/v1/business/payroll/${run}/payments/${payment}`, {
+    method: 'POST',
+    auth: 'owner',
+    body: JSON.stringify(result),
+  })
+export const listSuppliers = () =>
+  request<{ data: Supplier[] }>('/v1/business/suppliers', { auth: 'owner' }).then((r) => r.data)
+export const addSupplier = (supplier: {
+  name: string
+  wallet_address: string
+  country?: string | null
+  currency: string
+}) =>
+  request<Supplier>('/v1/business/suppliers', {
+    method: 'POST',
+    auth: 'owner',
+    body: JSON.stringify(supplier),
+  })
 export const listSupplierPayments = () =>
-  request<{ data: SupplierPayment[] }>('/v1/business/supplier_payments', { auth: 'owner' }).then((r) => r.data)
-export const recordSupplierPayment = (supplier: string, payment: { amount: string; tx_hash: string; note?: string | null }) =>
-  request<SupplierPayment>(`/v1/business/suppliers/${supplier}/payments`, { method: 'POST', auth: 'owner', body: JSON.stringify(payment) })
+  request<{ data: SupplierPayment[] }>('/v1/business/supplier_payments', { auth: 'owner' }).then(
+    (r) => r.data,
+  )
+export const recordSupplierPayment = (
+  supplier: string,
+  payment: { amount: string; tx_hash: string; note?: string | null },
+) =>
+  request<SupplierPayment>(`/v1/business/suppliers/${supplier}/payments`, {
+    method: 'POST',
+    auth: 'owner',
+    body: JSON.stringify(payment),
+  })
 
 /**
  * The team keys that can spend the business's dollars, from Keys. Asked with the owner's key but
  * outside `request`: a server without keys answering 401 or 404 must not sign the shop out here.
  */
-export async function getTeamKeys(wallet: string): Promise<{ available: boolean; data: TeamKey[] }> {
+export async function getTeamKeys(
+  wallet: string,
+): Promise<{ available: boolean; data: TeamKey[] }> {
   const key = keys.owner
   const response = await fetch(`${apiUrl}/v1/wallets/${wallet}/keys?kind=team`, {
-    headers: { 'content-type': 'application/json', ...(key ? { authorization: `Bearer ${key}` } : {}) },
+    headers: {
+      'content-type': 'application/json',
+      ...(key ? { authorization: `Bearer ${key}` } : {}),
+    },
   }).catch(() => null)
   if (!response?.ok) return { available: false, data: [] }
   const body = (await response.json().catch(() => ({}))) as { data?: TeamKey[] }

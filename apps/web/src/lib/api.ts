@@ -1,8 +1,8 @@
 import 'server-only'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { getSession } from './session'
 import { apiUrl as baseUrl } from './network'
+import { getSession } from './session'
 
 /**
  * Server-side Kova API client.
@@ -53,8 +53,15 @@ async function call<T>(path: string, init: RequestInit, key?: string): Promise<T
   })
   const body = (await response.json().catch(() => ({}))) as Record<string, unknown>
   if (!response.ok) {
-    const error = body.error as { message?: string; code?: string; details?: Record<string, unknown> } | undefined
-    throw new ApiError(error?.message ?? `Kova is unreachable (${response.status})`, response.status, error?.code, error?.details)
+    const error = body.error as
+      | { message?: string; code?: string; details?: Record<string, unknown> }
+      | undefined
+    throw new ApiError(
+      error?.message ?? `Kova is unreachable (${response.status})`,
+      response.status,
+      error?.code,
+      error?.details,
+    )
   }
   return body as T
 }
@@ -85,7 +92,10 @@ export function kovaPublic<T>(path: string, init: RequestInit = {}, key?: string
 /** Route handler reply for a failed call, keeping 4xx statuses (401 lets the page sign out). */
 export function failure(error: unknown) {
   const status = error instanceof ApiError ? (error.status >= 500 ? 502 : error.status) : 502
-  return Response.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status })
+  return Response.json(
+    { error: error instanceof Error ? error.message : 'Unknown error' },
+    { status },
+  )
 }
 
 // --- Types --------------------------------------------------------------------------------
@@ -106,7 +116,13 @@ export interface Merchant {
 }
 
 export interface Summary {
-  merchant: { id: string; name: string; settlement_address: string; network: string; livemode: boolean }
+  merchant: {
+    id: string
+    name: string
+    settlement_address: string
+    network: string
+    livemode: boolean
+  }
   /** The zone "today" was counted in. */
   timezone: string
   today: { total: string; count: number }
@@ -121,7 +137,14 @@ export interface Summary {
   by_stall: { stall: { id: string; name: string; slug: string }; total: string; count: number }[]
 }
 
-export type IntentStatus = 'requires_payment' | 'processing' | 'paid' | 'held' | 'failed' | 'canceled' | 'expired'
+export type IntentStatus =
+  | 'requires_payment'
+  | 'processing'
+  | 'paid'
+  | 'held'
+  | 'failed'
+  | 'canceled'
+  | 'expired'
 
 export interface PaymentIntent {
   id: string
@@ -162,7 +185,7 @@ export interface IntentList {
 }
 
 export interface Checkout {
-  ussd?: {code:string;dial:string}|null
+  ussd?: { code: string; dial: string } | null
   id: string
   merchant_name: string
   amount: string
@@ -233,7 +256,14 @@ export interface KovaEvent {
   type: string
   data: Record<string, unknown>
   created_at: string
-  deliveries: { endpoint: string; status: string; attempts: number; response_status: number | null; last_error: string | null; delivered_at: string | null }[]
+  deliveries: {
+    endpoint: string
+    status: string
+    attempts: number
+    response_status: number | null
+    last_error: string | null
+    delivered_at: string | null
+  }[]
 }
 
 export interface CatalogItem {
@@ -323,13 +353,23 @@ export interface Order {
 
 export interface MenuImport {
   currency: string
-  items: { name: string; description: string | null; price: string; original: { amount: number; currency: string } }[]
+  items: {
+    name: string
+    description: string | null
+    price: string
+    original: { amount: number; currency: string }
+  }[]
 }
 
 export interface BarcodeLookup {
   code: string
   item: CatalogItem | null
-  suggestion: { name: string; brand: string | null; image_url: string | null; source: string } | null
+  suggestion: {
+    name: string
+    brand: string | null
+    image_url: string | null
+    source: string
+  } | null
 }
 
 /**
@@ -396,7 +436,12 @@ export async function kovaUpload(bytes: ArrayBuffer, contentType: string) {
     body: bytes,
     cache: 'no-store',
   })
-  const body = (await response.json().catch(() => ({}))) as { id?: string; url?: string; error?: { message?: string } }
-  if (!response.ok) throw new ApiError(body.error?.message ?? `Upload failed (${response.status})`, response.status)
+  const body = (await response.json().catch(() => ({}))) as {
+    id?: string
+    url?: string
+    error?: { message?: string }
+  }
+  if (!response.ok)
+    throw new ApiError(body.error?.message ?? `Upload failed (${response.status})`, response.status)
   return body as { id: string; url: string }
 }

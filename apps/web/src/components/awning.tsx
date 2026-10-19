@@ -38,8 +38,20 @@ export function Awning({
         <pattern id={id} width={stripe * 2} height={height} patternUnits="userSpaceOnUse">
           <rect x="0" y="0" width={stripe} height={edge} fill={fill} />
           <rect x={stripe} y="0" width={stripe} height={edge} fill="#f8f7f3" />
-          <path d={`M0 ${edge} A${r} ${r} 0 0 0 ${stripe} ${edge} Z`} fill={fill} stroke="#0b1a1d" strokeWidth="2" strokeLinejoin="round" />
-          <path d={`M${stripe} ${edge} A${r} ${r} 0 0 0 ${stripe * 2} ${edge} Z`} fill="#f8f7f3" stroke="#0b1a1d" strokeWidth="2" strokeLinejoin="round" />
+          <path
+            d={`M0 ${edge} A${r} ${r} 0 0 0 ${stripe} ${edge} Z`}
+            fill={fill}
+            stroke="#0b1a1d"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <path
+            d={`M${stripe} ${edge} A${r} ${r} 0 0 0 ${stripe * 2} ${edge} Z`}
+            fill="#f8f7f3"
+            stroke="#0b1a1d"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
         </pattern>
       </defs>
       <rect x="0" y="0" width={width} height={height} fill={`url(#${id})`} />

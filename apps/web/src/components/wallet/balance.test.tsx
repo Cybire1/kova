@@ -33,14 +33,18 @@ describe('wallet balance privacy', () => {
   it('shows the private balance only after money has actually been found for the wallet', () => {
     state.privateBalance = 2_500_000n
     render(<BalanceCard />)
-    expect(screen.getByRole('note').textContent).toContain('+$2.50 private')
+    // One balance: private dollars count in it, and the card says how much of it is private.
+    expect(
+      screen.getByRole('region', { name: 'Available $7.50, $2.50 of it private' }),
+    ).toBeTruthy()
   })
 
   it('keeps the private amount hidden when the user hides their balance', () => {
     state.privateBalance = 2_500_000n
     state.hideBalance = true
     render(<BalanceCard />)
-    expect(screen.getByRole('note').textContent).toContain('+•••• private')
+    expect(screen.getByRole('region', { name: 'Balance hidden' })).toBeTruthy()
     expect(screen.queryByText(/2\.50/)).toBeNull()
+    expect(screen.queryByText(/7\.50/)).toBeNull()
   })
 })

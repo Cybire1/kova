@@ -1,9 +1,17 @@
+import { normalizePhone, pinProblem } from '@kova/monad'
 import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { useCallback, useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
-import { normalizePhone, pinProblem } from '@kova/monad'
-import { changePocket, confirmCode, getPocket, type Pocket, setUpPocket, takeBack, turnOff } from '@/lib/pocket'
+import {
+  changePocket,
+  confirmCode,
+  getPocket,
+  type Pocket,
+  setUpPocket,
+  takeBack,
+  turnOff,
+} from '@/lib/pocket'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon } from '@/ui/Icon'
@@ -70,9 +78,22 @@ export default function Ussd() {
       <Header title="Pay by USSD" backIcon="close" />
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {pocket === null ? (
-          <View style={styles.loading}>{error ? <Txt color={colors.danger}>{error}</Txt> : <ActivityIndicator color={colors.ink} />}</View>
+          <View style={styles.loading}>
+            {error ? (
+              <Txt color={colors.danger}>{error}</Txt>
+            ) : (
+              <ActivityIndicator color={colors.ink} />
+            )}
+          </View>
         ) : pocket.status === 'none' ? (
-          <SetUp busy={busy} error={error} dial={pocket.dial} onSubmit={(input) => run('setup', () => setUpPocket(signMessage, profile.address, input))} />
+          <SetUp
+            busy={busy}
+            error={error}
+            dial={pocket.dial}
+            onSubmit={(input) =>
+              run('setup', () => setUpPocket(signMessage, profile.address, input))
+            }
+          />
         ) : pocket.status === 'pending' ? (
           <Confirm
             phone={pocket.phone}
@@ -89,10 +110,15 @@ export default function Ussd() {
             wallet={balance}
             onTopUp={(amount) =>
               run('topup', async () => {
-                await send({ address: pocket.address, name: 'USSD pocket' }, BigInt(amount) * 1_000_000n)
+                await send(
+                  { address: pocket.address, name: 'USSD pocket' },
+                  BigInt(amount) * 1_000_000n,
+                )
               })
             }
-            onTakeBack={() => run('back', () => takeBack(signMessage, profile.address, pocket.balance ?? '0'))}
+            onTakeBack={() =>
+              run('back', () => takeBack(signMessage, profile.address, pocket.balance ?? '0'))
+            }
             onCap={(cap) => run('cap', () => changePocket(signMessage, profile.address, { cap }))}
             onPin={(pin) => run('pin', () => changePocket(signMessage, profile.address, { pin }))}
             onOff={() => run('off', () => turnOff(signMessage, profile.address))}
@@ -106,7 +132,10 @@ export default function Ussd() {
 /** A feature phone showing Kova's USSD menu: what you'll see when you dial. */
 function FeaturePhone({ dial }: { dial: string }) {
   return (
-    <View style={styles.phone} accessibilityLabel={`A basic phone showing Kova's menu after dialling ${dial}`}>
+    <View
+      style={styles.phone}
+      accessibilityLabel={`A basic phone showing Kova's menu after dialling ${dial}`}
+    >
       <View style={styles.speaker} />
       <View style={styles.phoneScreen}>
         <Txt weight="bold" size={13}>
@@ -147,7 +176,17 @@ function Problem({ text }: { text: string | null }) {
   ) : null
 }
 
-function SetUp({ busy, error, dial, onSubmit }: { busy: string | null; error: string | null; dial: string; onSubmit: (input: { phone: string; pin: string; cap: string }) => void }) {
+function SetUp({
+  busy,
+  error,
+  dial,
+  onSubmit,
+}: {
+  busy: string | null
+  error: string | null
+  dial: string
+  onSubmit: (input: { phone: string; pin: string; cap: string }) => void
+}) {
   const [phone, setPhone] = useState('')
   const [pin, setPin] = useState('')
   const [again, setAgain] = useState('')
@@ -171,28 +210,71 @@ function SetUp({ busy, error, dial, onSubmit }: { busy: string | null; error: st
           </View>
         </View>
       </Rise>
-      <Sticker radius={24} fill={colors.surface} haptic={false} style={{ marginTop: 18 }} innerStyle={{ padding: 18, gap: 8 }}>
+      <Sticker
+        radius={24}
+        fill={colors.surface}
+        haptic={false}
+        style={{ marginTop: 18 }}
+        innerStyle={{ padding: 18, gap: 8 }}
+      >
         <Txt weight="semi" size={16}>
           How it works
         </Txt>
         <Txt size={14} color={colors.muted} style={{ lineHeight: 20 }}>
-          USSD can’t use your passkey, so you set aside a small pocket that Kova holds for you, with a daily spending limit. Your main wallet
-          stays yours alone. Take the pocket back whenever you like.
+          USSD can’t use your passkey, so you set aside a small pocket that Kova holds for you, with
+          a daily spending limit. Your main wallet stays yours alone. Take the pocket back whenever
+          you like.
         </Txt>
       </Sticker>
       <View style={{ gap: 14, marginTop: 20 }}>
-        <Field label="Your phone number" value={phone} onChangeText={setPhone} placeholder="+234 801 234 5678" keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" />
-        <Field label="A PIN for USSD (4 to 6 digits)" value={pin} onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, 6))} placeholder="••••" keyboardType="number-pad" secureTextEntry />
-        {pinIssue ? <Txt size={13} color={colors.danger}>{pinIssue}</Txt> : null}
-        <Field label="The PIN again" value={again} onChangeText={(v) => setAgain(v.replace(/\D/g, '').slice(0, 6))} placeholder="••••" keyboardType="number-pad" secureTextEntry />
-        {mismatch ? <Txt size={13} color={colors.danger}>The PINs don’t match.</Txt> : null}
+        <Field
+          label="Your phone number"
+          value={phone}
+          onChangeText={setPhone}
+          placeholder="+234 801 234 5678"
+          keyboardType="phone-pad"
+          autoComplete="tel"
+          textContentType="telephoneNumber"
+        />
+        <Field
+          label="A PIN for USSD (4 to 6 digits)"
+          value={pin}
+          onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, 6))}
+          placeholder="••••"
+          keyboardType="number-pad"
+          secureTextEntry
+        />
+        {pinIssue ? (
+          <Txt size={13} color={colors.danger}>
+            {pinIssue}
+          </Txt>
+        ) : null}
+        <Field
+          label="The PIN again"
+          value={again}
+          onChangeText={(v) => setAgain(v.replace(/\D/g, '').slice(0, 6))}
+          placeholder="••••"
+          keyboardType="number-pad"
+          secureTextEntry
+        />
+        {mismatch ? (
+          <Txt size={13} color={colors.danger}>
+            The PINs don’t match.
+          </Txt>
+        ) : null}
         <View style={{ gap: 8 }}>
           <Txt weight="semi" size={14}>
             Your daily spending limit
           </Txt>
           <View style={{ flexDirection: 'row', gap: 10 }}>
             {CAPS.map((c) => (
-              <Pressable key={c} accessibilityRole="button" accessibilityState={{ selected: cap === c }} onPress={() => setCap(c)} style={[styles.choice, cap === c && styles.choiceOn]}>
+              <Pressable
+                key={c}
+                accessibilityRole="button"
+                accessibilityState={{ selected: cap === c }}
+                onPress={() => setCap(c)}
+                style={[styles.choice, cap === c && styles.choiceOn]}
+              >
                 <Txt weight="semi" size={16} color={cap === c ? colors.white : colors.ink}>
                   ${c}
                 </Txt>
@@ -203,13 +285,31 @@ function SetUp({ busy, error, dial, onSubmit }: { busy: string | null; error: st
       </View>
       <Problem text={error} />
       <View style={{ marginTop: 22 }}>
-        <PillButton label="Text me a code" icon="send" disabled={!ready} loading={busy === 'setup'} onPress={() => normalized && onSubmit({ phone: normalized, pin, cap })} />
+        <PillButton
+          label="Text me a code"
+          icon="send"
+          disabled={!ready}
+          loading={busy === 'setup'}
+          onPress={() => normalized && onSubmit({ phone: normalized, pin, cap })}
+        />
       </View>
     </>
   )
 }
 
-function Confirm({ phone, busy, error, onSubmit, onRestart }: { phone: string; busy: string | null; error: string | null; onSubmit: (code: string) => void; onRestart: () => void }) {
+function Confirm({
+  phone,
+  busy,
+  error,
+  onSubmit,
+  onRestart,
+}: {
+  phone: string
+  busy: string | null
+  error: string | null
+  onSubmit: (code: string) => void
+  onRestart: () => void
+}) {
   const [code, setCode] = useState('')
   return (
     <Rise>
@@ -237,7 +337,13 @@ function Confirm({ phone, busy, error, onSubmit, onRestart }: { phone: string; b
       />
       <Problem text={error} />
       <View style={{ marginTop: 22, gap: 14, alignItems: 'center' }}>
-        <PillButton label="Confirm" icon="check" disabled={code.length !== 6} loading={busy === 'code'} onPress={() => onSubmit(code)} />
+        <PillButton
+          label="Confirm"
+          icon="check"
+          disabled={code.length !== 6}
+          loading={busy === 'code'}
+          onPress={() => onSubmit(code)}
+        />
         <TextLink label="Use a different number" onPress={onRestart} />
       </View>
     </Rise>
@@ -275,11 +381,17 @@ function Live({
     <>
       <Rise>
         <View style={styles.pocket}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View
+            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+          >
             <Txt weight="semi" size={14} color={colors.onTint}>
               USSD pocket · {pocket.phone}
             </Txt>
-            {pocket.locked_until ? <Chip label="Paused" dot={colors.danger} /> : <Chip label="On" dot={colors.positive} />}
+            {pocket.locked_until ? (
+              <Chip label="Paused" dot={colors.danger} />
+            ) : (
+              <Chip label="On" dot={colors.positive} />
+            )}
           </View>
           <Txt weight="semi" size={52} style={{ letterSpacing: -2, marginTop: 6 }}>
             {usd(pocket.balance)}
@@ -321,7 +433,14 @@ function Live({
         {TOP_UPS.map((a) => {
           const off = Number(a) > room || Number(a) > inWallet || busy !== null
           return (
-            <Pressable key={a} accessibilityRole="button" accessibilityState={{ disabled: off }} disabled={off} onPress={() => onTopUp(a)} style={[styles.choice, off && { opacity: 0.35 }]}>
+            <Pressable
+              key={a}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: off }}
+              disabled={off}
+              onPress={() => onTopUp(a)}
+              style={[styles.choice, off && { opacity: 0.35 }]}
+            >
               <Txt weight="semi" size={16}>
                 ${a}
               </Txt>
@@ -329,21 +448,62 @@ function Live({
           )
         })}
       </View>
-      {busy === 'topup' ? <Txt size={13} color={colors.muted} style={{ marginTop: 8 }}>Adding…</Txt> : null}
+      {busy === 'topup' ? (
+        <Txt size={13} color={colors.muted} style={{ marginTop: 8 }}>
+          Adding…
+        </Txt>
+      ) : null}
 
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
-        <Sticker radius={20} onPress={onTakeBack} disabled={busy !== null || Number(pocket.balance ?? 0) <= 0} style={{ flex: 1, height: 50 }} innerStyle={styles.action}>
-          <Txt weight="semi" size={15}>{busy === 'back' ? 'Moving…' : 'Back to wallet'}</Txt>
+        <Sticker
+          radius={20}
+          onPress={onTakeBack}
+          disabled={busy !== null || Number(pocket.balance ?? 0) <= 0}
+          style={{ flex: 1, height: 50 }}
+          innerStyle={styles.action}
+        >
+          <Txt weight="semi" size={15}>
+            {busy === 'back' ? 'Moving…' : 'Back to wallet'}
+          </Txt>
         </Sticker>
-        <Sticker radius={20} onPress={() => setPin(pin === null ? '' : null)} disabled={busy !== null} style={{ flex: 1, height: 50 }} innerStyle={styles.action}>
-          <Txt weight="semi" size={15}>New PIN</Txt>
+        <Sticker
+          radius={20}
+          onPress={() => setPin(pin === null ? '' : null)}
+          disabled={busy !== null}
+          style={{ flex: 1, height: 50 }}
+          innerStyle={styles.action}
+        >
+          <Txt weight="semi" size={15}>
+            New PIN
+          </Txt>
         </Sticker>
       </View>
       {pin !== null ? (
         <View style={{ marginTop: 12, gap: 8 }}>
-          <Field label="New PIN" value={pin} onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, 6))} placeholder="••••" keyboardType="number-pad" secureTextEntry autoFocus />
-          {pinIssue ? <Txt size={13} color={colors.danger}>{pinIssue}</Txt> : null}
-          <PillButton label="Save PIN" icon="lock" disabled={!pin || Boolean(pinIssue)} loading={busy === 'pin'} onPress={() => { onPin(pin); setPin(null) }} />
+          <Field
+            label="New PIN"
+            value={pin}
+            onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, 6))}
+            placeholder="••••"
+            keyboardType="number-pad"
+            secureTextEntry
+            autoFocus
+          />
+          {pinIssue ? (
+            <Txt size={13} color={colors.danger}>
+              {pinIssue}
+            </Txt>
+          ) : null}
+          <PillButton
+            label="Save PIN"
+            icon="lock"
+            disabled={!pin || Boolean(pinIssue)}
+            loading={busy === 'pin'}
+            onPress={() => {
+              onPin(pin)
+              setPin(null)
+            }}
+          />
         </View>
       ) : null}
 
@@ -354,7 +514,14 @@ function Live({
         {CAPS.map((c) => {
           const on = Number(pocket.cap) === Number(c)
           return (
-            <Pressable key={c} accessibilityRole="button" accessibilityState={{ selected: on }} disabled={on || busy !== null} onPress={() => onCap(c)} style={[styles.choice, on && styles.choiceOn]}>
+            <Pressable
+              key={c}
+              accessibilityRole="button"
+              accessibilityState={{ selected: on }}
+              disabled={on || busy !== null}
+              onPress={() => onCap(c)}
+              style={[styles.choice, on && styles.choiceOn]}
+            >
               <Txt weight="semi" size={16} color={on ? colors.white : colors.ink}>
                 ${c}
               </Txt>
@@ -377,11 +544,23 @@ function Live({
           <View key={s.reference} style={styles.row}>
             <View style={{ flex: 1 }}>
               <Txt weight="semi" size={15}>
-                {s.kind === 'withdraw' ? 'Back to your wallet' : s.kind === 'phone' ? `To ${s.to}` : s.to}
+                {s.kind === 'withdraw'
+                  ? 'Back to your wallet'
+                  : s.kind === 'phone'
+                    ? `To ${s.to}`
+                    : s.to}
               </Txt>
               <Txt size={13} color={colors.muted}>
-                {s.reference} · {new Date(s.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                {s.status === 'failed' ? ' · didn’t go through' : s.status === 'pending' ? ' · paying' : ''}
+                {s.reference} ·{' '}
+                {new Date(s.created_at).toLocaleString([], {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                })}
+                {s.status === 'failed'
+                  ? ' · didn’t go through'
+                  : s.status === 'pending'
+                    ? ' · paying'
+                    : ''}
               </Txt>
             </View>
             <Txt weight="semi" size={15} color={s.status === 'failed' ? colors.muted : colors.ink}>
@@ -399,11 +578,19 @@ function Live({
             </Txt>
             <View style={{ flexDirection: 'row', gap: 16 }}>
               <TextLink label="Keep it" onPress={() => setConfirmOff(false)} />
-              <TextLink label={busy === 'off' ? 'Turning off…' : 'Turn off USSD'} color={colors.danger} onPress={onOff} />
+              <TextLink
+                label={busy === 'off' ? 'Turning off…' : 'Turn off USSD'}
+                color={colors.danger}
+                onPress={onOff}
+              />
             </View>
           </View>
         ) : (
-          <TextLink label="Turn off USSD" color={colors.danger} onPress={() => setConfirmOff(true)} />
+          <TextLink
+            label="Turn off USSD"
+            color={colors.danger}
+            onPress={() => setConfirmOff(true)}
+          />
         )}
       </View>
     </>
@@ -414,10 +601,31 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 20, paddingBottom: 48 },
   loading: { paddingTop: 80, alignItems: 'center' },
   hero: { flexDirection: 'row', gap: 18, alignItems: 'center', marginTop: 8 },
-  phone: { width: 112, borderRadius: 26, backgroundColor: colors.ink, padding: 9, paddingBottom: 12, alignItems: 'center', transform: [{ rotate: '-4deg' }] },
+  phone: {
+    width: 112,
+    borderRadius: 26,
+    backgroundColor: colors.ink,
+    padding: 9,
+    paddingBottom: 12,
+    alignItems: 'center',
+    transform: [{ rotate: '-4deg' }],
+  },
   speaker: { width: 30, height: 4, borderRadius: 2, backgroundColor: '#33464A', marginBottom: 7 },
-  phoneScreen: { alignSelf: 'stretch', backgroundColor: colors.tealSoft, borderRadius: 10, padding: 7, gap: 1 },
-  keys: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, width: 84, marginTop: 9, justifyContent: 'center' },
+  phoneScreen: {
+    alignSelf: 'stretch',
+    backgroundColor: colors.tealSoft,
+    borderRadius: 10,
+    padding: 7,
+    gap: 1,
+  },
+  keys: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 5,
+    width: 84,
+    marginTop: 9,
+    justifyContent: 'center',
+  },
   key: { width: 23, height: 11, borderRadius: 4, backgroundColor: colors.surface },
   input: {
     height: 48,
@@ -430,7 +638,16 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: colors.ink,
   },
-  choice: { flex: 1, height: 48, borderRadius: 16, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  choice: {
+    flex: 1,
+    height: 48,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   choiceOn: { backgroundColor: colors.ink },
   code: {
     marginTop: 24,
@@ -445,8 +662,33 @@ const styles = StyleSheet.create({
     letterSpacing: 10,
     color: colors.ink,
   },
-  pocket: { marginTop: 8, borderRadius: 28, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.tealSoft, padding: 20 },
-  dial: { marginTop: 14, minHeight: 56, borderRadius: 20, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pocket: {
+    marginTop: 8,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.tealSoft,
+    padding: 20,
+  },
+  dial: {
+    marginTop: 14,
+    minHeight: 56,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   action: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.sunken },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.sunken,
+  },
 })

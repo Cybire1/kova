@@ -19,15 +19,35 @@ export function NewStall() {
       <div className="new-stall-grid">
         <form action={action} className="stack-form new-stall-form">
           <h1>Open a stall</h1>
-          <p className="field-help">You can change all of this later. Next you’ll add what it sells.</p>
+          <p className="field-help">
+            You can change all of this later. Next you’ll add what it sells.
+          </p>
           <label className="field-label" htmlFor="stall-name">
             Stall name
           </label>
-          <input id="stall-name" name="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ada’s Bakery" minLength={2} maxLength={60} required autoFocus />
+          <input
+            id="stall-name"
+            name="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ada’s Bakery"
+            minLength={2}
+            maxLength={60}
+            required
+            // biome-ignore lint/a11y/noAutofocus: naming the shop is the page's only task
+            autoFocus
+          />
           <label className="field-label" htmlFor="stall-tagline">
             A line about it <span className="optional">optional</span>
           </label>
-          <input id="stall-tagline" name="tagline" value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="Fresh every morning, round the corner" maxLength={120} />
+          <input
+            id="stall-tagline"
+            name="tagline"
+            value={tagline}
+            onChange={(e) => setTagline(e.target.value)}
+            placeholder="Fresh every morning, round the corner"
+            maxLength={120}
+          />
           {state.error ? <p className="form-error">{state.error}</p> : null}
           <Pill type="submit" icon="arrow" tone="coral" disabled={pending} wide>
             {pending ? 'Opening' : 'Open my stall'}

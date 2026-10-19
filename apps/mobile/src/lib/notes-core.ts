@@ -4,7 +4,14 @@ import { x25519 } from '@noble/curves/ed25519'
 import { hkdf } from '@noble/hashes/hkdf.js'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { base64urlnopad } from '@scure/base'
-import { type Address, bytesToString, type Hex, isAddressEqual, recoverMessageAddress, stringToBytes } from 'viem'
+import {
+  type Address,
+  bytesToString,
+  type Hex,
+  isAddressEqual,
+  recoverMessageAddress,
+  stringToBytes,
+} from 'viem'
 import type { LocalAccount } from 'viem/accounts'
 
 /**
@@ -31,28 +38,51 @@ function box(shared: Uint8Array, ephemeral: Uint8Array, nonce: Uint8Array, conte
 }
 
 /** Seals `text` for the receiver (when they have a note key) and for the sender. */
-export function sealNote(text: string, transfer: Transfer, keys: { theirs: string | null; mine: string }): SealedNote {
+export function sealNote(
+  text: string,
+  transfer: Transfer,
+  keys: { theirs: string | null; mine: string },
+): SealedNote {
   const note = text.trim().slice(0, NOTE_MAX)
   const context = noteContext(transfer)
   const ephemeralSecret = crypto.getRandomValues(new Uint8Array(32))
   const ephemeral = x25519.getPublicKey(ephemeralSecret)
   const nonce = crypto.getRandomValues(new Uint8Array(24))
   const seal = (publicKey: string) =>
-    b64.encode(box(x25519.getSharedSecret(ephemeralSecret, b64.decode(publicKey)), ephemeral, nonce, context).encrypt(stringToBytes(note)))
-  const sealed: SealedNote = { v: 1, e: b64.encode(ephemeral), n: b64.encode(nonce), to: keys.theirs ? seal(keys.theirs) : '', from: seal(keys.mine) }
+    b64.encode(
+      box(
+        x25519.getSharedSecret(ephemeralSecret, b64.decode(publicKey)),
+        ephemeral,
+        nonce,
+        context,
+      ).encrypt(stringToBytes(note)),
+    )
+  const sealed: SealedNote = {
+    v: 1,
+    e: b64.encode(ephemeral),
+    n: b64.encode(nonce),
+    to: keys.theirs ? seal(keys.theirs) : '',
+    from: seal(keys.mine),
+  }
   ephemeralSecret.fill(0)
   return sealed
 }
 
 /** Opens a note with this wallet's note key, as its receiver or its sender. Null if it can't. */
-export function openNote(sealed: SealedNote, transfer: Transfer, secretKey: Uint8Array): string | null {
+export function openNote(
+  sealed: SealedNote,
+  transfer: Transfer,
+  secretKey: Uint8Array,
+): string | null {
   const ephemeral = b64.decode(sealed.e)
   const nonce = b64.decode(sealed.n)
   const shared = x25519.getSharedSecret(secretKey, ephemeral)
   for (const side of [sealed.to, sealed.from]) {
     if (!side) continue
     try {
-      return bytesToString(box(shared, ephemeral, nonce, noteContext(transfer)).decrypt(b64.decode(side)))
+      return bytesToString(
+        box(shared, ephemeral, nonce, noteContext(transfer)).decrypt(b64.decode(side)),
+      )
     } catch {
       // Not this side's box.
     }
@@ -61,11 +91,17 @@ export function openNote(sealed: SealedNote, transfer: Transfer, secretKey: Uint
 }
 
 /** Publishes this wallet's note key, signed by the wallet, unless Kova already has it. */
-export async function publishNoteKey(apiUrl: string, account: LocalAccount, vaultSecret: Uint8Array): Promise<string> {
+export async function publishNoteKey(
+  apiUrl: string,
+  account: LocalAccount,
+  vaultSecret: Uint8Array,
+): Promise<string> {
   const { publicKey } = noteKeys(vaultSecret)
   const current = await fetchNoteKey(apiUrl, account.address)
   if (current === publicKey) return publicKey
-  const signature = await account.signMessage({ message: noteKeyMessage(account.address, publicKey) })
+  const signature = await account.signMessage({
+    message: noteKeyMessage(account.address, publicKey),
+  })
   const response = await fetch(`${apiUrl}/v1/wallets/${account.address}/note-key`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
@@ -84,6 +120,9 @@ export async function fetchNoteKey(apiUrl: string, address: Address): Promise<st
   if (!response.ok) return null
   const key = (await response.json()) as { public_key?: string; signature?: Hex }
   if (!key.public_key || !key.signature) return null
-  const signer = await recoverMessageAddress({ message: noteKeyMessage(address, key.public_key), signature: key.signature }).catch(() => null)
+  const signer = await recoverMessageAddress({
+    message: noteKeyMessage(address, key.public_key),
+    signature: key.signature,
+  }).catch(() => null)
   return signer && isAddressEqual(signer, address) ? key.public_key : null
 }

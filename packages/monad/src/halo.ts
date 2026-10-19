@@ -1,5 +1,13 @@
 import { secp256k1 } from '@noble/curves/secp256k1'
-import { type Address, bytesToHex, getAddress, type Hex, hexToBytes, keccak256, recoverAddress } from 'viem'
+import {
+  type Address,
+  bytesToHex,
+  getAddress,
+  type Hex,
+  hexToBytes,
+  keccak256,
+  recoverAddress,
+} from 'viem'
 
 /**
  * The Kova Card's chip: an Arx HaLo, spoken to over ISO 7816 (ISO-DEP) from the till's NFC.
@@ -38,12 +46,12 @@ export const CARD_KEY_SLOT = 1
 const N = secp256k1.CURVE.n
 
 const HALO_ERRORS: Record<number, string> = {
-  0x01: 'This card doesn’t know that command.',
-  0x02: 'This card has no key in that slot.',
-  0x0a: 'This card’s key isn’t set up.',
-  0x0c: 'The card couldn’t sign. Try again.',
-  0x0d: 'The card refused the data it was given.',
-  0x19: 'The card is resting after too many requests. Try again in a moment.',
+  1: 'This card doesn’t know that command.',
+  2: 'This card has no key in that slot.',
+  10: 'This card’s key isn’t set up.',
+  12: 'The card couldn’t sign. Try again.',
+  13: 'The card refused the data it was given.',
+  25: 'The card is resting after too many requests. Try again in a moment.',
 }
 
 export class HaloError extends Error {
@@ -71,14 +79,18 @@ async function command(transceive: Transceive, payload: number[]): Promise<Uint8
   const sw = ((res[res.length - 2] as number) << 8) | (res[res.length - 1] as number)
   const data = Uint8Array.from(res.slice(0, -2))
   if (data.length === 2 && data[0] === 0xe1)
-    throw new HaloError(HALO_ERRORS[data[1] as number] ?? `The card refused (E1 ${data[1]}).`, data[1])
+    throw new HaloError(
+      HALO_ERRORS[data[1] as number] ?? `The card refused (E1 ${data[1]}).`,
+      data[1],
+    )
   if (sw !== 0x9000) throw new HaloError('The card didn’t answer. Hold it still and try again.')
   return data
 }
 
 /** An Ethereum address from an uncompressed public key (04 ‖ X ‖ Y). */
 export function addressOfPublicKey(publicKey: Uint8Array): Address {
-  if (publicKey.length !== 65 || publicKey[0] !== 0x04) throw new HaloError('The card sent a key Kova can’t read.')
+  if (publicKey.length !== 65 || publicKey[0] !== 0x04)
+    throw new HaloError('The card sent a key Kova can’t read.')
   return getAddress(`0x${keccak256(publicKey.slice(1)).slice(-40)}`)
 }
 
@@ -105,7 +117,8 @@ export async function readCard(transceive: Transceive): Promise<Address> {
 
 /** r and s from a DER signature, with s normalized to the low half (EIP-2). */
 export function parseDerSignature(der: Uint8Array): { r: bigint; s: bigint; length: number } {
-  if (der[0] !== 0x30 || der[2] !== 0x02) throw new HaloError('The card sent a signature Kova can’t read.')
+  if (der[0] !== 0x30 || der[2] !== 0x02)
+    throw new HaloError('The card sent a signature Kova can’t read.')
   const rLen = der[3] as number
   if (der[4 + rLen] !== 0x02) throw new HaloError('The card sent a signature Kova can’t read.')
   const sLen = der[5 + rLen] as number
@@ -159,7 +172,9 @@ export function softCard(privateKey: Hex): Transceive {
   let selected = false
   return async (apdu) => {
     if (apdu[0] === 0x00 && apdu[1] === 0xa4) {
-      const aid = bytesToHex(Uint8Array.from(apdu.slice(5, 5 + (apdu[4] as number)))).slice(2).toUpperCase()
+      const aid = bytesToHex(Uint8Array.from(apdu.slice(5, 5 + (apdu[4] as number))))
+        .slice(2)
+        .toUpperCase()
       selected = aid === HALO_AIDS[0]
       return selected ? [0x90, 0x00] : [0x6a, 0x82]
     }

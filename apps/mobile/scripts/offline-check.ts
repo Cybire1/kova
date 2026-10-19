@@ -10,7 +10,14 @@
  *
  * Env: EXPO_PUBLIC_KOVA_NETWORK=testnet EXPO_PUBLIC_KOVA_MONAD_API_URL=http://localhost:4233 FUNDER_KEY=0x…
  */
-import { decodeOfflinePayment, offlinePaymentLink, randomNonce, toSignedAuthorization, transferAuthorizationTypedData, verifyOfflinePayment } from '@kova/monad'
+import {
+  decodeOfflinePayment,
+  offlinePaymentLink,
+  randomNonce,
+  toSignedAuthorization,
+  transferAuthorizationTypedData,
+  verifyOfflinePayment,
+} from '@kova/monad'
 import { type Address, getAddress, type Hex, parseUnits } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { apiUrl, isTestnet, network, settlementToken } from '../src/lib/config'
@@ -29,9 +36,24 @@ async function main() {
     const [to, dollars, name] = args
     if (!to || !dollars) throw new Error(`${command} <to> <dollars> [name]`)
     const account = command === 'code' ? funder() : privateKeyToAccount(generatePrivateKey())
-    const { payment, code } = await signOfflinePayment(account, getAddress(to), parseUnits(dollars, 6), name ?? null)
+    const { payment, code } = await signOfflinePayment(
+      account,
+      getAddress(to),
+      parseUnits(dollars, 6),
+      name ?? null,
+    )
     const check = await verifyOfflinePayment(decodeOfflinePayment(code)!)
-    console.log(JSON.stringify({ from: account.address, to: payment.authorization.to, nonce: payment.authorization.nonce, verified: check.ok, length: code.length, link: offlinePaymentLink(code), code }))
+    console.log(
+      JSON.stringify({
+        from: account.address,
+        to: payment.authorization.to,
+        nonce: payment.authorization.nonce,
+        verified: check.ok,
+        length: code.length,
+        link: offlinePaymentLink(code),
+        code,
+      }),
+    )
     return
   }
   if (command === 'handin') {
@@ -62,11 +84,15 @@ async function main() {
       validBefore: BigInt(Math.floor(Date.now() / 1000) + 600),
       nonce: randomNonce(),
     }
-    const signature = await account.signTypedData(transferAuthorizationTypedData(settlementToken, network.chainId, authorization))
+    const signature = await account.signTypedData(
+      transferAuthorizationTypedData(settlementToken, network.chainId, authorization),
+    )
     const response = await fetch(`${apiUrl}/v1/transfers`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(toSignedAuthorization(settlementToken.address, authorization, signature)),
+      body: JSON.stringify(
+        toSignedAuthorization(settlementToken.address, authorization, signature),
+      ),
     })
     console.log(response.status, JSON.stringify(await response.json()))
     return

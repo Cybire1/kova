@@ -1,10 +1,10 @@
 import { type NetworkId, parseAmount } from '@kova/monad'
 import { type Address, getAddress, isAddressEqual } from 'viem'
 import type { LocalAccount } from 'viem/accounts'
-import { openWalletSigner } from '@/lib/wallet/signer'
 import { sendMoney } from '@/lib/wallet/chain'
 import { fetchPrivateKey, privatePayment } from '@/lib/wallet/private'
 import { sessionAccount, spend } from '@/lib/wallet/session'
+import { openWalletSigner } from '@/lib/wallet/signer'
 import type { WebWallet } from '@/lib/wallet/takings'
 
 /**

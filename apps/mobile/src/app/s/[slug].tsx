@@ -18,17 +18,26 @@ import {
 } from 'react-native'
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { getCheckout, getPublicStall, getStampCard, orderFromStall, type PlacedOrder, type PublicStall, payLinkFor, type StampCard } from '@/lib/api'
+import {
+  getCheckout,
+  getPublicStall,
+  getStampCard,
+  orderFromStall,
+  type PlacedOrder,
+  type PublicStall,
+  payLinkFor,
+  type StampCard,
+} from '@/lib/api'
 import { tableFrom } from '@/lib/links'
 import { type DisplayCurrency, formatLocal } from '@/lib/money'
 import { colors, fonts } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
-import { usePayFrom } from '@/ui/Private'
-import { Coin, Kovi } from '@/ui/art'
 import { Awning } from '@/ui/Awning'
+import { Coin, Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
-import { Stage as KoviStage } from '@/ui/Stage'
+import { usePaymentRoute } from '@/ui/Private'
 import { PillButton, RoundButton, Screen, Txt } from '@/ui/primitives'
+import { Stage as KoviStage } from '@/ui/Stage'
 import { about, dollars, ItemFace, Stepper } from '@/ui/StallParts'
 
 type Basket = Record<string, number>
@@ -45,7 +54,13 @@ let devOrderPlaced = false
 export default function StallFront() {
   // bag, note and checkout are development-only: a dev link fills the bag and places the order, so a
   // film can capture every real screen of buying without anyone tapping.
-  const { slug, bag, note: devNote, checkout, table: tableParam } = useLocalSearchParams<{
+  const {
+    slug,
+    bag,
+    note: devNote,
+    checkout,
+    table: tableParam,
+  } = useLocalSearchParams<{
     slug: string
     bag?: string
     note?: string
@@ -67,7 +82,13 @@ export default function StallFront() {
   useEffect(() => {
     getPublicStall(slug)
       .then(setStall)
-      .catch((error: Error) => setProblem(/no such/i.test(error.message) ? 'This stall isn’t here. It may have closed for good.' : error.message))
+      .catch((error: Error) =>
+        setProblem(
+          /no such/i.test(error.message)
+            ? 'This stall isn’t here. It may have closed for good.'
+            : error.message,
+        ),
+      )
   }, [slug])
 
   useEffect(() => {
@@ -97,18 +118,23 @@ export default function StallFront() {
 
   const currency = profile?.currency ?? 'USD'
   const lines = useMemo(
-    () => (stall?.items ?? []).flatMap((item) => (basket[item.id] ? [{ item, quantity: basket[item.id] as number }] : [])),
+    () =>
+      (stall?.items ?? []).flatMap((item) =>
+        basket[item.id] ? [{ item, quantity: basket[item.id] as number }] : [],
+      ),
     [stall, basket],
   )
   const count = lines.reduce((n, l) => n + l.quantity, 0)
-  const subtotal = lines.reduce((sum, l) => sum + Math.round(Number(l.item.price) * 100) * l.quantity, 0) / 100
+  const subtotal =
+    lines.reduce((sum, l) => sum + Math.round(Number(l.item.price) * 100) * l.quantity, 0) / 100
   // A full card: the cheapest item on this order is free, as Kova will price it.
   const free =
     card?.ready && card.every && lines.length
       ? lines.reduce((a, b) => (Number(b.item.price) < Number(a.item.price) ? b : a)).item
       : null
   const total = Math.max(0, Math.round((subtotal - (free ? Number(free.price) : 0)) * 100) / 100)
-  const set = (id: string, quantity: number) => setBasket((b) => ({ ...b, [id]: Math.max(0, Math.min(99, quantity)) }))
+  const set = (id: string, quantity: number) =>
+    setBasket((b) => ({ ...b, [id]: Math.max(0, Math.min(99, quantity)) }))
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'))
 
   if (!stall)
@@ -124,7 +150,11 @@ export default function StallFront() {
               <Txt weight="semi" size={24} style={{ marginTop: 12 }}>
                 Not this time
               </Txt>
-              <Txt size={16} color={colors.muted} style={{ textAlign: 'center', marginTop: 6, lineHeight: 23 }}>
+              <Txt
+                size={16}
+                color={colors.muted}
+                style={{ textAlign: 'center', marginTop: 6, lineHeight: 23 }}
+              >
                 {problem}
               </Txt>
             </>
@@ -140,7 +170,12 @@ export default function StallFront() {
     <View style={{ flex: 1, backgroundColor: colors.paper }}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}>
         <View style={{ height: insets.top + 62, overflow: 'hidden' }}>
-          <Awning width={width} height={insets.top + 62} stripe={30} tone={stall.open ? 'coral' : 'teal'} />
+          <Awning
+            width={width}
+            height={insets.top + 62}
+            stripe={30}
+            tone={stall.open ? 'coral' : 'teal'}
+          />
         </View>
         <View style={styles.sign}>
           <Txt weight="bold" size={32} style={{ letterSpacing: -1.1, lineHeight: 36 }}>
@@ -153,14 +188,24 @@ export default function StallFront() {
           ) : null}
           <View style={styles.chips}>
             {table ? (
-              <View style={[styles.chip, styles.tableChip]} accessibilityLabel={`Ordering for table ${table}`}>
+              <View
+                style={[styles.chip, styles.tableChip]}
+                accessibilityLabel={`Ordering for table ${table}`}
+              >
                 <Txt weight="bold" size={13} color={colors.white}>
                   Table {table}
                 </Txt>
               </View>
             ) : null}
-            <View style={[styles.chip, { backgroundColor: stall.open ? colors.tealSoft : colors.sunken }]}>
-              <View style={[styles.dot, { backgroundColor: stall.open ? colors.teal : colors.muted }]} />
+            <View
+              style={[
+                styles.chip,
+                { backgroundColor: stall.open ? colors.tealSoft : colors.sunken },
+              ]}
+            >
+              <View
+                style={[styles.dot, { backgroundColor: stall.open ? colors.teal : colors.muted }]}
+              />
               <Txt weight="semi" size={13}>
                 {stall.open ? 'Open now' : 'Closed right now'}
               </Txt>
@@ -202,14 +247,26 @@ export default function StallFront() {
               const qty = basket[item.id] ?? 0
               const local = about(item.price, currency)
               return (
-                <View key={item.id} style={[styles.item, qty > 0 && styles.itemIn, item.sold_out && { opacity: 0.55 }]}>
+                <View
+                  key={item.id}
+                  style={[
+                    styles.item,
+                    qty > 0 && styles.itemIn,
+                    item.sold_out && { opacity: 0.55 },
+                  ]}
+                >
                   <ItemFace item={item} size={64} radius={17} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Txt weight="semi" size={17} numberOfLines={2}>
                       {item.name}
                     </Txt>
                     {item.description ? (
-                      <Txt size={13} color={colors.muted} numberOfLines={2} style={{ lineHeight: 18 }}>
+                      <Txt
+                        size={13}
+                        color={colors.muted}
+                        numberOfLines={2}
+                        style={{ lineHeight: 18 }}
+                      >
                         {item.description}
                       </Txt>
                     ) : null}
@@ -238,7 +295,11 @@ export default function StallFront() {
                         void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
                         set(item.id, 1)
                       }}
-                      style={({ pressed }) => [styles.add, !ordering && { opacity: 0.35 }, pressed && { transform: [{ scale: 0.92 }] }]}
+                      style={({ pressed }) => [
+                        styles.add,
+                        !ordering && { opacity: 0.35 },
+                        pressed && { transform: [{ scale: 0.92 }] },
+                      ]}
                     >
                       <Icon name="plus" size={22} color={colors.white} strokeWidth={2.6} />
                     </Pressable>
@@ -250,8 +311,13 @@ export default function StallFront() {
             })}
           </View>
         )}
-        <Txt size={13} color={colors.muted} style={{ textAlign: 'center', marginTop: 22, paddingHorizontal: 32, lineHeight: 19 }}>
-          You pay in dollars from your Kova wallet, with no card fees. Local prices are a guide at Kova’s reference rate.
+        <Txt
+          size={13}
+          color={colors.muted}
+          style={{ textAlign: 'center', marginTop: 22, paddingHorizontal: 32, lineHeight: 19 }}
+        >
+          You pay in dollars from your Kova wallet, with no card fees. Local prices are a guide at
+          Kova’s reference rate.
         </Txt>
       </ScrollView>
 
@@ -260,7 +326,11 @@ export default function StallFront() {
       </View>
 
       {count > 0 ? (
-        <Animated.View entering={FadeInDown.springify().damping(16)} exiting={FadeOutDown} style={[styles.barWrap, { bottom: Math.max(insets.bottom, 16) }]}>
+        <Animated.View
+          entering={FadeInDown.springify().damping(16)}
+          exiting={FadeOutDown}
+          style={[styles.barWrap, { bottom: Math.max(insets.bottom, 16) }]}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`View basket, ${count} items, ${dollars(total)}`}
@@ -352,12 +422,12 @@ function BasketSheet({
   const [busy, setBusy] = useState<'pay' | 'ask' | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
   const [asked, setAsked] = useState<PlacedOrder | null>(null)
-  // Paying from private dollars (as last chosen, or because the balance is short): the order isn't
-  // tied to this wallet, so it collects no stamp. A free item on the card always pays from the wallet.
+  // Paid from private dollars (the router's pick when the balance is short): the order isn't tied to
+  // this wallet, so it collects no stamp. A free item on the card always pays from the wallet.
   const { balance } = useWallet()
   const totalBase = BigInt(Math.round(total * 1e6))
-  const payFrom = usePayFrom(totalBase, balance, !free && totalBase > 0n)
-  const privately = payFrom.source === 'private'
+  const { route } = usePaymentRoute({ amount: totalBase, balance, direct: !free && totalBase > 0n })
+  const privately = route.from === 'private'
 
   useEffect(() => {
     if (visible && lines.length === 0 && !asked) onClose()
@@ -384,7 +454,11 @@ function BasketSheet({
         onPaid()
         router.push({
           pathname: '/pay/[id]',
-          params: { id: placed.checkout.id, ...(autoPlace ? { autopay: '1' } : {}), ...(!privately && payer && stall.loyalty_every ? { stamp: '1' } : {}) },
+          params: {
+            id: placed.checkout.id,
+            ...(autoPlace ? { autopay: '1' } : {}),
+            ...(!privately && payer && stall.loyalty_every ? { stamp: '1' } : {}),
+          },
         })
       }
     } catch (error) {
@@ -416,14 +490,24 @@ function BasketSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={dismiss}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Pressable accessibilityLabel="Close" style={styles.backdrop} onPress={busy ? undefined : dismiss} />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <Pressable
+          accessibilityLabel="Close"
+          style={styles.backdrop}
+          onPress={busy ? undefined : dismiss}
+        />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <View style={styles.grip} />
           {asked ? (
             <AskedToPay stall={stall} placed={asked} onDone={dismiss} />
           ) : (
-            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: 14 }}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingTop: 14 }}
+            >
               <Txt weight="bold" size={26} style={{ letterSpacing: -0.6 }}>
                 Your order
               </Txt>
@@ -433,8 +517,16 @@ function BasketSheet({
               </Txt>
               <View style={styles.basket}>
                 {lines.map((l, i) => (
-                  <View key={l.item.id} style={[styles.basketLine, i < lines.length - 1 && styles.rule]}>
-                    <Stepper small value={l.quantity} name={l.item.name} onChange={(n) => onQty(l.item.id, n)} />
+                  <View
+                    key={l.item.id}
+                    style={[styles.basketLine, i < lines.length - 1 && styles.rule]}
+                  >
+                    <Stepper
+                      small
+                      value={l.quantity}
+                      name={l.item.name}
+                      onChange={(n) => onQty(l.item.id, n)}
+                    />
                     <Txt weight="semi" size={15} style={{ flex: 1 }} numberOfLines={2}>
                       {l.item.name}
                     </Txt>
@@ -448,7 +540,13 @@ function BasketSheet({
                     <View style={styles.freeStamp}>
                       <Icon name="sparkle" size={15} />
                     </View>
-                    <Txt weight="semi" size={15} color={colors.tealDeep} style={{ flex: 1 }} numberOfLines={2}>
+                    <Txt
+                      weight="semi"
+                      size={15}
+                      color={colors.tealDeep}
+                      style={{ flex: 1 }}
+                      numberOfLines={2}
+                    >
                       Stamp card: {free.name} free
                     </Txt>
                     <Txt weight="semi" size={15} color={colors.tealDeep}>
@@ -462,7 +560,11 @@ function BasketSheet({
                       Total
                     </Txt>
                     {free ? (
-                      <Txt size={13} color={colors.muted} style={{ textDecorationLine: 'line-through' }}>
+                      <Txt
+                        size={13}
+                        color={colors.muted}
+                        style={{ textDecorationLine: 'line-through' }}
+                      >
                         {dollars(subtotal)}
                       </Txt>
                     ) : null}
@@ -481,16 +583,41 @@ function BasketSheet({
               </View>
 
               <Txt weight="semi" size={14} color={colors.muted} style={styles.label}>
-                Your name <Txt size={13} color="#8C9799">so they know it’s yours</Txt>
+                Your name{' '}
+                <Txt size={13} color="#8C9799">
+                  so they know it’s yours
+                </Txt>
               </Txt>
-              <TextInput value={name} onChangeText={setName} maxLength={60} placeholder="Sam" placeholderTextColor="#8C9799" style={styles.input} />
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                maxLength={60}
+                placeholder="Sam"
+                placeholderTextColor="#8C9799"
+                style={styles.input}
+              />
               <Txt weight="semi" size={14} color={colors.muted} style={styles.label}>
-                A note <Txt size={13} color="#8C9799">optional</Txt>
+                A note{' '}
+                <Txt size={13} color="#8C9799">
+                  optional
+                </Txt>
               </Txt>
-              <TextInput value={note} onChangeText={setNote} maxLength={200} placeholder="Gift-wrap it, please" placeholderTextColor="#8C9799" style={styles.input} />
+              <TextInput
+                value={note}
+                onChangeText={setNote}
+                maxLength={200}
+                placeholder="Gift-wrap it, please"
+                placeholderTextColor="#8C9799"
+                style={styles.input}
+              />
 
               {problem ? (
-                <Txt weight="medium" size={14} color={colors.danger} style={{ marginTop: 12, textAlign: 'center' }}>
+                <Txt
+                  weight="medium"
+                  size={14}
+                  color={colors.danger}
+                  style={{ marginTop: 12, textAlign: 'center' }}
+                >
                   {problem}
                 </Txt>
               ) : null}
@@ -509,7 +636,14 @@ function BasketSheet({
                   disabled={busy !== null || !stall.open}
                   onPress={() => void place(false)}
                 />
-                <PillButton label="Ask someone else to pay" icon="send" tone="white" loading={busy === 'ask'} disabled={busy !== null || !stall.open} onPress={() => void place(true)} />
+                <PillButton
+                  label="Ask someone else to pay"
+                  icon="send"
+                  tone="white"
+                  loading={busy === 'ask'}
+                  disabled={busy !== null || !stall.open}
+                  onPress={() => void place(true)}
+                />
               </View>
               {free ? (
                 <Txt size={13} color={colors.muted} style={{ textAlign: 'center', marginTop: 10 }}>
@@ -557,7 +691,9 @@ function StampCardFace({ card, free }: { card: StampCard; free: string | null })
             {n <= card.stamps ? <Coin size={22} /> : null}
           </View>
         ))}
-        <View style={[styles.stamp, styles.stampFree, card.ready && { backgroundColor: colors.coral }]}>
+        <View
+          style={[styles.stamp, styles.stampFree, card.ready && { backgroundColor: colors.coral }]}
+        >
           <Icon name="sparkle" size={14} color={card.ready ? colors.white : colors.ink} />
         </View>
       </View>
@@ -569,7 +705,15 @@ function StampCardFace({ card, free }: { card: StampCard; free: string | null })
 }
 
 /** The pay-for-me handoff: a link to send, and the moment it's paid. */
-function AskedToPay({ stall, placed, onDone }: { stall: PublicStall; placed: PlacedOrder; onDone: () => void }) {
+function AskedToPay({
+  stall,
+  placed,
+  onDone,
+}: {
+  stall: PublicStall
+  placed: PlacedOrder
+  onDone: () => void
+}) {
   const [paid, setPaid] = useState(false)
   const [copied, setCopied] = useState(false)
   const link = payLinkFor(placed.checkout.id)
@@ -594,7 +738,11 @@ function AskedToPay({ stall, placed, onDone }: { stall: PublicStall; placed: Pla
         <Txt weight="bold" size={28} style={{ letterSpacing: -0.8, marginTop: 8 }}>
           It’s paid
         </Txt>
-        <Txt size={16} color={colors.muted} style={{ textAlign: 'center', marginTop: 4, lineHeight: 22 }}>
+        <Txt
+          size={16}
+          color={colors.muted}
+          style={{ textAlign: 'center', marginTop: 4, lineHeight: 22 }}
+        >
           Someone paid {dollars(placed.checkout.amount)} for your order. {stall.name} has it.
         </Txt>
         <View style={{ alignSelf: 'stretch', marginTop: 18 }}>
@@ -609,8 +757,13 @@ function AskedToPay({ stall, placed, onDone }: { stall: PublicStall; placed: Pla
       <Txt weight="bold" size={26} style={{ letterSpacing: -0.6, textAlign: 'center' }}>
         Send it to whoever’s paying
       </Txt>
-      <Txt size={15} color={colors.muted} style={{ textAlign: 'center', marginTop: 6, lineHeight: 21 }}>
-        They can pay from anywhere with Kova or any Monad wallet. The link stays open for a day, and this updates when it’s paid.
+      <Txt
+        size={15}
+        color={colors.muted}
+        style={{ textAlign: 'center', marginTop: 6, lineHeight: 21 }}
+      >
+        They can pay from anywhere with Kova or any Monad wallet. The link stays open for a day, and
+        this updates when it’s paid.
       </Txt>
       <Pressable
         accessibilityRole="button"
@@ -628,8 +781,17 @@ function AskedToPay({ stall, placed, onDone }: { stall: PublicStall; placed: Pla
         </Txt>
       </Pressable>
       <View style={{ alignSelf: 'stretch', gap: 10, marginTop: 16 }}>
-        <PillButton label="Send on WhatsApp" icon="send" onPress={() => void Linking.openURL(`https://wa.me/?text=${encodeURIComponent(message)}`)} />
-        <PillButton label="Share another way" icon="share" tone="white" onPress={() => void Share.share({ message })} />
+        <PillButton
+          label="Send on WhatsApp"
+          icon="send"
+          onPress={() => void Linking.openURL(`https://wa.me/?text=${encodeURIComponent(message)}`)}
+        />
+        <PillButton
+          label="Share another way"
+          icon="share"
+          tone="white"
+          onPress={() => void Share.share({ message })}
+        />
       </View>
       <View style={styles.waiting}>
         <ActivityIndicator size="small" color={colors.muted} />
@@ -642,14 +804,36 @@ function AskedToPay({ stall, placed, onDone }: { stall: PublicStall; placed: Pla
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28, paddingTop: 30 },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+    paddingTop: 30,
+  },
   close: { position: 'absolute', left: 20 },
   sign: { paddingHorizontal: 20, paddingTop: 16 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  chip: { height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  chip: {
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   dot: { width: 8, height: 8, borderRadius: 4 },
   tableChip: { backgroundColor: colors.coral, borderWidth: 2, borderColor: colors.ink },
-  stampCard: { marginHorizontal: 20, marginTop: 16, padding: 14, borderRadius: 24, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.tealSoft },
+  stampCard: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.tealSoft,
+  },
   stampHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stamps: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   stamp: {
@@ -666,7 +850,14 @@ const styles = StyleSheet.create({
   stampOn: { borderStyle: 'solid', backgroundColor: colors.white },
   stampFree: { borderStyle: 'solid', backgroundColor: colors.white },
   freeLine: { borderTopWidth: 1, borderColor: colors.sunken },
-  freeStamp: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.tealSoft, alignItems: 'center', justifyContent: 'center' },
+  freeStamp: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.tealSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -679,17 +870,69 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   itemIn: { backgroundColor: colors.white },
-  add: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.coral, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  add: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.coral,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   barWrap: { position: 'absolute', left: 20, right: 20 },
-  bar: { height: 56, borderRadius: 28, backgroundColor: colors.ink, flexDirection: 'row', alignItems: 'center', gap: 14, paddingLeft: 8, paddingRight: 24 },
-  barCount: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.coral, alignItems: 'center', justifyContent: 'center' },
+  bar: {
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.ink,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingLeft: 8,
+    paddingRight: 24,
+  },
+  barCount: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   backdrop: { flex: 1, backgroundColor: 'rgba(11,26,29,0.32)' },
-  sheet: { maxHeight: '88%', backgroundColor: colors.paper, borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: 20, paddingTop: 10 },
-  grip: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: 'rgba(11,26,29,0.16)' },
-  basket: { marginTop: 14, borderRadius: 24, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, paddingHorizontal: 14 },
+  sheet: {
+    maxHeight: '88%',
+    backgroundColor: colors.paper,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  grip: {
+    alignSelf: 'center',
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(11,26,29,0.16)',
+  },
+  basket: {
+    marginTop: 14,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+  },
   basketLine: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   rule: { borderBottomWidth: 1, borderColor: colors.sunken },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderTopWidth: 2, borderColor: colors.ink },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 2,
+    borderColor: colors.ink,
+  },
   label: { marginTop: 16, marginBottom: 8, marginLeft: 4 },
   input: {
     height: 46,

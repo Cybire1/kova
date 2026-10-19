@@ -1,0 +1,616 @@
+/*
+ * Kova for iPhone: the beta's page (/waitlist) and the card that leads to it from the landing page
+ * and /try. The app's own screens in phone frames, one form, the landing's paper, teal and coral.
+ */
+
+.ip-hero,
+.ip-features,
+.ip-how,
+.ip-close,
+.lp-iphone {
+  width: min(100% - 2.5rem, var(--lp-max, 78rem));
+  margin-inline: auto;
+}
+
+/* --- A real screen, as a phone --------------------------------------------------------------- */
+
+.ip-phone {
+  display: block;
+  padding: 0.5rem;
+  border-radius: 2.5rem;
+  background: var(--ink);
+  box-shadow: 0 1.5rem 3rem rgba(11, 26, 29, 0.18);
+}
+
+.ip-phone img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 2.05rem;
+}
+
+/* --- Hero --------------------------------------------------------------------------------------- */
+
+.ip-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 3rem;
+  align-items: center;
+  padding: 1.5rem 0 5rem;
+}
+
+.ip-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.95rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.ip-live {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--coral);
+  animation: ip-pulse 2s var(--spring) infinite;
+}
+
+@keyframes ip-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(212, 101, 88, 0.55);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 0.55rem rgba(212, 101, 88, 0);
+  }
+}
+
+.ip-title {
+  margin-top: 1.25rem;
+  font-size: clamp(2.9rem, 6.2vw, 5.5rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.92;
+}
+
+.ip-title span:not(.lp-coin) {
+  color: var(--teal-deep);
+}
+
+.ip-lead {
+  max-width: 34rem;
+  margin-top: 1.5rem;
+  font-size: 1.125rem;
+  line-height: 1.55;
+  font-weight: 500;
+  color: #2a3a3d;
+}
+
+/* --- The form ------------------------------------------------------------------------------------- */
+
+.ip-form {
+  display: grid;
+  gap: 0.9rem;
+  max-width: 34rem;
+  margin-top: 1.75rem;
+}
+
+.ip-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.ip-field {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.ip-field small {
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ip-field input {
+  width: 100%;
+  height: 3.25rem;
+  padding: 0 1.15rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+  outline: none;
+  transition: box-shadow 0.2s;
+}
+
+.ip-field input::placeholder {
+  color: #7d8a8c;
+  font-weight: 500;
+}
+
+.ip-field input:focus {
+  box-shadow: 0 0 0 4px rgba(212, 101, 88, 0.25);
+}
+
+.ip-form .pill {
+  justify-self: start;
+}
+
+.ip-keep {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: 34rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ip-keep svg {
+  flex: none;
+}
+
+.ip-done {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  max-width: 34rem;
+  margin-top: 1.75rem;
+  padding: 1.1rem 1.25rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.5rem;
+  background: var(--surface);
+  animation: ip-in 0.5s var(--spring) both;
+}
+
+@keyframes ip-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+}
+
+.ip-done-tick {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--positive);
+  color: var(--surface);
+}
+
+.ip-done-title {
+  font-weight: 800;
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+}
+
+.ip-done > div {
+  min-width: 0;
+}
+
+.ip-done-title + p {
+  overflow-wrap: anywhere;
+  margin-top: 0.25rem;
+  line-height: 1.5;
+  font-weight: 500;
+  color: #2a3a3d;
+}
+
+/* --- Three phones, fanned ------------------------------------------------------------------------------ */
+
+.ip-stage {
+  position: relative;
+  height: clamp(30rem, 46vw, 40rem);
+}
+
+.ip-stage .ip-phone {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(11rem, 17vw, 15.5rem);
+}
+
+.ip-stage-center {
+  z-index: 2;
+  transform: translate(-50%, -50%);
+}
+
+.ip-stage-left {
+  transform: translate(-114%, -45%) rotate(-7deg);
+}
+
+.ip-stage-right {
+  transform: translate(14%, -45%) rotate(7deg);
+}
+
+/* --- What's in the beta ------------------------------------------------------------------------------------ */
+
+.ip-features {
+  padding: 1rem 0 4.5rem;
+}
+
+.ip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+
+.ip-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.9rem 0.9rem 1.5rem;
+  border-radius: 2rem;
+  background: var(--surface);
+}
+
+.ip-feature-shot {
+  display: flex;
+  justify-content: center;
+  height: 19rem;
+  margin-bottom: 0.75rem;
+  padding-top: 1.5rem;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  background: var(--sunken);
+}
+
+.ip-feature:nth-child(1) .ip-feature-shot {
+  background: var(--coral-soft);
+}
+
+.ip-feature:nth-child(2) .ip-feature-shot {
+  background: var(--teal-soft);
+}
+
+.ip-feature:nth-child(4) .ip-feature-shot {
+  background: var(--teal-soft);
+}
+
+.ip-feature-shot .ip-phone {
+  flex: none;
+  width: 12rem;
+  height: max-content;
+  box-shadow: 0 0.75rem 1.5rem rgba(11, 26, 29, 0.16);
+}
+
+.ip-feature h3,
+.ip-feature p {
+  padding-inline: 0.4rem;
+}
+
+.ip-feature h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.ip-feature p {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  font-weight: 500;
+  color: #2a3a3d;
+}
+
+/* --- How the beta works --------------------------------------------------------------------------------------- */
+
+.ip-how {
+  padding: 0 0 4.5rem;
+}
+
+.ip-steps {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin: 2rem 0 0;
+  padding: 0;
+}
+
+.ip-steps li {
+  padding: 1.5rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.75rem;
+}
+
+.ip-step-n {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--surface);
+  font-weight: 800;
+}
+
+.ip-steps h3 {
+  margin-top: 1rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.ip-steps p {
+  margin-top: 0.4rem;
+  line-height: 1.5;
+  font-weight: 500;
+  color: #2a3a3d;
+}
+
+.ip-web {
+  margin-top: 1.5rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ip-web a {
+  font-weight: 800;
+  color: var(--ink);
+  text-underline-offset: 4px;
+}
+
+/* --- Closing ---------------------------------------------------------------------------------------------------- */
+
+.ip-close {
+  display: grid;
+  justify-items: center;
+  padding: 3.25rem 1.5rem;
+  border-radius: 2.5rem;
+  background: var(--teal-soft);
+  text-align: center;
+}
+
+.ip-close h2 {
+  max-width: 34rem;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  text-wrap: balance;
+}
+
+.ip-close .ip-form {
+  width: 100%;
+  text-align: left;
+}
+
+.ip-close .ip-form .pill {
+  justify-self: center;
+}
+
+.ip-close .ip-done {
+  text-align: left;
+}
+
+/* --- The card that leads here (landing and /try) ---------------------------------------------------------------- */
+
+.lp-iphone {
+  margin-bottom: 4.5rem;
+}
+
+.ip-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  min-height: 17rem;
+  padding: 2rem 2.25rem;
+  overflow: hidden;
+  border-radius: 2.5rem;
+  background: var(--ink);
+  color: var(--surface);
+  text-decoration: none;
+  transition: transform 0.25s var(--spring);
+}
+
+.ip-card:hover {
+  transform: translateY(-2px);
+}
+
+.ip-card:focus-visible {
+  outline: 3px solid var(--coral);
+  outline-offset: 3px;
+}
+
+.ip-card-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--on-ink);
+}
+
+.ip-card-title {
+  margin-top: 0.5rem;
+  font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.ip-card-body {
+  max-width: 28rem;
+  margin-top: 0.75rem;
+  line-height: 1.5;
+  font-weight: 500;
+  color: var(--on-ink);
+}
+
+.ip-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding: 0.7rem 1.15rem;
+  border-radius: 999px;
+  background: var(--coral);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.ip-card-phones {
+  position: relative;
+  align-self: stretch;
+  width: 17rem;
+  margin: -2rem -0.5rem -2rem 0;
+}
+
+.ip-card-phones .ip-phone {
+  position: absolute;
+  width: 9.5rem;
+  background: #1d2f33;
+  box-shadow: none;
+}
+
+.ip-card-back {
+  top: 3.5rem;
+  left: 0;
+  transform: rotate(-8deg);
+}
+
+.ip-card-front {
+  top: 1.75rem;
+  right: 0;
+  transform: rotate(5deg);
+}
+
+/* On /try it follows the list the way the shop card does. */
+.gr-try-list .ip-card {
+  margin-top: 0.75rem;
+}
+
+.ip-card-compact {
+  min-height: 0;
+  padding: 1.5rem 1.75rem;
+  border-radius: 2rem;
+}
+
+.ip-card-compact .ip-card-title {
+  font-size: 1.75rem;
+}
+
+.ip-card-compact .ip-card-body {
+  font-size: 0.9375rem;
+}
+
+.ip-card-compact .ip-card-phones {
+  width: 12rem;
+  margin: -1.5rem -0.5rem -1.5rem 0;
+}
+
+.ip-card-compact .ip-phone {
+  width: 7rem;
+}
+
+.ip-card-compact .ip-card-back {
+  top: 2.75rem;
+}
+
+.ip-card-compact .ip-card-front {
+  top: 1.25rem;
+}
+
+/* --- Smaller screens ------------------------------------------------------------------------------------------------ */
+
+@media (max-width: 1000px) {
+  .ip-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .ip-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    padding-bottom: 3.5rem;
+  }
+
+  .ip-stage {
+    order: -1;
+    height: 22rem;
+  }
+
+  .ip-stage .ip-phone {
+    width: 9.25rem;
+  }
+}
+
+@media (max-width: 800px) {
+  .ip-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .ip-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .ip-form .pill {
+    justify-self: stretch;
+  }
+
+  .ip-close {
+    padding: 2.5rem 1.25rem;
+    border-radius: 2rem;
+  }
+
+  .ip-card {
+    grid-template-columns: 1fr;
+    padding: 1.75rem 1.5rem 0;
+  }
+
+  .ip-card-phones,
+  .ip-card-compact .ip-card-phones {
+    width: 100%;
+    height: 11rem;
+    margin: 0;
+  }
+
+  .ip-card-back {
+    left: calc(50% - 8.5rem);
+  }
+
+  .ip-card-front {
+    right: calc(50% - 8.5rem);
+  }
+
+  .ip-card-compact {
+    padding: 1.5rem 1.5rem 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .ip-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ip-live,
+  .ip-done {
+    animation: none;
+  }
+
+  .ip-card {
+    transition: none;
+  }
+}

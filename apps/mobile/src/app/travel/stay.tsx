@@ -2,12 +2,19 @@ import * as Haptics from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getStay, type StayDetail, type StayRate } from '@/lib/api'
 import { formatLocal } from '@/lib/money'
-import { day, nights, useTravel } from '@/lib/travel'
 import { colors } from '@/lib/theme'
+import { day, nights, useTravel } from '@/lib/travel'
 import { useWallet } from '@/lib/wallet'
 import { Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
@@ -70,7 +77,12 @@ export default function Stay() {
           <ActivityIndicator color={colors.ink} />
         )}
         <View style={[styles.floatingBack, { top: insets.top + 8 }]}>
-          <RoundButton icon="back" label="Back" fill={colors.surface} onPress={() => router.back()} />
+          <RoundButton
+            icon="back"
+            label="Back"
+            fill={colors.surface}
+            onPress={() => router.back()}
+          />
         </View>
       </View>
     )
@@ -87,10 +99,18 @@ export default function Stay() {
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(e) => setPhoto(Math.round(e.nativeEvent.contentOffset.x / width))}
+              onMomentumScrollEnd={(e) =>
+                setPhoto(Math.round(e.nativeEvent.contentOffset.x / width))
+              }
             >
               {a.photos.map((url) => (
-                <Image key={url} source={{ uri: url }} style={{ width, height: 300 }} contentFit="cover" transition={200} />
+                <Image
+                  key={url}
+                  source={{ uri: url }}
+                  style={{ width, height: 300 }}
+                  contentFit="cover"
+                  transition={200}
+                />
               ))}
             </ScrollView>
           ) : (
@@ -159,7 +179,12 @@ export default function Stay() {
             </View>
           ) : null}
           {a.description ? (
-            <Txt size={15} color={colors.muted} style={{ marginTop: 8, lineHeight: 22 }} numberOfLines={6}>
+            <Txt
+              size={15}
+              color={colors.muted}
+              style={{ marginTop: 8, lineHeight: 22 }}
+              numberOfLines={6}
+            >
               {a.description}
             </Txt>
           ) : null}
@@ -179,7 +204,13 @@ export default function Stay() {
               .map((room) => (
                 <View key={room.name} style={styles.room}>
                   <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-                    {room.photos[0] ? <Image source={{ uri: room.photos[0] }} style={styles.roomPhoto} contentFit="cover" /> : null}
+                    {room.photos[0] ? (
+                      <Image
+                        source={{ uri: room.photos[0] }}
+                        style={styles.roomPhoto}
+                        contentFit="cover"
+                      />
+                    ) : null}
                     <View style={{ flex: 1 }}>
                       <Txt weight="bold" size={17}>
                         {room.name}
@@ -197,7 +228,13 @@ export default function Stay() {
                         <Txt weight="semi" size={15}>
                           {rate.board}
                         </Txt>
-                        <Txt size={13} color={rate.cancellation.startsWith('Free') ? colors.tealDeep : colors.muted} weight={rate.cancellation.startsWith('Free') ? 'semi' : 'regular'}>
+                        <Txt
+                          size={13}
+                          color={
+                            rate.cancellation.startsWith('Free') ? colors.tealDeep : colors.muted
+                          }
+                          weight={rate.cancellation.startsWith('Free') ? 'semi' : 'regular'}
+                        >
                           {rate.cancellation}
                         </Txt>
                         {rate.pay_at_hotel ? (
@@ -217,7 +254,12 @@ export default function Stay() {
                             </Txt>
                           ) : null}
                         </View>
-                        <Pressable accessibilityRole="button" accessibilityLabel={`Choose ${room.name}, ${rate.board}`} onPress={() => choose(rate, room.name)} style={styles.choose}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Choose ${room.name}, ${rate.board}`}
+                          onPress={() => choose(rate, room.name)}
+                          style={styles.choose}
+                        >
                           <Txt weight="semi" size={14} color={colors.white}>
                             Choose
                           </Txt>
@@ -243,12 +285,58 @@ const styles = StyleSheet.create({
   dots: { position: 'absolute', bottom: 12, alignSelf: 'center', flexDirection: 'row', gap: 6 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.6)' },
   dotOn: { backgroundColor: colors.white, width: 18 },
-  score: { height: 24, paddingHorizontal: 8, borderRadius: 8, backgroundColor: colors.tealDeep, justifyContent: 'center' },
-  dates: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, alignSelf: 'flex-start', padding: 8, paddingHorizontal: 12, borderRadius: 16, backgroundColor: colors.tealSoft },
+  score: {
+    height: 24,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: colors.tealDeep,
+    justifyContent: 'center',
+  },
+  dates: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    padding: 8,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: colors.tealSoft,
+  },
   amenities: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
-  amenity: { height: 30, paddingHorizontal: 12, borderRadius: 15, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.sunken, justifyContent: 'center' },
-  room: { marginBottom: 14, padding: 14, borderRadius: 24, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, gap: 4 },
+  amenity: {
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.sunken,
+    justifyContent: 'center',
+  },
+  room: {
+    marginBottom: 14,
+    padding: 14,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    gap: 4,
+  },
   roomPhoto: { width: 56, height: 56, borderRadius: 14, backgroundColor: colors.sunken },
-  rate: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 12, marginTop: 8, borderTopWidth: 1, borderColor: colors.sunken },
-  choose: { height: 38, paddingHorizontal: 18, borderRadius: 19, backgroundColor: colors.ink, justifyContent: 'center' },
+  rate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingTop: 12,
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderColor: colors.sunken,
+  },
+  choose: {
+    height: 38,
+    paddingHorizontal: 18,
+    borderRadius: 19,
+    backgroundColor: colors.ink,
+    justifyContent: 'center',
+  },
 })

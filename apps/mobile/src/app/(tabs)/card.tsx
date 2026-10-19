@@ -28,9 +28,9 @@ import { isUnnamed, useWallet } from '@/lib/wallet'
 import { type CardDesign, CardDesignPicker, CardFace } from '@/ui/CardFace'
 import { dockClearance } from '@/ui/Dock'
 import { Icon, type IconName } from '@/ui/Icon'
+import { DollarCardRow } from '@/ui/Money'
 import { Snowfall } from '@/ui/motion'
 import { PillButton, Txt } from '@/ui/primitives'
-import { DollarCardRow } from '@/ui/Money'
 
 const limits = ['50', '100', '200', '500']
 const spring = { damping: 14, stiffness: 140 }
@@ -139,21 +139,21 @@ export default function Card() {
   return scroll(
     <>
       <CardView
-      key={card.address}
-      card={card}
-      holderName={profile && !isUnnamed(profile.name) ? profile.name : undefined}
-      others={cards}
-      selected={selected}
-      onSelect={setSelected}
-      onChanged={(next) =>
-        setCards((list) => list?.map((c) => (c.address === next.address ? next : c)) ?? null)
-      }
-      onRemoved={() => {
-        setSelected(0)
-        void load()
-      }}
-      signTypedData={signTypedData}
-    />
+        key={card.address}
+        card={card}
+        holderName={profile && !isUnnamed(profile.name) ? profile.name : undefined}
+        others={cards}
+        selected={selected}
+        onSelect={setSelected}
+        onChanged={(next) =>
+          setCards((list) => list?.map((c) => (c.address === next.address ? next : c)) ?? null)
+        }
+        onRemoved={() => {
+          setSelected(0)
+          void load()
+        }}
+        signTypedData={signTypedData}
+      />
       <DollarCardRow />
     </>,
   )

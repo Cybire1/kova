@@ -14,19 +14,48 @@ export default function TerminalLayout() {
   return (
     <ShopProvider>
       <OrdersProvider>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.tealSoft } }}>
+        <Stack
+          screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.tealSoft } }}
+        >
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="[id]" options={{ animation: 'fade', gestureEnabled: false }} />
           <Stack.Screen name="setup" />
-          <Stack.Screen name="item" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.paper } }} />
-          <Stack.Screen name="share" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.paper } }} />
-          <Stack.Screen name="takings" options={{ contentStyle: { backgroundColor: colors.paper } }} />
-          <Stack.Screen name="business" options={{ contentStyle: { backgroundColor: colors.paper } }} />
-          <Stack.Screen name="payroll" options={{ contentStyle: { backgroundColor: colors.paper } }} />
-          <Stack.Screen name="payroll-run" options={{ contentStyle: { backgroundColor: colors.paper } }} />
-          <Stack.Screen name="suppliers" options={{ contentStyle: { backgroundColor: colors.paper } }} />
+          <Stack.Screen
+            name="item"
+            options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.paper } }}
+          />
+          <Stack.Screen
+            name="share"
+            options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.paper } }}
+          />
+          <Stack.Screen
+            name="takings"
+            options={{ contentStyle: { backgroundColor: colors.paper } }}
+          />
+          <Stack.Screen
+            name="business"
+            options={{ contentStyle: { backgroundColor: colors.paper } }}
+          />
+          <Stack.Screen
+            name="payroll"
+            options={{ contentStyle: { backgroundColor: colors.paper } }}
+          />
+          <Stack.Screen
+            name="payroll-run"
+            options={{ contentStyle: { backgroundColor: colors.paper } }}
+          />
+          <Stack.Screen
+            name="suppliers"
+            options={{ contentStyle: { backgroundColor: colors.paper } }}
+          />
           <Stack.Screen name="team" options={{ contentStyle: { backgroundColor: colors.paper } }} />
-          <Stack.Screen name="snap" options={{ presentation: 'fullScreenModal', contentStyle: { backgroundColor: colors.paper } }} />
+          <Stack.Screen
+            name="snap"
+            options={{
+              presentation: 'fullScreenModal',
+              contentStyle: { backgroundColor: colors.paper },
+            }}
+          />
         </Stack>
         <NewOrderBanner />
       </OrdersProvider>
@@ -55,9 +84,15 @@ function NewOrderBanner() {
 
   if (!fresh || onOrders || hidden) return null
   const who = fresh.customer_name ?? 'Someone'
-  const what = fresh.lines.map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name)).join(', ')
+  const what = fresh.lines
+    .map((l) => (l.quantity > 1 ? `${l.quantity} × ${l.name}` : l.name))
+    .join(', ')
   return (
-    <Animated.View entering={FadeInUp.springify().damping(16)} exiting={FadeOutUp} style={[styles.wrap, { top: insets.top + 6 }]}>
+    <Animated.View
+      entering={FadeInUp.springify().damping(16)}
+      exiting={FadeOutUp}
+      style={[styles.wrap, { top: insets.top + 6 }]}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`New order from ${who}, ${dollars(fresh.amount ?? 0)}. Open orders`}
@@ -97,5 +132,11 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     backgroundColor: colors.ink,
   },
-  see: { height: 32, paddingHorizontal: 14, borderRadius: 16, backgroundColor: colors.coral, justifyContent: 'center' },
+  see: {
+    height: 32,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: colors.coral,
+    justifyContent: 'center',
+  },
 })

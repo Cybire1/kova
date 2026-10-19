@@ -1,9 +1,9 @@
-import { apiUrl, network } from '@/lib/network'
 import type { Metadata } from 'next'
 import { Brand } from '@/components/brand'
 import { type Bakery, TryChecklist, TryMainnet } from '@/components/try-checklist'
-import { type PublicStall } from '@/lib/api'
+import type { PublicStall } from '@/lib/api'
 import { cleanRef, TESTNET_SITE, TRY_STALL } from '@/lib/growth'
+import { apiUrl, network } from '@/lib/network'
 import '@/styles/growth.css'
 import { countTryStep } from './actions'
 
@@ -60,6 +60,7 @@ export default async function TryPage(props: {
   const params = await props.searchParams
   const ref = cleanRef(typeof params.ref === 'string' ? params.ref : null)
   const mainnet = network === 'mainnet'
+  const iphone = mainnet ? '/waitlist' : 'https://mykova.app/waitlist'
 
   return (
     <main className="gr-page gr-try">
@@ -71,12 +72,14 @@ export default async function TryPage(props: {
           initialRef={ref}
           count={countTryStep}
           testnet={`${TESTNET_SITE}/try?ref=mainnet`}
+          iphone={iphone}
         />
       ) : (
         <TryChecklist
           initialRef={ref}
           count={countTryStep}
           bakery={await bakery(bakerySlug(params.stall))}
+          iphone={iphone}
         />
       )}
     </main>

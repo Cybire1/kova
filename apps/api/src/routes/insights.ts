@@ -38,7 +38,8 @@ export const insightRoutes = new Hono().post('/insights/categories', async (c) =
   hits.set(ip, [...recent, now])
 
   const parsed = body.safeParse(await c.req.json().catch(() => ({})))
-  if (!parsed.success) throw new KovaError('invalid_request', 'Expected { payments: [{ id, text }] }')
+  if (!parsed.success)
+    throw new KovaError('invalid_request', 'Expected { payments: [{ id, text }] }')
   if (!jevReady()) return c.json({ object: 'categories', ready: false, data: {} })
 
   // Each payment is its own question about its own field, answered independently.
@@ -47,7 +48,11 @@ export const insightRoutes = new Hono().post('/insights/categories', async (c) =
   const questions = Object.fromEntries(
     payments.map((_, i) => [
       `p${i}`,
-      { type: 'choice' as const, instructions: `Which spending category best fits the payment described in \`p${i}\`?`, criteria: { ...CATEGORIES } },
+      {
+        type: 'choice' as const,
+        instructions: `Which spending category best fits the payment described in \`p${i}\`?`,
+        criteria: { ...CATEGORIES },
+      },
     ]),
   )
   const answers = await askJev(state, questions, 6000)

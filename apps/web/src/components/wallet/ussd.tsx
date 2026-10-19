@@ -195,7 +195,7 @@ function PocketSettings() {
               required
             />
           </label>
-          <button className="mini mini-ink" disabled={!!busy}>
+          <button type="submit" className="mini mini-ink" disabled={!!busy}>
             {busy === 'setup' ? 'Requesting code…' : 'Verify my number'}
           </button>
         </form>
@@ -228,7 +228,7 @@ function PocketSettings() {
               required
             />
           </label>
-          <button className="mini mini-ink" disabled={!!busy}>
+          <button type="submit" className="mini mini-ink" disabled={!!busy}>
             {busy === 'verify' ? 'Verifying…' : 'Confirm number'}
           </button>
           <button
@@ -319,10 +319,11 @@ function PocketSettings() {
                 required
               />
             </label>
-            <button className="mini mini-ink" disabled={!!busy || !info?.enabled}>
+            <button type="submit" className="mini mini-ink" disabled={!!busy || !info?.enabled}>
               Review transfer
             </button>
             {review ? (
+              // biome-ignore lint/a11y/useSemanticElements: a confirm panel with its own buttons, not grouped form fields
               <div className="w-ussd-review" role="group" aria-label="Confirm pocket funding">
                 <p>
                   Move <strong>${review}</strong> from your {network} wallet to your USSD pocket?
@@ -415,7 +416,7 @@ function PocketSettings() {
                 required
               />
             </label>
-            <button className="mini" disabled={!!busy}>
+            <button type="submit" className="mini" disabled={!!busy}>
               Save limit
             </button>
           </form>
@@ -445,7 +446,7 @@ function PocketSettings() {
                 required
               />
             </label>
-            <button className="mini" disabled={!!busy}>
+            <button type="submit" className="mini" disabled={!!busy}>
               Save PIN
             </button>
           </form>

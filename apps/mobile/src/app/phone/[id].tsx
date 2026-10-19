@@ -1,8 +1,8 @@
-import { phoneInput, type PhonePayment } from '@kova/monad'
+import { type PhonePayment, phoneInput } from '@kova/monad'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Linking, ScrollView } from 'react-native'
-import { network, networkId, isTestnet } from '@/lib/config'
+import { isTestnet, network, networkId } from '@/lib/config'
 import { phoneClient } from '@/lib/phone'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
@@ -160,7 +160,13 @@ export default function Page() {
                             await phoneClient.claim(signMessage, profile.address, id)
                             return
                           } catch (error) {
-                            if (!(error instanceof Error) || !error.message.includes('Verify the recipient phone number with this wallet first.')) throw error
+                            if (
+                              !(error instanceof Error) ||
+                              !error.message.includes(
+                                'Verify the recipient phone number with this wallet first.',
+                              )
+                            )
+                              throw error
                           }
                           await phoneClient.requestCode(
                             signMessage,

@@ -65,12 +65,19 @@ export function LockedFace({ name, id, size = 40 }: { name: string; id?: string;
   )
 }
 
-/** What a payment's row is called: who, and for a private one, which way it went. */
+/** What a payment's row is called: who, as for any payment; a private one says so on the line below. */
 export function entryTitle(entry: Entry): string {
-  if (!entry.oneTime) return entry.name
-  if (entry.kind === 'received')
-    return entry.name ? `Private · from ${entry.name}` : 'Private payment'
-  return entry.name ? `Private · to ${entry.name}` : 'Sent privately'
+  if (entry.name) return entry.name
+  return entry.oneTime ? (entry.kind === 'received' ? 'Someone' : 'Sent privately') : entry.name
+}
+
+/** What a private row says after "Private": their note, or where it stands now. Nothing if that's all. */
+function privateDetail(entry: Entry): string | null {
+  const note = entry.locked ? 'Sealed note' : entry.private ? `“${entry.detail}”` : null
+  if (entry.unconfirmed) return note ? `Unconfirmed sender, ${note}` : 'Unconfirmed sender'
+  if (note) return note
+  if (entry.kind === 'received') return entry.waiting ? null : entry.detail
+  return /^(Sent privately|Sent)$/.test(entry.detail) ? null : entry.detail
 }
 
 export function EntryBadge({ entry, size = 40 }: { entry: Entry; size?: number }) {
@@ -132,21 +139,25 @@ export function NoSignal({ size = 16 }: { size?: number }) {
 /** One line of money: who, what, when, and how much, signed by direction. */
 export function EntryRow({ entry }: { entry: Entry }) {
   const offline = isOfflineTx(entry.txHash)
+  // Sent, received or paid privately: like any other row, with a lock and "Private" leading the line.
+  const privately = Boolean(entry.oneTime || entry.fromPrivate)
+  const said = privately ? privateDetail(entry) : null
   return (
     <Link
       href={`/wallet/activity/${encodeURIComponent(entry.id)}`}
       className="w-entry"
-      aria-label={`${verbs[entry.kind]} ${formatUsd(BigInt(entry.amount))}, ${entryTitle(entry)}`}
+      aria-label={`${verbs[entry.kind]} ${formatUsd(BigInt(entry.amount))}${privately ? ' privately' : ''}, ${entryTitle(entry)}`}
     >
       <EntryBadge entry={entry} />
       <span className="w-entry-text">
         <span className="w-entry-name">{entryTitle(entry)}</span>
         <span className="w-entry-sub">
-          {entry.private || entry.locked || entry.fromPrivate ? (
-            <Icon name="lock" size={12} />
-          ) : null}
-          {entry.fromPrivate ? (
-            <span className="w-from-private">From private dollars</span>
+          {privately || entry.private || entry.locked ? <Icon name="lock" size={12} /> : null}
+          {privately ? (
+            <>
+              <span className="w-entry-private">Private</span>
+              {said ? ` · ${said}` : ''}
+            </>
           ) : offline ? (
             <span className="w-offline-tag">
               <NoSignal size={12} />
@@ -177,16 +188,27 @@ export function BalanceCard() {
     hideBalance,
     setHideBalance,
     privateBalance,
+    privateUnchecked,
   } = useWallet()
-  const balance = useCounted(actual)
+  // One balance: dollars sent to you privately count in it the moment they're found.
+  const total = actual === null ? null : actual + privateBalance
+  const balance = useCounted(total)
   const usd = balance === null ? null : formatUsd(balance)
   const [whole, cents] =
     usd === null ? ['—', ''] : [usd.slice(1, usd.lastIndexOf('.')), usd.slice(usd.lastIndexOf('.'))]
   const currency = profile?.currency ?? 'USD'
+  const hasPrivate = privateBalance > 0n
+  /** The split, shown on a tap of the amount: how much of it is private. */
+  const [split, setSplit] = useState(false)
+  const splitShown = split && hasPrivate
   return (
     <section
       className="w-balance"
-      aria-label={hideBalance ? 'Balance hidden' : `Available ${usd ?? 'loading'}`}
+      aria-label={
+        hideBalance
+          ? 'Balance hidden'
+          : `Available ${usd ?? 'loading'}${hasPrivate ? `, ${formatUsd(privateBalance)} of it private` : ''}`
+      }
     >
       <svg
         className="w-balance-rings"
@@ -216,40 +238,63 @@ export function BalanceCard() {
           <Icon name="plus" size={14} /> Add
         </Link>
       </div>
-      <p className="w-balance-amount">
-        {hideBalance ? (
-          <span className="w-balance-hidden">••••••</span>
-        ) : (
-          <>
-            <span className="w-balance-sign">$</span>
-            <span className="w-balance-whole">{whole}</span>
-            <span className="w-balance-cents">{cents}</span>
-          </>
-        )}
-      </p>
+      {hasPrivate ? (
+        <button
+          type="button"
+          className="w-balance-amount w-balance-amount-tap"
+          aria-expanded={splitShown}
+          aria-label={splitShown ? 'Hide how much is private' : 'Show how much is private'}
+          onClick={() => setSplit(!split)}
+        >
+          <BalanceFigure hidden={hideBalance} whole={whole} cents={cents} />
+          {splitShown ? null : (
+            <span className="w-balance-hint" aria-hidden="true">
+              <Icon name="lock" size={13} />
+            </span>
+          )}
+        </button>
+      ) : (
+        <p className="w-balance-amount">
+          <BalanceFigure hidden={hideBalance} whole={whole} cents={cents} />
+        </p>
+      )}
+      {splitShown ? (
+        <Link href="/wallet/private" className="w-chip w-chip-private w-balance-split">
+          <Icon name="lock" size={13} />
+          {hideBalance ? '•••• of it private' : `${formatUsd(privateBalance)} of it private`}
+          <Icon name="arrow" size={13} />
+        </Link>
+      ) : null}
       <div className="w-balance-chips">
         {balance !== null && currency !== 'USD' ? (
           <span className="w-chip">
             {hideBalance ? '≈ ••••' : `≈ ${formatLocal(baseToNumber(balance), currency, rates)}`}
           </span>
         ) : null}
-        {/* Dollars sent to you privately: yours, at one-time addresses, a tap from the balance. */}
-        {privateBalance > 0n ? (
-          <span
-            className="w-chip w-chip-private"
-            role="note"
-            aria-label={
-              hideBalance
-                ? 'Private dollars waiting to move in'
-                : `${formatUsd(privateBalance)} sent to you privately, waiting to move in`
-            }
-          >
-            <Icon name="lock" size={13} />
-            {hideBalance ? '+•••• private' : `+${formatUsd(privateBalance)} private`}
-          </span>
-        ) : null}
+        {privateUnchecked ? <CheckPrivateChip /> : null}
       </div>
     </section>
+  )
+}
+
+/** The amount itself: dollars large, the sign and cents small and raised, or dots when hidden. */
+function BalanceFigure({
+  hidden,
+  whole,
+  cents,
+}: {
+  hidden: boolean
+  whole: string
+  cents: string
+}) {
+  return hidden ? (
+    <span className="w-balance-hidden">••••••</span>
+  ) : (
+    <>
+      <span className="w-balance-sign">$</span>
+      <span className="w-balance-whole">{whole}</span>
+      <span className="w-balance-cents">{cents}</span>
+    </>
   )
 }
 
@@ -468,3 +513,40 @@ export function localAbout(usd: number, currency: DisplayCurrency, rates: Rates)
 
 export const currencyLabel = (currency: DisplayCurrency) =>
   `${currencyInfo[currency].symbol} ${currencyInfo[currency].name}`
+
+/**
+ * Private payments only show once this wallet's keys have looked for them, and on the web the keys
+ * live in memory: after a reload, while Kova has new ones to look through, the passkey checks.
+ */
+function CheckPrivateChip() {
+  const { checkPrivate } = useWallet()
+  const [state, setState] = useState<'idle' | 'checking' | 'failed'>('idle')
+  return (
+    <button
+      type="button"
+      className="w-chip w-chip-private"
+      disabled={state === 'checking'}
+      onClick={async () => {
+        setState('checking')
+        try {
+          await checkPrivate()
+          setState('idle')
+        } catch (error) {
+          const message = error instanceof Error ? error.message : ''
+          setState(/cancel|not allowed|abort/i.test(message) ? 'idle' : 'failed')
+        }
+      }}
+    >
+      {state === 'checking' ? (
+        <span className="spinner w-chip-spinner" aria-hidden="true" />
+      ) : (
+        <Icon name="lock" size={13} />
+      )}
+      {state === 'checking'
+        ? 'Checking…'
+        : state === 'failed'
+          ? 'Couldn’t check. Try again'
+          : 'Check for private dollars'}
+    </button>
+  )
+}

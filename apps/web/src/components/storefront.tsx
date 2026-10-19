@@ -20,7 +20,8 @@ type Placed = {
 
 /** A tint for a product with no photo yet, stable per name. */
 const TINTS = ['#a9c9c9', '#ebb3aa', '#f3d6d0', '#cfe3dc', '#efe0c6']
-const tintFor = (name: string) => TINTS[[...name].reduce((n, c) => n + c.charCodeAt(0), 0) % TINTS.length]
+const tintFor = (name: string) =>
+  TINTS[[...name].reduce((n, c) => n + c.charCodeAt(0), 0) % TINTS.length]
 
 type Item = PublicStall['items'][number]
 
@@ -33,7 +34,17 @@ type Item = PublicStall['items'][number]
  * Opened from a table's QR code (?table=3), the order says which table to bring it to. With a
  * stamp card on, the buyer sees their stamps here: the wallet that pays is the card.
  */
-export function Storefront({ stall, preview, rates, table }: { stall: PublicStall; preview: boolean; rates?: LiveRates; table: string | null }) {
+export function Storefront({
+  stall,
+  preview,
+  rates,
+  table,
+}: {
+  stall: PublicStall
+  preview: boolean
+  rates?: LiveRates
+  table: string | null
+}) {
   const router = useRouter()
   const [basket, setBasket] = useState<Record<string, number>>({})
   const [currency, setCurrency] = useState<Currency>('USD')
@@ -50,18 +61,26 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
   const { payer, card } = useStampCard(stall.slug, Boolean(stall.loyalty_every) && !preview)
 
   const lines = useMemo(
-    () => stall.items.flatMap((item) => (basket[item.id] ? [{ item, quantity: basket[item.id] as number }] : [])),
+    () =>
+      stall.items.flatMap((item) =>
+        basket[item.id] ? [{ item, quantity: basket[item.id] as number }] : [],
+      ),
     [stall.items, basket],
   )
   const count = lines.reduce((n, l) => n + l.quantity, 0)
   const subtotal = lines.reduce((sum, l) => sum + Number(l.item.price) * l.quantity, 0)
   // A full card makes the cheapest thing in the bag free; Kova works it out again when the order is placed.
-  const free = card?.ready && lines.length ? lines.reduce((a, b) => (Number(b.item.price) < Number(a.item.price) ? b : a)).item : null
+  const free =
+    card?.ready && lines.length
+      ? lines.reduce((a, b) => (Number(b.item.price) < Number(a.item.price) ? b : a)).item
+      : null
   const total = Math.max(0, subtotal - Number(free?.price ?? 0))
   const ordering = stall.open && !preview
 
-  const set = (id: string, quantity: number) => setBasket((b) => ({ ...b, [id]: Math.max(0, Math.min(99, quantity)) }))
-  const price = (dollars: number | string) => (currency === 'USD' ? usd(dollars) : inCurrency(dollars, currency, rates))
+  const set = (id: string, quantity: number) =>
+    setBasket((b) => ({ ...b, [id]: Math.max(0, Math.min(99, quantity)) }))
+  const price = (dollars: number | string) =>
+    currency === 'USD' ? usd(dollars) : inCurrency(dollars, currency, rates)
 
   // Escape closes whatever is open, like any good shop.
   useEffect(() => {
@@ -76,7 +95,8 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
 
   const share = async () => {
     const url = window.location.href
-    if (typeof navigator.share === 'function') await navigator.share({ title: stall.name, url }).catch(() => {})
+    if (typeof navigator.share === 'function')
+      await navigator.share({ title: stall.name, url }).catch(() => {})
     else {
       await navigator.clipboard.writeText(url)
       setShared(true)
@@ -137,7 +157,13 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
               ))}
             </select>
           </label>
-          <button type="button" className="store-bag-button" data-full={count > 0 ? 'true' : undefined} onClick={() => setBagOpen(true)} aria-label={`Bag, ${count} ${count === 1 ? 'item' : 'items'}`}>
+          <button
+            type="button"
+            className="store-bag-button"
+            data-full={count > 0 ? 'true' : undefined}
+            onClick={() => setBagOpen(true)}
+            aria-label={`Bag, ${count} ${count === 1 ? 'item' : 'items'}`}
+          >
             <Icon name="bag" size={18} />
             <span>Bag</span>
             {count > 0 ? <span className="store-bag-count">{count}</span> : null}
@@ -146,7 +172,12 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
       </header>
 
       <section className="store-hero" id="top">
-        <Awning height={64} stripe={30} className="store-awning" tone={stall.open ? 'coral' : 'teal'} />
+        <Awning
+          height={64}
+          stripe={30}
+          className="store-awning"
+          tone={stall.open ? 'coral' : 'teal'}
+        />
         {stall.cover_url ? (
           <>
             <div className="store-window">
@@ -188,7 +219,8 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
           </div>
           <div className="store-actions">
             <button type="button" className="store-action" onClick={() => void share()}>
-              <Icon name={shared ? 'check' : 'share'} size={16} /> {shared ? 'Link copied' : 'Share this shop'}
+              <Icon name={shared ? 'check' : 'share'} size={16} />{' '}
+              {shared ? 'Link copied' : 'Share this shop'}
             </button>
           </div>
         </div>
@@ -223,7 +255,11 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
             {stall.items.map((item) => {
               const qty = basket[item.id] ?? 0
               return (
-                <li key={item.id} className="product" data-soldout={item.sold_out ? 'true' : undefined}>
+                <li
+                  key={item.id}
+                  className="product"
+                  data-soldout={item.sold_out ? 'true' : undefined}
+                >
                   <button
                     type="button"
                     className="product-open"
@@ -233,7 +269,10 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
                     }}
                     aria-label={`${item.name}, ${usd(item.price)}`}
                   >
-                    <span className="product-photo" style={item.image_url ? undefined : { background: tintFor(item.name) }}>
+                    <span
+                      className="product-photo"
+                      style={item.image_url ? undefined : { background: tintFor(item.name) }}
+                    >
                       {item.image_url ? (
                         // biome-ignore lint/performance/noImgElement: the seller's own photo, already sized
                         <img src={item.image_url} alt="" loading="lazy" />
@@ -255,16 +294,30 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
                     </span>
                   </button>
                   {item.sold_out ? null : qty === 0 ? (
-                    <button type="button" className="product-add" aria-label={`Add ${item.name} to your bag`} disabled={!ordering} onClick={() => set(item.id, 1)}>
+                    <button
+                      type="button"
+                      className="product-add"
+                      aria-label={`Add ${item.name} to your bag`}
+                      disabled={!ordering}
+                      onClick={() => set(item.id, 1)}
+                    >
                       <Icon name="plus" size={18} />
                     </button>
                   ) : (
                     <span className="product-qty stepper stepper-sm">
-                      <button type="button" aria-label={`One less ${item.name}`} onClick={() => set(item.id, qty - 1)}>
+                      <button
+                        type="button"
+                        aria-label={`One less ${item.name}`}
+                        onClick={() => set(item.id, qty - 1)}
+                      >
                         −
                       </button>
                       <span aria-live="polite">{qty}</span>
-                      <button type="button" aria-label={`One more ${item.name}`} onClick={() => set(item.id, qty + 1)}>
+                      <button
+                        type="button"
+                        aria-label={`One more ${item.name}`}
+                        onClick={() => set(item.id, qty + 1)}
+                      >
                         +
                       </button>
                     </span>
@@ -295,12 +348,32 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
       ) : null}
 
       {viewing ? (
-        <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && setViewing(null)}>
-          <div className="sheet product-sheet" role="dialog" aria-modal="true" aria-labelledby="product-title">
-            <button type="button" className="round sheet-close" aria-label="Close" onClick={() => setViewing(null)} autoFocus>
+        // biome-ignore lint/a11y/noStaticElementInteractions: a backdrop click is a mouse shortcut; Escape and the Close button close the sheet from the keyboard
+        <div
+          className="overlay"
+          role="presentation"
+          onMouseDown={(e) => e.target === e.currentTarget && setViewing(null)}
+        >
+          <div
+            className="sheet product-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="product-title"
+          >
+            <button
+              type="button"
+              className="round sheet-close"
+              aria-label="Close"
+              onClick={() => setViewing(null)}
+              // biome-ignore lint/a11y/noAutofocus: focus moves into the sheet when it opens (WAI-ARIA dialog pattern)
+              autoFocus
+            >
               <Icon name="close" size={18} />
             </button>
-            <span className="product-sheet-photo" style={viewing.image_url ? undefined : { background: tintFor(viewing.name) }}>
+            <span
+              className="product-sheet-photo"
+              style={viewing.image_url ? undefined : { background: tintFor(viewing.name) }}
+            >
               {viewing.image_url ? (
                 // biome-ignore lint/performance/noImgElement: the seller's own photo, already sized
                 <img src={viewing.image_url} alt="" />
@@ -321,11 +394,20 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
             ) : (
               <div className="product-sheet-buy">
                 <span className="stepper">
-                  <button type="button" aria-label="One less" onClick={() => setPicked((n) => Math.max(0, n - 1))} disabled={picked === 0}>
+                  <button
+                    type="button"
+                    aria-label="One less"
+                    onClick={() => setPicked((n) => Math.max(0, n - 1))}
+                    disabled={picked === 0}
+                  >
                     −
                   </button>
                   <span aria-live="polite">{picked}</span>
-                  <button type="button" aria-label="One more" onClick={() => setPicked((n) => Math.min(99, n + 1))}>
+                  <button
+                    type="button"
+                    aria-label="One more"
+                    onClick={() => setPicked((n) => Math.min(99, n + 1))}
+                  >
                     +
                   </button>
                 </span>
@@ -339,7 +421,9 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
                   }}
                   wide
                 >
-                  {picked === 0 ? 'Remove' : `${basket[viewing.id] ? 'Update' : 'Add'} ${price(Number(viewing.price) * picked)}`}
+                  {picked === 0
+                    ? 'Remove'
+                    : `${basket[viewing.id] ? 'Update' : 'Add'} ${price(Number(viewing.price) * picked)}`}
                 </Pill>
               </div>
             )}
@@ -348,9 +432,26 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
       ) : null}
 
       {bagOpen ? (
-        <div className="overlay store-drawer-overlay" onMouseDown={(e) => e.target === e.currentTarget && !busy && setBagOpen(false)}>
-          <div className="sheet store-drawer" role="dialog" aria-modal="true" aria-labelledby="bag-title">
-            <button type="button" className="round sheet-close" aria-label="Close" onClick={() => setBagOpen(false)} autoFocus>
+        // biome-ignore lint/a11y/noStaticElementInteractions: a backdrop click is a mouse shortcut; Escape and the Close button close the sheet from the keyboard
+        <div
+          className="overlay store-drawer-overlay"
+          role="presentation"
+          onMouseDown={(e) => e.target === e.currentTarget && !busy && setBagOpen(false)}
+        >
+          <div
+            className="sheet store-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bag-title"
+          >
+            <button
+              type="button"
+              className="round sheet-close"
+              aria-label="Close"
+              onClick={() => setBagOpen(false)}
+              // biome-ignore lint/a11y/noAutofocus: focus moves into the sheet when it opens (WAI-ARIA dialog pattern)
+              autoFocus
+            >
               <Icon name="close" size={18} />
             </button>
             {asked ? (
@@ -370,7 +471,10 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
                 <ul className="bag-lines">
                   {lines.map((l) => (
                     <li key={l.item.id}>
-                      <span className="bag-thumb" style={l.item.image_url ? undefined : { background: tintFor(l.item.name) }}>
+                      <span
+                        className="bag-thumb"
+                        style={l.item.image_url ? undefined : { background: tintFor(l.item.name) }}
+                      >
                         {l.item.image_url ? (
                           // biome-ignore lint/performance/noImgElement: the seller's own photo, already sized
                           <img src={l.item.image_url} alt="" />
@@ -382,15 +486,25 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
                         <strong>{l.item.name}</strong>
                         <span>
                           {price(Number(l.item.price) * l.quantity)}
-                          {free?.id === l.item.id ? <em className="bag-free"> · one free</em> : null}
+                          {free?.id === l.item.id ? (
+                            <em className="bag-free"> · one free</em>
+                          ) : null}
                         </span>
                       </span>
                       <span className="stepper stepper-sm">
-                        <button type="button" aria-label={`One less ${l.item.name}`} onClick={() => set(l.item.id, l.quantity - 1)}>
+                        <button
+                          type="button"
+                          aria-label={`One less ${l.item.name}`}
+                          onClick={() => set(l.item.id, l.quantity - 1)}
+                        >
                           −
                         </button>
                         <span>{l.quantity}</span>
-                        <button type="button" aria-label={`One more ${l.item.name}`} onClick={() => set(l.item.id, l.quantity + 1)}>
+                        <button
+                          type="button"
+                          aria-label={`One more ${l.item.name}`}
+                          onClick={() => set(l.item.id, l.quantity + 1)}
+                        >
                           +
                         </button>
                       </span>
@@ -417,23 +531,57 @@ export function Storefront({ stall, preview, rates, table }: { stall: PublicStal
                     <Icon name="stall" size={16} /> For table {table}. They’ll bring it over.
                   </p>
                 ) : null}
-                {currency !== 'USD' ? <p className="field-help basket-approx">About {inCurrency(total, currency, rates)}. You pay in dollars.</p> : null}
+                {currency !== 'USD' ? (
+                  <p className="field-help basket-approx">
+                    About {inCurrency(total, currency, rates)}. You pay in dollars.
+                  </p>
+                ) : null}
                 <div className="stack-form">
                   <label className="field-label" htmlFor="buyer-name">
                     Your name <span className="optional">so they know it’s yours</span>
                   </label>
-                  <input id="buyer-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} placeholder="Sam" autoComplete="given-name" />
+                  <input
+                    id="buyer-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    maxLength={60}
+                    placeholder="Sam"
+                    autoComplete="given-name"
+                  />
                   <label className="field-label" htmlFor="buyer-note">
-                    A note for {stall.name} <span className="optional">anything they should know</span>
+                    A note for {stall.name}{' '}
+                    <span className="optional">anything they should know</span>
                   </label>
-                  <input id="buyer-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Gift-wrap it, please" />
+                  <input
+                    id="buyer-note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    maxLength={200}
+                    placeholder="Gift-wrap it, please"
+                  />
                 </div>
                 {error ? <p className="form-error">{error}</p> : null}
                 <div className="basket-pay">
-                  <Pill icon="tap" tone="coral" onClick={() => place(false)} disabled={!ordering || busy !== null} wide>
-                    {busy === 'pay' ? 'Opening payment' : total === 0 ? 'Get it free' : `Pay ${usd(total)}`}
+                  <Pill
+                    icon="tap"
+                    tone="coral"
+                    onClick={() => place(false)}
+                    disabled={!ordering || busy !== null}
+                    wide
+                  >
+                    {busy === 'pay'
+                      ? 'Opening payment'
+                      : total === 0
+                        ? 'Get it free'
+                        : `Pay ${usd(total)}`}
                   </Pill>
-                  <Pill icon="send" tone="light" onClick={() => place(true)} disabled={!ordering || busy !== null} wide>
+                  <Pill
+                    icon="send"
+                    tone="light"
+                    onClick={() => place(true)}
+                    disabled={!ordering || busy !== null}
+                    wide
+                  >
                     {busy === 'ask' ? 'Making the link' : 'Ask someone else to pay'}
                   </Pill>
                 </div>
@@ -471,9 +619,13 @@ function AskedToPay({ stall, placed }: { stall: PublicStall; placed: Placed }) {
       <div className="asked">
         <Art name="kovi-cheer" size={104} />
         <h2>It’s paid</h2>
-        <p className="sheet-lead">Someone paid {usd(placed.checkout.amount)} for your order. {stall.name} has it.</p>
+        <p className="sheet-lead">
+          Someone paid {usd(placed.checkout.amount)} for your order. {stall.name} has it.
+        </p>
         {/* The one who ordered is the one waiting for it: they see it get ready here. */}
-        {paid?.status ? <OrderReady checkoutId={placed.checkout.id} order={paid} shop={stall.name} /> : null}
+        {paid?.status ? (
+          <OrderReady checkoutId={placed.checkout.id} order={paid} shop={stall.name} />
+        ) : null}
       </div>
     )
 
@@ -483,7 +635,10 @@ function AskedToPay({ stall, placed }: { stall: PublicStall; placed: Placed }) {
     <div className="asked">
       <Art name="kovi-ride" size={104} />
       <h2>Send it to whoever’s paying</h2>
-      <p className="sheet-lead">They can pay from anywhere, with Kova Pay or any Monad wallet. The link stays open for 24 hours, and this page updates when it’s paid.</p>
+      <p className="sheet-lead">
+        They can pay from anywhere, with Kova Pay or any Monad wallet. The link stays open for 24
+        hours, and this page updates when it’s paid.
+      </p>
       <div className="field-value">
         <code>{link}</code>
         <button
@@ -499,11 +654,21 @@ function AskedToPay({ stall, placed }: { stall: PublicStall; placed: Placed }) {
         </button>
       </div>
       <div className="basket-pay">
-        <Pill href={`https://wa.me/?text=${encodeURIComponent(message)}`} icon="whatsapp" tone="coral" wide>
+        <Pill
+          href={`https://wa.me/?text=${encodeURIComponent(message)}`}
+          icon="whatsapp"
+          tone="coral"
+          wide
+        >
           Send on WhatsApp
         </Pill>
         {canShare ? (
-          <Pill icon="share" tone="light" onClick={() => void navigator.share({ title: stall.name, text: message })} wide>
+          <Pill
+            icon="share"
+            tone="light"
+            onClick={() => void navigator.share({ title: stall.name, text: message })}
+            wide
+          >
             Share another way
           </Pill>
         ) : null}

@@ -20,20 +20,40 @@ export async function refundTrip(tripId: string, reason: string) {
   const shares = await db.query.tripShares.findMany({ where: eq(schema.tripShares.tripId, tripId) })
   if (shares.length === 0) return
   const paid = await db.query.payments.findMany({
-    where: and(inArray(schema.payments.intentId, shares.map((s) => s.intentId)), eq(schema.payments.status, 'paid')),
+    where: and(
+      inArray(
+        schema.payments.intentId,
+        shares.map((s) => s.intentId),
+      ),
+      eq(schema.payments.status, 'paid'),
+    ),
   })
-  const shop = await db.query.merchants.findFirst({ where: eq(schema.merchants.slug, 'kova-travel') })
+  const shop = await db.query.merchants.findFirst({
+    where: eq(schema.merchants.slug, 'kova-travel'),
+  })
   const treasury =
-    feePayerAccount && shop && config.KOVA_NETWORK === 'testnet' && isAddressEqual(shop.settlementAddress as Address, feePayerAccount.address)
+    feePayerAccount &&
+    shop &&
+    config.KOVA_NETWORK === 'testnet' &&
+    isAddressEqual(shop.settlementAddress as Address, feePayerAccount.address)
       ? feePayerAccount
       : null
 
   for (const payment of paid) {
-    const already = await db.query.refunds.findFirst({ where: eq(schema.refunds.paymentId, payment.id) })
+    const already = await db.query.refunds.findFirst({
+      where: eq(schema.refunds.paymentId, payment.id),
+    })
     if (already) continue
     const id = uuidv7()
     const memo = encodeMemo({ kind: 'refund', id })
-    await db.insert(schema.refunds).values({ id, paymentId: payment.id, amount: payment.amount, memo, reason, status: 'pending' })
+    await db.insert(schema.refunds).values({
+      id,
+      paymentId: payment.id,
+      amount: payment.amount,
+      memo,
+      reason,
+      status: 'pending',
+    })
     const token = tokenByAddress(config.KOVA_NETWORK, payment.tokenAddress as Address)
     if (!treasury || !token) {
       console.warn('[refund] recorded for the treasury to send', id)
@@ -48,7 +68,9 @@ export async function refundTrip(tripId: string, reason: string) {
         validBefore: BigInt(Math.floor(Date.now() / 1000) + 600),
         nonce: memo,
       }
-      const signature = await treasury.signTypedData(transferAuthorizationTypedData(token, network.chainId, authorization))
+      const signature = await treasury.signTypedData(
+        transferAuthorizationTypedData(token, network.chainId, authorization),
+      )
       const { receipt } = await relayAuthorization(token, authorization, signature)
       await db
         .update(schema.refunds)

@@ -4,7 +4,15 @@ import { colors } from '@/lib/theme'
 const ink = colors.ink
 
 /** A minimal paper-cut floor: a disc with a thin edge and a soft shadow where Kovi stands. */
-export function Floor({ width = 180, top = colors.surface, side = colors.sunken }: { width?: number; top?: string; side?: string }) {
+export function Floor({
+  width = 180,
+  top = colors.surface,
+  side = colors.sunken,
+}: {
+  width?: number
+  top?: string
+  side?: string
+}) {
   const h = width * 0.2
   const rx = width / 2 - 3
   const ry = h / 2 - 5

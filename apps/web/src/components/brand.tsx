@@ -12,7 +12,15 @@ const WAVES = [
   'M138.6 35.7 A100 100 0 0 1 138.6 164.3',
 ]
 
-export function LogoMark({ size = 40, stem = 'var(--ink)', wave = 'var(--coral)' }: { size?: number; stem?: string; wave?: string }) {
+export function LogoMark({
+  size = 40,
+  stem = 'var(--ink)',
+  wave = 'var(--coral)',
+}: {
+  size?: number
+  stem?: string
+  wave?: string
+}) {
   return (
     <svg width={size} height={size} viewBox="0 0 200 200" role="img" aria-label="Kova">
       <path d={STEM} stroke={stem} strokeWidth={19} strokeLinecap="round" />
@@ -23,10 +31,30 @@ export function LogoMark({ size = 40, stem = 'var(--ink)', wave = 'var(--coral)'
   )
 }
 
-export function Wordmark({ height = 24, ink = 'var(--ink)', coin = 'var(--coral-soft)' }: { height?: number; ink?: string; coin?: string }) {
-  const line = { stroke: ink, strokeWidth: 15.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' }
+export function Wordmark({
+  height = 24,
+  ink = 'var(--ink)',
+  coin = 'var(--coral-soft)',
+}: {
+  height?: number
+  ink?: string
+  coin?: string
+}) {
+  const line = {
+    stroke: ink,
+    strokeWidth: 15.5,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    fill: 'none',
+  }
   return (
-    <svg width={(height * 252) / 100} height={height} viewBox="0 0 252 100" role="img" aria-label="Kova">
+    <svg
+      width={(height * 252) / 100}
+      height={height}
+      viewBox="0 0 252 100"
+      role="img"
+      aria-label="Kova"
+    >
       <path d="M8 8 V92" {...line} />
       <path d="M12 70 L40 38" {...line} />
       <path d="M26 56 L44 92" {...line} />
@@ -140,8 +168,15 @@ const glyphs = {
   out: ['M10 4H5v16h5', 'M15 8l4 4-4 4', 'M19 12H9'],
   download: ['M12 4v11', 'M7 10l5 5 5-5', 'M5 20h14'],
   chevron: ['M9.5 5.5L16 12l-6.5 6.5'],
-  eye: ['M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z', 'M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z'],
-  globe: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M3 12h18', 'M12 3c2.5 2.7 3.5 5.7 3.5 9s-1 6.3-3.5 9c-2.5-2.7-3.5-5.7-3.5-9s1-6.3 3.5-9z'],
+  eye: [
+    'M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z',
+    'M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
+  ],
+  globe: [
+    'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z',
+    'M3 12h18',
+    'M12 3c2.5 2.7 3.5 5.7 3.5 9s-1 6.3-3.5 9c-2.5-2.7-3.5-5.7-3.5-9s1-6.3 3.5-9z',
+  ],
   shield: ['M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z', 'M8.5 12l2.5 2.5 4.5-5'],
   send: ['M4 12l16-8-6 16-3-6z', 'M11 14l9-10'],
   menu: ['M4 7h16', 'M4 12h16', 'M4 17h16'],
@@ -149,36 +184,87 @@ const glyphs = {
   tag: ['M3.5 12.5V4.5h8l9 9-8 8z', 'M8 8.5h.01'],
   camera: ['M4 8h3l1.5-2.5h7L17 8h3v11H4z', 'M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z'],
   barcode: ['M4 6v12', 'M7 6v12', 'M10.5 6v12', 'M13 6v12', 'M16.5 6v12', 'M20 6v12'],
-  whatsapp: ['M4.5 19.5l1.2-3.6A7.5 7.5 0 1 1 8.4 18.6z', 'M9.2 9.3c.3 1.9 1.9 3.8 4 4.6l1-1 1.6.7-.4 1.6c-3.4.2-6.6-3-6.7-6.4l1.5-.5.8 1.5z'],
+  whatsapp: [
+    'M4.5 19.5l1.2-3.6A7.5 7.5 0 1 1 8.4 18.6z',
+    'M9.2 9.3c.3 1.9 1.9 3.8 4 4.6l1-1 1.6.7-.4 1.6c-3.4.2-6.6-3-6.7-6.4l1.5-.5.8 1.5z',
+  ],
   up: ['M12 19V5', 'M6 11l6-6 6 6'],
   bag: ['M5.5 8h13l-1.2 12.5H6.7z', 'M9 10V7a3 3 0 0 1 6 0v3'],
   share: ['M12 15V4', 'M8 8l4-4 4 4', 'M5 12v7h14v-7'],
   trash: ['M5 7h14', 'M9 7V5h6v2', 'M7 7l1 13h8l1-13'],
   // The wallet's glyphs, as the app draws them (apps/mobile src/ui/Icon.tsx), circles and boxes as paths.
   bell: ['M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z', 'M10 20a2 2 0 0 0 4 0'],
-  scan: ['M4 8V6a2 2 0 0 1 2-2h2', 'M16 4h2a2 2 0 0 1 2 2v2', 'M20 16v2a2 2 0 0 1-2 2h-2', 'M8 20H6a2 2 0 0 1-2-2v-2', 'M7 12h10'],
+  scan: [
+    'M4 8V6a2 2 0 0 1 2-2h2',
+    'M16 4h2a2 2 0 0 1 2 2v2',
+    'M20 16v2a2 2 0 0 1-2 2h-2',
+    'M8 20H6a2 2 0 0 1-2-2v-2',
+    'M7 12h10',
+  ],
   receive: ['M12 4v11', 'M7 10l5 5 5-5', 'M5 20h14'],
   request: ['M12 20V9', 'M7 14l5-5 5 5', 'M5 4h14'],
   minus: ['M5 12h14'],
   clock: ['M12 3.5a8.5 8.5 0 1 0 0 17.0a8.5 8.5 0 1 0 0 -17.0z', 'M12 8v4l3 2'],
   user: ['M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0 -8z', 'M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6'],
-  face: ['M4 8V6a2 2 0 0 1 2-2h2', 'M16 4h2a2 2 0 0 1 2 2v2', 'M20 16v2a2 2 0 0 1-2 2h-2', 'M8 20H6a2 2 0 0 1-2-2v-2', 'M9 9.5v1', 'M15 9.5v1', 'M9 15c1.8 1.4 4.2 1.4 6 0'],
-  lock: ['M7 11h10a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2z', 'M8 11V8a4 4 0 0 1 8 0v3'],
+  face: [
+    'M4 8V6a2 2 0 0 1 2-2h2',
+    'M16 4h2a2 2 0 0 1 2 2v2',
+    'M20 16v2a2 2 0 0 1-2 2h-2',
+    'M8 20H6a2 2 0 0 1-2-2v-2',
+    'M9 9.5v1',
+    'M15 9.5v1',
+    'M9 15c1.8 1.4 4.2 1.4 6 0',
+  ],
+  lock: [
+    'M7 11h10a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2z',
+    'M8 11V8a4 4 0 0 1 8 0v3',
+  ],
   info: ['M12 3.5a8.5 8.5 0 1 0 0 17.0a8.5 8.5 0 1 0 0 -17.0z', 'M12 11v5', 'M12 8h.01'],
   pen: ['M4 20h4L19 9l-4-4L4 16z', 'M13.5 6.5l4 4'],
-  eyeOff: ['M4 4l16 16', 'M9.9 5.7A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.2 3.9', 'M6.3 7.4C3.9 9.2 2.5 12 2.5 12s3.5 6.5 9.5 6.5c1.5 0 2.9-.4 4.1-1'],
+  eyeOff: [
+    'M4 4l16 16',
+    'M9.9 5.7A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-3.2 3.9',
+    'M6.3 7.4C3.9 9.2 2.5 12 2.5 12s3.5 6.5 9.5 6.5c1.5 0 2.9-.4 4.1-1',
+  ],
   chevronDown: ['M6.5 9.5l5.5 5.5 5.5-5.5'],
   card: ['M5 5.5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2z', 'M3 10h18'],
   down: ['M12 5v14', 'M6 13l6 6 6-6'],
-  link: ['M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1', 'M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1'],
-  gift: ['M4 11h16v9H4z', 'M3 7h18v4H3z', 'M12 7v13', 'M12 7c-1.5-3-5-3.5-5-1.2C7 7 9.5 7 12 7z', 'M12 7c1.5-3 5-3.5 5-1.2C17 7 14.5 7 12 7z'],
+  link: [
+    'M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1',
+    'M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1',
+  ],
+  gift: [
+    'M4 11h16v9H4z',
+    'M3 7h18v4H3z',
+    'M12 7v13',
+    'M12 7c-1.5-3-5-3.5-5-1.2C7 7 9.5 7 12 7z',
+    'M12 7c1.5-3 5-3.5 5-1.2C17 7 14.5 7 12 7z',
+  ],
 } as const
 
 export type IconName = keyof typeof glyphs
 
-export function Icon({ name, size = 20, color = 'currentColor' }: { name: IconName; size?: number; color?: string }) {
+export function Icon({
+  name,
+  size = 20,
+  color = 'currentColor',
+}: {
+  name: IconName
+  size?: number
+  color?: string
+}) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       {glyphs[name].map((d) => (
         <path key={d} d={d} />
       ))}
@@ -193,7 +279,15 @@ export type NavIconName = 'home' | 'activity' | 'people' | 'profile' | 'pay'
  * coin for a door, activity is a receipt, people are two of you. Inactive they are quiet outlines;
  * active, their key part fills with colour.
  */
-export function NavIcon({ name, active, size = 22 }: { name: NavIconName; active?: boolean; size?: number }) {
+export function NavIcon({
+  name,
+  active,
+  size = 22,
+}: {
+  name: NavIconName
+  active?: boolean
+  size?: number
+}) {
   const line = {
     stroke: 'currentColor',
     strokeWidth: active ? 2 : 1.8,
@@ -205,14 +299,22 @@ export function NavIcon({ name, active, size = 22 }: { name: NavIconName; active
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
       {name === 'home' ? (
         <>
-          <path d="M3.8 10.4 12 3.8l8.2 6.6v8.4a1.7 1.7 0 0 1-1.7 1.7h-13a1.7 1.7 0 0 1-1.7-1.7z" fill={fill('#8fb9bb')} {...line} />
+          <path
+            d="M3.8 10.4 12 3.8l8.2 6.6v8.4a1.7 1.7 0 0 1-1.7 1.7h-13a1.7 1.7 0 0 1-1.7-1.7z"
+            fill={fill('#8fb9bb')}
+            {...line}
+          />
           <circle cx={12} cy={15.2} r={3} fill={fill('var(--coral-soft)')} {...line} />
           <path d="M12 13.9v2.6" {...line} strokeWidth={1.4} />
         </>
       ) : null}
       {name === 'activity' ? (
         <>
-          <path d="M5.5 3.2h13v17.4l-2.2-1.6-2.1 1.6-2.2-1.6-2.2 1.6-2.1-1.6-2.2 1.6z" fill={fill('var(--coral-soft)')} {...line} />
+          <path
+            d="M5.5 3.2h13v17.4l-2.2-1.6-2.1 1.6-2.2-1.6-2.2 1.6-2.1-1.6-2.2 1.6z"
+            fill={fill('var(--coral-soft)')}
+            {...line}
+          />
           <path d="M8.6 8h6.8M8.6 11.4h6.8M8.6 14.8h3.6" fill="none" {...line} strokeWidth={1.5} />
         </>
       ) : null}
@@ -220,13 +322,21 @@ export function NavIcon({ name, active, size = 22 }: { name: NavIconName; active
         <>
           <path d="M14.2 14.3c.6-.2 1.3-.3 2-.3 2.6 0 4.6 1.7 5.3 4.9" fill="none" {...line} />
           <circle cx={16.2} cy={8.6} r={3} fill={fill('#8fb9bb')} {...line} />
-          <path d="M2.6 20.4c.8-3.7 3.4-5.8 6.5-5.8s5.7 2.1 6.5 5.8" fill={fill('var(--coral-soft)')} {...line} />
+          <path
+            d="M2.6 20.4c.8-3.7 3.4-5.8 6.5-5.8s5.7 2.1 6.5 5.8"
+            fill={fill('var(--coral-soft)')}
+            {...line}
+          />
           <circle cx={9.1} cy={9} r={3.7} fill={fill('var(--coral-soft)')} {...line} />
         </>
       ) : null}
       {name === 'profile' ? (
         <>
-          <path d="M4.6 20.4c.9-3.9 3.9-6 7.4-6s6.5 2.1 7.4 6" fill={fill('var(--coral-soft)')} {...line} />
+          <path
+            d="M4.6 20.4c.9-3.9 3.9-6 7.4-6s6.5 2.1 7.4 6"
+            fill={fill('var(--coral-soft)')}
+            {...line}
+          />
           <circle cx={12} cy={8.4} r={4.2} fill={fill('var(--coral-soft)')} {...line} />
         </>
       ) : null}
@@ -275,7 +385,10 @@ export function Pill({
       </span>
     </>
   )
-  const props = { className: `pill${wide ? ' pill-block' : ''}${className ? ` ${className}` : ''}`, 'data-tone': tone }
+  const props = {
+    className: `pill${wide ? ' pill-block' : ''}${className ? ` ${className}` : ''}`,
+    'data-tone': tone,
+  }
   if (href)
     return href.startsWith('/') ? (
       <Link href={href} {...props}>
@@ -287,7 +400,6 @@ export function Pill({
       </a>
     )
   return (
-    // biome-ignore lint/a11y/useButtonType: type is passed in
     <button type={type} onClick={onClick} disabled={disabled} {...props}>
       {inner}
     </button>

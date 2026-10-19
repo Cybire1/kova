@@ -15,7 +15,8 @@ export async function takePhoto(
   if (from === 'camera') {
     // The library needs no permission (the system picker only hands over what's chosen); the camera does.
     const permission = await ImagePicker.requestCameraPermissionsAsync()
-    if (!permission.granted) throw new Error('Kova needs the camera for this. Allow it in Settings.')
+    if (!permission.granted)
+      throw new Error('Kova needs the camera for this. Allow it in Settings.')
   }
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ['images'],
@@ -25,9 +26,16 @@ export async function takePhoto(
   }
   let result: ImagePicker.ImagePickerResult
   try {
-    result = from === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options)
+    result =
+      from === 'camera'
+        ? await ImagePicker.launchCameraAsync(options)
+        : await ImagePicker.launchImageLibraryAsync(options)
   } catch {
-    throw new Error(from === 'camera' ? 'This phone’s camera isn’t available. Choose a photo instead.' : 'Your photos aren’t available right now.')
+    throw new Error(
+      from === 'camera'
+        ? 'This phone’s camera isn’t available. Choose a photo instead.'
+        : 'Your photos aren’t available right now.',
+    )
   }
   const asset = result.canceled ? null : result.assets[0]
   if (!asset) return null
@@ -40,5 +48,10 @@ export async function shrink(uri: string, width: number, max: number, base64 = f
   if (width > max) context.resize({ width: max })
   const image = await context.renderAsync()
   const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: 0.72, base64 })
-  return { uri: saved.uri, width: saved.width, height: saved.height, base64: saved.base64 ?? undefined }
+  return {
+    uri: saved.uri,
+    width: saved.width,
+    height: saved.height,
+    base64: saved.base64 ?? undefined,
+  }
 }

@@ -13,14 +13,22 @@ async function load(slug: string) {
   }
 }
 
-export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata(props: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
   const stall = await load((await props.params).slug)
   return stall
-    ? { title: { absolute: `${stall.name} · order and pay with Kova` }, description: stall.tagline ?? `Order from ${stall.name} and pay in dollars with Kova.` }
+    ? {
+        title: { absolute: `${stall.name} · order and pay with Kova` },
+        description: stall.tagline ?? `Order from ${stall.name} and pay in dollars with Kova.`,
+      }
     : { title: 'Stall' }
 }
 
-export default async function StallPage(props: { params: Promise<{ slug: string }>; searchParams: Promise<{ preview?: string; table?: string }> }) {
+export default async function StallPage(props: {
+  params: Promise<{ slug: string }>
+  searchParams: Promise<{ preview?: string; table?: string }>
+}) {
   const [{ slug }, { preview, table }] = await Promise.all([props.params, props.searchParams])
   const [stall, published] = await Promise.all([
     load(slug),
@@ -32,7 +40,9 @@ export default async function StallPage(props: { params: Promise<{ slug: string 
         <p>The link may be mistyped, or the stall has closed for good.</p>
       </Notice>
     )
-  const rates = published ? Object.fromEntries(Object.entries(published.rates).map(([code, r]) => [code, r.per_usd])) : undefined
+  const rates = published
+    ? Object.fromEntries(Object.entries(published.rates).map(([code, r]) => [code, r.per_usd]))
+    : undefined
   // A table's QR code opens the stall with ?table=3: the order says where to bring it.
   const at = typeof table === 'string' && /^[\w -]{1,12}$/.test(table.trim()) ? table.trim() : null
   return <Storefront stall={stall} preview={preview === '1'} rates={rates} table={at} />

@@ -1,14 +1,22 @@
 import * as Haptics from 'expo-haptics'
 import { Redirect, router } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native'
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native'
 import { usePrefs } from '@/lib/prefs'
 import { type OpenStep, useStall } from '@/lib/stall'
 import { useTerminal } from '@/lib/terminal'
 import { colors, fonts } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
-import { Kovi, koviFeet } from '@/ui/art'
 import { Awning } from '@/ui/Awning'
+import { Kovi, koviFeet } from '@/ui/art'
 import { Icon, type IconName } from '@/ui/Icon'
 import { Hop } from '@/ui/motion'
 import { PillButton, RoundButton, Screen, Txt } from '@/ui/primitives'
@@ -53,7 +61,8 @@ export default function OpenStall() {
   if (!profile) return <Redirect href="/welcome" />
 
   const phone = `${profile.name.split(' ')[0]}’s phone`
-  const elsewhere = terminal.paired && terminal.paired.merchantId !== owned?.merchantId ? terminal.paired : null
+  const elsewhere =
+    terminal.paired && terminal.paired.merchantId !== owned?.merchantId ? terminal.paired : null
   const valid = name.trim().length >= 2
   const sign = width - 40
 
@@ -75,20 +84,41 @@ export default function OpenStall() {
 
   return (
     <Screen bg={colors.paper}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           {/* The sign, painted as you type, with Kovi up on its roof */}
           <View style={styles.signWrap}>
             <View style={styles.close}>
-              <RoundButton icon="close" label="Close" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+              <RoundButton
+                icon="close"
+                label="Close"
+                onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+              />
             </View>
             <View style={[styles.sign, { width: sign }]}>
               <Awning width={sign} height={58} stripe={sign / 12} />
               <View style={styles.board}>
-                <Txt weight="bold" size={26} numberOfLines={2} style={{ letterSpacing: -0.8, textAlign: 'center', color: name.trim() ? colors.ink : '#8C9799' }}>
+                <Txt
+                  weight="bold"
+                  size={26}
+                  numberOfLines={2}
+                  style={{
+                    letterSpacing: -0.8,
+                    textAlign: 'center',
+                    color: name.trim() ? colors.ink : '#8C9799',
+                  }}
+                >
                   {name.trim() || 'Your stall'}
                 </Txt>
-                <Txt size={14} color={colors.muted} numberOfLines={2} style={{ textAlign: 'center', marginTop: 2 }}>
+                <Txt
+                  size={14}
+                  color={colors.muted}
+                  numberOfLines={2}
+                  style={{ textAlign: 'center', marginTop: 2 }}
+                >
                   {tagline.trim() || 'Scan to order. Pay in dollars.'}
                 </Txt>
               </View>
@@ -102,7 +132,8 @@ export default function OpenStall() {
             {owned ? 'Finish opening your stall' : 'Open a stall'}
           </Txt>
           <Txt size={16} color={colors.muted} style={{ marginTop: 6, lineHeight: 23 }}>
-            Your menu on a link. People order from their own phones, from anywhere, and pay you in dollars.
+            Your menu on a link. People order from their own phones, from anywhere, and pay you in
+            dollars.
           </Txt>
 
           <Txt weight="semi" size={14} color={colors.muted} style={styles.label}>
@@ -119,7 +150,10 @@ export default function OpenStall() {
             style={styles.input}
           />
           <Txt weight="semi" size={14} color={colors.muted} style={styles.label}>
-            A line about it <Txt size={13} color="#8C9799">optional</Txt>
+            A line about it{' '}
+            <Txt size={13} color="#8C9799">
+              optional
+            </Txt>
           </Txt>
           <TextInput
             value={tagline}
@@ -132,7 +166,11 @@ export default function OpenStall() {
           />
 
           <View style={styles.facts}>
-            <Fact icon="receive" text="Payments land in your wallet" hint={`${profile.address.slice(0, 6)}…${profile.address.slice(-4)}, in dollars`} />
+            <Fact
+              icon="receive"
+              text="Payments land in your wallet"
+              hint={`${profile.address.slice(0, 6)}…${profile.address.slice(-4)}, in dollars`}
+            />
             <Fact icon="terminal" text="This phone becomes its till" hint={`Named “${phone}”`} />
             <Fact icon="tag" text="No card fees" hint="And nothing to pay monthly" last />
           </View>
@@ -141,25 +179,47 @@ export default function OpenStall() {
             <View style={styles.notice}>
               <Icon name="info" size={18} />
               <Txt size={14} style={{ flex: 1, lineHeight: 20 }}>
-                This phone is {elsewhere.name} at {elsewhere.merchantName}. Opening your own stall unpairs it from there.
+                This phone is {elsewhere.name} at {elsewhere.merchantName}. Opening your own stall
+                unpairs it from there.
               </Txt>
             </View>
           ) : null}
         </ScrollView>
         <View style={styles.footer}>
           {problem ? (
-            <Txt weight="medium" size={14} color={colors.danger} style={{ marginBottom: 10, textAlign: 'center' }}>
+            <Txt
+              weight="medium"
+              size={14}
+              color={colors.danger}
+              style={{ marginBottom: 10, textAlign: 'center' }}
+            >
               {problem}
             </Txt>
           ) : null}
-          <PillButton label={step ? steps[step] : owned ? 'Finish setting up' : 'Open my stall'} icon="stall" disabled={!valid} loading={Boolean(step)} onPress={submit} />
+          <PillButton
+            label={step ? steps[step] : owned ? 'Finish setting up' : 'Open my stall'}
+            icon="stall"
+            disabled={!valid}
+            loading={Boolean(step)}
+            onPress={submit}
+          />
         </View>
       </KeyboardAvoidingView>
     </Screen>
   )
 }
 
-function Fact({ icon, text, hint, last }: { icon: IconName; text: string; hint: string; last?: boolean }) {
+function Fact({
+  icon,
+  text,
+  hint,
+  last,
+}: {
+  icon: IconName
+  text: string
+  hint: string
+  last?: boolean
+}) {
   return (
     <View style={[styles.fact, !last && styles.factRule]}>
       <View style={styles.factIcon}>
@@ -181,8 +241,20 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 20, paddingBottom: 24 },
   signWrap: { paddingTop: ROOF },
   close: { position: 'absolute', left: 0, top: 8 },
-  sign: { borderRadius: 26, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, overflow: 'hidden' },
-  board: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 18, minHeight: 92, justifyContent: 'center' },
+  sign: {
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  board: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 18,
+    minHeight: 92,
+    justifyContent: 'center',
+  },
   kovi: { position: 'absolute', right: 18 },
   label: { marginTop: 20, marginBottom: 8, marginLeft: 4 },
   input: {
@@ -196,10 +268,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.ink,
   },
-  facts: { marginTop: 22, borderRadius: 24, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.surface, paddingHorizontal: 16 },
+  facts: {
+    marginTop: 22,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+  },
   fact: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
   factRule: { borderBottomWidth: 1, borderColor: colors.sunken },
-  factIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: colors.tealSoft, alignItems: 'center', justifyContent: 'center' },
-  notice: { flexDirection: 'row', gap: 10, marginTop: 14, padding: 14, borderRadius: 20, backgroundColor: colors.coralSoft },
+  factIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.tealSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notice: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 20,
+    backgroundColor: colors.coralSoft,
+  },
   footer: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
 })

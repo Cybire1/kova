@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
 import { Awning } from '@/components/awning'
 import { Art, type ArtName, Icon, type IconName, Pill } from '@/components/brand'
+import { IphoneCard } from '@/components/iphone-beta'
 import { cleanRef, PROFILE_KEY, REF_KEY, shopKey, TRY_KEY } from '@/lib/growth'
 
 /**
@@ -304,10 +305,13 @@ export function TryChecklist({
   bakery,
   initialRef,
   count,
+  iphone,
 }: {
   bakery: Bakery
   initialRef: string | null
   count: CountStep
+  /** Where the iPhone beta's page is (one list, on mykova.app). */
+  iphone: string
 }) {
   const p = useProgress(bakery)
   useSource(initialRef, count, p.wallet?.address ?? null)
@@ -423,6 +427,8 @@ export function TryChecklist({
         </ol>
 
         <ShopStep done={p.shop} hasWallet={p.wallet !== null} />
+
+        <IphoneCard href={iphone} compact />
 
         <p className="gr-try-fine">
           Monad’s test network: test dollars, the same one-second payments as mainnet.{' '}
@@ -575,10 +581,13 @@ export function TryMainnet({
   initialRef,
   count,
   testnet,
+  iphone,
 }: {
   initialRef: string | null
   count: CountStep
   testnet: string
+  /** Where the iPhone beta's page is (one list, on mykova.app). */
+  iphone: string
 }) {
   const [wallet, setWallet] = useState<string | null>(null)
   useEffect(() => setWallet(me()?.address ?? null), [])
@@ -630,6 +639,7 @@ export function TryMainnet({
             </li>
           </ol>
         </section>
+        <IphoneCard href={iphone} compact />
         <p className="gr-try-fine">
           Every payment settles on Monad in about a second, and Kova pays the gas.{' '}
           <Link href="/stats" className="gr-fine-link">

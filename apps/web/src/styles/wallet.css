@@ -658,6 +658,31 @@
   font-weight: 700;
 }
 
+/* Kova for iOS: the notice, coral, with a small "not now" on its corner. */
+.w-ios {
+  position: relative;
+}
+
+.w-ios .w-notice-icon {
+  background: var(--coral-soft);
+}
+
+.w-ios-away {
+  position: absolute;
+  top: -0.625rem;
+  right: -0.375rem;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
 .w-section {
   margin: 1.5rem 0 0.625rem;
   font-size: 1.0625rem;
@@ -5067,8 +5092,12 @@ button.w-chip-private:disabled {
 }
 
 .w-naira-field select {
-  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%);
-  background-position: calc(100% - 1.25rem) 50%, calc(100% - 0.875rem) 50%;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+    linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.25rem) 50%,
+    calc(100% - 0.875rem) 50%;
   background-size: 0.375rem 0.375rem;
   background-repeat: no-repeat;
   padding-right: 2.5rem;
@@ -5380,66 +5409,1334 @@ button.w-chip-private:disabled {
 }
 
 /* Crypto deposits: one network, one token, one spendable balance. */
-.w-deposit-intro { display: flex; align-items: center; gap: 1rem; margin: 1rem 0 1.5rem; }
-.w-deposit-intro .w-title { font-size: 1.8rem; margin: 0 0 0.4rem; }
-.w-deposit-intro p { margin: 0; }
-.w-deposit-form { margin-bottom: 1rem; }
-.w-deposit-tokens { border: 0; padding: 0; min-width: 0; margin: 0; }
-.w-deposit-tokens legend { margin-bottom: 0.6rem; }
-.w-deposit-tokens > div { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.w-deposit-tokens button { border: 2px solid var(--ink); border-radius: 2rem; padding: 0.55rem 1rem; background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
-.w-deposit-tokens button[aria-pressed="true"] { background: var(--ink); color: #fff; }
-.w-deposit-details { width: 100%; min-width: 0; font-size: 0.8125rem; }
-.w-deposit-details summary { cursor: pointer; padding: 0.5rem 0; font-weight: 650; }
-.w-deposit-details > .w-naira-field { margin-top: 0.65rem; }
-.w-deposit-contract { overflow-wrap: anywhere; }
-.w-deposit-total { font-size: 2.3rem; line-height: 1.2; letter-spacing: -0.08rem; overflow-wrap: anywhere; max-width: 100%; text-align: center; }
-.w-deposit-total span { font-size: 1rem; letter-spacing: 0; }
-.w-deposit-review { width: 100%; margin: 0.5rem 0 1rem; }
-.w-deposit-review .w-review-row { font-size: 0.8125rem; }
-.w-deposit-review dd { overflow-wrap: anywhere; }
-.w-mon-card { display: flex; align-items: center; gap: 12px; padding: 16px; margin-top: 12px; border: 2px solid var(--ink); border-radius: 22px; background: var(--teal-light, #c4dada); color: var(--ink); text-decoration: none; }
-.w-mon-card > span:not(.w-mon-icon) { flex: 1; min-width: 0; }
-.w-mon-card strong, .w-mon-card small { display: block; }
-.w-mon-card strong { font-size: 15px; overflow-wrap: anywhere; }
-.w-mon-card small { font-size: 12px; margin-top: 4px; line-height: 1.5; }
-.w-mon-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--paper); flex-shrink: 0; }
-.w-mon-card-main { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; color: inherit; text-decoration: none; }
-.w-mon-card-main > span:not(.w-mon-icon) { flex: 1; min-width: 0; }
-.w-mon-dismiss { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
-.w-mon-dismiss:hover { background: rgba(0,0,0,0.06); }
-.w-mon-screen { display: flex; flex-direction: column; gap: 18px; }
-.w-mon-holding, .w-mon-preview, .w-mon-progress { display: flex; flex-direction: column; gap: 12px; border: 2px solid var(--ink); border-radius: 24px; padding: 20px; background: var(--surface, #fffdf8); }
-.w-mon-holding > strong, .w-mon-preview > strong { font-size: 32px; overflow-wrap: anywhere; letter-spacing: -1px; }
-.w-mon-input label { display: block; margin-bottom: 8px; font-weight: 600; }
-.w-mon-input > div { display: flex; gap: 12px; padding: 14px; border: 2px solid var(--ink); border-radius: 18px; }
-.w-mon-input input { width: 0; flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 24px; color: inherit; }
-.w-mon-input button { min-width: 48px; min-height: 44px; border: 0; border-radius: 22px; background: var(--ink); color: var(--paper); font: inherit; cursor: pointer; }
-.w-mon-preview dl { display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 13px; }
-.w-mon-preview dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
-.w-mon-progress h2 { margin: 0; font-size: 22px; }
-.w-mon-progress p { margin: 0; line-height: 1.6; }
-.w-arrival { width: min(calc(100% - 24px), 440px); max-height: calc(100dvh - 32px); margin: auto; padding: 22px; border: 2px solid var(--ink); border-radius: 30px; background: #c4dada; color: var(--ink); overflow-y: auto; text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,.2); animation: w-arrival-in .3s ease-out both; }
-.w-arrival::backdrop { background: rgba(10,22,24,.44); backdrop-filter: blur(6px); }
-.w-arrival-top { display: flex; align-items: center; justify-content: space-between; }
-.w-arrival-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; border-radius: 18px; padding: 8px 12px; background: var(--paper); }
-.w-arrival-art { height: 220px; position: relative; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
-.w-arrival-coin { position: absolute; top: -36px; animation: w-arrival-rain 1.5s ease-in both; }
-.w-arrival-yay { position: absolute; top: 30px; right: 20%; padding: 9px 16px; border: 2px solid var(--ink); border-radius: 18px; background: var(--paper); font-weight: 700; transform: rotate(7deg); }
-.w-arrival h2 { font-size: 22px; margin: 18px 0 6px; overflow-wrap: anywhere; }
-.w-arrival-amount { font-size: clamp(36px, 10vw, 60px); font-weight: 700; letter-spacing: -2px; margin: 8px 0; overflow-wrap: anywhere; }
-.w-arrival > p:not(.w-arrival-amount) { font-size: 14px; line-height: 1.6; }
-.w-arrival .pill { margin-top: 24px; display: flex; justify-content: center; gap: 12px; }
-.w-arrival > .textlink { display: inline-block; margin-top: 18px; }
-.w-arrival-note { margin: 18px 0; padding: 14px; border-radius: 14px; background: var(--paper); font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
-@keyframes w-arrival-in { from { opacity: 0; transform: translateY(20px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes w-arrival-rain { 0% { transform: translateY(0) rotate(-25deg); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateY(250px) rotate(45deg); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .w-arrival, .w-arrival-coin { animation: none; } }
-.w-ussd-test,.w-ussd-notice{padding:18px;border:2px solid var(--ink,#102025);border-radius:20px;background:#d6e5e3;margin:16px 0}
-.w-ussd-test p{margin-bottom:0}.w-ussd-amount{display:block;font-size:44px;line-height:1.2;margin:14px 0}
-.w-ussd-dial{display:flex;align-items:center;gap:16px;margin:18px 0}.w-ussd-dial code{font-size:24px;overflow-wrap:anywhere}
-.w-ussd-review{padding:16px;border:2px solid currentColor;border-radius:16px;background:#f1e4db}
-.w-ussd-payment{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-bottom:1px solid #10202525}
-.w-ussd-payment span{display:grid;gap:5px;min-width:0}.w-ussd-payment small{opacity:.7}.w-ussd-payment a{flex-shrink:0}
-.w-ussd-body button.textlink{appearance:none;border:0;background:none;color:inherit;font:inherit;text-align:left;text-decoration:underline;min-height:44px;padding:8px 0;cursor:pointer}
-.w-ussd-body button.textlink:disabled{opacity:.5;cursor:default}
+.w-deposit-intro {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0 1.5rem;
+}
+.w-deposit-intro .w-title {
+  font-size: 1.8rem;
+  margin: 0 0 0.4rem;
+}
+.w-deposit-intro p {
+  margin: 0;
+}
+.w-deposit-form {
+  margin-bottom: 1rem;
+}
+.w-deposit-tokens {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+  margin: 0;
+}
+.w-deposit-tokens legend {
+  margin-bottom: 0.6rem;
+}
+.w-deposit-tokens > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.w-deposit-tokens button {
+  border: 2px solid var(--ink);
+  border-radius: 2rem;
+  padding: 0.55rem 1rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.w-deposit-tokens button[aria-pressed="true"] {
+  background: var(--ink);
+  color: #fff;
+}
+.w-deposit-details {
+  width: 100%;
+  min-width: 0;
+  font-size: 0.8125rem;
+}
+.w-deposit-details summary {
+  cursor: pointer;
+  padding: 0.5rem 0;
+  font-weight: 650;
+}
+.w-deposit-details > .w-naira-field {
+  margin-top: 0.65rem;
+}
+.w-deposit-contract {
+  overflow-wrap: anywhere;
+}
+.w-deposit-total {
+  font-size: 2.3rem;
+  line-height: 1.2;
+  letter-spacing: -0.08rem;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  text-align: center;
+}
+.w-deposit-total span {
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+.w-deposit-review {
+  width: 100%;
+  margin: 0.5rem 0 1rem;
+}
+.w-deposit-review .w-review-row {
+  font-size: 0.8125rem;
+}
+.w-deposit-review dd {
+  overflow-wrap: anywhere;
+}
+.w-mon-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  margin-top: 12px;
+  border: 2px solid var(--ink);
+  border-radius: 22px;
+  background: var(--teal-light, #c4dada);
+  color: var(--ink);
+  text-decoration: none;
+}
+.w-mon-card > span:not(.w-mon-icon) {
+  flex: 1;
+  min-width: 0;
+}
+.w-mon-card strong,
+.w-mon-card small {
+  display: block;
+}
+.w-mon-card strong {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.w-mon-card small {
+  font-size: 12px;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.w-mon-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--paper);
+  flex-shrink: 0;
+}
+.w-mon-card-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+.w-mon-card-main > span:not(.w-mon-icon) {
+  flex: 1;
+  min-width: 0;
+}
+.w-mon-dismiss {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.w-mon-dismiss:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+.w-mon-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.w-mon-holding,
+.w-mon-preview,
+.w-mon-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 2px solid var(--ink);
+  border-radius: 24px;
+  padding: 20px;
+  background: var(--surface, #fffdf8);
+}
+.w-mon-holding > strong,
+.w-mon-preview > strong {
+  font-size: 32px;
+  overflow-wrap: anywhere;
+  letter-spacing: -1px;
+}
+.w-mon-input label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.w-mon-input > div {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border: 2px solid var(--ink);
+  border-radius: 18px;
+}
+.w-mon-input input {
+  width: 0;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 24px;
+  color: inherit;
+}
+.w-mon-input button {
+  min-width: 48px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  cursor: pointer;
+}
+.w-mon-preview dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  font-size: 13px;
+}
+.w-mon-preview dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.w-mon-progress h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.w-mon-progress p {
+  margin: 0;
+  line-height: 1.6;
+}
+.w-arrival {
+  width: min(calc(100% - 24px), 440px);
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 22px;
+  border: 2px solid var(--ink);
+  border-radius: 30px;
+  background: #c4dada;
+  color: var(--ink);
+  overflow-y: auto;
+  text-align: center;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
+  animation: w-arrival-in 0.3s ease-out both;
+}
+.w-arrival::backdrop {
+  background: rgba(10, 22, 24, 0.44);
+  backdrop-filter: blur(6px);
+}
+.w-arrival-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.w-arrival-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  border-radius: 18px;
+  padding: 8px 12px;
+  background: var(--paper);
+}
+.w-arrival-art {
+  height: 220px;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+}
+.w-arrival-coin {
+  position: absolute;
+  top: -36px;
+  animation: w-arrival-rain 1.5s ease-in both;
+}
+.w-arrival-yay {
+  position: absolute;
+  top: 30px;
+  right: 20%;
+  padding: 9px 16px;
+  border: 2px solid var(--ink);
+  border-radius: 18px;
+  background: var(--paper);
+  font-weight: 700;
+  transform: rotate(7deg);
+}
+.w-arrival h2 {
+  font-size: 22px;
+  margin: 18px 0 6px;
+  overflow-wrap: anywhere;
+}
+.w-arrival-amount {
+  font-size: clamp(36px, 10vw, 60px);
+  font-weight: 700;
+  letter-spacing: -2px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.w-arrival > p:not(.w-arrival-amount) {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.w-arrival .pill {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.w-arrival > .textlink {
+  display: inline-block;
+  margin-top: 18px;
+}
+.w-arrival-note {
+  margin: 18px 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--paper);
+  font-size: 15px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@keyframes w-arrival-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes w-arrival-rain {
+  0% {
+    transform: translateY(0) rotate(-25deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(250px) rotate(45deg);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .w-arrival,
+  .w-arrival-coin {
+    animation: none;
+  }
+}
+.w-ussd-test,
+.w-ussd-notice {
+  padding: 18px;
+  border: 2px solid var(--ink, #102025);
+  border-radius: 20px;
+  background: #d6e5e3;
+  margin: 16px 0;
+}
+.w-ussd-test p {
+  margin-bottom: 0;
+}
+.w-ussd-amount {
+  display: block;
+  font-size: 44px;
+  line-height: 1.2;
+  margin: 14px 0;
+}
+.w-ussd-dial {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 18px 0;
+}
+.w-ussd-dial code {
+  font-size: 24px;
+  overflow-wrap: anywhere;
+}
+.w-ussd-review {
+  padding: 16px;
+  border: 2px solid currentColor;
+  border-radius: 16px;
+  background: #f1e4db;
+}
+.w-ussd-payment {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid #10202525;
+}
+.w-ussd-payment span {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.w-ussd-payment small {
+  opacity: 0.7;
+}
+.w-ussd-payment a {
+  flex-shrink: 0;
+}
+.w-ussd-body button.textlink {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  min-height: 44px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+.w-ussd-body button.textlink:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* ── Private receiving: one balance, the router, the Private dollars screen, the arrival ───────── */
+
+/* The balance's amount, when part of it is private: a tap shows how much. */
+.w-balance-amount-tap {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.w-balance-amount-tap:focus-visible {
+  outline: 3px solid var(--coral);
+  outline-offset: 4px;
+  border-radius: 0.75rem;
+}
+
+.w-balance-hint {
+  display: grid;
+  place-items: center;
+  margin: 0.7rem 0 0 0.4rem;
+  color: var(--on-teal);
+}
+
+.w-balance-split {
+  position: relative;
+  width: max-content;
+  margin-top: 0.5rem;
+  gap: 0.35rem;
+  color: #fff;
+  text-decoration: none;
+  animation: rise 0.25s var(--spring);
+}
+
+.w-balance-split svg:last-child {
+  color: var(--on-ink);
+}
+
+/* A private row: like any other, with a lock and "Private" leading the line. */
+.w-entry-sub .w-entry-private {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* The one calm line when just enough private dollars move in first. */
+.w-topup {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0 0 0.875rem;
+  padding: 0 0.25rem;
+  color: var(--on-tint);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  text-wrap: pretty;
+  animation: rise 0.3s var(--spring);
+}
+
+.w-topup svg {
+  flex: none;
+  margin-top: 0.1rem;
+}
+
+.w-forced {
+  margin: -0.375rem 0 0.75rem;
+  padding: 0 0.25rem;
+}
+
+/* Details: where a payment comes from, folded away for anyone who'd rather choose. */
+.w-details {
+  display: grid;
+  justify-items: center;
+  margin: 0 0 0.5rem;
+}
+
+.w-details-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.w-details-toggle svg {
+  transition: transform 0.25s var(--spring);
+}
+
+.w-details-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.w-details .w-payfrom {
+  margin-top: 0.25rem;
+  animation: rise 0.3s var(--spring);
+}
+
+/* The ⋯ in a screen's head, and the short menu it opens. */
+.w-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.w-dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.w-menu {
+  display: grid;
+  margin: -0.25rem 0 0.75rem;
+  padding: 0.25rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  animation: rise 0.25s var(--spring);
+}
+
+.w-menu button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  border-radius: 1rem;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.w-menu button:hover:not(:disabled) {
+  background: var(--sunken);
+}
+
+.w-menu button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.w-menu strong {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.w-menu small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* The Private dollars card: ink, like everything only you can see. */
+.w-privcard {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.125rem;
+  border-radius: 1.75rem;
+  background: var(--ink);
+  color: #fff;
+  animation: rise 0.4s var(--spring);
+}
+
+.w-privcard p {
+  color: var(--on-ink);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.w-privcard a {
+  color: #fff;
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+
+.w-privcard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.w-privcard-amount {
+  font-size: 2.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.w-privcard-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: max-content;
+  height: 1.625rem;
+  padding: 0 0.625rem;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.w-privcard-from {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.w-privcard-from span {
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.5rem;
+}
+
+.w-privcard-making {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--on-ink);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.w-privcard .w-privcard-problem {
+  color: var(--coral-soft);
+  font-weight: 650;
+}
+
+/* Make them public? Said plainly, once, before anything moves. */
+.w-confirm {
+  display: grid;
+  gap: 0.625rem;
+  justify-items: center;
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.5rem;
+  background: var(--surface);
+  text-align: center;
+  animation: rise 0.3s var(--spring);
+}
+
+.w-confirm strong {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.w-confirm p {
+  color: var(--on-tint);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.w-howlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 1rem;
+  padding: 0.25rem 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.w-howlink svg:last-child {
+  transition: transform 0.25s var(--spring);
+}
+
+.w-howlink[aria-expanded="true"] svg:last-child {
+  transform: rotate(180deg);
+}
+
+.w-explain {
+  display: grid;
+  gap: 0.625rem;
+  margin-top: 0.625rem;
+  padding: 0.875rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.5rem;
+  background: var(--surface);
+  animation: rise 0.3s var(--spring);
+}
+
+.w-explain p {
+  color: var(--on-tint);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.w-explain small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.w-flow {
+  display: flex;
+  align-items: flex-start;
+}
+
+.w-flow-end,
+.w-flow-mid {
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+  min-width: 4.5rem;
+}
+
+.w-flow-end small,
+.w-flow-mid small {
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 650;
+}
+
+.w-flow-face,
+.w-flow-you {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--coral-soft);
+  font-weight: 800;
+}
+
+.w-flow-you {
+  background: var(--teal);
+  color: #fff;
+}
+
+.w-flow-mid {
+  padding-top: 0.375rem;
+}
+
+.w-flow-chip {
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border: 2px dashed var(--ink);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.5rem;
+  white-space: nowrap;
+}
+
+.w-flow-line {
+  flex: 1;
+  min-width: 0.5rem;
+  height: 2px;
+  margin-top: 1.25rem;
+  background: var(--ink);
+}
+
+.w-quiet-count {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* The arrival: one full-screen moment on ink. */
+.w-arrival {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: var(--ink);
+  animation: arrival-in 0.3s ease-out;
+}
+
+@keyframes arrival-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.w-arrival-top {
+  display: grid;
+  place-items: center;
+  height: 3.5rem;
+  padding-top: env(safe-area-inset-top);
+}
+
+.w-arrival-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 1.875rem;
+  padding: 0 0.75rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.w-arrival-stage {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-height: 0;
+  padding: 0 1rem;
+}
+
+.w-arrival-kovi {
+  position: relative;
+  align-self: center;
+  width: 150px;
+  height: 58px;
+}
+
+.w-arrival-peek {
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation: peek-up 0.55s 1.5s var(--spring) both;
+}
+
+@keyframes peek-up {
+  from {
+    opacity: 0;
+    transform: translateY(70px);
+  }
+  1% {
+    opacity: 1;
+  }
+}
+
+.w-arrival-whisper {
+  position: absolute;
+  top: -0.5rem;
+  left: 108px;
+  padding: 0.3rem 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  white-space: nowrap;
+  animation: pop 0.4s 1.95s var(--spring) both;
+}
+
+.w-arrival-whisper::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 0.75rem;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  background: var(--surface);
+  transform: rotate(45deg);
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+.w-arrival-sheet {
+  position: relative;
+  display: grid;
+  gap: 0.625rem;
+  width: 100%;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem calc(1rem + env(safe-area-inset-bottom));
+  border-radius: 2rem 2rem 0 0;
+  background: var(--paper);
+  animation: sheet-up 0.6s 0.75s var(--spring) both;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.w-arrival-sheet > * {
+  animation: rise 0.45s var(--spring) both;
+}
+
+.w-arrival-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  text-wrap: balance;
+  animation-delay: 1.15s;
+}
+
+.w-arrival-unconfirmed {
+  color: var(--coral-deep);
+  font-size: 0.8125rem;
+}
+
+.w-arrival-note {
+  position: relative;
+  margin: 0.5rem 0 0;
+  margin-inline: 0;
+  padding: 1.125rem 1rem 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.125rem;
+  background: #f6e7c8;
+  transform: rotate(-1deg);
+  animation-delay: 1.3s;
+}
+
+.w-arrival-note::before {
+  content: "";
+  position: absolute;
+  top: -0.7rem;
+  left: 50%;
+  width: 4.5rem;
+  height: 1.25rem;
+  margin-left: -2.25rem;
+  border-radius: 3px;
+  background: rgba(169, 201, 201, 0.85);
+  transform: rotate(3deg);
+}
+
+.w-arrival-note-lock {
+  position: absolute;
+  top: -0.8rem;
+  right: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  height: 1.5rem;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 650;
+}
+
+.w-arrival-note blockquote {
+  margin: 0;
+  font-size: 1.1875rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.w-arrival-note figcaption {
+  margin-top: 0.25rem;
+  color: var(--on-tint);
+  font-size: 0.75rem;
+}
+
+.w-arrival-in {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  animation-delay: 1.7s;
+}
+
+.w-arrival-in small {
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.w-arrival-tick {
+  display: grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 50%;
+  background: var(--positive);
+  color: #fff;
+}
+
+.w-arrival-explain {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  color: var(--on-tint);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  animation-delay: 1.95s;
+}
+
+.w-arrival-explain strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.w-arrival-explain-lock {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+}
+
+.w-arrival-done {
+  margin-top: 0.5rem;
+  animation-delay: 1s;
+}
+
+/* The envelope: teal, sealed with a coral seal; it opens, and the card rises out. */
+.w-env {
+  --w: min(272px, 72vw);
+  position: relative;
+  width: var(--w);
+  height: calc(var(--w) * 0.62 + var(--w) * 0.34);
+}
+
+.w-env-back {
+  position: absolute;
+  inset: auto 0 0;
+  height: calc(var(--w) * 0.62);
+  border: 2px solid var(--ink);
+  border-radius: 18px;
+  background: var(--teal-deep);
+}
+
+.w-env-front {
+  position: absolute;
+  inset: auto 0 0;
+  width: 100%;
+  height: calc(var(--w) * 0.62);
+  overflow: visible;
+}
+
+.w-env-front path {
+  fill: var(--teal);
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.w-env-flap {
+  position: absolute;
+  top: calc(var(--w) * 0.34);
+  left: 0;
+  width: 100%;
+  height: calc(var(--w) * 0.35);
+  overflow: visible;
+  transform-origin: top center;
+}
+
+.w-env-flap path {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.w-env-flap-shut path {
+  fill: #8fb9bb;
+}
+
+.w-env-flap-open path {
+  fill: var(--teal-deep);
+}
+
+.w-env-flap-shut {
+  animation: flap-shut 0.38s 0.76s ease-in both;
+}
+
+.w-env-flap-open {
+  opacity: 0;
+  transform: scaleY(-1);
+  animation: flap-open 0.38s 0.76s ease-out both;
+}
+
+@keyframes flap-shut {
+  to {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes flap-open {
+  0%,
+  49% {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(-1);
+  }
+}
+
+.w-env-card {
+  position: absolute;
+  top: calc(var(--w) * 0.34 + var(--w) * 0.62 * 0.08);
+  left: 8%;
+  right: 8%;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 0.125rem;
+  height: calc(var(--w) * 0.62 * 0.84);
+  padding-top: 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  animation: card-rise 0.7s 1.02s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes card-rise {
+  to {
+    transform: translateY(calc(var(--w) * -0.32)) rotate(-2deg);
+  }
+}
+
+.w-env-card small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.w-env-card strong {
+  font-size: calc(var(--w) * 0.16);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.w-env-card em {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.w-env-label {
+  position: absolute;
+  bottom: calc(var(--w) * 0.62 * 0.07);
+  left: 0;
+  right: 0;
+  display: grid;
+  justify-items: center;
+  color: #fff;
+  pointer-events: none;
+  /* Under the seal until it breaks: it shows once the envelope opens. */
+  animation: fade 0.4s 0.8s ease-out both;
+}
+
+.w-env-label strong {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.w-env-label small {
+  color: var(--on-teal);
+  font-size: 0.75rem;
+  font-weight: 550;
+}
+
+.w-env-seal,
+.w-env-ripple {
+  position: absolute;
+  top: calc(var(--w) * 0.34 + var(--w) * 0.35 - 30px);
+  left: calc(50% - 26px);
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+}
+
+.w-env-seal {
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--ink);
+  background: var(--coral);
+  color: #fff;
+  animation: seal-break 0.62s 0.38s ease-in-out both;
+}
+
+@keyframes seal-break {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.16);
+  }
+  48% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+.w-env-ripple {
+  border: 2px solid var(--coral);
+  opacity: 0;
+  animation: ripple 0.9s 0.68s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ripple {
+  from {
+    opacity: 0.8;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 0;
+    transform: scale(3.1);
+  }
+}
+
+.w-env-spark {
+  position: absolute;
+  animation: pop 0.45s var(--spring) both;
+}
+
+.w-env-spark-1 {
+  top: 6%;
+  left: -2%;
+  animation-delay: 1.18s;
+}
+
+.w-env-spark-2 {
+  top: 0;
+  right: 0;
+  animation-delay: 1.28s;
+}
+
+.w-env-spark-3 {
+  top: 46%;
+  right: -3%;
+  animation-delay: 1.4s;
+}
+
+/* Reduce motion: the moment is simply there, already open. */
+@media (prefers-reduced-motion: reduce) {
+  .w-arrival,
+  .w-arrival-sheet,
+  .w-arrival-sheet > *,
+  .w-arrival-peek,
+  .w-arrival-whisper,
+  .w-env-spark,
+  .w-balance-split,
+  .w-topup,
+  .w-menu,
+  .w-confirm,
+  .w-explain,
+  .w-privcard {
+    animation: none;
+  }
+  .w-env-seal,
+  .w-env-ripple {
+    display: none;
+  }
+  .w-env-label {
+    animation: none;
+  }
+  .w-env-flap-shut {
+    animation: none;
+    opacity: 0;
+  }
+  .w-env-flap-open {
+    animation: none;
+    opacity: 1;
+    transform: scaleY(-1);
+  }
+  .w-env-card {
+    animation: none;
+    transform: translateY(calc(var(--w) * -0.32)) rotate(-2deg);
+  }
+}

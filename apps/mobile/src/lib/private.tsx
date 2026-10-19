@@ -1,6 +1,21 @@
-import { type StealthKeys, stealthMetaAddress } from '@kova/monad'
+import {
+  type PaymentRoute,
+  type RouteInput,
+  routePayment,
+  type StealthKeys,
+  stealthMetaAddress,
+} from '@kova/monad'
 import * as Haptics from 'expo-haptics'
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { AppState } from 'react-native'
 import type { LocalAccount } from 'viem'
 import { getBalance } from './chain'
@@ -10,11 +25,12 @@ import {
   feedAfter,
   findMine,
   gather,
+  holdingsOf,
   type MoveInOutcome,
   moveIn as moveInCore,
   oneTimeAccount,
-  planSpend,
   type PrivateReceipt,
+  planSpend,
   readHeld,
   readReceipt,
   receivingKeys,
@@ -34,27 +50,37 @@ import {
   saveScan,
 } from './private-store'
 import { sessionOpen } from './session'
-import { load as loadSaved, save as saveSaved } from './storage'
 import type { MoveProgress } from './takings-core'
 import { useWallet } from './wallet'
 
-/** Where a payment comes from: the wallet's balance, or private dollars at one-time addresses. */
-export type PaySource = 'balance' | 'private'
+/** Where a payment comes from, as the privacy router decides it (@kova/monad). */
+export type Route = PaymentRoute<PrivateReceipt>
 
-/** Paying from private dollars, step by step. */
+/** Paying with private dollars, step by step. */
 export interface SpendProgress {
-  step: 'unlocking' | 'gathering' | 'paying'
+  /** 'gathering': several addresses put together into one first. 'moving': just enough moving into the balance first. */
+  step: 'unlocking' | 'gathering' | 'moving' | 'paying'
   done?: number
   total?: number
+  /** What's moving into the balance. */
+  amount?: bigint
+}
+
+/** How a routed payment is made: from the balance, or signed by one of this wallet's one-time addresses. */
+export interface PayWays<T> {
+  fromBalance: () => Promise<T>
+  fromPrivate: (account: LocalAccount) => Promise<T>
 }
 
 /**
- * This wallet's private dollars: payments people sent it privately, each waiting at a one-time
- * address only this wallet's keys can open. The phone finds them in Kova's public feed with its
- * viewing key (Kova can't tell whose they are) and opens each one's sealed memo itself, shows them
- * beside the balance, and puts each in your activity as it arrives. They pay shops and private
- * sends straight from those addresses, so they never have to touch the wallet; moving them in is
- * there too, said to be public. Shared by Home, the Private screen, receipts, and the pay and send flows.
+ * This wallet's private dollars: payments people sent it privately, each at a one-time address only
+ * this wallet's keys can open. The phone finds them in Kova's public feed with its viewing key (Kova
+ * can't tell whose they are), opens each one's sealed memo itself, and puts each in your activity as
+ * it arrives. They count in your balance like any dollars, and there is nothing to move: the privacy
+ * router picks where each payment comes from, paying straight from those addresses when it can, and
+ * moving just enough into the balance first only when nothing else covers it. Making them public is
+ * still there, on the Private dollars screen. Shared by Home, the Private screen, receipts, and the pay
+ * and send flows.
  */
 interface PrivateDollars {
   /** This phone holds this wallet's private-receiving keys, so it can find and move private payments. */
@@ -78,23 +104,32 @@ interface PrivateDollars {
   spending: SpendProgress | null
   /** Whether private dollars pay `amount` from one address, need gathering first, or don't cover it. */
   coverFor: (amount: bigint) => 'single' | 'gather' | null
+  /** Where a payment comes from, by the privacy router, with this phone's private dollars. */
+  route: (input: Omit<RouteInput<PrivateReceipt>, 'holdings'>) => Route
+  /**
+   * Makes a payment the way `route` says: from the balance; from private dollars; or from the balance
+   * after just enough private dollars move into it.
+   */
+  pay: <T>(route: Route, amount: bigint, ways: PayWays<T>) => Promise<T>
   /**
    * Pays `amount` from private dollars: the wallet opens (once) to make the keys, the smallest
    * address that covers it signs the payment (several are gathered into one first), and the change
    * stays there, still private.
    */
   spendFrom: <T>(amount: bigint, pay: (account: LocalAccount) => Promise<T>) => Promise<T>
+  /**
+   * Moves the fewest whole addresses that make up `shortfall` into the balance, for a payment that
+   * goes right after (the wallet opens for both at once). That move is public on Monad.
+   */
+  moveInFor: (shortfall: bigint) => Promise<MoveInOutcome>
   /** Kova's Announcement on Monad of the payment to this one-time address, once posted. */
   announcementAt: (oneTime: string | undefined) => string | null
-  /** The remembered choice of where payments come from. */
-  source: PaySource
-  setSource: (source: PaySource) => void
   refresh: () => Promise<void>
   /** Makes this wallet's keys on this phone (the open wallet, or Face ID) and gives Kova the public half. */
   setUp: () => Promise<boolean>
   /**
-   * Moves every waiting private payment into the balance. `openWallet`: to pay right after, so the
-   * wallet itself unlocks (one Face ID for both) rather than the private keys alone.
+   * Makes every private dollar public: each address moves what it holds into the wallet itself.
+   * `openWallet`: the wallet itself unlocks (one Face ID) rather than the private keys alone.
    */
   moveIn: (options?: { openWallet?: boolean }) => Promise<MoveInOutcome | null>
   clearMoved: () => void
@@ -110,11 +145,13 @@ export function usePrivate(): PrivateDollars {
   return value
 }
 
-const words = (error: unknown) => (error instanceof Error && error.message ? error.message : 'That didn’t work. Try again.')
+const words = (error: unknown) =>
+  error instanceof Error && error.message ? error.message : 'That didn’t work. Try again.'
+/** Whether this wallet's first private arrival has been explained: once per wallet, never again. */
+export const explainedKey = (wallet: string) => `kova.private.explained.v1.${wallet.toLowerCase()}`
+
 /** How often the phone looks at Kova's feed while it's open. */
 const EVERY_MS = 5000
-/** Where payments come from, as last chosen. */
-const SOURCE = 'kova.payfrom.v1'
 
 export function PrivateProvider({ children }: { children: ReactNode }) {
   const wallet = useWallet()
@@ -130,15 +167,6 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
   const [problem, setProblem] = useState<PrivateDollars['problem']>(null)
   const [spending, setSpending] = useState<SpendProgress | null>(null)
   const [announced, setAnnounced] = useState<Record<string, string>>({})
-  const [source, setSourceState] = useState<PaySource>('balance')
-
-  useEffect(() => {
-    void loadSaved<PaySource>(SOURCE, 'balance').then((s) => setSourceState(s === 'private' ? 'private' : 'balance'))
-  }, [])
-  const setSource = useCallback((next: PaySource) => {
-    setSourceState(next)
-    void saveSaved(SOURCE, next)
-  }, [])
 
   // Callbacks outlive the render that made them (a screen or the dev link holds one), so they read
   // the latest state from here.
@@ -167,10 +195,14 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
       }
 
       const state = await loadScan(owner, keys.meta)
-      if (state.cursor === null && state.since === null) state.since = await freshSince(owner, keys.meta)
+      if (state.cursor === null && state.since === null)
+        state.since = await freshSince(owner, keys.meta)
       const items = await feedAfter(state.cursor)
       const view = viewFromKey(keys.view)
-      const mine = await findMine(view, items, { checked: new Set(state.checked), since: state.since })
+      const mine = await findMine(view, items, {
+        checked: new Set(state.checked),
+        since: state.since,
+      })
       const next = advance(items, state.cursor)
       // By address: a gathering made here is known before Kova lists it.
       const byAddress = new Map(state.receipts.map((r) => [r.stealthAddress.toLowerCase(), r]))
@@ -189,7 +221,10 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
       }
       // Kova's Announcements on Monad, a few seconds after each payment: for payments here, and for
       // private sends from here (their addresses are in your activity).
-      const watched = new Set([...byAddress.keys(), ...w.activity.flatMap((e) => (e.privately && e.oneTime ? [e.oneTime.toLowerCase()] : []))])
+      const watched = new Set([
+        ...byAddress.keys(),
+        ...w.activity.flatMap((e) => (e.privately && e.oneTime ? [e.oneTime.toLowerCase()] : [])),
+      ])
       const announcements = { ...(state.announced ?? {}) }
       for (const item of items) {
         const key = item.stealth_address.toLowerCase()
@@ -215,12 +250,24 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
       // Whatever turns up once the first look is done is news: the newest one gets its arrival screen.
       // Your own private dollars gathered into one address aren't a payment to you.
       const payments = added.filter((r) => r.kind !== 'change')
-      const newest = payments.reduce<PrivateReceipt | null>((n, r) => (!n || r.at > n.at ? r : n), null)
+      const newest = payments.reduce<PrivateReceipt | null>(
+        (n, r) => (!n || r.at > n.at ? r : n),
+        null,
+      )
       for (const r of payments) await w.receivedPrivately(r, state.caughtUp && r === newest)
-      const updated = { ...state, cursor: next.cursor, checked: next.recent, caughtUp: true, receipts: all, announced: announcements }
+      const updated = {
+        ...state,
+        cursor: next.cursor,
+        checked: next.recent,
+        caughtUp: true,
+        receipts: all,
+        announced: announcements,
+      }
       if (JSON.stringify(updated) !== JSON.stringify(state)) await saveScan(updated)
       setReceipts((shown) => (JSON.stringify(shown) === JSON.stringify(all) ? shown : all))
-      setAnnounced((shown) => (JSON.stringify(shown) === JSON.stringify(announcements) ? shown : announcements))
+      setAnnounced((shown) =>
+        JSON.stringify(shown) === JSON.stringify(announcements) ? shown : announcements,
+      )
       setReady(true)
     })()
       .catch((error) => {
@@ -289,12 +336,19 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
     setWorking(true)
     setProblem(null)
     try {
-      const view = await makeReceiving(profile.address, w.signMessage, profile.protected && !profile.demo)
+      const view = await makeReceiving(
+        profile.address,
+        w.signMessage,
+        profile.protected && !profile.demo,
+      )
       setSaved(view)
       live.current.saved = view
       const ok = await publishReceiving(view)
       setPublished(ok)
-      if (!ok) throw new Error('Your keys are ready, but Kova couldn’t be reached to share them. It tries again by itself.')
+      if (!ok)
+        throw new Error(
+          'Your keys are ready, but Kova couldn’t be reached to share them. It tries again by itself.',
+        )
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
       void refresh()
       return true
@@ -314,63 +368,26 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
    * after) they come from its account, with no extra Face ID; otherwise the spending key comes out
    * of the Keychain behind Face ID, and the wallet makes it again if the Keychain lost it.
    */
-  const spendingKeys = useCallback(async (total: bigint, openWallet: boolean): Promise<StealthKeys> => {
-    const { wallet: w, saved: view } = live.current
-    const profile = w.profile
-    if (!profile) throw new Error('Open your wallet first.')
-    if (sessionOpen() || openWallet || !view) return receivingKeys(profile.address, w.signMessage)
-    const spending = await readReceivingSpendKey(profile.address, `Move ${formatUsd(total)} into your balance`)
-    if (spending) {
-      const keys = { spendingPrivateKey: spending, viewingPrivateKey: viewFromKey(view.view).viewingPrivateKey }
-      if (stealthMetaAddress(keys) === view.meta) return keys
-    }
-    return receivingKeys(profile.address, w.signMessage)
-  }, [])
-
-  const moveIn = useCallback(
-    async (options: { openWallet?: boolean } = {}) => {
-      const w = live.current.wallet
+  const spendingKeys = useCallback(
+    async (total: bigint, openWallet: boolean): Promise<StealthKeys> => {
+      const { wallet: w, saved: view } = live.current
       const profile = w.profile
-      const pending = live.current.receipts.filter((r) => BigInt(r.held) > 0n)
-      if (!profile || !pending.length || live.current.busy) return null
-      live.current.busy = true
-      setProblem(null)
-      setMoved(null)
-      setProgress({ step: 'unlocking', done: 0, total: pending.length })
-      try {
-        const keys = await spendingKeys(waitingIn(pending).amount, options.openWallet ?? false)
-        const view = live.current.saved
-        if (view && stealthMetaAddress(keys) !== view.meta) throw new Error('These keys don’t open your private payments. Nothing moved.')
-        const outcome = await moveInCore({ keys, receipts: pending, to: profile.address, onProgress: setProgress })
-        const movedBy = new Map(outcome.moved.map((m) => [m.stealthAddress.toLowerCase(), m.txHash]))
-        const next = live.current.receipts.map((r) => {
-          const key = r.stealthAddress.toLowerCase()
-          const tx = movedBy.get(key)
-          const held = outcome.held.get(key)
-          return tx ? { ...r, held: '0', movedTx: tx } : held !== undefined ? { ...r, held: held.toString() } : r
-        })
-        setReceipts(next)
-        live.current.receipts = next
-        if (view) {
-          const state = await loadScan(profile.address, view.meta)
-          await saveScan({ ...state, receipts: next })
+      if (!profile) throw new Error('Open your wallet first.')
+      if (sessionOpen() || openWallet || !view) return receivingKeys(profile.address, w.signMessage)
+      const spending = await readReceivingSpendKey(
+        profile.address,
+        `Move ${formatUsd(total)} into your balance`,
+      )
+      if (spending) {
+        const keys = {
+          spendingPrivateKey: spending,
+          viewingPrivateKey: viewFromKey(view.view).viewingPrivateKey,
         }
-        setMoved({ ...outcome, at: Date.now() })
-        void Haptics.notificationAsync(
-          outcome.count && !outcome.failed ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning,
-        )
-        await w.refresh()
-        return outcome
-      } catch (error) {
-        setProblem({ during: 'move', text: /cancel/i.test(words(error)) ? 'Cancelled. Nothing moved.' : words(error) })
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
-        return null
-      } finally {
-        live.current.busy = false
-        setProgress(null)
+        if (stealthMetaAddress(keys) === view.meta) return keys
       }
+      return receivingKeys(profile.address, w.signMessage)
     },
-    [spendingKeys],
+    [],
   )
 
   /** Remembers what the private dollars hold now, here and on the phone. */
@@ -383,6 +400,122 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
     await saveScan({ ...state, receipts: next })
   }, [])
 
+  /**
+   * Moves these private payments into the wallet: each address signs its own move of everything it
+   * holds, and Kova covers the fee. What each holds afterwards is remembered, and the balance read.
+   */
+  const moveSome = useCallback(
+    async (
+      pending: PrivateReceipt[],
+      openWallet: boolean,
+      onProgress: (progress: MoveProgress) => void,
+    ) => {
+      const w = live.current.wallet
+      const profile = w.profile
+      if (!profile) throw new Error('Open your wallet first.')
+      const keys = await spendingKeys(waitingIn(pending).amount, openWallet)
+      const view = live.current.saved
+      if (view && stealthMetaAddress(keys) !== view.meta)
+        throw new Error('These keys don’t open your private dollars. Nothing moved.')
+      const outcome = await moveInCore({ keys, receipts: pending, to: profile.address, onProgress })
+      const movedBy = new Map(outcome.moved.map((m) => [m.stealthAddress.toLowerCase(), m.txHash]))
+      await keepReceipts(
+        live.current.receipts.map((r) => {
+          const key = r.stealthAddress.toLowerCase()
+          const tx = movedBy.get(key)
+          const held = outcome.held.get(key)
+          return tx
+            ? { ...r, held: '0', movedTx: tx }
+            : held !== undefined
+              ? { ...r, held: held.toString() }
+              : r
+        }),
+      )
+      await w.refresh()
+      return outcome
+    },
+    [spendingKeys, keepReceipts],
+  )
+
+  const moveIn = useCallback(
+    async (options: { openWallet?: boolean } = {}) => {
+      const pending = live.current.receipts.filter((r) => BigInt(r.held) > 0n)
+      if (!live.current.wallet.profile || !pending.length || live.current.busy) return null
+      live.current.busy = true
+      setProblem(null)
+      setMoved(null)
+      setProgress({ step: 'unlocking', done: 0, total: pending.length })
+      try {
+        const outcome = await moveSome(pending, options.openWallet ?? false, setProgress)
+        setMoved({ ...outcome, at: Date.now() })
+        void Haptics.notificationAsync(
+          outcome.count && !outcome.failed
+            ? Haptics.NotificationFeedbackType.Success
+            : Haptics.NotificationFeedbackType.Warning,
+        )
+        return outcome
+      } catch (error) {
+        setProblem({
+          during: 'move',
+          text: /cancel/i.test(words(error)) ? 'Cancelled. Nothing moved.' : words(error),
+        })
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+        return null
+      } finally {
+        live.current.busy = false
+        setProgress(null)
+      }
+    },
+    [moveSome],
+  )
+
+  const moveInFor = useCallback(
+    async (shortfall: bigint) => {
+      const { wallet: w, saved: view } = live.current
+      if (!w.profile || !view) throw new Error('Set up private dollars on this phone first.')
+      // Let a look that's running finish, then hold the addresses until the move is done.
+      if (inflight.current) await inflight.current
+      if (live.current.busy)
+        throw new Error('Your private dollars are busy for a moment. Try again.')
+      live.current.busy = true
+      setProblem(null)
+      setSpending({ step: 'unlocking' })
+      try {
+        // What each address holds now, read from Monad, then the fewest that make up the difference.
+        const funded = live.current.receipts.filter((r) => BigInt(r.held) > 0n)
+        const held = await readHeld(funded)
+        const fresh = funded.map((r) => {
+          const now = held.get(r.stealthAddress.toLowerCase())
+          return now === undefined ? r : { ...r, held: now.toString() }
+        })
+        const plan = planSpend(fresh, shortfall)
+        if (!plan)
+          throw new Error(
+            'Your private dollars don’t make up the difference any more. Nothing was paid.',
+          )
+        const move = 'from' in plan ? [plan.from] : plan.gather
+        setSpending({ step: 'moving', amount: waitingIn(move).amount })
+        const outcome = await moveSome(move, true, () => {})
+        if (outcome.amount < shortfall)
+          throw new Error(
+            outcome.count
+              ? `Only ${formatUsd(outcome.amount)} moved into your balance just now. Nothing was paid; try again.`
+              : (outcome.reason ??
+                  'Your private dollars didn’t move just now. Nothing was paid; try again.'),
+          )
+        return outcome
+      } catch (error) {
+        const text = /cancel/i.test(words(error)) ? 'Cancelled. Nothing was paid.' : words(error)
+        setProblem({ during: 'spend', text })
+        throw new Error(text)
+      } finally {
+        live.current.busy = false
+        setSpending(null)
+      }
+    },
+    [moveSome],
+  )
+
   const spendFrom = useCallback(
     async <T,>(amount: bigint, pay: (account: LocalAccount) => Promise<T>): Promise<T> => {
       const { wallet: w, saved: view } = live.current
@@ -390,14 +523,16 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
       if (!profile || !view) throw new Error('Set up private dollars on this phone first.')
       // Let a look that's running finish, then hold the addresses until the payment is done.
       if (inflight.current) await inflight.current
-      if (live.current.busy) throw new Error('Your private dollars are busy for a moment. Try again.')
+      if (live.current.busy)
+        throw new Error('Your private dollars are busy for a moment. Try again.')
       live.current.busy = true
       setProblem(null)
       setSpending({ step: 'unlocking' })
       try {
         // The wallet opens once: its account makes the keys, and vouches for a gathering.
         const keys = await receivingKeys(profile.address, w.signMessage)
-        if (stealthMetaAddress(keys) !== view.meta) throw new Error('These keys don’t open your private dollars. Nothing was paid.')
+        if (stealthMetaAddress(keys) !== view.meta)
+          throw new Error('These keys don’t open your private dollars. Nothing was paid.')
         // What each address holds now, read from Monad.
         let receipts = live.current.receipts
         const held = await readHeld(receipts.filter((r) => BigInt(r.held) > 0n))
@@ -406,7 +541,8 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
           return now === undefined ? r : { ...r, held: now.toString() }
         })
         const plan = planSpend(receipts, amount)
-        if (!plan) throw new Error('Your private dollars don’t cover this any more. Nothing was paid.')
+        if (!plan)
+          throw new Error('Your private dollars don’t cover this any more. Nothing was paid.')
         let from: PrivateReceipt
         if ('from' in plan) from = plan.from
         else {
@@ -421,7 +557,12 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
             onProgress: (done, total) => setSpending({ step: 'gathering', done, total }),
           })
           const emptied = new Set(gathered.moved.map((m) => m.from.toLowerCase()))
-          receipts = [gathered.receipt, ...receipts.map((r) => (emptied.has(r.stealthAddress.toLowerCase()) ? { ...r, held: '0' } : r))]
+          receipts = [
+            gathered.receipt,
+            ...receipts.map((r) =>
+              emptied.has(r.stealthAddress.toLowerCase()) ? { ...r, held: '0' } : r,
+            ),
+          ]
           await keepReceipts(receipts)
           from = gathered.receipt
         }
@@ -429,7 +570,13 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
         const result = await pay(oneTimeAccount(keys, from))
         // The change stays at that address, still private.
         const left = await getBalance(from.stealthAddress).catch(() => BigInt(from.held) - amount)
-        await keepReceipts(receipts.map((r) => (r.stealthAddress === from.stealthAddress ? { ...r, held: (left < 0n ? 0n : left).toString() } : r)))
+        await keepReceipts(
+          receipts.map((r) =>
+            r.stealthAddress === from.stealthAddress
+              ? { ...r, held: (left < 0n ? 0n : left).toString() }
+              : r,
+          ),
+        )
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
         return result
       } catch (error) {
@@ -444,8 +591,23 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
     [keepReceipts],
   )
 
+  /** The router's way: from the balance, from private dollars, or the balance once just enough moved in first. */
+  const pay = useCallback(
+    async <T,>(route: Route, amount: bigint, ways: PayWays<T>): Promise<T> => {
+      if (route.from === 'private') return spendFrom(amount, ways.fromPrivate)
+      if (route.from === 'top-up') await moveInFor(route.shortfall)
+      return ways.fromBalance()
+    },
+    [spendFrom, moveInFor],
+  )
+
   const { amount: waiting, count: waitingCount } = useMemo(() => waitingIn(receipts), [receipts])
-  const byAddress = useMemo(() => new Map(receipts.map((r) => [r.stealthAddress.toLowerCase(), r])), [receipts])
+  const byAddress = useMemo(
+    () => new Map(receipts.map((r) => [r.stealthAddress.toLowerCase(), r])),
+    [receipts],
+  )
+  // Only what this phone's keys can open: without them, the router knows of no private dollars.
+  const holdings = useMemo(() => (saved ? holdingsOf(receipts) : []), [saved, receipts])
 
   const value: PrivateDollars = {
     keysHere: saved !== null,
@@ -469,10 +631,16 @@ export function PrivateProvider({ children }: { children: ReactNode }) {
       const plan = planSpend(receipts, amount)
       return plan ? ('from' in plan ? 'single' : 'gather') : null
     },
+    route: (input) => routePayment({ ...input, holdings }),
+    pay,
     spendFrom,
-    announcementAt: (oneTime) => (oneTime ? (announced[oneTime.toLowerCase()] ?? byAddress.get(oneTime.toLowerCase())?.announceUrl ?? null) : null),
-    source,
-    setSource,
+    moveInFor,
+    announcementAt: (oneTime) =>
+      oneTime
+        ? (announced[oneTime.toLowerCase()] ??
+          byAddress.get(oneTime.toLowerCase())?.announceUrl ??
+          null)
+        : null,
   }
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

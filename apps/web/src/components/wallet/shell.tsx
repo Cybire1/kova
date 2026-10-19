@@ -4,11 +4,12 @@ import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { Brand, NavIcon, type NavIconName } from '@/components/brand'
+import { ArrivalNotice } from './arrival'
+import { PhoneWelcome } from './phone-welcome'
+import { PrivateArrivalMoment } from './private'
 import { useWallet } from './provider'
 import { Avatar } from './ui'
 import { Welcome } from './welcome'
-import { ArrivalNotice } from './arrival'
-import { PhoneWelcome } from './phone-welcome'
 
 /**
  * The Kova app on the web: your wallet, with your shop as one of its features. The Shop card on
@@ -23,7 +24,8 @@ export function WalletShell({ children }: { children: React.ReactNode }) {
   const path = usePathname()
   // Back from Paystack with a naira top-up: its result shows even where no wallet is open (an in-app browser).
   const params = useSearchParams()
-  const nairaReturn = path === '/wallet/add/naira' && Boolean(params.get('reference') ?? params.get('trxref'))
+  const nairaReturn =
+    path === '/wallet/add/naira' && Boolean(params.get('reference') ?? params.get('trxref'))
   const sheet = path.startsWith('/wallet/send')
   const inner = status === 'ready' && path !== '/wallet' && !sheet
 
@@ -53,7 +55,11 @@ export function WalletShell({ children }: { children: React.ReactNode }) {
         {status === 'loading' ? (
           <div className="w-loading" aria-busy="true" />
         ) : status === 'none' && !nairaReturn ? (
-          path.startsWith('/wallet/phone/') ? <PhoneWelcome id={path.split('/').pop()!} /> : <Welcome forShop={path.startsWith('/wallet/shop')} />
+          path.startsWith('/wallet/phone/') ? (
+            <PhoneWelcome id={path.split('/').pop()!} />
+          ) : (
+            <Welcome forShop={path.startsWith('/wallet/shop')} />
+          )
         ) : (
           children
         )}
@@ -61,6 +67,8 @@ export function WalletShell({ children }: { children: React.ReactNode }) {
 
       {status === 'ready' && !sheet ? <Dock path={path} /> : null}
       {status === 'ready' ? <ArrivalNotice /> : null}
+      {/* A private payment found while the wallet is open gets its own moment, over any screen. */}
+      {status === 'ready' ? <PrivateArrivalMoment /> : null}
     </div>
   )
 }

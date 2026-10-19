@@ -14,9 +14,9 @@ import {
 import { getAddress, type Hex, isAddressEqual } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import type { PrivateSale } from '@/lib/api'
-import { openWalletSigner, type WalletIdentity } from './signer'
 import { balanceOf } from './chain'
 import { sessionAccount } from './session'
+import { openWalletSigner, type WalletIdentity } from './signer'
 
 /**
  * A shop's private takings keys, and moving its sales home, in the owner's browser.

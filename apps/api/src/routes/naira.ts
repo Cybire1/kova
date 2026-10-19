@@ -25,7 +25,12 @@ import {
   topUpRow,
   topUpsOf,
 } from '../services/naira.js'
-import { accountName, nigerianBanks, paystackTestMode, webhookIsPaystack } from '../services/paystack.js'
+import {
+  accountName,
+  nigerianBanks,
+  paystackTestMode,
+  webhookIsPaystack,
+} from '../services/paystack.js'
 
 /**
  * Naira in and out, through Paystack (services/naira.ts):
@@ -50,9 +55,13 @@ import { accountName, nigerianBanks, paystackTestMode, webhookIsPaystack } from 
 
 const money = z.string().regex(/^\d{1,7}(\.\d{1,6})?$/, 'Expected dollars, like 50 or 12.50')
 
-const bodyOf = async <T extends z.ZodTypeAny>(c: { req: { json: () => Promise<unknown> } }, shape: T): Promise<z.infer<T>> => {
+const bodyOf = async <T extends z.ZodTypeAny>(
+  c: { req: { json: () => Promise<unknown> } },
+  shape: T,
+): Promise<z.infer<T>> => {
   const parsed = shape.safeParse(await c.req.json().catch(() => ({})))
-  if (!parsed.success) throw new KovaError('invalid_request', 'Invalid request body', { issues: parsed.error.issues })
+  if (!parsed.success)
+    throw new KovaError('invalid_request', 'Invalid request body', { issues: parsed.error.issues })
   return parsed.data
 }
 
@@ -61,7 +70,8 @@ function needNaira() {
 }
 
 function walletOf(raw: string): Address {
-  if (!isAddress(raw, { strict: false })) throw new KovaError('invalid_request', 'Expected a wallet address.')
+  if (!isAddress(raw, { strict: false }))
+    throw new KovaError('invalid_request', 'Expected a wallet address.')
   return getAddress(raw)
 }
 
@@ -93,14 +103,21 @@ nairaRoutes.get('/naira/banks', async (c) => {
 nairaRoutes.post('/naira/account', async (c) => {
   needNaira()
   limit(`naira-account:${ip(c)}`, 30, 60_000, 'Too many look-ups. Wait a minute.')
-  const body = await bodyOf(c, z.object({ account_number: z.string().regex(/^\d{10}$/), bank_code: z.string().min(2).max(10) }))
+  const body = await bodyOf(
+    c,
+    z.object({
+      account_number: z.string().regex(/^\d{10}$/),
+      bank_code: z.string().min(2).max(10),
+    }),
+  )
   return c.json({ account_name: await accountName(body.account_number, body.bank_code) })
 })
 
 nairaRoutes.get('/naira/quote', async (c) => {
   needNaira()
   const amount = c.req.query('amount') ?? ''
-  if (!/^\d{1,7}(\.\d{1,6})?$/.test(amount)) throw new KovaError('invalid_request', 'Give an amount in dollars.')
+  if (!/^\d{1,7}(\.\d{1,6})?$/.test(amount))
+    throw new KovaError('invalid_request', 'Give an amount in dollars.')
   if (c.req.query('direction') === 'in') {
     const quote = await quoteTopUp(parseAmount(amount))
     return c.json({
@@ -130,8 +147,19 @@ nairaRoutes.post('/wallets/:address/cash-outs', async (c) => {
   const wallet = walletOf(c.req.param('address'))
   limit(`cash-out:${wallet}`, 20, 60 * 60_000, 'That’s a lot of cash-outs. Try again later.')
   limit(`cash-out-ip:${ip(c)}`, 40, 60 * 60_000, 'That’s a lot of cash-outs. Try again later.')
-  const body = await bodyOf(c, z.object({ amount: money, bank_code: z.string().min(2).max(10), account_number: z.string().regex(/^\d{10}$/) }))
-  const row = await createCashOut(wallet, { amount: parseAmount(body.amount), bankCode: body.bank_code, accountNumber: body.account_number })
+  const body = await bodyOf(
+    c,
+    z.object({
+      amount: money,
+      bank_code: z.string().min(2).max(10),
+      account_number: z.string().regex(/^\d{10}$/),
+    }),
+  )
+  const row = await createCashOut(wallet, {
+    amount: parseAmount(body.amount),
+    bankCode: body.bank_code,
+    accountNumber: body.account_number,
+  })
   return c.json(serializeCashOut(row), 201)
 })
 
@@ -140,7 +168,8 @@ nairaRoutes.post('/cash-outs/:id/pay', async (c) => {
   const row = await cashOutRow(c.req.param('id'))
   if (!row) throw notFound('cash out', c.req.param('id'))
   const signed = parseSignedAuthorization(await c.req.json().catch(() => null))
-  if (!signed) throw new KovaError('invalid_request', 'Expected the signed transfer for this cash-out.')
+  if (!signed)
+    throw new KovaError('invalid_request', 'Expected the signed transfer for this cash-out.')
   return c.json(serializeCashOut(await payCashOut(row, signed)))
 })
 
@@ -153,7 +182,9 @@ nairaRoutes.get('/cash-outs/:id', async (c) => {
 nairaRoutes.get('/wallets/:address/cash-outs', async (c) => {
   const wallet = walletOf(c.req.param('address'))
   // The list never carries the account holder's name: only the bank and the last four digits.
-  const data = (await cashOutsOf(wallet)).map(serializeCashOut).map(({ account_name: _, ...rest }) => rest)
+  const data = (await cashOutsOf(wallet))
+    .map(serializeCashOut)
+    .map(({ account_name: _, ...rest }) => rest)
   return c.json({ object: 'list', data })
 })
 
@@ -168,11 +199,22 @@ nairaRoutes.post('/wallets/:address/naira-top-ups', async (c) => {
     z.object({
       amount: money,
       email: z.string().email().max(200),
-      return_url: z.string().url().max(500).refine((u) => /^https?:\/\//.test(u), 'Expected a web address'),
+      return_url: z
+        .string()
+        .url()
+        .max(500)
+        .refine((u) => /^https?:\/\//.test(u), 'Expected a web address'),
     }),
   )
-  const started = await startTopUp(wallet, { amount: parseAmount(body.amount), email: body.email, callbackUrl: body.return_url })
-  return c.json({ url: started.url, ...serializeTopUp(started.row), fee: formatNaira(started.quote.fee) }, 201)
+  const started = await startTopUp(wallet, {
+    amount: parseAmount(body.amount),
+    email: body.email,
+    callbackUrl: body.return_url,
+  })
+  return c.json(
+    { url: started.url, ...serializeTopUp(started.row), fee: formatNaira(started.quote.fee) },
+    201,
+  )
 })
 
 nairaRoutes.post('/naira-top-ups/:reference/verify', async (c) => {
@@ -198,12 +240,15 @@ nairaRoutes.get('/wallets/:address/naira-top-ups', async (c) => {
 
 nairaRoutes.post('/paystack/webhook', async (c) => {
   const raw = await c.req.text()
-  if (!webhookIsPaystack(raw, c.req.header('x-paystack-signature'))) return c.json({ ok: false }, 401)
+  if (!webhookIsPaystack(raw, c.req.header('x-paystack-signature')))
+    return c.json({ ok: false }, 401)
   const event = JSON.parse(raw) as { event?: string; data?: { reference?: string } }
   const reference = event.data?.reference
   if (reference) {
-    if (event.event === 'charge.success' && reference.startsWith('kova_')) void settleTopUp(reference).catch(() => {})
-    if (event.event?.startsWith('transfer.')) void cashOutTransferEvent(reference, event.event).catch(() => {})
+    if (event.event === 'charge.success' && reference.startsWith('kova_'))
+      void settleTopUp(reference).catch(() => {})
+    if (event.event?.startsWith('transfer.'))
+      void cashOutTransferEvent(reference, event.event).catch(() => {})
   }
   return c.json({ ok: true })
 })

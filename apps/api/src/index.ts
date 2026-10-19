@@ -6,42 +6,43 @@ import { feePayerAddress, network } from './chain.js'
 import { config } from './config.js'
 import { errorHandler } from './errors.js'
 import { accountRoutes } from './routes/account.js'
+import { businessRoutes } from './routes/business.js'
 import { cardRoutes, cardTapRoutes } from './routes/cards.js'
-import { mcpRoutes } from './routes/mcp.js'
-import { spendKeyRoutes } from './routes/spend-keys.js'
-import { demoRoutes } from './routes/demo.js'
 import { catalogRoutes } from './routes/catalog.js'
 import { checkoutRoutes } from './routes/checkout.js'
+import { demoRoutes } from './routes/demo.js'
 import { healthRoutes } from './routes/health.js'
 import { insightRoutes } from './routes/insights.js'
 import { intentRoutes } from './routes/intents.js'
-import { orderRoutes } from './routes/orders.js'
-import { rateRoutes } from './routes/rates.js'
+import { iosBetaRoutes } from './routes/ios-beta.js'
+import { linkRoutes } from './routes/links.js'
+import { mcpRoutes } from './routes/mcp.js'
 import { moneyRoutes } from './routes/money.js'
+import { nairaRoutes } from './routes/naira.js'
+import { orderRoutes } from './routes/orders.js'
+import { phoneRoutes } from './routes/phone.js'
+import { rateRoutes } from './routes/rates.js'
 import { reportRoutes } from './routes/reports.js'
+import { spendKeyRoutes } from './routes/spend-keys.js'
 import { stallRoutes } from './routes/stalls.js'
+import { statsRoutes } from './routes/stats.js'
+import { takingsRoutes } from './routes/takings.js'
 import { terminalRoutes } from './routes/terminals.js'
 import { travelRoutes } from './routes/travel.js'
 import { ussdRoutes } from './routes/ussd.js'
-import { startDemo } from './services/demo.js'
 import { walletRoutes } from './routes/wallet.js'
-import { linkRoutes } from './routes/links.js'
-import { nairaRoutes } from './routes/naira.js'
-import { takingsRoutes } from './routes/takings.js'
-import { businessRoutes } from './routes/business.js'
-import { statsRoutes } from './routes/stats.js'
 import { webhookRoutes } from './routes/webhooks.js'
+import { startDemo } from './services/demo.js'
 import { expireStaleIntents } from './services/intents.js'
 import { checkPayingCashOuts, retryTopUps } from './services/naira.js'
+import { recoverPhonePayments } from './services/phone-payments.js'
+import { reconcilePendingPockets } from './services/pockets.js'
 import { rateBook } from './services/rates.js'
 import { expireTrips } from './services/travel.js'
+import { redactCallbackLog } from './services/ussd-callback.js'
 import { startAnnouncer } from './workers/announcer.js'
 import { startWatcher } from './workers/watcher.js'
 import { startWebhookWorker } from './workers/webhooks.js'
-import { redactCallbackLog } from './services/ussd-callback.js'
-import { reconcilePendingPockets } from './services/pockets.js'
-import { phoneRoutes } from './routes/phone.js'
-import { recoverPhonePayments } from './services/phone-payments.js'
 
 export const app = new Hono()
 app.use(logger((...messages) => console.log(...messages.map(redactCallbackLog))))
@@ -70,6 +71,7 @@ app.route('/v1', linkRoutes)
 app.route('/v1', takingsRoutes)
 app.route('/v1', businessRoutes)
 app.route('/v1', statsRoutes)
+app.route('/v1', iosBetaRoutes)
 app.route('/v1', ussdRoutes)
 app.route('/v1', phoneRoutes)
 app.route('/v1', cardRoutes)
@@ -93,7 +95,8 @@ if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js
     )
   recoverUssd()
   setInterval(recoverUssd, 10_000)
-  const recoverPhones = () => void recoverPhonePayments().catch(() => console.error('[phone] Recovery will retry.'))
+  const recoverPhones = () =>
+    void recoverPhonePayments().catch(() => console.error('[phone] Recovery will retry.'))
   recoverPhones()
   setInterval(recoverPhones, 10_000)
   // The App Review demo account stays stocked (testnet, and only where it is configured).

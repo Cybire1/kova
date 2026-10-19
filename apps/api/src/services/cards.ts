@@ -76,7 +76,11 @@ const TAP_TTL_S = 120
 /** Linking writes a card, an allowance and a permit; a tap reads and writes a little more than a transfer. */
 const CARD_GAS = 400_000n
 
-const scryptAsync = promisify(scrypt) as (secret: string, salt: Buffer, keylen: number) => Promise<Buffer>
+const scryptAsync = promisify(scrypt) as (
+  secret: string,
+  salt: Buffer,
+  keylen: number,
+) => Promise<Buffer>
 
 async function hashPin(pin: string): Promise<string> {
   const salt = randomBytes(16)
@@ -102,14 +106,18 @@ const nowS = () => Math.floor(Date.now() / 1000)
 
 function freshDeadline(deadline: bigint) {
   const now = BigInt(nowS())
-  if (deadline <= now + 5n) throw new KovaError('invalid_request', 'That approval ran out. Try again.')
+  if (deadline <= now + 5n)
+    throw new KovaError('invalid_request', 'That approval ran out. Try again.')
   if (deadline > now + BigInt(SIGNATURE_MAX_AGE_S) * 2n)
     throw new KovaError('invalid_request', 'An approval for a card lasts ten minutes at most.')
 }
 
 function checkLimit(dailyLimit: bigint) {
   if (dailyLimit <= 0n || dailyLimit > MAX_DAILY_LIMIT)
-    throw new KovaError('invalid_request', `A daily limit is between $0.01 and $${formatAmount(MAX_DAILY_LIMIT)}.`)
+    throw new KovaError(
+      'invalid_request',
+      `A daily limit is between $0.01 and $${formatAmount(MAX_DAILY_LIMIT)}.`,
+    )
 }
 
 // ── Reading ─────────────────────────────────────────────────────────────────────────────────
@@ -139,7 +147,10 @@ export async function cardRow(card: Address): Promise<CardRow | undefined> {
 
 export async function cardsOf(holder: Address): Promise<CardRow[]> {
   return db.query.kovaCards.findMany({
-    where: and(eq(schema.kovaCards.holderAddress, holder.toLowerCase()), eq(schema.kovaCards.status, 'active')),
+    where: and(
+      eq(schema.kovaCards.holderAddress, holder.toLowerCase()),
+      eq(schema.kovaCards.status, 'active'),
+    ),
     orderBy: [desc(schema.kovaCards.createdAt)],
   })
 }
@@ -147,14 +158,24 @@ export async function cardsOf(holder: Address): Promise<CardRow[]> {
 /** What the next link, update or unlink signature from this wallet must carry. */
 export async function holderNonce(holder: Address): Promise<bigint> {
   const { contract } = requireCards()
-  return publicClient.readContract({ address: contract, abi: kovaCardAbi, functionName: 'nonces', args: [holder] })
+  return publicClient.readContract({
+    address: contract,
+    abi: kovaCardAbi,
+    functionName: 'nonces',
+    args: [holder],
+  })
 }
 
 /** The wallet's EIP-2612 nonce on the dollar, and what it has allowed the card contract to draw. */
 export async function permitState(holder: Address): Promise<{ nonce: bigint; allowance: bigint }> {
   const { contract } = requireCards()
   const [nonce, allowance] = await Promise.all([
-    publicClient.readContract({ address: settlementToken.address, abi: permitAbi, functionName: 'nonces', args: [holder] }),
+    publicClient.readContract({
+      address: settlementToken.address,
+      abi: permitAbi,
+      functionName: 'nonces',
+      args: [holder],
+    }),
     publicClient.readContract({
       address: settlementToken.address,
       abi: permitAbi,
@@ -179,7 +200,8 @@ export async function serializeCard(row: CardRow) {
         .innerJoin(schema.merchants, eq(schema.merchants.id, schema.paymentIntents.merchantId))
         .where(sql`${schema.paymentIntents.id} in ${taps.map((t) => t.intentId)}`)
     : []
-  const locked = row.lockedUntil && row.lockedUntil > new Date() ? row.lockedUntil.toISOString() : null
+  const locked =
+    row.lockedUntil && row.lockedUntil > new Date() ? row.lockedUntil.toISOString() : null
   return {
     object: 'card',
     address: getAddress(row.address),
@@ -225,7 +247,11 @@ export async function linkCard(input: LinkInput): Promise<CardRow> {
   if (pinProblem) throw new KovaError('invalid_request', pinProblem)
 
   const existing = await cardRow(input.card)
-  if (existing && existing.status === 'active' && !isAddressEqual(existing.holderAddress as Address, input.holder))
+  if (
+    existing &&
+    existing.status === 'active' &&
+    !isAddressEqual(existing.holderAddress as Address, input.holder)
+  )
     throw new KovaError('conflict', 'That card is already linked to another Kova wallet.')
 
   // Every check that costs nothing happens before Kova spends gas.
@@ -242,20 +268,37 @@ export async function linkCard(input: LinkInput): Promise<CardRow> {
       signature: input.holderSignature,
     }).catch(() => null),
     recoverTypedDataAddress({
-      ...claimTypedData(network.chainId, contract, { card: input.card, holder: input.holder, deadline: input.deadline }),
+      ...claimTypedData(network.chainId, contract, {
+        card: input.card,
+        holder: input.holder,
+        deadline: input.deadline,
+      }),
       signature: input.cardSignature,
     }).catch(() => null),
   ])
   if (!holderSigner || !isAddressEqual(holderSigner, input.holder))
     throw new KovaError('invalid_request', 'The wallet’s approval doesn’t match. Try again.')
   if (!cardSigner || !isAddressEqual(cardSigner, input.card))
-    throw new KovaError('invalid_request', 'The card’s signature doesn’t match. Hold the card still and try again.')
+    throw new KovaError(
+      'invalid_request',
+      'The card’s signature doesn’t match. Hold the card still and try again.',
+    )
 
-  const permit = input.permit ? splitPermit(input.permit.value, input.permit.deadline, input.permit.signature) : NO_PERMIT
+  const permit = input.permit
+    ? splitPermit(input.permit.value, input.permit.deadline, input.permit.signature)
+    : NO_PERMIT
   const data = encodeFunctionData({
     abi: kovaCardAbi,
     functionName: 'link',
-    args: [input.holder, input.card, input.dailyLimit, input.deadline, input.holderSignature, input.cardSignature, permit],
+    args: [
+      input.holder,
+      input.card,
+      input.dailyLimit,
+      input.deadline,
+      input.holderSignature,
+      input.cardSignature,
+      permit,
+    ],
   })
   const receipt = await sendCard(contract, data)
 
@@ -326,14 +369,22 @@ export async function updateCard(
   return updated as CardRow
 }
 
-export async function unlinkCard(row: CardRow, input: { deadline: bigint; holderSignature: Hex }): Promise<void> {
+export async function unlinkCard(
+  row: CardRow,
+  input: { deadline: bigint; holderSignature: Hex },
+): Promise<void> {
   const { contract } = requireCards()
   freshDeadline(input.deadline)
   const holder = getAddress(row.holderAddress)
   const card = getAddress(row.address)
   const nonce = await holderNonce(holder)
   const signer = await recoverTypedDataAddress({
-    ...unlinkTypedData(network.chainId, contract, { holder, card, nonce, deadline: input.deadline }),
+    ...unlinkTypedData(network.chainId, contract, {
+      holder,
+      card,
+      nonce,
+      deadline: input.deadline,
+    }),
     signature: input.holderSignature,
   }).catch(() => null)
   if (!signer || !isAddressEqual(signer, holder))
@@ -345,7 +396,11 @@ export async function unlinkCard(row: CardRow, input: { deadline: bigint; holder
     .where(eq(schema.kovaCards.address, row.address))
   await sendCard(
     contract,
-    encodeFunctionData({ abi: kovaCardAbi, functionName: 'unlink', args: [card, input.deadline, input.holderSignature] }),
+    encodeFunctionData({
+      abi: kovaCardAbi,
+      functionName: 'unlink',
+      args: [card, input.deadline, input.holderSignature],
+    }),
   )
   await db
     .update(schema.kovaCards)
@@ -356,13 +411,17 @@ export async function unlinkCard(row: CardRow, input: { deadline: bigint; holder
 /** PIN changes seen recently, so the same signature can't change a PIN twice. */
 const usedPinSignatures = new Map<string, number>()
 
-export async function changePin(row: CardRow, input: { pin: string; signedAt: number; signature: Hex }): Promise<void> {
+export async function changePin(
+  row: CardRow,
+  input: { pin: string; signedAt: number; signature: Hex },
+): Promise<void> {
   const problem = cardPinProblem(input.pin)
   if (problem) throw new KovaError('invalid_request', problem)
   if (Math.abs(nowS() - input.signedAt) > SIGNATURE_MAX_AGE_S)
     throw new KovaError('invalid_request', 'That approval ran out. Try again.')
   const key = input.signature.toLowerCase()
-  for (const [sig, at] of usedPinSignatures) if (nowS() - at > SIGNATURE_MAX_AGE_S * 2) usedPinSignatures.delete(sig)
+  for (const [sig, at] of usedPinSignatures)
+    if (nowS() - at > SIGNATURE_MAX_AGE_S * 2) usedPinSignatures.delete(sig)
   if (usedPinSignatures.has(key)) throw new KovaError('conflict', 'That approval was already used.')
   const holder = getAddress(row.holderAddress)
   const signer = await recoverMessageAddress({
@@ -374,7 +433,12 @@ export async function changePin(row: CardRow, input: { pin: string; signedAt: nu
   usedPinSignatures.set(key, nowS())
   await db
     .update(schema.kovaCards)
-    .set({ pinHash: await hashPin(input.pin), failedPins: 0, lockedUntil: null, updatedAt: new Date() })
+    .set({
+      pinHash: await hashPin(input.pin),
+      failedPins: 0,
+      lockedUntil: null,
+      updatedAt: new Date(),
+    })
     .where(eq(schema.kovaCards.address, row.address))
 }
 
@@ -396,22 +460,41 @@ export async function prepareTap(input: {
 }): Promise<PreparedTap> {
   const { contract } = requireCards()
   const { intent } = input
-  if (intent.status !== 'requires_payment') throw new KovaError('conflict', 'This charge isn’t open any more.')
-  if (intent.expiresAt < new Date()) throw new KovaError('conflict', 'This charge has expired. Start a new one.')
+  if (intent.status !== 'requires_payment')
+    throw new KovaError('conflict', 'This charge isn’t open any more.')
+  if (intent.expiresAt < new Date())
+    throw new KovaError('conflict', 'This charge has expired. Start a new one.')
   if (!isAddressEqual(intent.tokenAddress as Address, settlementToken.address))
     throw new KovaError('invalid_request', 'Cards pay in Kova’s dollars only.')
 
   const row = await cardRow(input.card)
   if (!row || row.status !== 'active')
-    throw new KovaError('not_found', 'This card isn’t linked to a Kova wallet. Link it in the Kova app.')
-  if (row.frozen) throw new KovaError('policy_declined', 'This card is frozen. Its owner can unfreeze it in the Kova app.')
+    throw new KovaError(
+      'not_found',
+      'This card isn’t linked to a Kova wallet. Link it in the Kova app.',
+    )
+  if (row.frozen)
+    throw new KovaError(
+      'policy_declined',
+      'This card is frozen. Its owner can unfreeze it in the Kova app.',
+    )
   if (row.lockedUntil && row.lockedUntil > new Date())
-    throw new KovaError('policy_declined', 'Too many wrong PINs. This card is paused for a few minutes.')
+    throw new KovaError(
+      'policy_declined',
+      'Too many wrong PINs. This card is paused for a few minutes.',
+    )
 
   const chain = await onChainCard(input.card)
   if (!isAddressEqual(chain.holder, row.holderAddress as Address))
-    throw new KovaError('not_found', 'This card isn’t linked to a Kova wallet. Link it in the Kova app.')
-  if (chain.frozen) throw new KovaError('policy_declined', 'This card is frozen. Its owner can unfreeze it in the Kova app.')
+    throw new KovaError(
+      'not_found',
+      'This card isn’t linked to a Kova wallet. Link it in the Kova app.',
+    )
+  if (chain.frozen)
+    throw new KovaError(
+      'policy_declined',
+      'This card is frozen. Its owner can unfreeze it in the Kova app.',
+    )
   if (chain.left < intent.amount) {
     const limitLeft = chain.dailyLimit > chain.spentToday ? chain.dailyLimit - chain.spentToday : 0n
     throw new KovaError(
@@ -460,7 +543,10 @@ async function checkPin(row: CardRow, pin: string | undefined): Promise<void> {
   if (!pin) throw new KovaError('invalid_request', 'Enter the card’s PIN.', { pin_required: true })
   if (await pinMatches(pin, row.pinHash)) {
     if (row.failedPins > 0)
-      await db.update(schema.kovaCards).set({ failedPins: 0 }).where(eq(schema.kovaCards.address, row.address))
+      await db
+        .update(schema.kovaCards)
+        .set({ failedPins: 0 })
+        .where(eq(schema.kovaCards.address, row.address))
     return
   }
   const [after] = await db
@@ -474,13 +560,20 @@ async function checkPin(row: CardRow, pin: string | undefined): Promise<void> {
       .update(schema.kovaCards)
       .set({ failedPins: 0, lockedUntil: new Date(Date.now() + LOCK_MS) })
       .where(eq(schema.kovaCards.address, row.address))
-    throw new KovaError('policy_declined', 'Too many wrong PINs. This card is paused for 15 minutes.')
+    throw new KovaError(
+      'policy_declined',
+      'Too many wrong PINs. This card is paused for 15 minutes.',
+    )
   }
   const left = PIN_TRIES - failed
-  throw new KovaError('invalid_request', `Wrong PIN. ${left} ${left === 1 ? 'try' : 'tries'} left.`, {
-    pin_required: true,
-    tries_left: left,
-  })
+  throw new KovaError(
+    'invalid_request',
+    `Wrong PIN. ${left} ${left === 1 ? 'try' : 'tries'} left.`,
+    {
+      pin_required: true,
+      tries_left: left,
+    },
+  )
 }
 
 export interface CompletedTap {
@@ -499,19 +592,31 @@ export async function completeTap(
 ): Promise<CompletedTap> {
   const { contract, cosigner: kova } = requireCards()
   if (tap.status === 'paid') throw new KovaError('conflict', 'This tap has already paid.')
-  if (tap.status !== 'prepared') throw new KovaError('conflict', 'This tap didn’t go through. Tap the card again.')
-  if (tap.deadline <= nowS() + 3) throw new KovaError('conflict', 'That tap took too long. Tap the card again.')
+  if (tap.status !== 'prepared')
+    throw new KovaError('conflict', 'This tap didn’t go through. Tap the card again.')
+  if (tap.deadline <= nowS() + 3)
+    throw new KovaError('conflict', 'That tap took too long. Tap the card again.')
 
   const typedData = tapTypedData(contract, tap)
-  const signer = await recoverTypedDataAddress({ ...typedData, signature: input.cardSignature }).catch(() => null)
+  const signer = await recoverTypedDataAddress({
+    ...typedData,
+    signature: input.cardSignature,
+  }).catch(() => null)
   if (!signer || !isAddressEqual(signer, tap.cardAddress as Address))
-    throw new KovaError('invalid_request', 'The card’s signature doesn’t match. Tap the card again.')
+    throw new KovaError(
+      'invalid_request',
+      'The card’s signature doesn’t match. Tap the card again.',
+    )
 
   const row = await cardRow(tap.cardAddress as Address)
-  if (!row || row.status !== 'active') throw new KovaError('not_found', 'This card isn’t linked any more.')
+  if (!row || row.status !== 'active')
+    throw new KovaError('not_found', 'This card isn’t linked any more.')
   if (row.frozen) throw new KovaError('policy_declined', 'This card is frozen.')
   if (row.lockedUntil && row.lockedUntil > new Date())
-    throw new KovaError('policy_declined', 'Too many wrong PINs. This card is paused for a few minutes.')
+    throw new KovaError(
+      'policy_declined',
+      'Too many wrong PINs. This card is paused for a few minutes.',
+    )
   if (tap.pinRequired) await checkPin(row, input.pin)
 
   const [claimed] = await db
@@ -566,18 +671,26 @@ export async function sendCard(contract: Address, data: Hex): Promise<Transactio
     receipt = await sendFromRelayer(contract, data, { maxGas: CARD_GAS })
   } catch (error) {
     if (relayerIsDry(error instanceof RefusedEstimate ? error.cause : error))
-      throw new KovaError('chain_error', 'Kova’s relayer is out of gas for a moment. Nothing moved. Try again shortly.')
+      throw new KovaError(
+        'chain_error',
+        'Kova’s relayer is out of gas for a moment. Nothing moved. Try again shortly.',
+      )
     if (error instanceof RefusedEstimate) throw explainCardRefusal(error.cause)
     throw error
   }
   if (receipt.status !== 'success')
-    throw new KovaError('chain_error', 'Monad refused this. No money moved.', { tx_hash: receipt.transactionHash })
+    throw new KovaError('chain_error', 'Monad refused this. No money moved.', {
+      tx_hash: receipt.transactionHash,
+    })
   return receipt
 }
 
 /** The relayer itself can't pay the gas: Kova's problem, not the wallet's. */
 function relayerIsDry(cause: unknown): boolean {
-  const text = cause instanceof Error ? `${cause.message} ${(cause as { details?: string }).details ?? ''}` : String(cause)
+  const text =
+    cause instanceof Error
+      ? `${cause.message} ${(cause as { details?: string }).details ?? ''}`
+      : String(cause)
   return /signer had insufficient balance|insufficient funds for gas/i.test(text)
 }
 
@@ -598,14 +711,20 @@ function explainCardRefusal(cause: unknown): KovaError {
   if (known) return new KovaError(known[0], known[1])
   // An ERC-20 revert (balance or allowance) has no KovaCard error.
   console.warn('[cards] refused', cause instanceof Error ? cause.message.slice(0, 300) : cause)
-  return new KovaError('policy_declined', 'The wallet behind this card couldn’t cover this payment. No money moved.')
+  return new KovaError(
+    'policy_declined',
+    'The wallet behind this card couldn’t cover this payment. No money moved.',
+  )
 }
 
 function revertName(cause: unknown): string | null {
   if (cause instanceof BaseError) {
     const reverted = cause.walk((e) => e instanceof ContractFunctionRevertedError)
-    if (reverted instanceof ContractFunctionRevertedError && reverted.data?.errorName) return reverted.data.errorName
-    const raw = cause.walk((e) => typeof (e as { data?: unknown }).data === 'string') as { data?: Hex } | null
+    if (reverted instanceof ContractFunctionRevertedError && reverted.data?.errorName)
+      return reverted.data.errorName
+    const raw = cause.walk((e) => typeof (e as { data?: unknown }).data === 'string') as {
+      data?: Hex
+    } | null
     if (raw?.data && raw.data.length >= 10) {
       try {
         return decodeErrorResult({ abi: kovaCardAbi, data: raw.data }).errorName

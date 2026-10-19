@@ -4,13 +4,26 @@ import type { PasskeyCredentialMetadata } from '@category-labs/mera'
 import {
   generateStealthAddress,
   type NetworkId,
+  type PaymentRoute,
+  type PrivateHolding,
+  type RouteInput,
+  routePayment,
   type StealthKeys,
   stealthMemoMessage,
   stealthMetaAddress,
 } from '@kova/monad'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { type Address, getAddress, isAddress, isAddressEqual, type LocalAccount, type TypedDataDefinition } from 'viem'
+import {
+  type Address,
+  getAddress,
+  isAddress,
+  isAddressEqual,
+  type LocalAccount,
+  type TypedDataDefinition,
+} from 'viem'
 import { generatePrivateKey } from 'viem/accounts'
+import { useGoogleWallet } from '@/components/google-wallet-provider'
+import type { GoogleConnection } from '@/lib/google-wallet'
 import {
   createKovaPasskey,
   openKovaPasskey,
@@ -18,22 +31,18 @@ import {
   passkeyProblem,
 } from '@/lib/passkey'
 import { type ViewKey, viewOf } from '@/lib/takings'
-import { useGoogleWallet } from '@/components/google-wallet-provider'
-import { cachePrivateView, forgetPrivateView, restorePrivateView } from '@/lib/wallet/view-cache'
-import { networkStorageKey } from '@/lib/wallet/storage'
-import type { GoogleConnection } from '@/lib/google-wallet'
-import { openVault, sealAndUpload, type VaultContents } from '@/lib/vault'
 import { countNewWallet } from '@/lib/try-count'
+import { openVault, sealAndUpload, type VaultContents } from '@/lib/vault'
 import {
   balanceOf,
-  monBalanceOf,
+  type CashOutToPay,
   type ChargeToPay,
   addTestDollars as fetchTestDollars,
   type IndexedTransfer,
   type Moved,
-  type CashOutToPay,
-  payCharge,
+  monBalanceOf,
   payCashOut,
+  payCharge,
   sendMoney,
   transfersAfter,
 } from '@/lib/wallet/chain'
@@ -73,6 +82,8 @@ import {
   spend,
   startSession,
 } from '@/lib/wallet/session'
+import { networkStorageKey } from '@/lib/wallet/storage'
+import { cachePrivateView, forgetPrivateView, restorePrivateView } from '@/lib/wallet/view-cache'
 
 /**
  * Kova Pay on the web: your wallet, from your passkey, the one the Kova app uses.
@@ -138,8 +149,30 @@ export interface Entry {
 /** Where a payment comes from: your balance, or your private dollars at their one-time addresses. */
 export type PayFrom = 'balance' | 'private'
 
-/** How far paying from private dollars has got: gathering them into one address first, then paying. */
-export type PrivateStep = 'gathering' | 'paying'
+/** Where a payment comes from, as the privacy router decides it (@kova/monad). */
+export type Route = PaymentRoute<FoundPayment>
+
+/**
+ * How far paying with private dollars has got: putting several into one address first
+ * ('gathering'), moving just enough into the balance first ('moving'), then paying.
+ */
+export type PrivateStep = 'gathering' | 'moving' | 'paying'
+
+/** A private payment that arrived while this page was open: its moment, until it's closed. */
+export interface PrivateArrival {
+  /** Its one-time address. */
+  id: string
+  amount: bigint
+  /** Who sent it, as you know them. */
+  name: string
+  note?: string
+  /** Only its memo says who it's from. */
+  unconfirmed?: boolean
+  at: number
+}
+
+/** How fresh a payment must be, when first found, to get its arrival moment. */
+const ARRIVAL_MS = 3 * 60_000
 
 export interface ShopToday {
   name: string
@@ -171,8 +204,10 @@ interface Note {
 
 const PROFILE = 'kova.web.profile.v1'
 const HIDE = 'kova.web.hideBalance.v1'
-const notesKey = (address: string, network: NetworkId) => networkStorageKey(`kova.web.notes.v1.${address.toLowerCase()}`, network)
-const shopKey = (address: string, network: NetworkId) => networkStorageKey(`kova.web.shop.v1.${address.toLowerCase()}`, network)
+const notesKey = (address: string, network: NetworkId) =>
+  networkStorageKey(`kova.web.notes.v1.${address.toLowerCase()}`, network)
+const shopKey = (address: string, network: NetworkId) =>
+  networkStorageKey(`kova.web.shop.v1.${address.toLowerCase()}`, network)
 
 const read = <T,>(key: string): T | null => {
   try {
@@ -257,10 +292,20 @@ interface WalletValue {
   checkPrivate: () => Promise<void>
   /** One pass of looking after private payments: new ones, who sent them, what they still hold. */
   tickPrivate: () => Promise<void>
-  /** Brings every private payment into the wallet's balance. */
+  /** Makes every private dollar public: each one-time address moves what it holds into the wallet. */
   moveIn: () => Promise<MovedIn>
   /** A move in under way. */
   movingIn: { done: number; total: number } | null
+  /** Where a payment comes from, by the privacy router, with the private dollars this browser knows. */
+  route: (input: Omit<RouteInput<FoundPayment>, 'holdings'>) => Route
+  /**
+   * Moves the fewest whole addresses that make up `shortfall` into the balance, for a payment that
+   * goes right after (one passkey for both). That move is public on Monad.
+   */
+  moveInFor: (shortfall: bigint) => Promise<MovedIn>
+  /** A private payment that just arrived while this page was open, until its moment is closed. */
+  privateArrival: PrivateArrival | null
+  clearPrivateArrival: () => void
   /** Pays a shop's charge, from your balance or (`from: 'private'`) from private dollars. */
   /** Cashes out to a Nigerian bank: signs the quote's exact transfer to Kova's treasury, and Kova pays the naira. */
   cashOutNaira: (cashOut: CashOutToPay) => Promise<CashOutToPay>
@@ -405,6 +450,16 @@ export function WalletProvider({
   const [held, setHeld] = useState<Map<string, bigint>>(() => new Map())
   const heldRef = useRef(held)
   const [movingIn, setMovingIn] = useState<{ done: number; total: number } | null>(null)
+  /** A private payment found while the page was open, newer than ARRIVAL_MS: its moment. */
+  const [arrived, setArrived] = useState<{
+    id: string
+    amount: bigint
+    from?: string
+    memoName?: string
+    note?: string
+    unconfirmed?: boolean
+    at: number
+  } | null>(null)
   const transfersRef = useRef(transfers)
   transfersRef.current = transfers
   const notesRef = useRef(notes)
@@ -458,12 +513,16 @@ export function WalletProvider({
     return onSessionChange(take)
   }, [])
 
-  const keepLedger = useCallback((wallet: string, next: PrivateLedger) => {
-    if (!current.current || !isAddressEqual(getAddress(current.current), getAddress(wallet))) return
-    ledgerRef.current = next
-    setLedger(next)
-    writeLedger(wallet, next, network)
-  }, [network])
+  const keepLedger = useCallback(
+    (wallet: string, next: PrivateLedger) => {
+      if (!current.current || !isAddressEqual(getAddress(current.current), getAddress(wallet)))
+        return
+      ledgerRef.current = next
+      setLedger(next)
+      writeLedger(wallet, next, network)
+    },
+    [network],
+  )
 
   const keepHeld = useCallback((update: (held: Map<string, bigint>) => void) => {
     const next = new Map(heldRef.current)
@@ -486,7 +545,7 @@ export function WalletProvider({
     lastLooks.current = { held: 0, feed: 0 }
     void restorePrivateView(wallet).then((view) => {
       if (view && current.current === wallet)
-        setPrivateView((known) => known?.address === wallet ? known : { address: wallet, view })
+        setPrivateView((known) => (known?.address === wallet ? known : { address: wallet, view }))
     })
     void fetchPrivateKey(wallet).then((meta) => {
       if (current.current !== wallet) return
@@ -534,7 +593,10 @@ export function WalletProvider({
         })
       }
       cursor.current = batch.indexed_through
-      if (!batch.has_more) { setActivityWallet(wallet); return }
+      if (!batch.has_more) {
+        setActivityWallet(wallet)
+        return
+      }
     }
   }, [profile])
 
@@ -694,39 +756,56 @@ export function WalletProvider({
     return { named: Boolean(next.name) }
   }, [keepProfile, takeVault])
 
-  const adoptGoogle = useCallback(async (connected: GoogleConnection) => {
-    if (profile && (profile.auth !== 'google' || !isAddressEqual(profile.address, connected.account.address))) {
-      connected.session.end()
-      throw new Error('Sign out of the current wallet before opening another one.')
-    }
-    const backup = await openVault(connected.vaultSecret)
-    startSession(connected.session, connected.account)
-    takeVault(connected.vaultSecret, connected.account)
-    vaultRead.current = true
-    const next: Profile = {
-      address: connected.account.address, auth: 'google', email: connected.email,
-      name: backup?.name ?? connected.name,
-      currency: isDisplayCurrency(backup?.currency) ? backup.currency : guessCurrency(),
-      createdAt: profile?.createdAt ?? Date.now(),
-    }
-    keepProfile(next)
-    const people = (backup?.contacts ?? []).filter((c) => isAddress(c.address))
-      .map((c) => ({ ...c, currency: isDisplayCurrency(c.currency) ? c.currency : undefined }))
-    setSaved(people)
-    setNotes(read<Record<string, Note>>(notesKey(next.address, network)) ?? {})
-    setKnownShop(read<string>(shopKey(next.address, network)))
-    setStatus('ready')
-    if (!backup) backUp(vaultContents(next, people))
-  }, [profile, keepProfile, takeVault, backUp, vaultContents])
+  const adoptGoogle = useCallback(
+    async (connected: GoogleConnection) => {
+      if (
+        profile &&
+        (profile.auth !== 'google' || !isAddressEqual(profile.address, connected.account.address))
+      ) {
+        connected.session.end()
+        throw new Error('Sign out of the current wallet before opening another one.')
+      }
+      const backup = await openVault(connected.vaultSecret)
+      startSession(connected.session, connected.account)
+      takeVault(connected.vaultSecret, connected.account)
+      vaultRead.current = true
+      const next: Profile = {
+        address: connected.account.address,
+        auth: 'google',
+        email: connected.email,
+        name: backup?.name ?? connected.name,
+        currency: isDisplayCurrency(backup?.currency) ? backup.currency : guessCurrency(),
+        createdAt: profile?.createdAt ?? Date.now(),
+      }
+      keepProfile(next)
+      const people = (backup?.contacts ?? [])
+        .filter((c) => isAddress(c.address))
+        .map((c) => ({ ...c, currency: isDisplayCurrency(c.currency) ? c.currency : undefined }))
+      setSaved(people)
+      setNotes(read<Record<string, Note>>(notesKey(next.address, network)) ?? {})
+      setKnownShop(read<string>(shopKey(next.address, network)))
+      setStatus('ready')
+      if (!backup) backUp(vaultContents(next, people))
+    },
+    [profile, keepProfile, takeVault, backUp, vaultContents],
+  )
 
   const signInGoogle = useCallback(async () => {
     setGoogleAdopting(true)
     setGoogleRestoreError(null)
     try {
-      const connected = await google.connect(profile?.auth === 'google' ? profile.address : undefined)
-      try { await adoptGoogle(connected) }
-      catch (error) { connected.session.end(); throw error }
-    } finally { setGoogleAdopting(false) }
+      const connected = await google.connect(
+        profile?.auth === 'google' ? profile.address : undefined,
+      )
+      try {
+        await adoptGoogle(connected)
+      } catch (error) {
+        connected.session.end()
+        throw error
+      }
+    } finally {
+      setGoogleAdopting(false)
+    }
   }, [adoptGoogle, google.connect, profile])
 
   const resumedGoogle = useRef<GoogleConnection | null>(null)
@@ -735,10 +814,14 @@ export function WalletProvider({
     if (status === 'loading' || !connection?.resumed || resumedGoogle.current === connection) return
     resumedGoogle.current = connection
     setGoogleAdopting(true)
-    void adoptGoogle(connection).catch((error: unknown) => {
-      connection.session.end()
-      setGoogleRestoreError(error instanceof Error ? error.message : 'Your wallet could not be restored. Try again.')
-    }).finally(() => setGoogleAdopting(false))
+    void adoptGoogle(connection)
+      .catch((error: unknown) => {
+        connection.session.end()
+        setGoogleRestoreError(
+          error instanceof Error ? error.message : 'Your wallet could not be restored. Try again.',
+        )
+      })
+      .finally(() => setGoogleAdopting(false))
   }, [status, google.connection, adoptGoogle])
 
   /**
@@ -751,9 +834,13 @@ export function WalletProvider({
       const open = sessionAccount(amount)
       if (open) return open
       if (profile.auth === 'google') {
-        if (!window.confirm(amount > 0n
-          ? `Approve ${formatUsd(amount)} from your Google wallet?`
-          : 'Unlock your Google wallet to approve this action?'))
+        if (
+          !window.confirm(
+            amount > 0n
+              ? `Approve ${formatUsd(amount)} from your Google wallet?`
+              : 'Unlock your Google wallet to approve this action?',
+          )
+        )
           throw new Error('Cancelled. Nothing was signed.')
         const connected = await google.connect(profile.address)
         startSession(connected.session, connected.account)
@@ -838,8 +925,29 @@ export function WalletProvider({
           () => current.current !== wallet,
         )
         if (!next || current.current !== wallet) return
+        // Paid to you a moment ago, and new to this page: the newest gets its arrival moment.
+        // Your own change, and anything found long after it was paid, doesn't.
+        const known = new Set(ledgerRef.current.found.map((f) => f.address.toLowerCase()))
+        const fresh = next.found
+          .filter(
+            (f) =>
+              !known.has(f.address.toLowerCase()) &&
+              f.kind !== 'change' &&
+              Date.now() - f.at < ARRIVAL_MS,
+          )
+          .sort((a, b) => b.at - a.at)[0]
         if (next !== ledgerRef.current) keepLedger(wallet, next)
         setScannedWallet(wallet)
+        if (fresh)
+          setArrived({
+            id: fresh.address.toLowerCase(),
+            amount: BigInt(fresh.amount),
+            ...(fresh.from ? { from: fresh.from } : {}),
+            ...(fresh.name ? { memoName: fresh.name } : {}),
+            ...(fresh.note ? { note: fresh.note } : {}),
+            ...(fresh.proven === 'claimed' ? { unconfirmed: true } : {}),
+            at: fresh.at,
+          })
         lastLooks.current.feed = Date.now()
       } finally {
         scanning.current = false
@@ -952,6 +1060,62 @@ export function WalletProvider({
       setMovingIn(null)
     }
   }, [keepHeld, markEmptied, network, profile, refreshActivity, refreshBalance, unlock])
+
+  const moveInFor = useCallback(
+    async (shortfall: bigint) => {
+      if (!profile) throw new Error('Open your wallet first.')
+      const wallet = profile.address
+      // What each address holds now, read from Monad, then the fewest that make up the difference.
+      const candidates = ledgerRef.current.found.filter((f) => !f.emptied)
+      const read = await holdings(
+        network,
+        candidates.map((f) => f.address),
+      )
+      keepHeld((held) => {
+        for (const [address, value] of read) held.set(address, value)
+      })
+      const plan = planSpend(
+        candidates.map((payment) => ({
+          payment,
+          held: read.get(payment.address.toLowerCase()) ?? 0n,
+        })),
+        shortfall,
+      )
+      if (!plan)
+        throw new Error(
+          'Your private dollars don’t make up the difference any more. Nothing was paid.',
+        )
+      const move = 'from' in plan ? [plan.from] : plan.gather
+      // The wallet opens for this and for the payment right after: one passkey.
+      const account = await unlock(0n)
+      const keys = await privateKeys(account)
+      setMovingIn({ done: 0, total: move.length })
+      try {
+        const moved = await moveInPayments(network, keys, move, wallet, (done, total) =>
+          setMovingIn({ done, total }),
+        )
+        if (current.current === wallet) {
+          keepHeld((held) => {
+            for (const address of moved.emptied) held.set(address, 0n)
+          })
+          markEmptied(wallet, moved.emptied)
+        }
+        await refreshBalance().catch(() => {})
+        void refreshActivity()
+        if (moved.amount < shortfall)
+          throw new Error(
+            moved.count
+              ? `Only ${formatUsd(moved.amount)} moved into your balance just now. Nothing was paid; try again.`
+              : (moved.problem ??
+                  'Your private dollars didn’t move just now. Nothing was paid; try again.'),
+          )
+        return moved
+      } finally {
+        setMovingIn(null)
+      }
+    },
+    [keepHeld, markEmptied, network, profile, refreshActivity, refreshBalance, unlock],
+  )
 
   /**
    * The one-time address to pay `amount` from, as its own account: the smallest that holds enough.
@@ -1482,7 +1646,13 @@ export function WalletProvider({
             (locked
               ? 'Private note'
               : (t.shop?.reference ??
-                (paid ? 'Scan to pay' : link ? 'Sent as a link' : t.kind === 'cashout' ? 'To a Nigerian bank' : 'Sent'))),
+                (paid
+                  ? 'Scan to pay'
+                  : link
+                    ? 'Sent as a link'
+                    : t.kind === 'cashout'
+                      ? 'To a Nigerian bank'
+                      : 'Sent'))),
           ...secret,
           ...(link ? { link: true } : {}),
           address: t.to,
@@ -1503,10 +1673,10 @@ export function WalletProvider({
               : t.naira === 'cash_out_refund'
                 ? 'Cash-out returned'
                 : t.kind === 'refund'
-              ? 'Refund'
-              : link
-                ? 'Your link'
-                : (nameFor(t.from) ?? short(t.from)),
+                  ? 'Refund'
+                  : link
+                    ? 'Your link'
+                    : (nameFor(t.from) ?? short(t.from)),
           detail:
             sealed ??
             (locked
@@ -1518,10 +1688,10 @@ export function WalletProvider({
                   : t.naira === 'cash_out_refund'
                     ? 'The bank couldn’t take it'
                     : t.kind === 'refund'
-                  ? 'Money back'
-                  : link
-                    ? 'Taken back'
-                    : 'Arrived'),
+                      ? 'Money back'
+                      : link
+                        ? 'Taken back'
+                        : 'Arrived'),
           ...(sealed !== null ? { private: 'both' as const } : locked ? { locked: true } : {}),
           ...(link ? { link: true } : {}),
           address: t.from,
@@ -1571,14 +1741,7 @@ export function WalletProvider({
         amount: f.amount,
         name: f.from ? (nameFor(f.from) ?? f.name ?? short(getAddress(f.from))) : (f.name ?? ''),
         detail:
-          f.note ??
-          (waiting
-            ? 'Ready to spend'
-            : moved
-              ? 'Moved in'
-              : f.used
-                ? 'Spent privately'
-                : 'Moved in'),
+          f.note ?? (waiting ? 'Private' : f.used && !moved ? 'Spent privately' : 'Made public'),
         ...(f.note ? { private: 'both' as const } : {}),
         ...(f.from ? { address: getAddress(f.from) } : {}),
         ...(f.proven === 'claimed' ? { unconfirmed: true } : {}),
@@ -1625,21 +1788,57 @@ export function WalletProvider({
 
   /**
    * What each one-time address of yours holds (your change too): as Monad last said, or as
-   * announced until it has, and nothing once it's moved in.
+   * announced until it has, and nothing once it's moved in. The privacy router reads these.
    */
-  const privateHeld = useMemo(() => {
+  const privateHoldings = useMemo<PrivateHolding<FoundPayment>[]>(() => {
     const me = profile?.address.toLowerCase()
     const movedFrom = new Set(
       transfers.filter((t) => t.to.toLowerCase() === me).map((t) => t.from.toLowerCase()),
     )
     return ledger.found
       .filter((f) => !f.emptied)
-      .map((f) => {
+      .flatMap((f) => {
         const key = f.address.toLowerCase()
-        return held.get(key) ?? (movedFrom.has(key) ? 0n : BigInt(f.amount))
+        const value = held.get(key) ?? (movedFrom.has(key) ? 0n : BigInt(f.amount))
+        return value > 0n ? [{ item: f, held: value }] : []
       })
-      .filter((value) => value > 0n)
   }, [held, ledger, profile?.address, transfers])
+  const privateHeld = useMemo(() => privateHoldings.map((h) => h.held), [privateHoldings])
+  const route = useCallback(
+    (input: Omit<RouteInput<FoundPayment>, 'holdings'>) =>
+      routePayment({ ...input, holdings: privateHoldings }),
+    [privateHoldings],
+  )
+  const privateArrival = useMemo<PrivateArrival | null>(
+    () =>
+      arrived
+        ? {
+            id: arrived.id,
+            amount: arrived.amount,
+            name: arrived.from
+              ? (nameFor(arrived.from) ?? arrived.memoName ?? short(getAddress(arrived.from)))
+              : (arrived.memoName ?? 'Someone'),
+            ...(arrived.note ? { note: arrived.note } : {}),
+            ...(arrived.unconfirmed ? { unconfirmed: true } : {}),
+            at: arrived.at,
+          }
+        : null,
+    [arrived, nameFor],
+  )
+  const clearPrivateArrival = useCallback(() => setArrived(null), [])
+  // Development only: `kovaArrival({ amount: 1_000_000n, memoName: 'Maya', note: '…' })` in the
+  // console shows the arrival moment for a made-up payment, to look at the design.
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return
+    const w = window as unknown as {
+      kovaArrival?: (a: Partial<NonNullable<typeof arrived>>) => void
+    }
+    w.kovaArrival = (a) =>
+      setArrived({ id: `preview:${Date.now()}`, amount: 1_000_000n, at: Date.now(), ...a })
+    return () => {
+      delete w.kovaArrival
+    }
+  }, [])
   const privateBalance = useMemo(() => privateHeld.reduce((sum, v) => sum + v, 0n), [privateHeld])
   const privateLargest = useMemo(
     () => privateHeld.reduce((most, v) => (v > most ? v : most), 0n),
@@ -1698,6 +1897,10 @@ export function WalletProvider({
       tickPrivate,
       moveIn,
       movingIn,
+      route,
+      moveInFor,
+      privateArrival,
+      clearPrivateArrival,
       payCheckout,
       cashOutNaira,
       addTestDollars,
@@ -1751,6 +1954,10 @@ export function WalletProvider({
       tickPrivate,
       moveIn,
       movingIn,
+      route,
+      moveInFor,
+      privateArrival,
+      clearPrivateArrival,
       payCheckout,
       cashOutNaira,
       addTestDollars,

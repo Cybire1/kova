@@ -23,8 +23,20 @@ const whole = (base: bigint) => formatUsd(base).replace(/\.00$/, '')
 
 /** You, as the app's Profile shows you: your pass, your money's currency, your keys, your shop. */
 export function Profile() {
-  const { profile, activity, contacts, network, rates, liveRates, setCurrency, lock, signOut } =
-    useWallet()
+  const {
+    profile,
+    activity,
+    contacts,
+    network,
+    rates,
+    liveRates,
+    setCurrency,
+    lock,
+    signOut,
+    privateBalance,
+    privateReceiving,
+    hideBalance,
+  } = useWallet()
   const session = useSessionState()
   const router = useRouter()
   const [origin, setOrigin] = useState('https://mykova.app')
@@ -95,15 +107,39 @@ export function Profile() {
         </Link>
       ) : null}
 
+      <Link href="/wallet/private" className="w-add-chain">
+        <span>
+          <strong>Private dollars</strong>
+          <small>
+            {privateBalance > 0n
+              ? `Private: ${hideBalance ? '••••' : formatUsd(privateBalance)}`
+              : privateReceiving
+                ? 'Anyone can send to you privately'
+                : 'Let people send to you privately'}
+          </small>
+        </span>
+        <Icon name="lock" size={16} />
+      </Link>
+
       <Link href="/wallet/keys" className="w-add-chain">
         <span>
           <strong>Keys</strong>
-          <small>Allowances, your team and AI agents: who may spend your dollars, and how much</small>
+          <small>
+            Allowances, your team and AI agents: who may spend your dollars, and how much
+          </small>
         </span>
         <Icon name="key" size={16} />
       </Link>
 
-      {network==='testnet'?<Link href="/wallet/ussd" className="w-add-chain"><span><strong>Pay by USSD</strong><small>Link your simulator number and test payments without data</small></span><Icon name="arrow" size={16} /></Link>:null}
+      {network === 'testnet' ? (
+        <Link href="/wallet/ussd" className="w-add-chain">
+          <span>
+            <strong>Pay by USSD</strong>
+            <small>Link your simulator number and test payments without data</small>
+          </span>
+          <Icon name="arrow" size={16} />
+        </Link>
+      ) : null}
 
       <section className="w-money">
         <div>
@@ -140,9 +176,11 @@ export function Profile() {
           </span>
           <span>
             <strong>{profile.auth === 'google' ? 'Your Google account' : 'Your passkey'}</strong>
-            <small>{profile.auth === 'google'
-              ? `${profile.email || 'Google'} opens this same wallet on a new phone or browser.`
-              : 'The same one as the Kova app. It opens this wallet on any device.'}</small>
+            <small>
+              {profile.auth === 'google'
+                ? `${profile.email || 'Google'} opens this same wallet on a new phone or browser.`
+                : 'The same one as the Kova app. It opens this wallet on any device.'}
+            </small>
           </span>
         </div>
         <div className={`w-session${session.open ? ' w-session-open' : ''}`}>
@@ -151,7 +189,9 @@ export function Profile() {
             <small>
               {session.open
                 ? `Pays up to ${formatUsd(session.canApprove)} before asking again`
-                : profile.auth === 'google' ? 'Your next payment asks you to unlock your Google wallet' : 'Your next payment asks for your passkey'}
+                : profile.auth === 'google'
+                  ? 'Your next payment asks you to unlock your Google wallet'
+                  : 'Your next payment asks for your passkey'}
             </small>
           </span>
           {session.open ? (
@@ -177,7 +217,8 @@ export function Profile() {
         <div className="w-forget">
           <p>
             This browser forgets your wallet. Your money stays on Monad. Sign in again with
-            {profile.auth === 'google' ? ' the same Google account' : ' your Kova passkey'} to reopen it.
+            {profile.auth === 'google' ? ' the same Google account' : ' your Kova passkey'} to
+            reopen it.
           </p>
           <div className="w-forget-actions">
             <button type="button" className="mini" onClick={() => setForgetting(false)}>

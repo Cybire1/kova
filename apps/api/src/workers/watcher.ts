@@ -65,7 +65,8 @@ async function loadCursor(head: bigint): Promise<bigint> {
   })
   if (row && head - row.lastBlock <= MAX_CATCH_UP) return row.lastBlock
   const from = head > COLD_START_LOOKBACK ? head - COLD_START_LOOKBACK : 0n
-  if (row) console.warn(`[watcher] ${head - row.lastBlock} blocks behind; skipping ahead to ${from}`)
+  if (row)
+    console.warn(`[watcher] ${head - row.lastBlock} blocks behind; skipping ahead to ${from}`)
   await saveCursor(from)
   return from
 }
@@ -106,9 +107,14 @@ export async function handleLogs(logs: Log[]): Promise<number> {
       const tokenLogs = txLogs.filter((log) => isAddressEqual(log.address, token))
       if (tokenLogs.length === 0) continue
       // Card taps pair a CardPayment with the token's Transfer, so both kinds of log are in play.
-      const cardLogs = cardContract ? txLogs.filter((log) => isAddressEqual(log.address, cardContract)) : []
+      const cardLogs = cardContract
+        ? txLogs.filter((log) => isAddressEqual(log.address, cardContract))
+        : []
       const paired = [...tokenLogs, ...cardLogs]
-      const authorized = [...decodeAuthorizedTransfers(tokenLogs, token), ...decodeCardTransfers(paired, token, cardContract)]
+      const authorized = [
+        ...decodeAuthorizedTransfers(tokenLogs, token),
+        ...decodeCardTransfers(paired, token, cardContract),
+      ]
       if (authorized.some((a) => decodeMemo(a.nonce)?.kind === 'payment')) paysACharge = true
       for (const transfer of decodeTokenTransfers(paired, token, cardContract)) {
         const log = tokenLogs.find((l) => l.logIndex === transfer.logIndex)
@@ -156,7 +162,9 @@ export async function catchUp(fromBlock: bigint, toBlock: bigint): Promise<numbe
       start = end + 1n
     }
     const batches = await Promise.all(
-      windows.map(([from, to]) => publicClient.getLogs({ address: watched, events, fromBlock: from, toBlock: to })),
+      windows.map(([from, to]) =>
+        publicClient.getLogs({ address: watched, events, fromBlock: from, toBlock: to }),
+      ),
     )
     for (const logs of batches) recorded += await handleLogs(logs as Log[])
   }
@@ -183,7 +191,10 @@ export async function startWatcher(): Promise<WatcherHandle> {
       const head = await finalizedBlock()
       if (cursor === null) cursor = await loadCursor(head)
       if (head > cursor) {
-        const until = cursor + LOG_RANGE * WINDOWS_PER_TICK < head ? cursor + LOG_RANGE * WINDOWS_PER_TICK : head
+        const until =
+          cursor + LOG_RANGE * WINDOWS_PER_TICK < head
+            ? cursor + LOG_RANGE * WINDOWS_PER_TICK
+            : head
         await catchUp(cursor + 1n, until)
         cursor = until
         await saveCursor(cursor)
@@ -196,7 +207,12 @@ export async function startWatcher(): Promise<WatcherHandle> {
     } catch (error) {
       backoff = backoff ? Math.min(backoff * 2, 60_000) : FIRST_BACKOFF
       resumeAt = Date.now() + backoff
-      console.error(`[watcher] poll failed; retrying in ${backoff / 1000}s:`, error instanceof Error ? (error as { details?: string }).details ?? error.message.split('\n')[0] : error)
+      console.error(
+        `[watcher] poll failed; retrying in ${backoff / 1000}s:`,
+        error instanceof Error
+          ? ((error as { details?: string }).details ?? error.message.split('\n')[0])
+          : error,
+      )
     } finally {
       inFlight = false
     }
