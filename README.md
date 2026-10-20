@@ -319,13 +319,6 @@ with Mera and encrypted vaults, the web wallet, the shop inside the wallet, wall
 (EIP-4361), email and Google with Privy, the Chainlink CRE rates workflow, stalls, tills and
 catalogue, Kova Travel, test dollars, and the launch film.
 
-## AI disclosure
-
-Kova was built with AI coding tools. Most of the code, tests and documentation, and the film's
-code, were written with [Claude Code](https://claude.com/claude-code) (Anthropic's Claude models)
-under the team's direction and review. The film's voiceover was generated with ElevenLabs. At
-runtime, two optional features call AI models: "Snap your menu" (Claude or DeepSeek) and spending
-insights (TypeSafe's Jev).
 
 ## Attribution
 
