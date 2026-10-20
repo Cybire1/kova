@@ -1,6 +1,6 @@
 'use client'
 
-import { phoneInput } from '@kova/monad'
+import { nadNameOf, phoneInput } from '@kova/monad'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -20,6 +20,7 @@ import {
   rateLabel,
   toBase,
 } from '@/lib/wallet/money'
+import { useNadName } from '@/lib/wallet/names'
 import { sessionCovers } from '@/lib/wallet/session'
 import { ArcRoute, type Leg } from './arc'
 import { Home } from './home'
@@ -153,6 +154,21 @@ export function SendSheet({ to }: { to?: string }) {
       : payee.name || short(payee.address)
     : ''
   const theirs = payee?.currency ?? known?.currency
+  const named = Boolean(payee?.name || (known && !isUnnamed(known.name)))
+  // Only an address so far: their own .nad name, when they've set one on Monad.
+  useEffect(() => {
+    if (!address || named) return
+    let live = true
+    void nadNameOf(getAddress(address)).then(
+      (nad) =>
+        live &&
+        nad &&
+        setPayee((p) => (p && p.address === address && !p.name ? { ...p, name: nad } : p)),
+    )
+    return () => {
+      live = false
+    }
+  }, [address, named])
   const local = theirs && theirs !== 'USD' ? theirs : null
 
   const onKey = useCallback((key: Key) => setTyped((v) => applyKey(v, key, 2)), [])
@@ -562,6 +578,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
   useEffect(() => setHasLinks(Object.keys(keptLinks(network)).length > 0), [network])
   const scanned = text.trim() ? parseScanned(text) : null
   const query = text.trim().toLowerCase()
+  const nad = useNadName(scanned || phoneInput(text) ? '' : text)
   const matches =
     query && !scanned
       ? contacts.filter(
@@ -588,6 +605,19 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
     })
   }
 
+  /** Their .nad name: pay who it points to now, or say why not. */
+  const pickName = () => {
+    if (!nad) return
+    if (nad.state === 'found') return onPick({ address: nad.address, name: nad.name })
+    setError(
+      nad.state === 'looking'
+        ? `Still looking up ${nad.name}.`
+        : nad.state === 'none'
+          ? `No one has ${nad.name} on Monad.`
+          : `Couldn’t reach Monad to look up ${nad.name}. Try again.`,
+    )
+  }
+
   return (
     <div>
       <h2 className="w-sheet-h">Send to</h2>
@@ -598,6 +628,8 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
           const only = matches.length === 1 && !scanned ? matches[0] : undefined
           if (only)
             return onPick({ address: only.address, name: only.name, currency: only.currency })
+          if (nad && (nad.typed || (nad.state === 'found' && matches.length === 0)))
+            return pickName()
           go(text)
         }}
       >
@@ -648,6 +680,35 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
             <small>They can join Kova when they receive it</small>
           </span>
           <Icon name="arrow" size={18} />
+        </button>
+      ) : null}
+      {nad && (nad.typed || nad.state === 'found') ? (
+        <button
+          type="button"
+          className="w-match"
+          disabled={nad.state !== 'found'}
+          onClick={pickName}
+        >
+          {nad.state === 'found' ? (
+            <Avatar name={nad.name} id={nad.address} size={44} />
+          ) : (
+            <span className="w-linkrow-disc">
+              <Icon name="search" size={20} />
+            </span>
+          )}
+          <span>
+            <strong>{nad.state === 'found' ? `Send to ${nad.name}` : nad.name}</strong>
+            <small>
+              {nad.state === 'found'
+                ? `Their Monad name, ${short(nad.address)}`
+                : nad.state === 'looking'
+                  ? 'Looking it up on Monad…'
+                  : nad.state === 'none'
+                    ? 'No one has this name on Monad yet'
+                    : 'Couldn’t reach Monad. Try again in a moment.'}
+            </small>
+          </span>
+          {nad.state === 'found' ? <Icon name="arrow" size={18} /> : null}
         </button>
       ) : null}
       {!query ? (
@@ -714,8 +775,8 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
           <Art name="kovi-ride" size={104} className="w-bob" />
           <strong>Send your first payment</strong>
           <span>
-            Paste a friend’s Kova link or their Monad address. It lands in about a second, and Kova
-            covers the fee.
+            Type a friend’s .nad name, or paste their Kova link or Monad address. It lands in about
+            a second, and Kova covers the fee.
           </span>
         </div>
       ) : null}

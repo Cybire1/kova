@@ -1,4 +1,4 @@
-import { phoneInput } from '@kova/monad'
+import { nadNameOf, phoneInput } from '@kova/monad'
 import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
@@ -24,6 +24,7 @@ import {
   groupTyped,
   toBase,
 } from '@/lib/money'
+import { useNadName } from '@/lib/names'
 import { useOffline } from '@/lib/offline'
 import { OFFLINE_MAX } from '@/lib/offline-core'
 import { usePrivate } from '@/lib/private'
@@ -210,6 +211,24 @@ export function SendSheet({ payee }: { payee?: Payee }) {
   }
 
   const address = to?.address
+  const named = Boolean(to?.name || (saved && !isUnnamed(saved)))
+  // Only an address so far: their own .nad name, when they've set one on Monad.
+  useEffect(() => {
+    if (!address || named || viaCode) return
+    let live = true
+    void nadNameOf(address).then(
+      (nad) =>
+        live &&
+        nad &&
+        setTo((p) =>
+          p && isAddressEqual(p.address, address) && !p.name ? { ...p, name: nad } : p,
+        ),
+    )
+    return () => {
+      live = false
+    }
+  }, [address, named, viaCode])
+
   useEffect(() => {
     if (!address || viaCode) return
     let live = true
@@ -630,6 +649,21 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
       )
     : people
   const direct = query ? parseScanned(text) : null
+  // Names need Monad: offline, only your people and codes.
+  const nad = useNadName(direct || phoneInput(text) || offline ? '' : text)
+
+  /** Their .nad name: pay who it points to now, or say why not. */
+  const pickName = () => {
+    if (!nad) return
+    if (nad.state === 'found') return onPick({ address: nad.address, name: nad.name })
+    setProblem(
+      nad.state === 'looking'
+        ? `Still looking up ${nad.name}.`
+        : nad.state === 'none'
+          ? `No one has ${nad.name} on Monad.`
+          : `Couldn’t reach Monad to look up ${nad.name}. Try again.`,
+    )
+  }
 
   const go = (value: string) => {
     const phone = phoneInput(value)
@@ -695,7 +729,11 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
             setText(v)
             setProblem(null)
           }}
-          onSubmitEditing={() => go(text)}
+          onSubmitEditing={() =>
+            nad && (nad.typed || (nad.state === 'found' && shown.length === 0))
+              ? pickName()
+              : go(text)
+          }
           placeholder="Name, phone, address or link"
           placeholderTextColor="#8C9799"
           autoCapitalize="none"
@@ -728,6 +766,42 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
           <Txt weight="semi" color={colors.white}>
             Send to {phoneInput(text)}
           </Txt>
+        </Pressable>
+      ) : null}
+      {nad && (nad.typed || nad.state === 'found') ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: nad.state !== 'found' }}
+          disabled={nad.state !== 'found'}
+          onPress={pickName}
+          style={({ pressed }) => [styles.direct, pressed && { transform: [{ scale: 0.98 }] }]}
+        >
+          {nad.state === 'found' ? (
+            <Avatar name={nad.name} id={nad.address} size={48} />
+          ) : (
+            <View style={styles.directBadge}>
+              <Icon name="user" size={22} />
+            </View>
+          )}
+          <View style={{ flex: 1 }}>
+            <Txt weight="semi" size={16} color={colors.white} numberOfLines={1}>
+              {nad.state === 'found' ? `Send to ${nad.name}` : nad.name}
+            </Txt>
+            <Txt size={13} color={colors.onInk} numberOfLines={1}>
+              {nad.state === 'found'
+                ? `Their Monad name, ${short(nad.address)}`
+                : nad.state === 'looking'
+                  ? 'Looking it up on Monad…'
+                  : nad.state === 'none'
+                    ? 'No one has this name on Monad yet'
+                    : 'Couldn’t reach Monad. Try again in a moment.'}
+            </Txt>
+          </View>
+          {nad.state === 'found' ? (
+            <View style={styles.directGo}>
+              <Icon name="arrow" size={20} />
+            </View>
+          ) : null}
         </Pressable>
       ) : null}
       {!query ? (
@@ -850,7 +924,8 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
             color={colors.muted}
             style={{ textAlign: 'center', marginTop: 4, lineHeight: 20 }}
           >
-            Scan a friend’s Kova code or paste their link. They’ll be saved here for next time.
+            Type a friend’s .nad name, scan their Kova code or paste their link. They’ll be saved
+            here for next time.
           </Txt>
         </View>
       ) : null}
@@ -921,9 +996,10 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
             </ScrollView>
           </View>
         </>
-      ) : query && !direct ? (
+      ) : query && !direct && !nad?.typed && nad?.state !== 'found' ? (
         <Txt size={15} color={colors.muted} style={{ marginTop: 16, marginLeft: 6 }}>
-          No one matches “{text.trim()}”. Paste their Kova link or a full address.
+          No one matches “{text.trim()}”. Try their .nad name, or paste their Kova link or a full
+          address.
         </Txt>
       ) : null}
       <NameSheet person={naming} onClose={() => setNaming(null)} />
