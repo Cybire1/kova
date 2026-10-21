@@ -26,6 +26,7 @@ import { reportRoutes } from './routes/reports.js'
 import { spendKeyRoutes } from './routes/spend-keys.js'
 import { stallRoutes } from './routes/stalls.js'
 import { statsRoutes } from './routes/stats.js'
+import { stockRoutes } from './routes/stocks.js'
 import { takingsRoutes } from './routes/takings.js'
 import { terminalRoutes } from './routes/terminals.js'
 import { travelRoutes } from './routes/travel.js'
@@ -38,6 +39,7 @@ import { checkPayingCashOuts, retryTopUps } from './services/naira.js'
 import { recoverPhonePayments } from './services/phone-payments.js'
 import { reconcilePendingPockets } from './services/pockets.js'
 import { rateBook } from './services/rates.js'
+import { popularStocks } from './services/stocks.js'
 import { expireTrips } from './services/travel.js'
 import { redactCallbackLog } from './services/ussd-callback.js'
 import { startAnnouncer } from './workers/announcer.js'
@@ -78,6 +80,7 @@ app.route('/v1', cardRoutes)
 app.route('/v1', spendKeyRoutes)
 app.route('/v1', demoRoutes)
 app.route('/v1', rateRoutes)
+app.route('/v1', stockRoutes)
 app.route('/v1', webhookRoutes)
 app.route('/v1', reportRoutes)
 
@@ -111,6 +114,14 @@ if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js
   // Rates change every 15 minutes at most; keep Kova Travel's copy fresh without waiting for a request.
   void rateBook()
   setInterval(() => void rateBook(), 5 * 60_000)
+  // xStocks lists 1,300+ stocks over 14 pages: read them, and price the popular ones, before
+  // anyone opens Stocks, and keep both fresh.
+  const warmStocks = () =>
+    void popularStocks().catch((error) =>
+      console.warn('[stocks] xStocks unreachable:', String(error)),
+    )
+  warmStocks()
+  setInterval(warmStocks, 5 * 60_000)
   // Naira: follow bank transfers Paystack hasn't confirmed yet, and send dollars a top-up still owes.
   setInterval(() => {
     void checkPayingCashOuts().catch((error) => console.error('[naira] cash-outs', error))

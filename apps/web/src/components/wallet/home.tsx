@@ -9,6 +9,7 @@ import { KeysOnHome } from './keys'
 import { MonWalletCard } from './mon'
 import { MoneyRow } from './money'
 import { isUnnamed, useWallet } from './provider'
+import { StocksCard } from './stocks'
 import { ActionTile, Avatar, BalanceCard, EntryRow } from './ui'
 
 /**
@@ -76,6 +77,8 @@ export function Home() {
       <KeysOnHome />
 
       <ShopCard />
+
+      <StocksCard />
 
       <MoneyRow />
       <Link href="/wallet/keys" className="w-add-chain">

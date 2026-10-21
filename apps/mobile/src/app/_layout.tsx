@@ -185,6 +185,13 @@ export default function RootLayout() {
                             <Stack.Screen name="send/[to]" options={sendSheet} />
                             <Stack.Screen name="send/link" options={sendSheet} />
                             <Stack.Screen
+                              name="stocks/buy"
+                              options={{
+                                ...sendSheet,
+                                contentStyle: { backgroundColor: colors.surface },
+                              }}
+                            />
+                            <Stack.Screen
                               name="send/phone"
                               options={{
                                 presentation: 'fullScreenModal',

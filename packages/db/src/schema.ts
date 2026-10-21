@@ -1516,3 +1516,22 @@ export const iosBetaRequests = pgTable(
   },
   (t) => [uniqueIndex('ios_beta_requests_email_idx').on(t.email)],
 )
+
+/**
+ * Wallets that asked to be told when they can buy a stock in Kova (xStocks on Monad). Kept so
+ * Kova can tell them in the app the day buying opens, and to show a partner how many people want
+ * each one. notified_at is set once they've been told.
+ */
+export const stockAlerts = pgTable(
+  'stock_alerts',
+  {
+    id: id(),
+    /** Checksummed. */
+    wallet: text('wallet').notNull(),
+    /** The xStock: TSLAx. */
+    symbol: text('symbol').notNull(),
+    createdAt: createdAt(),
+    notifiedAt: timestamp('notified_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('stock_alerts_wallet_symbol_idx').on(t.wallet, t.symbol)],
+)

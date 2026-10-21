@@ -33,6 +33,7 @@ import { MonWalletCard } from '@/ui/MonWalletCard'
 import { OfflinePill, OfflineRow } from '@/ui/Offline'
 import { RoundButton, Txt } from '@/ui/primitives'
 import { dollars } from '@/ui/StallParts'
+import { StocksCard } from '@/ui/Stocks'
 
 /**
  * Home is for paying, but you should never have to look for your money. The balance opens the
@@ -165,6 +166,8 @@ export default function Home() {
       <KeysOnHome />
 
       <ShopCard />
+
+      <StocksCard />
 
       <MoneyTiles />
 

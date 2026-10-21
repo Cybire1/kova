@@ -55,6 +55,8 @@ const schema = z.object({
   KOVA_MENU_MODEL: z.string().optional(),
   /** Kova Travel: flights and hotels through Duffel. A duffel_test_ token runs in Duffel's test mode. */
   DUFFEL_API_KEY: z.string().optional(),
+  /** Stock charts: a CoinGecko demo key lifts the keyless rate limit. Charts work without one. */
+  COINGECKO_API_KEY: z.string().optional(),
   /**
    * Where Kova Travel's payments settle. On testnet it defaults to the fee payer's address;
    * on mainnet it must be set, to a wallet Kova's treasury controls.

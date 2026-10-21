@@ -26,7 +26,7 @@ load-bearing, and how to check all of it. The story and every proof transaction 
 | `apps/mobile` | The iOS app: Expo SDK 54, expo-router screens in `src/app`, UI in `src/ui`, logic in `src/lib`. Installs with **npm**, outside the pnpm workspace. |
 | `apps/card/contracts` | `KovaCard` (spending keys: per-key daily limit, freeze, cosigner), `KovaSaver`, `KovaTestVault`. Foundry. |
 | `apps/rates` | The Chainlink CRE workflow (`kova-rates/`) and the `KovaRates` contract it writes (`contracts/`). |
-| `packages/monad` | Chain logic shared by the API, web and app: networks and tokens, EIP-3009 typed data (`authorization.ts`), stealth addresses (`stealth.ts`), sealed notes (`notes.ts`, `memo.ts`), the privacy router that picks where each payment comes from (`route.ts`), spending keys (`spend-keys.ts`), offline payments (`offline.ts`), encrypted vaults (`vault.ts`). |
+| `packages/monad` | Chain logic shared by the API, web and app: networks and tokens, EIP-3009 typed data (`authorization.ts`), stealth addresses (`stealth.ts`), sealed notes (`notes.ts`, `memo.ts`), the privacy router that picks where each payment comes from (`route.ts`), spending keys (`spend-keys.ts`), offline payments (`offline.ts`), encrypted vaults (`vault.ts`), .nad names (`names.ts`), stocks: xStocks on Monad, with holdings read in one multicall (`stocks.ts`). |
 | `packages/db` | Drizzle schema (`src/schema.ts`) and SQL migrations (`drizzle/`), applied on API start. |
 | `packages/tempo` | From the earlier Tempo build. The Monad build doesn't use it. |
 | `film` | The demo videos (Remotion). Not shipped code, so it sits outside the app lint. |
