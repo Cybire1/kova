@@ -11,6 +11,7 @@
 <p align="center">
   <a href="https://mykova.app/wallet"><b>Try it at mykova.app</b></a> ·
   <a href="https://testflight.apple.com/join/RPEhxUWv">iOS on TestFlight</a> ·
+  <a href="https://mykova.app/stats">Live users</a> ·
   <a href="AGENTS.md">For reviewers</a> ·
   <a href="https://github.com/Cybire1/kova/actions/workflows/ci.yml"><img src="https://github.com/Cybire1/kova/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" align="center"></a>
 </p>
@@ -155,6 +156,27 @@ country, and cashing out to mobile money (M-Pesa, MTN MoMo) from the same menu.
 - **Exchange rates from Chainlink CRE.** A workflow ([`apps/rates`](apps/rates)) checks two FX
   sources against each other, reaches consensus and writes a signed report to `KovaRates` on Monad
   testnet. Mainnet uses a fixed reference table, labelled as such.
+
+## Who's using it
+
+[**mykova.app/stats**](https://mykova.app/stats) counts Kova's users live, straight from Kova's
+database on each network, and refreshes every minute. It shows people, payments, money moved,
+shops, links and where new people came from. It counts totals only, never who someone is.
+
+On 23 October 2026:
+
+| | Mainnet | Testnet |
+|---|---|---|
+| People with a Kova wallet | 12 | 162 |
+| Payments | 0 | 36 ($402.55 in test dollars) |
+| Shops open | 2 | 21 |
+| Links sent | 1 | 7 (4 claimed) |
+
+These counts include our own testing, and the page says so. A person is a wallet that did
+something only Kova wallets do: made its passkey backup, published a note key, took test dollars,
+paid a Kova charge, sent or claimed a link, or opened a shop. Kova's demo account, which App Review
+signs into, is left out. The numbers come from [`apps/api/src/routes/stats.ts`](apps/api/src/routes/stats.ts),
+and anyone can read them at `GET /v1/public/stats` on each network's API.
 
 ## Proof on Monad
 
