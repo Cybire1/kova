@@ -1,13 +1,15 @@
 import { normalizePhone, pinProblem } from '@kova/monad'
 import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import { type NairaBank, naira } from '@/lib/api'
 import {
   changePocket,
   confirmCode,
   getPocket,
   type Pocket,
+  setPayout,
   setUpPocket,
   takeBack,
   turnOff,
@@ -20,7 +22,8 @@ import { Chip, Header, PillButton, Rise, Screen, Sticker, TextLink, Txt } from '
 /**
  * Pay by USSD: a small pocket of your dollars you can spend from any phone, even one with no data,
  * by dialling Kova's code. Your main wallet stays yours alone; the pocket is the part Kova holds
- * for you, up to a limit you choose, and you can take it back any time.
+ * for you, up to a limit you choose, and you can take it back any time. The phone can also cash
+ * out to naira, but only to the one account saved here.
  */
 
 const CAPS = ['20', '50', '100']
@@ -121,6 +124,9 @@ export default function Ussd() {
             }
             onCap={(cap) => run('cap', () => changePocket(signMessage, profile.address, { cap }))}
             onPin={(pin) => run('pin', () => changePocket(signMessage, profile.address, { pin }))}
+            onPayout={(account) =>
+              run('payout', () => setPayout(signMessage, profile.address, account))
+            }
             onOff={() => run('off', () => turnOff(signMessage, profile.address))}
           />
         )}
@@ -141,11 +147,13 @@ function FeaturePhone({ dial }: { dial: string }) {
         <Txt weight="bold" size={13}>
           Kova
         </Txt>
-        {['1 Balance', '2 Pay a till', '3 Send to a phone', '4 My payments'].map((line) => (
-          <Txt key={line} weight="medium" size={12}>
-            {line}
-          </Txt>
-        ))}
+        {['1 Balance', '2 Pay a till', '3 Send to a phone', '4 My payments', '5 Cash out'].map(
+          (line) => (
+            <Txt key={line} weight="medium" size={12}>
+              {line}
+            </Txt>
+          ),
+        )}
       </View>
       <View style={styles.keys}>
         {Array.from({ length: 12 }, (_, i) => (
@@ -205,7 +213,7 @@ function SetUp({
               Pay from any phone. Even with no data.
             </Txt>
             <Txt size={15} color={colors.onTint} style={{ lineHeight: 21 }}>
-              Dial {dial}, enter your PIN, and pay a Kova till or send to a number.
+              Dial {dial}, enter your PIN, and pay a Kova till, send to a number or cash out.
             </Txt>
           </View>
         </View>
@@ -359,6 +367,7 @@ function Live({
   onTakeBack,
   onCap,
   onPin,
+  onPayout,
   onOff,
 }: {
   pocket: Extract<Pocket, { status: 'active' | 'pending' }>
@@ -369,6 +378,7 @@ function Live({
   onTakeBack: () => void
   onCap: (cap: string) => void
   onPin: (pin: string) => void
+  onPayout: (account: { bankCode: string; accountNumber: string } | null) => void
   onOff: () => void
 }) {
   const [copied, setCopied] = useState(false)
@@ -530,6 +540,8 @@ function Live({
         })}
       </View>
 
+      {pocket.cash_out ? <CashOutTo pocket={pocket} busy={busy} onSave={onPayout} /> : null}
+
       <Problem text={error} />
 
       <Txt weight="semi" size={16} style={{ marginTop: 24 }}>
@@ -546,9 +558,11 @@ function Live({
               <Txt weight="semi" size={15}>
                 {s.kind === 'withdraw'
                   ? 'Back to your wallet'
-                  : s.kind === 'phone'
-                    ? `To ${s.to}`
-                    : s.to}
+                  : s.kind === 'cashout'
+                    ? `Cash out to ${s.to}`
+                    : s.kind === 'phone'
+                      ? `To ${s.to}`
+                      : s.to}
               </Txt>
               <Txt size={13} color={colors.muted}>
                 {s.reference} ·{' '}
@@ -594,6 +608,213 @@ function Live({
         )}
       </View>
     </>
+  )
+}
+
+/**
+ * The one bank or mobile-money account the phone cashes out to. Dialling "5 Cash out" can send
+ * naira only here, so a PIN in the wrong hands can't send it anywhere else. The bank names the
+ * account before it's saved, and Face ID approves the change.
+ */
+function CashOutTo({
+  pocket,
+  busy,
+  onSave,
+}: {
+  pocket: Extract<Pocket, { status: 'active' | 'pending' }>
+  busy: string | null
+  onSave: (account: { bankCode: string; accountNumber: string } | null) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [banks, setBanks] = useState<NairaBank[] | null>(null)
+  const [search, setSearch] = useState('')
+  const [bank, setBank] = useState<NairaBank | null>(null)
+  const [account, setAccount] = useState('')
+  const [named, setNamed] = useState<string | null>(null)
+  const [looking, setLooking] = useState(false)
+  const [problem, setProblem] = useState<string | null>(null)
+  const saved = pocket.payout
+
+  useEffect(() => {
+    if (!editing || banks) return
+    void naira
+      .banks()
+      .then(setBanks)
+      .catch((e: Error) => setProblem(e.message))
+  }, [banks, editing])
+
+  useEffect(() => {
+    setNamed(null)
+    if (!bank || !/^\d{10}$/.test(account)) return
+    setLooking(true)
+    setProblem(null)
+    void naira
+      .accountName(account, bank.code)
+      .then(setNamed)
+      .catch((e: Error) => setProblem(e.message))
+      .finally(() => setLooking(false))
+  }, [account, bank])
+
+  // Once the new account is saved, close the form.
+  useEffect(() => {
+    if (busy === null && editing && saved && named && saved.account_last4 === account.slice(-4))
+      setEditing(false)
+  }, [busy, editing, saved, named, account])
+
+  const shown = useMemo(() => {
+    if (!banks) return []
+    const q = search.trim().toLowerCase()
+    return (q ? banks.filter((b) => b.name.toLowerCase().includes(q)) : banks).slice(0, 6)
+  }, [banks, search])
+
+  const start = () => {
+    setEditing(true)
+    setBank(null)
+    setAccount('')
+    setSearch('')
+    setProblem(null)
+  }
+
+  return (
+    <View style={{ marginTop: 24 }}>
+      <Txt weight="semi" size={16}>
+        Cash out to
+      </Txt>
+      <Txt size={13} color={colors.muted} style={{ marginTop: 4, lineHeight: 18 }}>
+        Dial {pocket.dial || 'Kova’s code'} and choose 5 to turn the pocket’s dollars into naira. It
+        only ever goes to this account.
+      </Txt>
+
+      {saved && !editing ? (
+        <View style={styles.payout}>
+          <View style={styles.payoutIcon}>
+            <Icon name="bank" size={20} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Txt weight="semi" size={15}>
+              {saved.account_name}
+            </Txt>
+            <Txt size={13} color={colors.muted}>
+              {saved.label}
+            </Txt>
+          </View>
+          <TextLink label="Change" onPress={start} />
+        </View>
+      ) : null}
+
+      {!saved && !editing ? (
+        <Sticker
+          radius={20}
+          onPress={start}
+          disabled={busy !== null}
+          style={{ marginTop: 12, height: 52 }}
+          innerStyle={styles.action}
+        >
+          <Txt weight="semi" size={15}>
+            Add a bank or OPay account
+          </Txt>
+        </Sticker>
+      ) : null}
+
+      {editing ? (
+        <View style={{ gap: 12, marginTop: 12 }}>
+          {bank ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setBank(null)}
+              style={styles.payout}
+            >
+              <View style={styles.payoutIcon}>
+                <Icon name="bank" size={20} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Txt weight="semi" size={15}>
+                  {bank.name}
+                </Txt>
+                <Txt size={13} color={colors.muted}>
+                  Change bank
+                </Txt>
+              </View>
+            </Pressable>
+          ) : (
+            <View style={{ gap: 8 }}>
+              <Field
+                label="Bank or mobile money"
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search: OPay, PalmPay, GTBank…"
+                autoCorrect={false}
+              />
+              <View style={styles.bankList}>
+                {banks === null ? (
+                  <Txt color={colors.muted} style={{ padding: 12 }}>
+                    Loading banks…
+                  </Txt>
+                ) : shown.length === 0 ? (
+                  <Txt color={colors.muted} style={{ padding: 12 }}>
+                    No bank by that name.
+                  </Txt>
+                ) : (
+                  shown.map((b, i) => (
+                    <Pressable
+                      key={`${b.code}-${b.name}`}
+                      accessibilityRole="button"
+                      onPress={() => setBank(b)}
+                      style={[styles.bankRow, i < shown.length - 1 && styles.rule]}
+                    >
+                      <Txt size={15}>{b.name}</Txt>
+                    </Pressable>
+                  ))
+                )}
+              </View>
+            </View>
+          )}
+          {bank ? (
+            <Field
+              label="Account number"
+              value={account}
+              onChangeText={(v) => setAccount(v.replace(/\D/g, '').slice(0, 10))}
+              placeholder="10 digits"
+              keyboardType="number-pad"
+            />
+          ) : null}
+          {looking ? (
+            <Txt size={13} color={colors.muted}>
+              Asking the bank whose account it is…
+            </Txt>
+          ) : null}
+          {named ? (
+            <View style={styles.named}>
+              <Icon name="check" size={16} color={colors.tealDeep} />
+              <Txt weight="semi" size={15} color={colors.tealDeep}>
+                {named}
+              </Txt>
+            </View>
+          ) : null}
+          <Problem text={problem} />
+          <PillButton
+            label="Save this account"
+            icon="check"
+            disabled={!bank || !named || busy !== null}
+            loading={busy === 'payout'}
+            onPress={() => bank && onSave({ bankCode: bank.code, accountNumber: account })}
+          />
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 20 }}>
+            <TextLink label="Cancel" onPress={() => setEditing(false)} />
+            {saved ? (
+              <TextLink
+                label="Remove cash-out"
+                color={colors.danger}
+                onPress={() => {
+                  onSave(null)
+                  setEditing(false)
+                }}
+              />
+            ) : null}
+          </View>
+        </View>
+      ) : null}
+    </View>
   )
 }
 
@@ -683,6 +904,44 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   action: { alignItems: 'center', justifyContent: 'center', flex: 1 },
+  payout: {
+    marginTop: 12,
+    minHeight: 64,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  payoutIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.tealSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bankList: {
+    borderWidth: 2,
+    borderColor: colors.ink,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  bankRow: { paddingHorizontal: 14, paddingVertical: 12 },
+  rule: { borderBottomWidth: 1, borderBottomColor: colors.sunken },
+  named: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: colors.tealSoft,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

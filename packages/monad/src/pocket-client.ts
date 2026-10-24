@@ -11,7 +11,7 @@ import { parseAmount } from './tokens.js'
 
 export interface PocketSpend {
   reference: string
-  kind: 'till' | 'phone' | 'withdraw'
+  kind: 'till' | 'phone' | 'withdraw' | 'cashout'
   to: string
   amount: string
   status: 'pending' | 'paid' | 'failed'
@@ -30,8 +30,19 @@ export type Pocket =
       left_today: string
       locked_until: string | null
       dial: string
+      /** Where dialling "Cash out" sends the naira; only the owner sets it, in the app. */
+      payout: PocketPayout | null
+      /** Whether this server can cash out to naira at all. */
+      cash_out: boolean
       spends: PocketSpend[]
     }
+export interface PocketPayout {
+  /** How the phone's menu names it: "OPay ••5678". */
+  label: string
+  bank_name: string
+  account_name: string
+  account_last4: string
+}
 export interface PocketInfo {
   enabled: boolean
   recovery?: boolean
@@ -113,6 +124,26 @@ export function createPocketClient(chainId: number, request: Request) {
         signedAt: nextAt(wallet),
       })
       return request<Pocket>('POST', `${path(wallet)}/withdraw`, { amount, ...proof })
+    },
+    /** The bank or mobile-money account the phone cashes out to; null removes it. */
+    setPayout: async (
+      sign: Signer,
+      wallet: Address,
+      account: { bankCode: string; accountNumber: string } | null,
+    ) => {
+      if (account && !/^\d{10}$/.test(account.accountNumber))
+        throw new Error('An account number is 10 digits.')
+      const proof = await signed(sign, {
+        action: 'payout',
+        wallet,
+        bankCode: account?.bankCode,
+        accountNumber: account?.accountNumber,
+        signedAt: nextAt(wallet),
+      })
+      return request<Pocket>('PUT', `${path(wallet)}/payout`, {
+        ...(account ? { bank_code: account.bankCode, account_number: account.accountNumber } : {}),
+        ...proof,
+      })
     },
     turnOff: async (sign: Signer, wallet: Address) => {
       const proof = await signed(sign, { action: 'close', wallet, signedAt: nextAt(wallet) })

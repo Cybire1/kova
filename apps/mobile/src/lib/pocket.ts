@@ -1,5 +1,4 @@
 import { createPocketClient } from '@kova/monad'
-import type { Address } from 'viem'
 import { apiUrl, network } from './config'
 
 /**
@@ -7,29 +6,7 @@ import { apiUrl, network } from './config'
  * Kova's code, even with no data. Every change is signed by the wallet's passkey.
  */
 
-export interface PocketSpend {
-  reference: string
-  kind: 'till' | 'phone' | 'withdraw'
-  to: string
-  amount: string
-  status: 'pending' | 'paid' | 'failed'
-  created_at: string
-}
-
-export type Pocket =
-  | { status: 'none'; dial: string }
-  | {
-      status: 'pending' | 'active'
-      phone: string
-      address: Address
-      cap: string
-      balance: string | null
-      spent_today: string
-      left_today: string
-      locked_until: string | null
-      dial: string
-      spends: PocketSpend[]
-    }
+export type { Pocket, PocketPayout, PocketSpend } from '@kova/monad'
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const response = await fetch(`${apiUrl}${path}`, {
@@ -43,5 +20,5 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   return json as T
 }
 
-export const { getPocket, setUpPocket, confirmCode, changePocket, takeBack, turnOff } =
+export const { getPocket, setUpPocket, confirmCode, changePocket, setPayout, takeBack, turnOff } =
   createPocketClient(network.chainId, call)

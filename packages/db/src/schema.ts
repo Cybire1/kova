@@ -983,6 +983,14 @@ export const ussdPockets = pgTable(
     /** The code sent to the phone, scrypt-hashed, and when it stops working. */
     codeHash: text('code_hash'),
     codeExpiresAt: timestamp('code_expires_at', { withTimezone: true }),
+    /**
+     * The one bank or mobile-money account the phone can cash out to, set by the owner in the app.
+     * A PIN can't send naira anywhere else, so a stolen PIN can't empty the pocket to a stranger.
+     */
+    payoutBankCode: text('payout_bank_code'),
+    payoutBankName: text('payout_bank_name'),
+    payoutAccountNumber: text('payout_account_number'),
+    payoutAccountName: text('payout_account_name'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -1004,7 +1012,7 @@ export const ussdSpends = pgTable(
       .references(() => ussdPockets.id),
     /** The USSD session that made it, or "app:<id>" when the owner takes money back. */
     sessionId: text('session_id').notNull(),
-    /** till, phone, or withdraw. */
+    /** till, phone, withdraw, or cashout. */
     kind: text('kind').notNull(),
     /** Lowercase. */
     toAddress: address('to_address').notNull(),
@@ -1012,6 +1020,8 @@ export const ussdSpends = pgTable(
     toLabel: text('to_label').notNull(),
     amount: amount('amount').notNull(),
     intentId: uuid('intent_id').references(() => paymentIntents.id),
+    /** For a cash-out: the naira payout these dollars pay for, once they reach Kova's treasury. */
+    cashOutId: uuid('cash_out_id').references(() => cashOuts.id),
     /** pending, paid or failed. */
     status: text('status').notNull().default('pending'),
     txHash: text('tx_hash'),

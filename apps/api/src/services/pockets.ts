@@ -1,6 +1,7 @@
 import { schema, uuidv7 } from '@kova/db'
 import {
   eip3009Abi,
+  encodeMemo,
   formatAmount,
   type PocketChange,
   pocketMessage,
@@ -27,6 +28,14 @@ import { KovaError } from '../errors.js'
 import { relayAuthorization, relayReady } from '../relay.js'
 import { hashSecret, openKey, sealKey, secretMatches } from '../secrets.js'
 import type { PaymentIntent } from './intents.js'
+import {
+  type CashOutRow,
+  dropPocketCashOut,
+  formatNaira,
+  nairaReady,
+  receivePocketCashOut,
+  whenCashOutEnds,
+} from './naira.js'
 import { verifiedWalletForPhone } from './phone-payments.js'
 import { settleFromReceipt } from './settle.js'
 import { sendSms, sendSmsLater, smsReady } from './sms.js'
@@ -319,6 +328,60 @@ export async function updatePocket(
   return updated
 }
 
+export interface PayoutAccount {
+  bankCode: string
+  bankName: string
+  accountNumber: string
+  accountName: string
+}
+
+/** The one account the phone can cash out to (null removes it). Only the owner's signature sets it. */
+export async function setPayout(
+  pocket: Pocket,
+  account: PayoutAccount | null,
+  signedAt: number,
+): Promise<Pocket> {
+  const [updated] = await db
+    .update(schema.ussdPockets)
+    .set({
+      payoutBankCode: account?.bankCode ?? null,
+      payoutBankName: account?.bankName ?? null,
+      payoutAccountNumber: account?.accountNumber ?? null,
+      payoutAccountName: account?.accountName ?? null,
+      lastSignedAt: signedAt,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(schema.ussdPockets.id, pocket.id), lt(schema.ussdPockets.lastSignedAt, signedAt)))
+    .returning()
+  if (!updated) throw new KovaError('conflict', 'That approval was already used. Try again.')
+  return updated
+}
+
+export function payoutOf(pocket: Pocket): PayoutAccount | null {
+  const { payoutBankCode, payoutBankName, payoutAccountNumber, payoutAccountName } = pocket
+  if (!payoutBankCode || !payoutBankName || !payoutAccountNumber || !payoutAccountName) return null
+  return {
+    bankCode: payoutBankCode,
+    bankName: payoutBankName,
+    accountNumber: payoutAccountNumber,
+    accountName: payoutAccountName,
+  }
+}
+
+/**
+ * How a payout account reads on a small screen: "OPay ••1234". Banks' short names come first
+ * ("OPay Digital Services Limited (OPay)" is OPay); a long name is cut at a word.
+ */
+export function payoutLabel(account: Pick<PayoutAccount, 'bankName' | 'accountNumber'>) {
+  const short = account.bankName.match(/\(([^)]+)\)\s*$/)?.[1] ?? account.bankName
+  let name = ''
+  for (const word of short.trim().split(/\s+/)) {
+    if (`${name} ${word}`.trim().length > 20) break
+    name = `${name} ${word}`.trim()
+  }
+  return `${name || short.slice(0, 20)} ••${account.accountNumber.slice(-4)}`
+}
+
 /** Turns USSD off for a pocket. Its key stays sealed, so money sent to it later can still come back. */
 export async function closePocket(pocket: Pocket, signedAt: number): Promise<void> {
   await db.transaction(async (tx) => {
@@ -388,11 +451,13 @@ function reference(): string {
 
 export interface SpendRequest {
   sessionId: string
-  kind: 'till' | 'phone' | 'withdraw'
+  kind: 'till' | 'phone' | 'withdraw' | 'cashout'
   to: Address
   toLabel: string
   amount: bigint
   intent?: PaymentIntent
+  /** For a cash-out: the naira payout these dollars pay for. */
+  cashOut?: Pick<CashOutRow, 'id'>
 }
 
 /**
@@ -404,7 +469,22 @@ export async function spend(pocket: Pocket, request: SpendRequest): Promise<Spen
   requirePockets()
   if (request.kind !== 'withdraw') requirePocketSetup()
   await reconcilePocket(pocket)
-  const reservation = await db.transaction(async (tx) => {
+  const reservation = await reserve(pocket, request).catch(async (error: unknown) => {
+    // Refused before anything was signed (a limit, the balance): its cash-out ends here, unpaid.
+    if (request.cashOut && !(error instanceof KovaError && error.code === 'idempotency_conflict'))
+      await dropPocketCashOut(
+        request.cashOut.id,
+        error instanceof KovaError ? error.message : 'Refused.',
+      )
+    throw error
+  })
+  if (!reservation.fresh) return reservation.row
+  return send(reservation.row, reservation.current, request)
+}
+
+/** Checks the limits and holds the amount: one row per session, inside the pocket's lock. */
+function reserve(pocket: Pocket, request: SpendRequest) {
+  return db.transaction(async (tx) => {
     const current = await lockedPocket(tx, pocket.id)
     const existing = await tx.query.ussdSpends.findFirst({
       where: eq(schema.ussdSpends.sessionId, request.sessionId),
@@ -415,7 +495,8 @@ export async function spend(pocket: Pocket, request: SpendRequest): Promise<Spen
         existing.kind !== request.kind ||
         existing.toAddress !== request.to.toLowerCase() ||
         existing.amount !== request.amount ||
-        existing.intentId !== (request.intent?.id ?? null)
+        existing.intentId !== (request.intent?.id ?? null) ||
+        existing.cashOutId !== (request.cashOut?.id ?? null)
       )
         throw new KovaError(
           'idempotency_conflict',
@@ -473,6 +554,7 @@ export async function spend(pocket: Pocket, request: SpendRequest): Promise<Spen
         toLabel: request.toLabel,
         amount: request.amount,
         intentId: request.intent?.id ?? null,
+        cashOutId: request.cashOut?.id ?? null,
         reference: reference(),
       })
       .onConflictDoNothing()
@@ -480,8 +562,10 @@ export async function spend(pocket: Pocket, request: SpendRequest): Promise<Spen
     if (!row) throw new KovaError('idempotency_conflict', 'That session is already processing.')
     return { row, fresh: true, current }
   })
-  if (!reservation.fresh) return reservation.row
-  const { row, current } = reservation
+}
+
+/** Signs the reserved spend with the pocket's key and has the relayer submit it. */
+async function send(row: Spend, current: Pocket, request: SpendRequest): Promise<Spend> {
   let preparedHash: Hex | undefined
   try {
     const account = privateKeyToAccount(openKey(current.sealedKey, current.id))
@@ -491,7 +575,7 @@ export async function spend(pocket: Pocket, request: SpendRequest): Promise<Spen
       value: request.amount,
       validAfter: 0n,
       validBefore: BigInt(Math.floor(row.createdAt.getTime() / 1000) + 300),
-      nonce: spendNonce(current.id, request.sessionId, request.intent?.memo),
+      nonce: spendNonce(current.id, request.sessionId, memoOf(request)),
     }
     const signature = await account.signTypedData(
       transferAuthorizationTypedData(settlementToken, network.chainId, authorization),
@@ -527,6 +611,7 @@ export async function spend(pocket: Pocket, request: SpendRequest): Promise<Spen
     // No hash was ever persisted or broadcast: this is a definite pre-broadcast failure.
     const message =
       error instanceof KovaError ? error.message : 'The payment could not be prepared.'
+    if (row.cashOutId) await dropPocketCashOut(row.cashOutId, message.slice(0, 500))
     await db
       .update(schema.ussdSpends)
       .set({ status: 'failed', failure: message.slice(0, 500), updatedAt: new Date() })
@@ -541,7 +626,14 @@ export async function spend(pocket: Pocket, request: SpendRequest): Promise<Spen
   }
 }
 
-/** The EIP-3009 nonce a spend is signed with: the intent's memo, or one per pocket and session. */
+/** A spend's Kova memo: its charge's, or its cash-out's, so the transfer names what it pays for. */
+function memoOf(spend: { intent?: PaymentIntent; cashOut?: Pick<CashOutRow, 'id'> }) {
+  if (spend.intent) return spend.intent.memo
+  if (spend.cashOut) return encodeMemo({ kind: 'cashout', id: spend.cashOut.id })
+  return null
+}
+
+/** The EIP-3009 nonce a spend is signed with: its memo, or one per pocket and session. */
 function spendNonce(pocketId: string, sessionId: string, memo?: string | null): Hex {
   return memo ? (memo as Hex) : keccak256(toHex(JSON.stringify([pocketId, sessionId])))
 }
@@ -561,6 +653,7 @@ async function expireUnminedSpend(pocket: Pocket, row: Spend): Promise<Spend | n
     if (!intent) return null
     memo = intent.memo
   }
+  if (row.cashOutId) memo = memoOf({ cashOut: { id: row.cashOutId } })
   const used = await publicClient
     .readContract({
       address: settlementToken.address,
@@ -585,6 +678,7 @@ async function expireUnminedSpend(pocket: Pocket, row: Spend): Promise<Spend | n
       ),
     )
     .returning()
+  if (expired?.cashOutId) await dropPocketCashOut(expired.cashOutId, expired.failure ?? 'Expired.')
   return expired ?? null
 }
 
@@ -614,6 +708,14 @@ async function recordPocketReceipt(
     .where(and(eq(schema.ussdSpends.id, row.id), eq(schema.ussdSpends.status, 'pending')))
     .returning()
   if (updated?.status === 'paid') notifySpend(pocket, updated)
+  if (updated?.cashOutId) {
+    if (updated.status === 'paid')
+      // The naira goes out in the background: the phone's screen has seconds, Paystack may take more.
+      void receivePocketCashOut(updated.cashOutId, receipt.transactionHash).catch((error) =>
+        console.error('[ussd] cash-out payout failed', updated.cashOutId, error),
+      )
+    else await dropPocketCashOut(updated.cashOutId, updated.failure ?? 'The payment failed.')
+  }
   return (
     updated ?? (await db.query.ussdSpends.findFirst({ where: eq(schema.ussdSpends.id, row.id) }))!
   )
@@ -638,7 +740,11 @@ async function reconcileSpend(pocket: Pocket, row: Spend): Promise<Spend> {
           ),
         )
         .returning()
-      if (expired) return expired
+      if (expired) {
+        if (expired.cashOutId)
+          await dropPocketCashOut(expired.cashOutId, 'Expired before it was sent.')
+        return expired
+      }
     }
     await db
       .update(schema.ussdSpends)
@@ -699,6 +805,8 @@ export async function reconcilePocket(pocket: Pocket): Promise<void> {
 
 const maskPhone = (phone: string) => `${phone.slice(0, 4)}…${phone.slice(-3)}`
 function notifySpend(pocket: Pocket, row: Spend): void {
+  // A cash-out texts once the naira lands, or once its dollars are back (whenCashOutEnds, below).
+  if (row.kind === 'cashout') return
   const to = row.kind === 'phone' ? maskPhone(row.toLabel) : row.toLabel
   sendSmsLater(
     pocket.phone,
@@ -710,6 +818,24 @@ function notifySpend(pocket: Pocket, row: Spend): void {
       `Kova: you got $${formatAmount(row.amount)} from ${maskPhone(pocket.phone)}. Ref ${row.reference}. It’s in your Kova wallet.`,
     )
 }
+
+whenCashOutEnds(async (cashOut) => {
+  const row = await db.query.ussdSpends.findFirst({
+    where: eq(schema.ussdSpends.cashOutId, cashOut.id),
+  })
+  // Only a cash-out whose dollars left the pocket is news: one that never started was said on screen.
+  if (!row || row.status !== 'paid') return
+  const pocket = await db.query.ussdPockets.findFirst({
+    where: eq(schema.ussdPockets.id, row.pocketId),
+  })
+  if (!pocket) return
+  sendSmsLater(
+    pocket.phone,
+    cashOut.status === 'paid'
+      ? `Kova: ${formatNaira(cashOut.naira)} sent to ${row.toLabel} for your $${formatAmount(row.amount)}. Ref ${row.reference}.`
+      : `Kova: your cash-out of $${formatAmount(row.amount)} didn’t reach ${row.toLabel}, so the dollars are back in your pocket. Ref ${row.reference}.`,
+  )
+})
 
 /** The spend a USSD session already made, if any. */
 export async function spendForSession(
@@ -752,6 +878,7 @@ export async function serializePocket(pocket: Pocket) {
     spentToday(pocket),
     recentSpends(pocket),
   ])
+  const payout = payoutOf(pocket)
   return {
     object: 'ussd_pocket',
     status: pocket.status,
@@ -766,6 +893,15 @@ export async function serializePocket(pocket: Pocket) {
         ? pocket.lockedUntil.toISOString()
         : null,
     dial: config.KOVA_USSD_CODE,
+    payout: payout
+      ? {
+          label: payoutLabel(payout),
+          bank_name: payout.bankName,
+          account_name: payout.accountName,
+          account_last4: payout.accountNumber.slice(-4),
+        }
+      : null,
+    cash_out: nairaReady(),
     spends: spends.map(serializeSpend),
   }
 }

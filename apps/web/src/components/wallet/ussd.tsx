@@ -375,7 +375,8 @@ function PocketSettings() {
                 <div className="w-ussd-payment" key={spend.reference}>
                   <span>
                     <strong>
-                      ${spend.amount} · {spend.to}
+                      ${spend.amount} ·{' '}
+                      {spend.kind === 'cashout' ? `cash-out to ${spend.to}` : spend.to}
                     </strong>
                     <small>
                       {spend.reference} · {spend.status}
@@ -396,6 +397,20 @@ function PocketSettings() {
               <p className="w-quiet">No USSD payments yet.</p>
             )}
           </section>
+          {active.cash_out ? (
+            <PayoutForm
+              key={active.payout?.account_last4 ?? 'none'}
+              pocket={active}
+              busy={busy}
+              onSave={(account, notice) =>
+                void act('payout', async () => {
+                  const result = await client.setPayout(signMessage, wallet, account)
+                  setNotice(notice)
+                  return result
+                })
+              }
+            />
+          ) : null}
           <form
             className="w-keyform"
             onSubmit={(e) => {
@@ -482,5 +497,166 @@ function PocketSettings() {
         </>
       ) : null}
     </div>
+  )
+}
+
+interface Bank {
+  name: string
+  code: string
+}
+
+async function nairaJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`/api/naira${path}`, {
+    ...init,
+    cache: 'no-store',
+    headers: init?.body ? { 'content-type': 'application/json' } : undefined,
+  })
+  const json = await response.json().catch(() => ({}))
+  if (!response.ok)
+    throw new Error(typeof json.error === 'string' ? json.error : 'The bank didn’t answer.')
+  return json as T
+}
+
+/**
+ * The one bank or mobile-money account the phone cashes out to by dialling "5 Cash out". A PIN
+ * can send naira only here, so it can't empty the pocket to a stranger. The bank names the account
+ * before the wallet approves saving it.
+ */
+function PayoutForm({
+  pocket,
+  busy,
+  onSave,
+}: {
+  pocket: Extract<Pocket, { status: 'pending' | 'active' }>
+  busy: string | null
+  onSave: (account: { bankCode: string; accountNumber: string } | null, notice: string) => void
+}) {
+  const saved = pocket.payout
+  const [editing, setEditing] = useState(!saved)
+  const [banks, setBanks] = useState<Bank[]>([])
+  const [bank, setBank] = useState('')
+  const [account, setAccount] = useState('')
+  const [named, setNamed] = useState<{ name: string } | { problem: string } | null>(null)
+
+  useEffect(() => {
+    if (!editing || banks.length) return
+    void nairaJson<{ data: Bank[] }>('/naira/banks')
+      .then((r) => setBanks(r.data))
+      .catch(() => setBanks([]))
+  }, [editing, banks.length])
+
+  useEffect(() => {
+    setNamed(null)
+    if (!bank || !/^\d{10}$/.test(account)) return
+    let live = true
+    void nairaJson<{ account_name: string }>('/naira/account', {
+      method: 'POST',
+      body: JSON.stringify({ account_number: account, bank_code: bank }),
+    })
+      .then((r) => live && setNamed({ name: r.account_name }))
+      .catch(
+        (e) =>
+          live && setNamed({ problem: e instanceof Error ? e.message : 'The bank didn’t answer.' }),
+      )
+    return () => {
+      live = false
+    }
+  }, [account, bank])
+
+  return (
+    <section className="w-keys">
+      <h2 className="w-section">Cash out to</h2>
+      <p>
+        Dial {pocket.dial || 'Kova’s code'} and choose 5 to turn the pocket’s dollars into naira. It
+        only ever goes to this account.
+      </p>
+      {saved && !editing ? (
+        <div className="w-ussd-payment">
+          <span>
+            <strong>{saved.account_name}</strong>
+            <small>{saved.label}</small>
+          </span>
+          <button
+            type="button"
+            className="textlink"
+            disabled={!!busy}
+            onClick={() => setEditing(true)}
+          >
+            Change
+          </button>
+        </div>
+      ) : (
+        <form
+          className="w-keyform"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (named && 'name' in named)
+              onSave(
+                { bankCode: bank, accountNumber: account },
+                `Cash-outs now go to ${named.name}.`,
+              )
+          }}
+        >
+          <label>
+            <span>Bank or mobile money</span>
+            <select value={bank} onChange={(e) => setBank(e.target.value)} required>
+              <option value="">{banks.length ? 'Choose a bank' : 'Loading banks…'}</option>
+              {banks.map((b) => (
+                <option key={`${b.code}-${b.name}`} value={b.code}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Account number</span>
+            <input
+              inputMode="numeric"
+              placeholder="10 digits"
+              maxLength={10}
+              value={account}
+              onChange={(e) => setAccount(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              required
+            />
+          </label>
+          <p className="w-quiet">
+            {named && 'name' in named
+              ? `✓ ${named.name}`
+              : named && 'problem' in named
+                ? named.problem
+                : bank && account.length === 10
+                  ? 'Asking the bank…'
+                  : 'The bank names the account before you save it.'}
+          </p>
+          <button
+            type="submit"
+            className="mini mini-ink"
+            disabled={!!busy || !named || !('name' in named)}
+          >
+            {busy === 'payout' ? 'Saving…' : 'Save this account'}
+          </button>
+          {saved ? (
+            <>
+              <button
+                type="button"
+                className="textlink"
+                disabled={!!busy}
+                onClick={() => setEditing(false)}
+              >
+                Keep {saved.label}
+              </button>
+              <button
+                type="button"
+                className="textlink"
+                disabled={!!busy}
+                onClick={() => onSave(null, 'Cashing out by USSD is off.')}
+              >
+                Turn off cashing out
+              </button>
+            </>
+          ) : null}
+        </form>
+      )}
+    </section>
   )
 }

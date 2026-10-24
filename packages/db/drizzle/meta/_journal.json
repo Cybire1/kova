@@ -197,6 +197,13 @@
       "when": 1792600000000,
       "tag": "0027_stock_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792700000000,
+      "tag": "0028_ussd_cash_out",
+      "breakpoints": true
     }
   ]
 }

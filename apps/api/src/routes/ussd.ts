@@ -7,6 +7,8 @@ import { network } from '../chain.js'
 import { config } from '../config.js'
 import { KovaError } from '../errors.js'
 import { clientIp, limit } from '../limits.js'
+import { nairaReady } from '../services/naira.js'
+import { accountName, bankNamed } from '../services/paystack.js'
 import {
   checkOwner,
   closePocket,
@@ -18,6 +20,7 @@ import {
   requirePocketSetup,
   requirePockets,
   serializePocket,
+  setPayout,
   setUpPocket,
   spend,
   updatePocket,
@@ -31,7 +34,8 @@ import { callbackForm, callbackSecretMatches } from '../services/ussd-callback.j
  * - POST /ussd/:secret is Africa's Talking's callback: one call per step of a USSD session.
  * - GET /wallets/:address/ussd-pocket shows a wallet's pocket.
  * - PUT sets it up (phone, PIN, cap) and texts a code to the phone; POST …/verify takes the code.
- * - PATCH changes the cap or the PIN; POST …/withdraw takes money back to the wallet; DELETE
+ * - PATCH changes the cap or the PIN; PUT …/payout sets the one account the phone cashes out to;
+ *   POST …/withdraw takes money back to the wallet; DELETE
  *   empties the pocket into the wallet and turns USSD off.
  *
  * Every change is signed by the wallet with its passkey (see pocketMessage in @kova/monad).
@@ -60,6 +64,18 @@ const updateBody = z.object({
 })
 const withdrawBody = z.object({ amount: dollars, signed_at: z.number().int(), signature })
 const closeBody = z.object({ signed_at: z.number().int(), signature })
+const payoutBody = z.object({
+  bank_code: z
+    .string()
+    .regex(/^[\w-]{1,20}$/)
+    .optional(),
+  account_number: z
+    .string()
+    .regex(/^\d{10}$/)
+    .optional(),
+  signed_at: z.number().int(),
+  signature,
+})
 
 function wallet(c: { req: { param: (name: string) => string } }): Address {
   const address = c.req.param('address')
@@ -236,6 +252,55 @@ export const ussdRoutes = new Hono()
         await updatePocket(pocket, { cap, pin: input.pin, signedAt: input.signed_at }),
       ),
     )
+  })
+  .put('/wallets/:address/ussd-pocket/payout', async (c) => {
+    requirePockets()
+    const owner = wallet(c)
+    const input = await body(c, payoutBody, '{ bank_code?, account_number?, signed_at, signature }')
+    if (Boolean(input.bank_code) !== Boolean(input.account_number))
+      throw new KovaError(
+        'invalid_request',
+        'Give both the bank and the account number, or neither.',
+      )
+    const pocket = await pocketOf(owner)
+    if (!pocket || pocket.status === 'closed')
+      throw new KovaError('not_found', 'This wallet has no USSD pocket.')
+    await checkOwner(
+      pocket,
+      {
+        action: 'payout',
+        wallet: owner,
+        chainId: network.chainId,
+        bankCode: input.bank_code,
+        accountNumber: input.account_number,
+        signedAt: input.signed_at,
+      },
+      input.signature as Hex,
+    )
+    if (!input.bank_code || !input.account_number)
+      return c.json(await serializePocket(await setPayout(pocket, null, input.signed_at)))
+    if (!nairaReady()) throw new KovaError('conflict', 'Cashing out isn’t open on this server yet.')
+    limit(
+      `pocket-payout:${owner.toLowerCase()}`,
+      10,
+      3_600_000,
+      'That’s a lot of changes in an hour. Try again later.',
+    )
+    const bank = await bankNamed(input.bank_code)
+    if (!bank) throw new KovaError('invalid_request', 'Pick the bank from the list.')
+    // The bank names the account, so the owner sees whose it is before any naira goes there.
+    const name = await accountName(input.account_number, bank.code)
+    const saved = await setPayout(
+      pocket,
+      {
+        bankCode: bank.code,
+        bankName: bank.name,
+        accountNumber: input.account_number,
+        accountName: name,
+      },
+      input.signed_at,
+    )
+    return c.json(await serializePocket(saved))
   })
   .post('/wallets/:address/ussd-pocket/withdraw', async (c) => {
     requirePockets()

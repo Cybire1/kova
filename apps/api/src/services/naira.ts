@@ -7,7 +7,7 @@ import {
   formatAmount,
   type TransferAuthorization,
 } from '@kova/monad'
-import { and, desc, eq, lt } from 'drizzle-orm'
+import { and, desc, eq, inArray, lt } from 'drizzle-orm'
 import { type Address, encodeFunctionData, getAddress, type Hex, isAddressEqual } from 'viem'
 import { feePayerAddress, network, publicClient, settlementToken } from '../chain.js'
 import { config } from '../config.js'
@@ -54,7 +54,8 @@ function requireNaira() {
   if (!nairaReady()) throw new KovaError('conflict', 'Naira isn’t switched on for this server yet.')
 }
 
-function treasury(): Address {
+/** Kova's treasury, where cash-out dollars go: the relayer. */
+export function treasury(): Address {
   if (!feePayerAddress)
     throw new KovaError('conflict', 'Naira isn’t switched on for this server yet.')
   return feePayerAddress
@@ -212,6 +213,12 @@ export async function cashOutsOf(wallet: Address): Promise<CashOutRow[]> {
   })
 }
 
+/** Told when a cash-out ends, paid or failed: a USSD pocket texts its phone (services/pockets.ts). */
+let onCashOutEnded: ((row: CashOutRow) => void) | null = null
+export function whenCashOutEnds(listener: (row: CashOutRow) => void) {
+  onCashOutEnded = listener
+}
+
 async function updateCashOut(
   row: CashOutRow,
   values: Partial<typeof schema.cashOuts.$inferInsert>,
@@ -221,7 +228,75 @@ async function updateCashOut(
     .set({ ...values, updatedAt: new Date() })
     .where(eq(schema.cashOuts.id, row.id))
     .returning()
+  if (updated && (values.status === 'paid' || values.status === 'failed')) {
+    try {
+      onCashOutEnded?.(updated as CashOutRow)
+    } catch (error) {
+      console.error('[naira] cash-out listener failed', row.id, error)
+    }
+  }
   return updated as CashOutRow
+}
+
+// ── Cashing out from a USSD pocket ──────────────────────────────────────────────────────────
+
+/**
+ * A phone with no data cashes out its pocket: to the one account the owner saved, at a fresh
+ * quote. The pocket's own key pays the dollars to the treasury (services/pockets.ts spend, with
+ * this cash-out's memo as the nonce); receivePocketCashOut then pays the naira out.
+ */
+export async function createPocketCashOut(
+  pocketAddress: Address,
+  amount: bigint,
+  account: { bankCode: string; bankName: string; accountNumber: string; accountName: string },
+): Promise<CashOutRow> {
+  requireNaira()
+  if (amount < MIN_CASH_OUT) throw new KovaError('invalid_request', 'Cash out at least $1.')
+  if (amount > MAX_CASH_OUT)
+    throw new KovaError('invalid_request', 'Cash out up to $500 at a time.')
+  const quote = await quoteCashOut(amount)
+  if (quote.naira <= 0n)
+    throw new KovaError('invalid_request', 'That’s too little to send to a bank.')
+  const [row] = await db
+    .insert(schema.cashOuts)
+    .values({
+      id: uuidv7(),
+      network: config.KOVA_NETWORK,
+      walletAddress: pocketAddress.toLowerCase(),
+      amount,
+      naira: quote.naira,
+      rate: quote.rate.toFixed(4),
+      fee: quote.fee,
+      bankCode: account.bankCode,
+      bankName: account.bankName,
+      accountNumber: account.accountNumber,
+      accountName: account.accountName,
+      expiresAt: new Date(Date.now() + QUOTE_TTL_MS),
+    })
+    .returning()
+  if (!row) throw new KovaError('internal', 'The cash-out wasn’t saved.')
+  return row
+}
+
+/**
+ * The pocket's dollars reached the treasury on Monad: pay the naira out. The dollars have
+ * arrived, so a quote that ran out while they were confirming is still honoured.
+ */
+export async function receivePocketCashOut(id: string, txHash: Hex): Promise<CashOutRow | null> {
+  const [received] = await db
+    .update(schema.cashOuts)
+    .set({ status: 'received', txHash, updatedAt: new Date() })
+    .where(and(eq(schema.cashOuts.id, id), inArray(schema.cashOuts.status, ['quoted', 'expired'])))
+    .returning()
+  if (!received) return (await cashOutRow(id)) ?? null
+  return payOut(received)
+}
+
+/** The pocket's payment never happened: nothing moved, so the cash-out simply ends. */
+export async function dropPocketCashOut(id: string, why: string): Promise<void> {
+  const row = await cashOutRow(id)
+  if (!row || (row.status !== 'quoted' && row.status !== 'expired')) return
+  await updateCashOut(row, { status: 'failed', failure: why })
 }
 
 /** The treasury sends dollars it holds, through the relayer's one send path (one nonce owner). */

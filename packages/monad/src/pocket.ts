@@ -6,7 +6,7 @@ import { type Address, encodeAbiParameters, type Hex, keccak256, parseAbiParamet
  * messages with their passkey; Kova checks the signature and that it is newer than the last.
  */
 
-export type PocketAction = 'setup' | 'update' | 'withdraw' | 'close'
+export type PocketAction = 'setup' | 'update' | 'withdraw' | 'close' | 'payout'
 
 export interface PocketChange {
   action: PocketAction
@@ -20,6 +20,9 @@ export interface PocketChange {
   pinCommitment?: Hex
   /** For withdraw: how much to take back, in base units. */
   amount?: bigint
+  /** For payout: the bank (Paystack's code) and account the pocket cashes out to. Neither: remove it. */
+  bankCode?: string
+  accountNumber?: string
   /** Unix seconds. */
   signedAt: number
 }
@@ -36,6 +39,8 @@ export function pocketMessage(change: PocketChange): string {
   if (change.cap !== undefined) lines.push(`Cap ${change.cap}`)
   if (change.amount !== undefined) lines.push(`Amount ${change.amount}`)
   if (change.pinCommitment !== undefined) lines.push(`PIN commitment ${change.pinCommitment}`)
+  if (change.bankCode !== undefined) lines.push(`Bank ${change.bankCode}`)
+  if (change.accountNumber !== undefined) lines.push(`Account ${change.accountNumber}`)
   lines.push(`Signed at ${change.signedAt}`)
   return lines.join('\n')
 }

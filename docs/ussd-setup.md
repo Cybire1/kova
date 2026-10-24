@@ -75,6 +75,22 @@ Pending source hashes are persisted before broadcast, and pending dollars stay r
 until receipts are checked. Mainnet USSD requires a future iOS build using this v2 client;
 mainnet build 17 predates these new USSD approvals.
 
+## Cashing out by USSD
+
+The phone can turn its pocket's dollars into naira with **5 Cash out**: amount, the naira it comes
+to, then the PIN. The naira goes only to the one bank or mobile-money account (OPay, PalmPay,
+Moniepoint and other Paystack banks) that the owner saved in the app under Pay by USSD, Cash out
+to. The bank names the account before it is saved, and the wallet's passkey approves the change, so
+a PIN in the wrong hands can't send naira anywhere else.
+
+How it settles: Kova quotes the naira, the pocket's key signs an EIP-3009 transfer of the dollars to
+Kova's treasury with the cash-out's own memo as the nonce, and once it lands on Monad Paystack pays
+the account. If the bank refuses, the treasury sends the dollars back to the pocket. Either way the
+phone gets a text. A cash-out counts against the pocket's daily limit, like any other spend.
+
+It needs naira switched on (`PAYSTACK_SECRET_KEY`, the relayer) as well as USSD. With a Paystack
+test key no naira moves. Tests: `apps/api/test/ussd-cashout.test.ts`.
+
 ## Live service
 
 The sandbox channel does not work as a live Nigerian dial code. A provider-approved live

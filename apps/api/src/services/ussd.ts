@@ -2,9 +2,21 @@ import { formatAmount, normalizePhone, parseAmount } from '@kova/monad'
 import { config } from '../config.js'
 import { KovaError } from '../errors.js'
 import {
+  cashOutRow,
+  createPocketCashOut,
+  formatNaira,
+  MAX_CASH_OUT,
+  MIN_CASH_OUT,
+  nairaReady,
+  quoteCashOut,
+  treasury,
+} from './naira.js'
+import {
   checkPin,
   intentForTillCode,
   type Pocket,
+  payoutLabel,
+  payoutOf,
   pocketBalance,
   pocketForPhone,
   pocketsReady,
@@ -29,6 +41,7 @@ import { sendSmsLater } from './sms.js'
  *   2 Pay a till       the till's 6-digit code, then PIN: pays that charge, the till shows Paid
  *   3 Send to a phone  number, amount, PIN: lands in the wallet behind that number
  *   4 My payments      PIN, then the last three
+ *   5 Cash out         amount, the naira it comes to, PIN: naira to the one account the owner saved
  */
 
 const con = (text: string) => `CON ${text}`
@@ -64,7 +77,7 @@ export async function ussdReply(request: UssdRequest): Promise<string> {
   const [choice, ...rest] = steps
 
   if (choice === undefined)
-    return con('Kova\n1 Balance\n2 Pay a till\n3 Send to a phone\n4 My payments')
+    return con('Kova\n1 Balance\n2 Pay a till\n3 Send to a phone\n4 My payments\n5 Cash out')
 
   if (choice === '1') {
     const [pin] = rest
@@ -85,7 +98,7 @@ export async function ussdReply(request: UssdRequest): Promise<string> {
       if (earlier) {
         const denied = await pinDenied(pocket, pin)
         if (denied) return denied
-        return answerFor(earlier, earlier.kind)
+        return answerFor(earlier)
       }
     }
     if (code === undefined) return con('Enter the 6-digit code on the till:')
@@ -143,11 +156,59 @@ export async function ussdReply(request: UssdRequest): Promise<string> {
     return end(spends.map((s) => `${s.reference} ${money(s.amount)} ${label(s)}`).join('\n'))
   }
 
-  return end('Choose 1, 2, 3 or 4. Dial again to start over.')
+  if (choice === '5') {
+    const [amountText, pin] = rest
+    if (!nairaReady()) return end('Cashing out isn’t open on Kova yet.')
+    const account = payoutOf(pocket)
+    if (!account)
+      return end(
+        'Add the account to cash out to in the Kova app: Profile, then Pay by USSD, then Cash out to.',
+      )
+    const to = payoutLabel(account)
+    if (pin !== undefined) {
+      const earlier = await spendForSession(pocket, `ussd:${request.sessionId}`)
+      if (earlier) {
+        const denied = await pinDenied(pocket, pin)
+        if (denied) return denied
+        return answerFor(earlier)
+      }
+    }
+    if (amountText === undefined) return con(`Cash out to ${to}\nAmount in dollars:`)
+    if (!/^\d{1,4}(\.\d{1,2})?$/.test(amountText) || Number(amountText) === 0)
+      return end('Enter dollars and cents, like 5 or 0.50.')
+    const amount = parseAmount(amountText)
+    if (amount < MIN_CASH_OUT) return end(`Cash out at least ${money(MIN_CASH_OUT)}.`)
+    if (amount > MAX_CASH_OUT) return end(`Cash out up to ${money(MAX_CASH_OUT)} at a time.`)
+    if (pin === undefined) {
+      const quote = await quoteCashOut(amount)
+      return con(
+        `Cash out ${money(amount)}\nYou get ${formatNaira(quote.naira)}\nto ${to}\n\nEnter your PIN:`,
+      )
+    }
+    const denied = await pinDenied(pocket, pin)
+    if (denied) return denied
+    // A fresh quote at the moment of paying, so the naira matches the rate it's paid at.
+    const cashOut = await createPocketCashOut(
+      pocket.pocketAddress as `0x${string}`,
+      amount,
+      account,
+    )
+    return pay(pocket, {
+      sessionId: `ussd:${request.sessionId}`,
+      kind: 'cashout',
+      to: treasury(),
+      toLabel: to,
+      amount,
+      cashOut,
+    })
+  }
+
+  return end('Choose 1 to 5. Dial again to start over.')
 }
 
 function label(s: Spend): string {
   if (s.kind === 'withdraw') return 'to your wallet'
+  if (s.kind === 'cashout') return `cash-out ${s.toLabel}`
   return s.kind === 'phone' ? `to ${mask(s.toLabel)}` : s.toLabel.slice(0, 18)
 }
 
@@ -189,7 +250,9 @@ async function pay(pocket: Pocket, request: Parameters<typeof spend>[1]): Promis
   ])
   answered = true
   if ('slow' in answer)
-    return end(`Paying ${money(request.amount)}… You’ll get a text when it’s done.`)
+    return end(
+      `${request.kind === 'cashout' ? 'Cashing out' : 'Paying'} ${money(request.amount)}… You’ll get a text when it’s done.`,
+    )
   if ('error' in answer) {
     const message =
       answer.error instanceof KovaError
@@ -197,15 +260,24 @@ async function pay(pocket: Pocket, request: Parameters<typeof spend>[1]): Promis
         : 'We couldn’t confirm the request. Check your Kova payments before trying again.'
     return end(message)
   }
-  return answerFor(answer.done, request.kind)
+  return answerFor(answer.done)
 }
 
-function answerFor(done: Spend, kind: Spend['kind']): string {
+async function answerFor(done: Spend): Promise<string> {
   if (done.status === 'failed') return end('That payment didn’t go through, and nothing was paid.')
+  if (done.kind === 'cashout') {
+    const cashOut = done.cashOutId ? await cashOutRow(done.cashOutId) : undefined
+    const naira = cashOut ? formatNaira(cashOut.naira) : 'Your naira'
+    if (done.status !== 'paid')
+      return end(`Cashing out ${money(done.amount)}… You’ll get a text when it’s done.`)
+    return end(
+      `${naira} is on its way to ${done.toLabel}.\nRef ${done.reference}. You’ll get a text when it lands.`,
+    )
+  }
   if (done.status !== 'paid')
     return end(`Paying ${money(done.amount)}… You’ll get a text when it’s done.`)
   return end(
-    `Paid ${money(done.amount)} to ${kind === 'phone' ? mask(done.toLabel) : done.toLabel}.\nRef ${done.reference}. A text is on its way.`,
+    `Paid ${money(done.amount)} to ${done.kind === 'phone' ? mask(done.toLabel) : done.toLabel}.\nRef ${done.reference}. A text is on its way.`,
   )
 }
 
