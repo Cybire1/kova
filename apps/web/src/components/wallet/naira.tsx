@@ -292,7 +292,7 @@ export function NairaCashOut() {
           </div>
           <div className="w-review-row">
             <dt>Bank fee</dt>
-            <dd>{quote ? quote.fee : '₦10 to ₦50'}</dd>
+            <dd>{quote ? quote.fee : info?.partner === 'paj' ? '₦0.00' : '₦10 to ₦50'}</dd>
           </div>
           <div className="w-review-row">
             <dt>Network fee</dt>
