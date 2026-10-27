@@ -32,9 +32,10 @@ const dollars = (base: bigint) => (Number(base) / 1e6).toFixed(2)
 
 /**
  * Cashing out to naira (the API's services/naira.ts): dollars from this wallet to any Nigerian
- * bank account, through Paystack. How much (with what they'd get as you type), which account (the
- * bank says whose it is), the quote, slide. The wallet signs exactly the quote's transfer to
- * Kova's treasury, Kova pays the gas, and the screen follows the bank until the naira is there,
+ * bank account, through PAJ (Monad mainnet) or Paystack. How much (with what they'd get as you
+ * type), which account (the bank says whose it is), the quote, slide. The wallet signs exactly the
+ * quote's transfer (to Kova's cash-out contract, which swaps it to USDC and pays PAJ; or to Kova's
+ * treasury for Paystack), Kova pays the gas, and the screen follows the bank until the naira is there,
  * or says the dollars came back. The web's twin is /wallet/cash-out/naira.
  */
 export default function CashOutScreen() {
@@ -229,7 +230,7 @@ export default function CashOutScreen() {
                 </Txt>
               </View>
               <Txt size={14} color={colors.muted} style={{ flex: 1 }}>
-                To any Nigerian bank, through Paystack
+                To any Nigerian bank, through {info?.partner === 'paj' ? 'PAJ' : 'Paystack'}
                 {info?.cash_out_rate
                   ? `, at ₦${Number(info.cash_out_rate).toLocaleString('en-NG', { maximumFractionDigits: 2 })} per $1`
                   : ''}
@@ -378,17 +379,27 @@ export default function CashOutScreen() {
                 label="Rate"
                 value={`₦${Number(quote.rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per dollar`}
                 hint={
-                  info?.rate_source === 'chainlink'
-                    ? 'Chainlink rate on Monad, less 1%'
-                    : 'Market rate, less 1%'
+                  quote.partner === 'paj'
+                    ? 'PAJ’s rate, less 0.1% for the swap to USDC'
+                    : info?.rate_source === 'chainlink'
+                      ? 'Chainlink rate on Monad, less 1%'
+                      : 'Market rate, less 1%'
                 }
               />
-              <Fact label="Bank fee" value={quote.fee} hint="Taken from the naira" />
+              <Fact
+                label="Bank fee"
+                value={quote.fee}
+                hint={quote.partner === 'paj' ? 'PAJ’s fee is in the rate' : 'Taken from the naira'}
+              />
               <Fact label="Network fee" value="$0.00, Kova covers it" />
               <Fact
                 label="Arrives"
                 value="In minutes"
-                hint="If the bank can’t take it, your dollars come back"
+                hint={
+                  quote.partner === 'paj'
+                    ? 'PAJ pays the bank once your dollars reach it'
+                    : 'If the bank can’t take it, your dollars come back'
+                }
                 last
               />
             </View>

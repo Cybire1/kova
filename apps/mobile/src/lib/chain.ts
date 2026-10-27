@@ -387,6 +387,8 @@ export async function claimLink(
 /** A naira cash-out, as Kova quotes it (POST /v1/wallets/:address/cash-outs): what to sign, and how it went. */
 export interface CashOutToPay {
   id: string
+  /** paj: the transfer goes to Kova's cash-out contract, which swaps it and pays PAJ. */
+  partner?: 'paj' | 'paystack'
   amount: string
   naira: string
   rate: string

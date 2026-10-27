@@ -950,8 +950,10 @@ export const posterLinkFor = (slug: string) => `${webUrl}/s/${slug}/poster`
 
 export interface NairaInfo {
   enabled: boolean
+  /** Who moves the naira: PAJ on Monad mainnet, or Paystack. */
+  partner?: 'paj' | 'paystack' | null
   test_mode?: boolean
-  rate_source?: 'chainlink' | 'table'
+  rate_source?: 'chainlink' | 'table' | 'paj'
   market_rate?: string
   cash_out_rate?: string
   top_up_rate?: string
@@ -966,14 +968,23 @@ export interface NairaQuote {
   naira: string
   rate: string
   fee: string
-  rate_source: 'chainlink' | 'table'
+  rate_source: 'chainlink' | 'table' | 'paj'
 }
 
 export interface NairaTopUp {
   reference: string
+  partner?: 'paj' | 'paystack'
   amount: string
   naira: string
   status: 'initialized' | 'paid' | 'settled' | 'failed'
+  /** PAJ: the bank account opened for this one payment, and exactly what to send it. */
+  bank_transfer?: {
+    bank_name: string | null
+    account_number: string
+    account_name: string | null
+    naira: string
+    naira_kobo: string
+  } | null
   tx_url: string | null
   failure: string | null
   test_mode: boolean
@@ -999,12 +1010,13 @@ export const naira = {
       }),
     }),
   cashOutStatus: (id: string) => request<import('./chain').CashOutToPay>(`/v1/cash-outs/${id}`),
-  topUp: (wallet: string, input: { amount: string; email: string; returnUrl: string }) =>
+  /** Paystack sends a receipt to the email; PAJ needs none. */
+  topUp: (wallet: string, input: { amount: string; email?: string; returnUrl: string }) =>
     request<NairaTopUp & { url: string; fee: string }>(`/v1/wallets/${wallet}/naira-top-ups`, {
       method: 'POST',
       body: JSON.stringify({
         amount: input.amount,
-        email: input.email,
+        ...(input.email ? { email: input.email } : {}),
         return_url: input.returnUrl,
       }),
     }),

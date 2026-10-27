@@ -1,9 +1,17 @@
+import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { router, useLocalSearchParams } from 'expo-router'
 import * as SecureStore from 'expo-secure-store'
 import * as WebBrowser from 'expo-web-browser'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { KeyboardAvoidingView, Pressable, StyleSheet, TextInput, View } from 'react-native'
+import {
+  KeyboardAvoidingView,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native'
 import { type NairaInfo, type NairaQuote, type NairaTopUp, naira } from '@/lib/api'
 import { shareWebUrl } from '@/lib/config'
 import { applyKey, groupTyped, type Key, toBase } from '@/lib/money'
@@ -11,19 +19,20 @@ import { colors, fonts } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Kovi } from '@/ui/art'
 import { Keypad } from '@/ui/Keypad'
-import { CoinRain } from '@/ui/motion'
+import { CoinRain, Ping } from '@/ui/motion'
 import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
 
-type Step = 'amount' | 'pay' | 'checking' | 'done'
+type Step = 'amount' | 'pay' | 'transfer' | 'checking' | 'done'
 
 const EMAIL = 'kova.naira.email'
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const dollars = (base: bigint) => (Number(base) / 1e6).toFixed(2)
 
 /**
- * Adding money in naira (the API's services/naira.ts): pay naira by bank transfer, card or USSD on
- * Paystack's checkout, in the in-app browser, and the dollars land in this wallet once Paystack
- * confirms it. The web's twin is /wallet/add/naira.
+ * Adding money in naira (the API's services/naira.ts). Through PAJ (Monad mainnet): PAJ opens a
+ * bank account for this one payment, shown here to copy into any bank app, and the screen follows
+ * it until PAJ has sent the dollars to this wallet. Through Paystack: its checkout, in the in-app
+ * browser. The web's twins are /wallet/add/naira and /naira/pay/:reference.
  */
 export default function AddNaira() {
   const { profile, refresh } = useWallet()
@@ -60,6 +69,7 @@ export default function AddNaira() {
     }
   }, [typed])
   const outside = amount > 0n && (amount < 1_000_000n || amount > 500_000_000n)
+  const paj = info?.partner === 'paj'
 
   useEffect(() => {
     setQuote(null)
@@ -78,14 +88,19 @@ export default function AddNaira() {
     setBusy(true)
     setProblem(null)
     try {
-      void SecureStore.setItemAsync(EMAIL, email)
+      if (!paj) void SecureStore.setItemAsync(EMAIL, email)
       const started = await naira.topUp(profile.address, {
         amount: dollars(amount),
-        email,
+        ...(paj ? {} : { email }),
         // Kova's web for this network, which checks the payment too if Paystack lands there first.
         returnUrl: `${shareWebUrl}/wallet/add/naira`,
       })
       setTopUp(started)
+      if (started.bank_transfer) {
+        // PAJ: the account opened for this payment, right here. The screen follows it.
+        setStep('transfer')
+        return
+      }
       await WebBrowser.openBrowserAsync(started.url)
       // Back from Paystack: Kova checks the payment and sends the dollars.
       setStep('checking')
@@ -107,13 +122,37 @@ export default function AddNaira() {
       setStep('done')
     } catch (error) {
       setProblem(
-        error instanceof Error ? error.message : 'Paystack didn’t open. Nothing was charged.',
+        error instanceof Error
+          ? error.message
+          : `${paj ? 'PAJ' : 'Paystack'} didn’t open. Nothing was charged.`,
       )
       setStep('pay')
     } finally {
       setBusy(false)
     }
   }
+
+  // PAJ: follow the payment while its account is on screen, until the dollars land.
+  useEffect(() => {
+    if (step !== 'transfer' || !topUp) return
+    if (topUp.status === 'settled') {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      void refresh()
+      setStep('done')
+      return
+    }
+    if (topUp.status === 'failed') {
+      setStep('done')
+      return
+    }
+    const id = setTimeout(() => {
+      void naira
+        .verifyTopUp(topUp.reference)
+        .then(setTopUp)
+        .catch(() => setTopUp({ ...topUp }))
+    }, 4000)
+    return () => clearTimeout(id)
+  }, [step, topUp, refresh])
 
   if (info && !info.enabled)
     return (
@@ -137,7 +176,13 @@ export default function AddNaira() {
   return (
     <Screen bg={colors.tealLight}>
       <Header
-        title={step === 'done' || step === 'checking' ? undefined : 'Add naira'}
+        title={
+          step === 'done' || step === 'checking'
+            ? undefined
+            : step === 'transfer'
+              ? 'Pay by bank transfer'
+              : 'Add naira'
+        }
         backIcon={step === 'pay' ? 'back' : 'close'}
         onBack={busy ? null : step === 'pay' ? () => setStep('amount') : () => router.back()}
       />
@@ -151,7 +196,9 @@ export default function AddNaira() {
                 </Txt>
               </View>
               <Txt size={14} color={colors.onTint} style={{ flex: 1 }}>
-                Bank transfer, card or USSD, with Paystack. You get dollars.
+                {paj
+                  ? 'A bank transfer from any Nigerian bank. You get dollars.'
+                  : 'Bank transfer, card or USSD, with Paystack. You get dollars.'}
               </Txt>
             </View>
             <View style={styles.typed}>
@@ -191,7 +238,7 @@ export default function AddNaira() {
         {step === 'pay' && quote ? (
           <View style={styles.flow}>
             <Txt weight="bold" size={22}>
-              Pay with Paystack
+              {paj ? 'Pay by bank transfer' : 'Pay with Paystack'}
             </Txt>
             <View style={{ gap: 4, marginTop: 10 }}>
               <Txt weight="bold" size={40} style={{ textAlign: 'center' }}>
@@ -206,29 +253,42 @@ export default function AddNaira() {
                 label="Rate"
                 value={`₦${Number(quote.rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per dollar`}
                 hint={
-                  quote.rate_source === 'chainlink'
-                    ? 'Chainlink rate on Monad, plus 1%'
-                    : 'Market rate, plus 1%'
+                  paj
+                    ? 'PAJ’s rate, its fee included'
+                    : quote.rate_source === 'chainlink'
+                      ? 'Chainlink rate on Monad, plus 1%'
+                      : 'Market rate, plus 1%'
                 }
               />
-              <Fact label="Paystack’s fee" value={quote.fee} hint="Included in what you pay" />
-              <Fact label="Arrives" value="In seconds, on Monad" last />
-            </View>
-            <View style={{ gap: 8, marginTop: 16 }}>
-              <Txt weight="bold" size={13} color={colors.onTint}>
-                Email for Paystack’s receipt
-              </Txt>
-              <TextInput
-                value={email}
-                onChangeText={(t) => setEmail(t.trim())}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                placeholder="you@example.com"
-                placeholderTextColor={colors.muted}
-                style={styles.input}
+              {paj ? (
+                <Fact label="Fee" value="In the rate" />
+              ) : (
+                <Fact label="Paystack’s fee" value={quote.fee} hint="Included in what you pay" />
+              )}
+              <Fact
+                label="Arrives"
+                value={paj ? 'When your transfer lands' : 'In seconds, on Monad'}
+                hint={paj ? 'PAJ sends the dollars to this wallet on Monad' : undefined}
+                last
               />
             </View>
+            {paj ? null : (
+              <View style={{ gap: 8, marginTop: 16 }}>
+                <Txt weight="bold" size={13} color={colors.onTint}>
+                  Email for Paystack’s receipt
+                </Txt>
+                <TextInput
+                  value={email}
+                  onChangeText={(t) => setEmail(t.trim())}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  placeholderTextColor={colors.muted}
+                  style={styles.input}
+                />
+              </View>
+            )}
             {info?.test_mode ? (
               <Txt size={13} color={colors.onTint} style={{ marginTop: 10 }}>
                 Paystack test mode: no naira moves. Use Paystack’s test card on its page.
@@ -237,12 +297,64 @@ export default function AddNaira() {
             {problem ? <Txt color={colors.danger}>{problem}</Txt> : null}
             <View style={{ flex: 1 }} />
             <PillButton
-              label={busy ? 'Opening Paystack…' : `Pay ${quote.naira}`}
+              label={
+                busy
+                  ? paj
+                    ? 'Opening an account for you…'
+                    : 'Opening Paystack…'
+                  : paj
+                    ? 'Get the account to pay'
+                    : `Pay ${quote.naira}`
+              }
               loading={busy}
-              disabled={busy || !/.+@.+\..+/.test(email)}
+              disabled={busy || (!paj && !/.+@.+\..+/.test(email))}
               onPress={() => void pay()}
             />
           </View>
+        ) : null}
+
+        {step === 'transfer' && topUp?.bank_transfer ? (
+          <ScrollView contentContainerStyle={styles.transfer}>
+            <View style={{ gap: 4 }}>
+              <Txt weight="bold" size={40} style={{ textAlign: 'center' }}>
+                {topUp.bank_transfer.naira}
+              </Txt>
+              <Txt color={colors.onTint} style={{ textAlign: 'center' }}>
+                for ${topUp.amount} in your wallet
+              </Txt>
+            </View>
+            <View style={styles.facts}>
+              <CopyFact label="Account number" value={topUp.bank_transfer.account_number} />
+              <Fact label="Bank" value={topUp.bank_transfer.bank_name ?? '—'} />
+              <Fact label="Name" value={topUp.bank_transfer.account_name ?? '—'} />
+              <CopyFact
+                label="Amount"
+                value={topUp.bank_transfer.naira}
+                copy={(Number(topUp.bank_transfer.naira_kobo) / 100).toFixed(2)}
+                last
+              />
+            </View>
+            <Txt size={13} color={colors.onTint}>
+              Send exactly this amount, once, from any Nigerian bank app. This account is for this
+              payment only. PAJ, Kova’s naira partner, sends the dollars to this wallet when it
+              lands.
+            </Txt>
+            <View style={styles.wait} accessibilityLiveRegion="polite">
+              <View style={styles.dot}>
+                <Ping size={12} />
+              </View>
+              <Txt weight="semi" size={15}>
+                {topUp.status === 'paid'
+                  ? 'Naira received. Your dollars are on the way…'
+                  : 'Waiting for your transfer…'}
+              </Txt>
+            </View>
+            <View style={{ flex: 1 }} />
+            <PillButton label="Done" icon="check" onPress={() => router.back()} />
+            <Txt size={13} color={colors.onTint} style={{ textAlign: 'center' }}>
+              Close this whenever you like: the dollars still land when your naira does.
+            </Txt>
+          </ScrollView>
         ) : null}
 
         {step === 'checking' || step === 'done' ? (
@@ -253,18 +365,17 @@ export default function AddNaira() {
               {settled
                 ? 'Money’s in.'
                 : failed
-                  ? 'Paystack didn’t take it'
+                  ? 'The payment didn’t go through'
                   : step === 'checking'
-                    ? 'Checking with Paystack…'
-                    : 'Waiting for Paystack'}
+                    ? 'Checking your payment…'
+                    : 'Waiting for your naira'}
             </Txt>
             <Txt color={colors.onTint} style={{ textAlign: 'center' }}>
               {settled
                 ? `$${topUp?.amount} landed in your wallet, for ${topUp?.naira}.`
                 : failed
                   ? (topUp?.failure ?? 'No naira was taken. Try again.')
-                  : (topUp?.failure ??
-                    'As soon as Paystack confirms your naira, the dollars land here.')}
+                  : (topUp?.failure ?? 'As soon as your naira arrives, the dollars land here.')}
             </Txt>
             {topUp?.tx_url ? (
               <Pressable
@@ -288,6 +399,49 @@ export default function AddNaira() {
         ) : null}
       </KeyboardAvoidingView>
     </Screen>
+  )
+}
+
+/** A fact with a Copy button, for the account number and the amount to send. */
+function CopyFact({
+  label,
+  value,
+  copy,
+  last,
+}: {
+  label: string
+  value: string
+  copy?: string
+  last?: boolean
+}) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <View style={[styles.fact, { alignItems: 'center' }, !last && styles.rule]}>
+      <Txt size={14} color={colors.muted}>
+        {label}
+      </Txt>
+      <View style={styles.copyRow}>
+        <Txt weight="bold" size={16} selectable>
+          {value}
+        </Txt>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Copy ${label.toLowerCase()}`}
+          onPress={async () => {
+            await Clipboard.setStringAsync(copy ?? value).catch(() => {})
+            void Haptics.selectionAsync()
+            setCopied(true)
+            setTimeout(() => setCopied(false), 1600)
+          }}
+          style={styles.copy}
+          hitSlop={8}
+        >
+          <Txt weight="bold" size={13}>
+            {copied ? 'Copied' : 'Copy'}
+          </Txt>
+        </Pressable>
+      </View>
+    </View>
   )
 }
 
@@ -372,5 +526,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
+  transfer: { flexGrow: 1, gap: 14, paddingHorizontal: 20, paddingBottom: 16 },
+  copyRow: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 10,
+  },
+  copy: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: colors.tealSoft,
+  },
+  wait: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.coral },
   done: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 28 },
 })
