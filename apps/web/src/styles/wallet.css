@@ -5177,6 +5177,45 @@ button.w-chip-private:disabled {
   margin-top: 0.25rem;
 }
 
+/* PAJ's account for a top-up (/naira/pay/:reference) */
+
+.w-naira-copyable {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.w-naira-wait {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.w-naira-pulse {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background: var(--coral);
+  animation: w-naira-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes w-naira-pulse {
+  50% {
+    opacity: 0.25;
+    transform: scale(0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .w-naira-pulse {
+    animation: none;
+  }
+}
+
 /* Keys: allowances, team budgets, AI agents */
 
 .w-keys-problem {

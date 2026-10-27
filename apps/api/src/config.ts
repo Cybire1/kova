@@ -81,6 +81,21 @@ const schema = z.object({
   /** Kova's spread on naira each way, a fraction of the market rate (0.01 = 1%). */
   KOVA_NAIRA_SPREAD: z.coerce.number().min(0).max(0.1).default(0.01),
   /**
+   * PAJ (docs.paj.cash): naira in and out on Monad, a business key from PAJ's dashboard. With
+   * KOVA_CASH_OUT also set, naira goes through PAJ instead of Paystack (services/naira.ts).
+   */
+  PAJ_API_KEY: z.string().optional(),
+  PAJ_API_URL: z.string().url().default('https://api.paj.cash'),
+  /** PAJ's webhook secret (whsec_…). Without it, a delivery only prompts a fresh read from PAJ. */
+  PAJ_WEBHOOK_SECRET: z.string().optional(),
+  /** KovaCashOut (apps/card/contracts): a wallet's AUSD swapped to USDC and paid to PAJ, in one signature. */
+  KOVA_CASH_OUT: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{40}$/)
+    .optional(),
+  /** This API's public address, for partners' webhooks. Railway's own domain when unset. */
+  KOVA_API_PUBLIC_URL: z.string().url().optional(),
+  /**
    * Bridge (bridge.xyz): a US account number for each wallet (a virtual account, ACH and wire).
    * Bridge sends what arrives as USDC to the wallet's Aurora Intents deposit address, which lands
    * as AUSD on Monad. Sandbox keys come from Bridge after onboarding (support@bridge.xyz).

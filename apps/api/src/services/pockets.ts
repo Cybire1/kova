@@ -32,7 +32,7 @@ import {
   type CashOutRow,
   dropPocketCashOut,
   formatNaira,
-  nairaReady,
+  pocketCashOutReady,
   receivePocketCashOut,
   whenCashOutEnds,
 } from './naira.js'
@@ -901,7 +901,7 @@ export async function serializePocket(pocket: Pocket) {
           account_last4: payout.accountNumber.slice(-4),
         }
       : null,
-    cash_out: nairaReady(),
+    cash_out: pocketCashOutReady(),
     spends: spends.map(serializeSpend),
   }
 }

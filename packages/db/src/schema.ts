@@ -1151,6 +1151,17 @@ export const cashOuts = pgTable(
     /** Paystack's transfer, by our reference (the cash-out's id) and its code. */
     transferCode: text('transfer_code'),
     failure: text('failure'),
+    /**
+     * Who pays the naira: paystack (Kova's treasury takes the dollars) or paj (KovaCashOut swaps them
+     * to USDC and pays PAJ's one-time address, which pays the bank).
+     */
+    partner: text('partner').notNull().default('paystack'),
+    /** PAJ's offramp order. */
+    partnerOrderId: text('partner_order_id'),
+    /** The order's one-time address on Monad, where the USDC goes. */
+    partnerAddress: address('partner_address'),
+    /** The USDC PAJ gets, base units: what the wallet's signature commits to. */
+    payUnits: amount('pay_units'),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     paidAt: timestamp('paid_at', { withTimezone: true }),
     createdAt: createdAt(),
@@ -1159,6 +1170,7 @@ export const cashOuts = pgTable(
   (t) => [
     index('cash_outs_wallet_idx').on(t.walletAddress, t.createdAt),
     uniqueIndex('cash_outs_tx_idx').on(t.txHash),
+    uniqueIndex('cash_outs_partner_order_idx').on(t.partnerOrderId),
   ],
 )
 
@@ -1183,9 +1195,18 @@ export const nairaTopUps = pgTable(
     reference: text('reference').notNull(),
     /** initialized | paid | settled | failed */
     status: text('status').notNull().default('initialized'),
-    /** The treasury's transfer of the dollars to the wallet, on Monad. */
+    /** The treasury's transfer of the dollars to the wallet (PAJ: PAJ's own delivery), on Monad. */
     txHash: text('tx_hash'),
     failure: text('failure'),
+    /** Who takes the naira: paystack (a checkout) or paj (a bank account opened for this payment). */
+    partner: text('partner').notNull().default('paystack'),
+    /** PAJ's onramp order, and the account it opened for this payment. */
+    partnerOrderId: text('partner_order_id'),
+    bankName: text('bank_name'),
+    accountNumber: text('account_number'),
+    accountName: text('account_name'),
+    /** Where the payer goes back to once it's done (the app's or the web wallet's page). */
+    returnUrl: text('return_url'),
     paidAt: timestamp('paid_at', { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -1193,6 +1214,7 @@ export const nairaTopUps = pgTable(
   (t) => [
     uniqueIndex('naira_top_ups_reference_idx').on(t.reference),
     index('naira_top_ups_wallet_idx').on(t.walletAddress, t.createdAt),
+    uniqueIndex('naira_top_ups_partner_order_idx').on(t.partnerOrderId),
   ],
 )
 

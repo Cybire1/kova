@@ -8,26 +8,32 @@ import type { CashOutToPay } from '@/lib/wallet/chain'
 import { formatUsd } from '@/lib/wallet/money'
 import { ScreenHead } from './activity'
 import { useWallet } from './provider'
+import { CopyButton } from './ui'
 
 /**
- * Naira in and out, through Paystack (the API's services/naira.ts):
+ * Naira in and out (the API's services/naira.ts), through PAJ on Monad mainnet or Paystack:
  *
- * - Cash out: dollars to any Nigerian bank account. The bank names the account first; the wallet
- *   signs exactly the quote's transfer to Kova's treasury, and Paystack pays the naira.
- * - Add money: pay naira by bank transfer, card or USSD on Paystack's checkout, and the dollars
- *   land in the wallet once Paystack confirms it.
- *
- * Rates are the Chainlink rate on Monad, less (or plus) Kova's 1%.
+ * - Cash out: dollars to any Nigerian bank account. The bank names the account first, and the
+ *   wallet signs exactly the quote's transfer. With PAJ it goes to Kova's cash-out contract, which
+ *   swaps it to USDC and pays PAJ, and PAJ pays the bank; with Paystack, to Kova's treasury.
+ * - Add money: with PAJ, a bank transfer to an account opened for this one payment (Kova's page
+ *   for it, /naira/pay/:reference); with Paystack, its checkout. The dollars land in the wallet.
  */
+
+export type NairaPartner = 'paj' | 'paystack'
 
 export interface NairaInfo {
   enabled: boolean
+  partner?: NairaPartner | null
   test_mode?: boolean
-  rate_source?: 'chainlink' | 'table'
+  rate_source?: 'chainlink' | 'table' | 'paj'
   market_rate?: string
   cash_out_rate?: string
   top_up_rate?: string
 }
+
+const partnerName = (partner: NairaPartner | null | undefined) =>
+  partner === 'paj' ? 'PAJ' : 'Paystack'
 
 interface Bank {
   name: string
@@ -38,14 +44,23 @@ interface Quote {
   naira: string
   rate: string
   fee: string
-  rate_source: 'chainlink' | 'table'
+  rate_source: 'chainlink' | 'table' | 'paj'
 }
 
 export interface TopUp {
   reference: string
+  partner?: NairaPartner
   amount: string
   naira: string
   status: 'initialized' | 'paid' | 'settled' | 'failed'
+  /** PAJ: the bank account opened for this one payment, and exactly what to send it. */
+  bank_transfer?: {
+    bank_name: string | null
+    account_number: string
+    account_name: string | null
+    naira: string
+  } | null
+  return_url?: string | null
   tx_url: string | null
   failure: string | null
   test_mode: boolean
@@ -285,10 +300,9 @@ export function NairaCashOut() {
           </div>
         </dl>
         <p className="w-fine w-center">
-          {info?.rate_source === 'chainlink'
-            ? 'Chainlink rate on Monad, less 1%.'
-            : 'Market rate, less 1%.'}{' '}
-          The quote holds for 15 minutes. If the bank can’t take it, your dollars come back.
+          {info?.partner === 'paj'
+            ? 'PAJ’s rate today, less 0.1% for turning your AUSD into the USDC PAJ pays out. The quote holds for 15 minutes.'
+            : `${info?.rate_source === 'chainlink' ? 'Chainlink rate on Monad, less 1%.' : 'Market rate, less 1%.'} The quote holds for 15 minutes. If the bank can’t take it, your dollars come back.`}
         </p>
         {problem ? <p className="form-error">{problem}</p> : null}
         <button
@@ -351,7 +365,9 @@ function CashOutResult({ first }: { first: CashOutToPay }) {
           ? `${cashOut.naira} went to ${cashOut.bank_name} ····${cashOut.account_last4}.`
           : failed
             ? (cashOut.failure ?? 'The bank couldn’t take it.')
-            : `Your $${cashOut.amount} reached Kova on Monad. Paystack is paying ${cashOut.naira} to ${cashOut.bank_name}.`}
+            : cashOut.partner === 'paj'
+              ? `Your $${cashOut.amount} reached PAJ on Monad. PAJ is paying ${cashOut.naira} to ${cashOut.bank_name}.`
+              : `Your $${cashOut.amount} reached Kova on Monad. Paystack is paying ${cashOut.naira} to ${cashOut.bank_name}.`}
       </p>
       <dl className="w-review-card">
         <div className="w-review-row">
@@ -445,8 +461,12 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
       </div>
     )
 
+  const paj = info?.partner === 'paj'
   const ok =
-    DOLLARS.test(amount) && Number(amount) >= 1 && Number(amount) <= 500 && /.+@.+\..+/.test(email)
+    DOLLARS.test(amount) &&
+    Number(amount) >= 1 &&
+    Number(amount) <= 500 &&
+    (paj || /.+@.+\..+/.test(email))
   const start = async () => {
     if (!profile || !ok) return
     setBusy(true)
@@ -463,7 +483,7 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
           method: 'POST',
           body: JSON.stringify({
             amount,
-            email,
+            ...(email ? { email } : {}),
             return_url: `${window.location.origin}/wallet/add/naira`,
           }),
         },
@@ -471,7 +491,11 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
       window.location.assign(started.url)
     } catch (e) {
       setBusy(false)
-      setProblem(e instanceof Error ? e.message : 'Paystack didn’t open. Nothing was charged.')
+      setProblem(
+        e instanceof Error
+          ? e.message
+          : `${partnerName(info?.partner)} didn’t open. Nothing was charged.`,
+      )
     }
   }
 
@@ -482,8 +506,9 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
         <Art name="kovi-catch" size={96} className="w-add-art" />
         <h1 className="w-title">From your bank, in naira</h1>
         <p className="w-lead">
-          Pay naira by bank transfer, card or USSD with Paystack. The dollars land in this wallet as
-          soon as Paystack confirms it.
+          {paj
+            ? 'Send naira by bank transfer from any Nigerian bank. The dollars land in this wallet as soon as the transfer arrives.'
+            : 'Pay naira by bank transfer, card or USSD with Paystack. The dollars land in this wallet as soon as Paystack confirms it.'}
         </p>
         <div className="w-naira-form">
           <label className="w-naira-field">
@@ -502,17 +527,19 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
             </span>
             <span className="w-naira-help">Between $1 and $500</span>
           </label>
-          <label className="w-naira-field">
-            <span className="w-naira-label">Email for Paystack’s receipt</span>
-            <input
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value.trim())}
-              aria-label="Email"
-            />
-          </label>
+          {paj ? null : (
+            <label className="w-naira-field">
+              <span className="w-naira-label">Email for Paystack’s receipt</span>
+              <input
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value.trim())}
+                aria-label="Email"
+              />
+            </label>
+          )}
         </div>
         <dl className="w-review-card">
           <div className="w-review-row">
@@ -526,12 +553,12 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
             <dd>{quote ? `${naira(Number(quote.rate))} per $1` : '…'}</dd>
           </div>
           <div className="w-review-row">
-            <dt>Paystack’s fee</dt>
-            <dd>{quote ? `${quote.fee}, included` : '…'}</dd>
+            <dt>{paj ? 'Fee' : 'Paystack’s fee'}</dt>
+            <dd>{paj ? 'In the rate' : quote ? `${quote.fee}, included` : '…'}</dd>
           </div>
           <div className="w-review-row">
             <dt>Arrives</dt>
-            <dd>In seconds, on Monad</dd>
+            <dd>{paj ? 'Once your transfer lands, on Monad' : 'In seconds, on Monad'}</dd>
           </div>
         </dl>
         {problem ? <p className="form-error">{problem}</p> : null}
@@ -543,7 +570,13 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
           onClick={() => void start()}
         >
           <span className="pill-label">
-            {busy ? 'Opening Paystack…' : quote ? `Pay ${quote.naira}` : 'Pay with Paystack'}
+            {busy
+              ? paj
+                ? 'Opening an account for you…'
+                : 'Opening Paystack…'
+              : quote
+                ? `Pay ${quote.naira}`
+                : `Pay with ${partnerName(info?.partner)}`}
           </span>
           <span className="pill-cap">
             <Icon name="arrow" size={18} />
@@ -555,7 +588,7 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
   )
 }
 
-/** Back from Paystack: Kova checks the payment and sends the dollars. */
+/** Back from paying: Kova checks the payment, and the dollars land. */
 function TopUpReturn({ reference }: { reference: string }) {
   const { profile, refresh } = useWallet()
   const [topUp, setTopUp] = useState<TopUp | null>(null)
@@ -598,14 +631,18 @@ function TopUpReturn({ reference }: { reference: string }) {
         className="w-moment-art"
       />
       <h1 className="w-hero-title">
-        {settled ? 'Money’s in.' : failed ? 'Paystack didn’t take it.' : 'Checking with Paystack…'}
+        {settled
+          ? 'Money’s in.'
+          : failed
+            ? 'The payment didn’t go through.'
+            : 'Checking your payment…'}
       </h1>
       <p className="w-lead">
         {settled
           ? `$${topUp?.amount} landed in your wallet, for ${topUp?.naira}.`
           : failed
             ? (topUp?.failure ?? 'No naira was taken. Try again.')
-            : (topUp?.failure ?? 'As soon as Paystack confirms your naira, the dollars land here.')}
+            : (topUp?.failure ?? 'As soon as your naira arrives, the dollars land here.')}
       </p>
       {topUp ? (
         <dl className="w-review-card">
@@ -645,15 +682,169 @@ function TopUpReturn({ reference }: { reference: string }) {
   )
 }
 
+// ── Paying PAJ's account ────────────────────────────────────────────────────────────────────
+
+/**
+ * Where a PAJ top-up sends the payer (/naira/pay/:reference): the bank account PAJ opened for this
+ * one payment, exactly what to send it, and the payment followed until the dollars land. It needs
+ * no wallet, so it works in the app's in-app browser too.
+ */
+export function NairaTransfer({ reference }: { reference: string }) {
+  const [topUp, setTopUp] = useState<TopUp | null>(null)
+  const [problem, setProblem] = useState<string | null>(null)
+
+  const check = useCallback(async () => {
+    try {
+      setTopUp(
+        await json<TopUp>(`/api/naira/naira-top-ups/${reference}/verify`, { method: 'POST' }),
+      )
+      setProblem(null)
+    } catch (e) {
+      setProblem(e instanceof Error ? e.message : 'Kova couldn’t find this payment.')
+    }
+  }, [reference])
+
+  useEffect(() => {
+    void check()
+  }, [check])
+
+  // PAJ keeps the account open for days: follow the payment for as long as the page is open.
+  useEffect(() => {
+    if (!topUp || topUp.status === 'settled' || topUp.status === 'failed') return
+    const timer = setTimeout(() => void check(), 5000)
+    return () => clearTimeout(timer)
+  }, [topUp, check])
+
+  const back = topUp?.return_url ? `${topUp.return_url}?reference=${reference}` : '/wallet'
+
+  if (!topUp)
+    return (
+      <div className="w-screen w-moment">
+        <Art name={problem ? 'kovi-oops' : 'kovi-ride'} size={160} className="w-moment-art" />
+        <h1 className="w-hero-title">{problem ? 'No such payment.' : 'Opening your payment…'}</h1>
+        {problem ? <p className="w-lead">{problem}</p> : null}
+      </div>
+    )
+
+  if (topUp.status === 'settled' || topUp.status === 'failed') {
+    const settled = topUp.status === 'settled'
+    return (
+      <div className="w-screen w-moment">
+        <Art
+          name={settled ? 'scene-coin-rain' : 'kovi-oops'}
+          size={settled ? 220 : 180}
+          className="w-moment-art"
+        />
+        <h1 className="w-hero-title">
+          {settled ? 'Money’s in.' : 'The payment didn’t go through.'}
+        </h1>
+        <p className="w-lead">
+          {settled
+            ? `$${topUp.amount} landed in your Kova wallet, for ${topUp.naira}.`
+            : (topUp.failure ?? 'No naira was taken.')}
+        </p>
+        {settled && topUp.tx_url ? (
+          <dl className="w-review-card">
+            <div className="w-review-row">
+              <dt>On Monad</dt>
+              <dd>
+                <a className="textlink" href={topUp.tx_url} target="_blank" rel="noreferrer">
+                  See the transfer
+                </a>
+              </dd>
+            </div>
+          </dl>
+        ) : null}
+        <div className="w-moment-actions">
+          <a href={back} className="pill pill-block" data-tone="ink">
+            <span className="pill-label">Back to Kova</span>
+            <span className="pill-cap">
+              <Icon name="home" size={18} />
+            </span>
+          </a>
+        </div>
+        <p className="w-fine w-center">In the Kova app? Close this page.</p>
+      </div>
+    )
+  }
+
+  const transfer = topUp.bank_transfer
+  const received = topUp.status === 'paid'
+  return (
+    <div className="w-screen">
+      <div className="w-add w-naira w-naira-pay">
+        <Art name="kovi-catch" size={96} className="w-add-art" />
+        <h1 className="w-title">Send {transfer?.naira ?? topUp.naira}</h1>
+        <p className="w-lead">
+          From any Nigerian bank app, to this account. It’s open for this payment only, and $
+          {topUp.amount} lands in your Kova wallet when your naira arrives.
+        </p>
+        {transfer ? (
+          <dl className="w-review-card">
+            <div className="w-review-row">
+              <dt>Account number</dt>
+              <dd className="w-naira-copyable">
+                <strong>{transfer.account_number}</strong>
+                <CopyButton text={transfer.account_number} />
+              </dd>
+            </div>
+            <div className="w-review-row">
+              <dt>Bank</dt>
+              <dd>{transfer.bank_name ?? '—'}</dd>
+            </div>
+            <div className="w-review-row">
+              <dt>Name</dt>
+              <dd>{transfer.account_name ?? '—'}</dd>
+            </div>
+            <div className="w-review-row">
+              <dt>Amount</dt>
+              <dd className="w-naira-copyable">
+                <strong>{transfer.naira}</strong>
+                <CopyButton text={transfer.naira.replace(/[₦,]/g, '')} />
+              </dd>
+            </div>
+          </dl>
+        ) : null}
+        <p className="w-naira-wait" aria-live="polite">
+          <span className="w-naira-pulse" aria-hidden="true" />
+          {received ? 'Naira received. Your dollars are on the way…' : 'Waiting for your transfer…'}
+        </p>
+        <p className="w-fine w-center">
+          Send exactly this amount, once. PAJ, Kova’s naira partner, receives it and sends the
+          dollars to your wallet on Monad.
+        </p>
+        {problem ? <p className="form-error">{problem}</p> : null}
+        <a href={back} className="pill pill-block" data-tone="ink">
+          <span className="pill-label">I’ve sent it</span>
+          <span className="pill-cap">
+            <Icon name="arrow" size={18} />
+          </span>
+        </a>
+      </div>
+    </div>
+  )
+}
+
 /** The row on Add money and Cash out that opens naira. */
-export function NairaRow({ href, title, detail }: { href: string; title: string; detail: string }) {
+export function NairaRow({
+  href,
+  title,
+  detail,
+  pajDetail,
+}: {
+  href: string
+  title: string
+  detail: string
+  /** What the row says when PAJ moves the naira. */
+  pajDetail: string
+}) {
   const info = useNaira()
   if (!info?.enabled) return null
   return (
     <Link href={href} className="w-add-chain">
       <span>
         <strong>{title}</strong>
-        <small>{detail}</small>
+        <small>{info.partner === 'paj' ? pajDetail : detail}</small>
       </span>
       <Icon name="arrow" size={18} />
     </Link>

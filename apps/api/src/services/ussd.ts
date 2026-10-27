@@ -7,7 +7,7 @@ import {
   formatNaira,
   MAX_CASH_OUT,
   MIN_CASH_OUT,
-  nairaReady,
+  pocketCashOutReady,
   quoteCashOut,
   treasury,
 } from './naira.js'
@@ -158,7 +158,7 @@ export async function ussdReply(request: UssdRequest): Promise<string> {
 
   if (choice === '5') {
     const [amountText, pin] = rest
-    if (!nairaReady()) return end('Cashing out isn’t open on Kova yet.')
+    if (!pocketCashOutReady()) return end('Cashing out isn’t open on Kova yet.')
     const account = payoutOf(pocket)
     if (!account)
       return end(

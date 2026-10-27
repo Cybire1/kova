@@ -228,6 +228,7 @@ export async function transfersAfter(
 /** A naira cash-out, as Kova quotes it (POST /v1/wallets/:address/cash-outs): what to sign, and how it went. */
 export interface CashOutToPay {
   id: string
+  partner?: 'paj' | 'paystack'
   amount: string
   naira: string
   rate: string

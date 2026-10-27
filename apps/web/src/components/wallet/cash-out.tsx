@@ -79,6 +79,7 @@ export function CashOut() {
           href="/wallet/cash-out/naira"
           title="To a Nigerian bank, in naira"
           detail="Any bank, at today’s rate, with Paystack"
+          pajDetail="Any bank or OPay, at today’s rate"
         />
         <dl className="w-review-card">
           <div className="w-review-row">

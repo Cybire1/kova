@@ -7,7 +7,7 @@ import { network } from '../chain.js'
 import { config } from '../config.js'
 import { KovaError } from '../errors.js'
 import { clientIp, limit } from '../limits.js'
-import { nairaReady } from '../services/naira.js'
+import { pocketCashOutReady } from '../services/naira.js'
 import { accountName, bankNamed } from '../services/paystack.js'
 import {
   checkOwner,
@@ -279,7 +279,8 @@ export const ussdRoutes = new Hono()
     )
     if (!input.bank_code || !input.account_number)
       return c.json(await serializePocket(await setPayout(pocket, null, input.signed_at)))
-    if (!nairaReady()) throw new KovaError('conflict', 'Cashing out isn’t open on this server yet.')
+    if (!pocketCashOutReady())
+      throw new KovaError('conflict', 'Cashing out isn’t open on this server yet.')
     limit(
       `pocket-payout:${owner.toLowerCase()}`,
       10,

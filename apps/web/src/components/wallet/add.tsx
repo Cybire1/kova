@@ -39,6 +39,7 @@ export function AddMoney() {
           href="/wallet/add/naira"
           title="From your bank, in naira"
           detail="Bank transfer, card or USSD, with Paystack"
+          pajDetail="A bank transfer from any Nigerian bank"
         />
         <FromAbroadRow />
         <CardOrBank />
@@ -126,6 +127,7 @@ export function AddMoney() {
           href="/wallet/add/naira"
           title="From your bank, in naira"
           detail="Bank transfer, card or USSD, with Paystack"
+          pajDetail="A bank transfer from any Nigerian bank"
         />
         <FromAbroadRow />
       </div>

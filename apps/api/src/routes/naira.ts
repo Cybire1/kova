@@ -14,10 +14,16 @@ import {
   MAX_TOP_UP,
   MIN_CASH_OUT,
   MIN_TOP_UP,
+  nairaBanks,
+  nairaPartner,
   nairaReady,
+  nairaTestMode,
+  nameOnAccount,
+  pajOrderEvent,
   payCashOut,
   quoteCashOut,
   quoteTopUp,
+  refreshPajCashOut,
   serializeCashOut,
   serializeTopUp,
   settleTopUp,
@@ -25,18 +31,14 @@ import {
   topUpRow,
   topUpsOf,
 } from '../services/naira.js'
-import {
-  accountName,
-  nigerianBanks,
-  paystackTestMode,
-  webhookIsPaystack,
-} from '../services/paystack.js'
+import { webhookIsPaj } from '../services/paj.js'
+import { webhookIsPaystack } from '../services/paystack.js'
 
 /**
- * Naira in and out, through Paystack (services/naira.ts):
+ * Naira in and out, through PAJ or Paystack (services/naira.ts):
  *
  *   GET  /naira                                   whether it's on, the rates, the limits
- *   GET  /naira/banks                             Nigerian banks Paystack can pay
+ *   GET  /naira/banks                             Nigerian banks the partner can pay
  *   POST /naira/account                           the name on an account number at a bank
  *   GET  /naira/quote?amount=&direction=in|out    what an amount comes to in naira
  *   POST /wallets/:address/cash-outs              a quote for dollars out to a bank
@@ -44,10 +46,11 @@ import {
  *   GET  /cash-outs/:id                           one cash-out
  *   GET  /wallets/:address/cash-outs              a wallet's cash-outs
  *   POST /wallets/:address/naira-top-ups          add money in naira: where to send the payer
- *   POST /naira-top-ups/:reference/verify         the payer came back from Paystack
+ *   POST /naira-top-ups/:reference/verify         the payer came back: check the payment
  *   GET  /naira-top-ups/:reference                one top-up
  *   GET  /wallets/:address/naira-top-ups          a wallet's top-ups
  *   POST /paystack/webhook                        Paystack's word, signed
+ *   POST /paj/webhook                             PAJ's prompt to read an order again
  *
  * Nothing here moves a wallet's money without its own signature: a cash-out is paid only by the
  * EIP-3009 transfer the wallet signs, and a top-up only ever sends dollars to the wallet.
@@ -83,7 +86,8 @@ nairaRoutes.get('/naira', async (c) => {
   return c.json({
     object: 'naira',
     enabled: true,
-    test_mode: paystackTestMode(),
+    partner: nairaPartner(),
+    test_mode: nairaTestMode(),
     rate_source: out.source,
     market_rate: out.market.toFixed(2),
     cash_out_rate: out.rate.toFixed(2),
@@ -97,7 +101,7 @@ nairaRoutes.get('/naira', async (c) => {
 
 nairaRoutes.get('/naira/banks', async (c) => {
   needNaira()
-  return c.json({ object: 'list', data: await nigerianBanks() })
+  return c.json({ object: 'list', data: await nairaBanks() })
 })
 
 nairaRoutes.post('/naira/account', async (c) => {
@@ -110,7 +114,7 @@ nairaRoutes.post('/naira/account', async (c) => {
       bank_code: z.string().min(2).max(10),
     }),
   )
-  return c.json({ account_name: await accountName(body.account_number, body.bank_code) })
+  return c.json({ account_name: await nameOnAccount(body.account_number, body.bank_code) })
 })
 
 nairaRoutes.get('/naira/quote', async (c) => {
@@ -173,9 +177,20 @@ nairaRoutes.post('/cash-outs/:id/pay', async (c) => {
   return c.json(serializeCashOut(await payCashOut(row, signed)))
 })
 
+/** When a PAJ cash-out last asked PAJ, so a screen following it asks at most every few seconds. */
+const askedPaj = new Map<string, number>()
+
 nairaRoutes.get('/cash-outs/:id', async (c) => {
-  const row = await cashOutRow(c.req.param('id'))
+  let row = await cashOutRow(c.req.param('id'))
   if (!row) throw notFound('cash out', c.req.param('id'))
+  if (
+    row.partner === 'paj' &&
+    row.status === 'paying' &&
+    (askedPaj.get(row.id) ?? 0) < Date.now() - 4_000
+  ) {
+    askedPaj.set(row.id, Date.now())
+    row = await refreshPajCashOut(row)
+  }
   return c.json(serializeCashOut(row))
 })
 
@@ -198,7 +213,8 @@ nairaRoutes.post('/wallets/:address/naira-top-ups', async (c) => {
     c,
     z.object({
       amount: money,
-      email: z.string().email().max(200),
+      // Paystack's receipt goes to it; PAJ needs none.
+      email: z.string().email().max(200).optional(),
       return_url: z
         .string()
         .url()
@@ -233,7 +249,11 @@ nairaRoutes.get('/naira-top-ups/:reference', async (c) => {
 
 nairaRoutes.get('/wallets/:address/naira-top-ups', async (c) => {
   const wallet = walletOf(c.req.param('address'))
-  return c.json({ object: 'list', data: (await topUpsOf(wallet)).map(serializeTopUp) })
+  // The list never carries the account a payment was made to: only each payment's own page does.
+  const data = (await topUpsOf(wallet))
+    .map(serializeTopUp)
+    .map(({ bank_transfer: _, ...rest }) => rest)
+  return c.json({ object: 'list', data })
 })
 
 // ── Paystack's webhook ──────────────────────────────────────────────────────────────────────
@@ -250,5 +270,22 @@ nairaRoutes.post('/paystack/webhook', async (c) => {
     if (event.event?.startsWith('transfer.'))
       void cashOutTransferEvent(reference, event.event).catch(() => {})
   }
+  return c.json({ ok: true })
+})
+
+// ── PAJ's webhook ───────────────────────────────────────────────────────────────────────────
+
+nairaRoutes.post('/paj/webhook', async (c) => {
+  const raw = await c.req.text()
+  if (webhookIsPaj(raw, c.req.header('x-paj-timestamp'), c.req.header('x-paj-signature')) === false)
+    return c.json({ ok: false }, 401)
+  // Signed or not, a delivery only prompts a read: the order's state comes from PAJ's own API.
+  let id: unknown
+  try {
+    id = (JSON.parse(raw) as { id?: unknown }).id
+  } catch {
+    return c.json({ ok: false }, 400)
+  }
+  if (typeof id === 'string' && /^[0-9a-f]{24}$/i.test(id)) void pajOrderEvent(id).catch(() => {})
   return c.json({ ok: true })
 })
