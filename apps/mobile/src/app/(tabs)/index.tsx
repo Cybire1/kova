@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router'
+import * as WebBrowser from 'expo-web-browser'
 import { useCallback, useEffect, useState } from 'react'
 import {
   Pressable,
@@ -10,8 +11,8 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
-import { getSummary } from '@/lib/api'
-import { isTestnet } from '@/lib/config'
+import { getSummary, naira } from '@/lib/api'
+import { isTestnet, webUrl } from '@/lib/config'
 import { useOffline } from '@/lib/offline'
 import { usePrefs } from '@/lib/prefs'
 import { usePrivate } from '@/lib/private'
@@ -58,6 +59,18 @@ export default function Home() {
     await Promise.all([refresh(), refreshTakings(), refreshPrivate()])
     setRefreshing(false)
   }, [refresh, refreshTakings, refreshPrivate])
+
+  // Cash out from home: to a bank in naira, in the app, when this server has naira on; otherwise
+  // Ramp's off-ramp on the web, as Profile offers it (mainnet).
+  const [nairaOn, setNairaOn] = useState<boolean | null>(null)
+  useEffect(() => {
+    void naira.info().then((info) => setNairaOn(info.enabled))
+  }, [])
+  const cashOut = useCallback(() => {
+    if (nairaOn === false && !isTestnet)
+      void WebBrowser.openBrowserAsync(`${webUrl}/wallet/cash-out`)
+    else router.push('/cash-out')
+  }, [nairaOn])
 
   if (!profile) return null
   const empty = balance === 0n && !(monBalance && monBalance > 0n)
@@ -131,29 +144,38 @@ export default function Home() {
       <View style={styles.hero}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Pay. Scan, tap or pay a link"
+          accessibilityLabel="Pay. Scan or pay a link"
           onPress={() => router.push('/scan')}
           style={({ pressed }) => [styles.pay, pressed && { transform: [{ scale: 0.98 }] }]}
         >
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <View style={[styles.payIcon, { backgroundColor: colors.coral }]}>
-              <Icon name="scan" color={colors.white} />
-            </View>
-            <View style={[styles.payIcon, { backgroundColor: 'rgba(255,255,255,0.14)' }]}>
-              <Icon name="tap" color={colors.white} />
-            </View>
-          </View>
           <Svg width={92} height={92} viewBox="-46 -46 92 92" style={styles.waves}>
             <Circle r={40} fill="none" stroke={colors.white} strokeOpacity={0.12} strokeWidth={2} />
             <Circle r={26} fill="none" stroke={colors.white} strokeOpacity={0.18} strokeWidth={2} />
             <Circle r={12} fill="none" stroke={colors.white} strokeOpacity={0.26} strokeWidth={2} />
           </Svg>
+          <View style={styles.payTop}>
+            <View style={[styles.payIcon, { backgroundColor: colors.coral }]}>
+              <Icon name="scan" color={colors.white} />
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Cash out to your bank"
+              onPress={cashOut}
+              hitSlop={6}
+              style={({ pressed }) => [styles.cashOut, pressed && { opacity: 0.75 }]}
+            >
+              <Txt weight="bold" size={13} color={colors.white}>
+                Cash out
+              </Txt>
+              <Icon name="arrow" size={14} color={colors.white} />
+            </Pressable>
+          </View>
           <View>
             <Txt weight="bold" size={34} color={colors.white} style={{ letterSpacing: -1 }}>
               Pay
             </Txt>
             <Txt size={12} color={colors.onInk}>
-              Scan, tap or pay a link
+              Scan or pay a link
             </Txt>
           </View>
         </Pressable>
@@ -477,7 +499,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  waves: { position: 'absolute', right: -14, top: 40 },
+  waves: { position: 'absolute', right: -14, top: 58 },
+  payTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  cashOut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+  },
   small: { flex: 1, padding: 14, paddingHorizontal: 16, justifyContent: 'space-between' },
   travel: {
     marginTop: 12,

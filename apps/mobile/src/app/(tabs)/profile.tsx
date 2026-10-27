@@ -721,8 +721,12 @@ const styles = StyleSheet.create({
 /** Cash out to naira, when this server has naira on. */
 function NairaRow() {
   const [on, setOn] = useState(false)
+  const [partner, setPartner] = useState<'paj' | 'paystack' | null>(null)
   useEffect(() => {
-    void naira.info().then((info) => setOn(info.enabled))
+    void naira.info().then((info) => {
+      setOn(info.enabled)
+      setPartner(info.partner ?? null)
+    })
   }, [])
   if (!on) return null
   return (
@@ -743,7 +747,7 @@ function NairaRow() {
             Cash out to naira
           </Txt>
           <Txt size={13} color={colors.muted}>
-            To any Nigerian bank, with Paystack
+            To any Nigerian bank, with {partner === 'paj' ? 'PAJ' : 'Paystack'}
           </Txt>
         </View>
         <Icon name="arrow" size={20} />

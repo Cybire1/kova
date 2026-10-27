@@ -8,6 +8,7 @@ import { formatUsd, toBase } from '@/lib/wallet/money'
 import { KeysOnHome } from './keys'
 import { MonWalletCard } from './mon'
 import { MoneyRow } from './money'
+import { useNaira } from './naira'
 import { isUnnamed, useWallet } from './provider'
 import { StocksCard } from './stocks'
 import { ActionTile, Avatar, BalanceCard, EntryRow } from './ui'
@@ -19,6 +20,8 @@ import { ActionTile, Avatar, BalanceCard, EntryRow } from './ui'
  */
 export function Home() {
   const { profile, balance, monBalance, activity, contacts, network } = useWallet()
+  // Cash out goes straight to naira when this server has it on, as the app's does.
+  const naira = useNaira()
   if (!profile) return null
   const empty = balance === 0n && !(monBalance && monBalance > 0n)
 
@@ -43,14 +46,23 @@ export function Home() {
       <MonWalletCard />
 
       <div className="w-hero">
-        <Link href="/wallet/pay" className="w-pay" aria-label="Pay. Scan a code or pay a link">
+        <div className="w-pay">
+          {/* The whole card pays; Cash out sits on top of it as its own link. */}
+          <Link
+            href="/wallet/pay"
+            className="w-pay-link"
+            aria-label="Pay. Scan a code or pay a link"
+          />
           <span className="w-pay-icons">
             <span className="w-pay-icon w-pay-icon-coral">
               <Icon name="scan" size={20} />
             </span>
-            <span className="w-pay-icon">
-              <Icon name="tap" size={20} />
-            </span>
+            <Link
+              href={naira?.enabled ? '/wallet/cash-out/naira' : '/wallet/cash-out'}
+              className="w-pay-cash"
+            >
+              Cash out <Icon name="arrow" size={15} />
+            </Link>
           </span>
           <svg
             className="w-pay-waves"
@@ -67,7 +79,7 @@ export function Home() {
             <span className="w-pay-label">Pay</span>
             <span className="w-pay-sub">Scan a code or pay a link</span>
           </span>
-        </Link>
+        </div>
         <div className="w-hero-side">
           <ActionTile kind="send" />
           <ActionTile kind="request" />
