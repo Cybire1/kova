@@ -131,7 +131,7 @@ export default function Stocks() {
           {q.trim() ? 'Results' : 'Popular'}
         </Txt>
         <Txt size={12} weight="semi" color={colors.muted}>
-          Live from xStocks
+          {market?.period === 'closed' ? 'Market closed: last prices' : 'Live from xStocks'}
         </Txt>
       </View>
 

@@ -153,6 +153,13 @@ async function priced(listings: Listing[]): Promise<StockQuote[]> {
     const prices = await Promise.all(batch.map((l) => price(l.symbol)))
     out.push(...batch.map((l, j) => ({ ...l, price: prices[j] ?? null })))
   }
+  // xStocks quotes nothing while the market is shut (nights, weekends); the token still has a last
+  // market price, so show that, under the "Closed" the stock already wears.
+  const missing = out.filter((q) => q.price === null).map((q) => q.symbol)
+  if (missing.length) {
+    const last = await lastPrices(missing).catch(() => new Map<string, number>())
+    for (const q of out) if (q.price === null) q.price = last.get(q.symbol) ?? null
+  }
   return out
 }
 
@@ -198,7 +205,9 @@ export async function stockQuote(listing: Listing): Promise<StockQuote> {
     price(listing.symbol),
     tradingOf(listing.symbol).catch(() => null),
   ])
-  return { ...listing, ...(trading ?? {}), price: value }
+  const last =
+    value ?? (await lastPrices([listing.symbol]).catch(() => null))?.get(listing.symbol) ?? null
+  return { ...listing, ...(trading ?? {}), price: last }
 }
 
 // --- charts --------------------------------------------------------------------------------
@@ -217,6 +226,30 @@ const coingeckoIds = cached<'all', Map<string, string>>(24 * 60 * 60_000, async 
     if (/xstock/i.test(coin.name) && !/wrapped/i.test(coin.name)) ids.set(coin.symbol, coin.id)
   return ids
 })
+
+/** The tokens' last market prices on CoinGecko, many in one call, for when xStocks quotes none. */
+const lastPricesOf = cached<string, Map<string, number>>(5 * 60_000, async (key) => {
+  const ids = await coingeckoIds('all')
+  const wanted = key.split(',').flatMap((symbol) => {
+    const id = ids.get(symbol.toLowerCase())
+    return id ? [[symbol, id] as const] : []
+  })
+  const prices = new Map<string, number>()
+  if (!wanted.length) return prices
+  const body = await getJson<Record<string, { usd?: number }>>(
+    `${COINGECKO}/simple/price?vs_currencies=usd&ids=${wanted.map(([, id]) => id).join(',')}`,
+    coingeckoHeaders(),
+  )
+  for (const [symbol, id] of wanted) {
+    const usd = body[id]?.usd
+    if (typeof usd === 'number' && usd > 0) prices.set(symbol, usd)
+  }
+  return prices
+})
+
+function lastPrices(symbols: string[]): Promise<Map<string, number>> {
+  return lastPricesOf([...new Set(symbols)].sort().join(','))
+}
 
 /**
  * Two series a stock, so CoinGecko's free tier goes far: 30 days hourly draws 1D, 1W and 1M; a

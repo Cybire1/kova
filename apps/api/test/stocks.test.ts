@@ -45,15 +45,26 @@ function answer(url: string): unknown {
       return u.searchParams.get('page') === '1'
         ? { nodes: ASSETS.slice(0, 3), page: { hasNextPage: true } }
         : { nodes: ASSETS.slice(3), page: { hasNextPage: false } }
+    // xStocks quotes nothing for a stock whose market is shut: Tesco, here.
     if (u.pathname.endsWith('/price-data'))
-      return { quote: u.pathname.includes('TSLAx') ? 387.5 : 100 }
+      return {
+        quote: u.pathname.includes('TSLAx') ? 387.5 : u.pathname.includes('TSCOx') ? null : 100,
+      }
     return ASSETS.find((a) => u.pathname.endsWith(`/${a.symbol}`))
   }
   if (u.pathname.endsWith('/coins/list'))
     return [
       { id: 'tesla-xstock', symbol: 'tslax', name: 'Tesla xStock' },
       { id: 'wrapped-tesla-xstock', symbol: 'wtslax', name: 'Wrapped Tesla xStock' },
+      { id: 'tesco-xstock', symbol: 'tscox', name: 'Tesco xStock' },
     ]
+  if (u.pathname.endsWith('/simple/price'))
+    return Object.fromEntries(
+      (u.searchParams.get('ids') ?? '')
+        .split(',')
+        .filter((id) => id === 'tesco-xstock')
+        .map((id) => [id, { usd: 4.25 }]),
+    )
   if (u.pathname.includes('/coins/tesla-xstock/market_chart')) {
     // 30 days hourly, rising a cent an hour.
     const prices = Array.from({ length: 720 }, (_, i) => [now - (719 - i) * HOUR, 300 + i / 100])
@@ -103,6 +114,15 @@ describe('stocks', () => {
     expect(tesco.body.data.map((s) => s.symbol)).toEqual(['TSCOx'])
     const none = await get<{ data: unknown[] }>('/v1/stocks?q=beiersdorf')
     expect(none.body.data).toEqual([])
+  })
+
+  it('shows the token’s last market price while xStocks quotes none', async () => {
+    const list = await get<{ data: { symbol: string; price: number | null }[] }>(
+      '/v1/stocks?q=tesco',
+    )
+    expect(list.body.data).toMatchObject([{ symbol: 'TSCOx', price: 4.25 }])
+    const one = await get<{ price: number | null }>('/v1/stocks/TSCOx')
+    expect(one.body.price).toBe(4.25)
   })
 
   it('prices one stock, and says when Kova does not have it', async () => {

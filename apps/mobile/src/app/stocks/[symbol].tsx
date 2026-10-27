@@ -259,7 +259,9 @@ export default function StockScreen() {
           </View>
         </View>
         <Txt size={11} color={colors.muted}>
-          Price from xStocks{points.length ? ', chart from CoinGecko' : ''}.
+          {stock.period === 'closed'
+            ? 'Market closed: the last price the token traded at, from CoinGecko.'
+            : `Price from xStocks${points.length ? ', chart from CoinGecko' : ''}.`}
         </Txt>
       </ScrollView>
 

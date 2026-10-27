@@ -224,7 +224,9 @@ export function Stocks() {
 
       <div className="w-section-row">
         <h2 className="w-section">{query.trim() ? 'Results' : 'Popular'}</h2>
-        <span className="w-st-source">Live from xStocks</span>
+        <span className="w-st-source">
+          {market?.period === 'closed' ? 'Market closed: last prices' : 'Live from xStocks'}
+        </span>
       </div>
 
       {stocks === null ? (
