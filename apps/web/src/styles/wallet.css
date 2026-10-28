@@ -136,8 +136,70 @@
   animation: rise 0.5s var(--spring);
 }
 
+/* While the wallet opens (shell.tsx): Home's shape, shimmering, after a short pause. */
 .w-loading {
-  height: 60vh;
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+  animation: w-fade 0.35s 0.18s ease backwards;
+}
+
+.w-skel {
+  display: block;
+  min-height: 3.5rem;
+  border-radius: 1.5rem;
+  background: linear-gradient(
+      100deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.45) 50%,
+      transparent 70%
+    )
+    var(--sunken);
+  background-size: 250% 100%;
+  animation: w-shimmer 1.4s ease-in-out infinite;
+}
+
+.w-skel-hello {
+  width: 9rem;
+  min-height: 2.75rem;
+}
+
+.w-skel-card {
+  min-height: 10rem;
+}
+
+.w-skel-row {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 0.75rem;
+}
+
+.w-skel-pay {
+  min-height: 11.25rem;
+}
+
+.w-skel-col {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.w-skel-wide {
+  min-height: 4.75rem;
+}
+
+@keyframes w-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .w-skel {
+    animation: none;
+  }
 }
 
 .w-face {

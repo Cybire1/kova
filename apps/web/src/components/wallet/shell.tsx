@@ -79,7 +79,7 @@ export function WalletShell({ children }: { children: React.ReactNode }) {
       >
         <FlowContext.Provider value={flowContext}>
           {status === 'loading' ? (
-            <div className="w-loading" aria-busy="true" />
+            <Opening />
           ) : status === 'none' && !nairaReturn ? (
             path.startsWith('/wallet/phone/') ? (
               <PhoneWelcome id={path.split('/').pop()!} />
@@ -160,5 +160,26 @@ function Dock({ path }: { path: string }) {
         {after.map(tab)}
       </nav>
     </>
+  )
+}
+
+/**
+ * While the wallet opens: Home's shape, softly shimmering, instead of a blank page. It fades in
+ * only if opening takes a moment, so a quick open never flashes it.
+ */
+function Opening() {
+  return (
+    <div className="w-loading" aria-busy="true" aria-label="Opening your wallet">
+      <span className="w-skel w-skel-hello" />
+      <span className="w-skel w-skel-card" />
+      <span className="w-skel-row">
+        <span className="w-skel w-skel-pay" />
+        <span className="w-skel-col">
+          <span className="w-skel" />
+          <span className="w-skel" />
+        </span>
+      </span>
+      <span className="w-skel w-skel-wide" />
+    </div>
   )
 }
