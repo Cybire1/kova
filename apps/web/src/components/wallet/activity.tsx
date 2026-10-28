@@ -5,25 +5,44 @@ import { useMemo, useState } from 'react'
 import { Icon } from '@/components/brand'
 import { baseToNumber, formatLocal, formatUsd } from '@/lib/wallet/money'
 import { isOfflineTx } from '@/lib/wallet/offline'
+import { isFlow, useFlow } from './flow'
 import { CheckPrivate } from './private'
 import { type Entry, isUnnamed, short, useWallet } from './provider'
 import { Avatar, EntryBadge, EntryRow, incoming, LockedFace, NoSignal, signed } from './ui'
 
-/** A screen's title, with the way back. */
+/**
+ * A screen's title, with the way back. In a money flow the title sits centred, as in the app, and
+ * the way out of the flow is × (it closes the way it opened); a step back inside it stays an arrow.
+ */
 export function ScreenHead({
   title,
   back = '/wallet',
+  onBack,
   children,
 }: {
   title: string
   back?: string
+  /** A step back within the screen itself, rather than to another page. */
+  onBack?: () => void
   children?: React.ReactNode
 }) {
+  const flow = useFlow()
+  const exit = flow && !onBack && !isFlow(back)
   return (
-    <div className="w-head">
-      <Link href={back} className="round" aria-label="Back">
-        <Icon name="back" size={18} />
-      </Link>
+    <div className={`w-head${flow ? ' w-head-flow' : ''}`}>
+      {onBack ? (
+        <button type="button" className="round" aria-label="Back" onClick={onBack}>
+          <Icon name="back" size={18} />
+        </button>
+      ) : exit ? (
+        <button type="button" className="round" aria-label="Close" onClick={() => flow.close(back)}>
+          <Icon name="close" size={18} />
+        </button>
+      ) : (
+        <Link href={back} className="round" aria-label="Back">
+          <Icon name="back" size={18} />
+        </Link>
+      )}
       <h1>{title}</h1>
       <span className="w-head-end">{children}</span>
     </div>

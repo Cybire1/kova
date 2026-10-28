@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
-import { Icon } from '@/components/brand'
+import { Art, Icon } from '@/components/brand'
 import { personLink } from '@/lib/wallet/links'
 import {
   applyKey,
@@ -76,7 +76,7 @@ export function Request() {
   return (
     <div className="w-screen w-amount-screen">
       <ScreenHead title="Request" />
-      <p className="w-typed" aria-live="polite">
+      <p className={`w-typed${typed ? '' : ' w-typed-empty'}`} aria-live="polite">
         <span className="w-typed-sign">$</span>
         {groupTyped(typed)}
       </p>
@@ -127,7 +127,8 @@ export function Receive() {
       <div className="w-code-screen">
         <h1 className="w-title">Scan to pay {firstName}</h1>
         <p className="w-lead">Share this code or link to receive Kova payments.</p>
-        <div className="w-code-card">
+        <div className="w-code-card w-code-card-peek">
+          <Art name="kovi-peek" size={104} className="w-code-kovi" />
           <QR value={link} size={200} label={`Code to pay ${profile.name}`} />
         </div>
         <div className="w-address">

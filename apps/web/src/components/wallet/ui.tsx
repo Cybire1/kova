@@ -426,7 +426,11 @@ export function Keypad({ onKey, decimals = 2 }: { onKey: (key: Key) => void; dec
             key={key}
             type="button"
             className="w-key"
-            onClick={() => onKey(key)}
+            onClick={() => {
+              // A tick under the thumb where the phone can (Android); iPhones press silently.
+              navigator.vibrate?.(5)
+              onKey(key)
+            }}
             aria-label={key === 'del' ? 'Delete' : key === '.' ? 'Point' : key}
           >
             {key === 'del' ? <Icon name="del" size={22} /> : key}

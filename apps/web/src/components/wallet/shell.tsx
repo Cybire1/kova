@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
-import { useEffect } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Brand, NavIcon, type NavIconName } from '@/components/brand'
 import { ArrivalNotice } from './arrival'
+import { FlowContext, isFlow } from './flow'
 import { PhoneWelcome } from './phone-welcome'
 import { PrivateArrivalMoment } from './private'
 import { useWallet } from './provider'
@@ -17,7 +18,8 @@ import { Welcome } from './welcome'
  * the middle.
  *
  * The brand bar stays on every screen, phone and desktop, above each screen's own title. Send is a
- * sheet over Home, so the dock steps aside while it's open.
+ * sheet over Home, so the dock steps aside while it's open; the other money flows (request, get
+ * paid, cash out, pay, add) rise over Home the same way and close with × (flow.tsx).
  */
 export function WalletShell({ children }: { children: React.ReactNode }) {
   const { status, tickPrivate } = useWallet()
@@ -28,6 +30,20 @@ export function WalletShell({ children }: { children: React.ReactNode }) {
     path === '/wallet/add/naira' && Boolean(params.get('reference') ?? params.get('trxref'))
   const sheet = path.startsWith('/wallet/send')
   const inner = status === 'ready' && path !== '/wallet' && !sheet
+  const flow = status === 'ready' && isFlow(path)
+  // Closing a flow plays its exit first, then goes; arriving anywhere ends it.
+  const router = useRouter()
+  const [leaving, setLeaving] = useState(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new path is a new screen
+  useEffect(() => setLeaving(false), [path])
+  const close = useCallback(
+    (href: string) => {
+      setLeaving(true)
+      setTimeout(() => router.push(href), 200)
+    },
+    [router],
+  )
+  const flowContext = useMemo(() => (flow ? { close } : null), [flow, close])
 
   // Private payments to you are looked for while the wallet is open: new ones found by your keys,
   // who sent them, and what their one-time addresses still hold.
@@ -46,26 +62,37 @@ export function WalletShell({ children }: { children: React.ReactNode }) {
   }, [status, tickPrivate])
 
   return (
-    <div className={`w-app${inner ? ' w-app-inner' : ''}`}>
+    <div
+      className={`w-app${inner ? ' w-app-inner' : ''}${flow ? ' w-app-flow' : ''}${
+        // Getting paid is teal, as in the app.
+        flow && path.startsWith('/wallet/receive') ? ' w-app-teal' : ''
+      }`}
+    >
       <header className="w-top">
         <Brand href="/wallet" />
       </header>
 
-      <main className="w-main">
-        {status === 'loading' ? (
-          <div className="w-loading" aria-busy="true" />
-        ) : status === 'none' && !nairaReturn ? (
-          path.startsWith('/wallet/phone/') ? (
-            <PhoneWelcome id={path.split('/').pop()!} />
+      <main
+        // Keyed so a flow's rise plays as it opens, not again between its own pages.
+        key={flow ? 'flow' : 'tab'}
+        className={`w-main${flow ? ' w-flow' : ''}${leaving ? ' w-flow-out' : ''}`}
+      >
+        <FlowContext.Provider value={flowContext}>
+          {status === 'loading' ? (
+            <div className="w-loading" aria-busy="true" />
+          ) : status === 'none' && !nairaReturn ? (
+            path.startsWith('/wallet/phone/') ? (
+              <PhoneWelcome id={path.split('/').pop()!} />
+            ) : (
+              <Welcome forShop={path.startsWith('/wallet/shop')} />
+            )
           ) : (
-            <Welcome forShop={path.startsWith('/wallet/shop')} />
-          )
-        ) : (
-          children
-        )}
+            children
+          )}
+        </FlowContext.Provider>
       </main>
 
-      {status === 'ready' && !sheet ? <Dock path={path} /> : null}
+      {status === 'ready' && !sheet && !flow ? <Dock path={path} /> : null}
       {status === 'ready' ? <ArrivalNotice /> : null}
       {/* A private payment found while the wallet is open gets its own moment, over any screen. */}
       {status === 'ready' ? <PrivateArrivalMoment /> : null}

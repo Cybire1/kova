@@ -5,9 +5,13 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Art, Icon } from '@/components/brand'
 import type { CashOutToPay } from '@/lib/wallet/chain'
-import { formatUsd } from '@/lib/wallet/money'
+import { applyKey, formatUsd, type Key } from '@/lib/wallet/money'
+import { ScreenHead } from './activity'
+import { Steps } from './flow'
 import { DOLLARS, json, nairaText, useNaira, useQuote } from './naira'
 import { useWallet } from './provider'
+import { SlideToSend } from './send'
+import { Keypad } from './ui'
 
 /**
  * Cashing out to naira (the API's services/naira.ts, through PAJ), in five steps: how much; who
@@ -32,6 +36,7 @@ interface Recent {
 }
 
 type Step = 'amount' | 'recipient' | 'review' | 'sending' | 'done'
+const ORDER: readonly Step[] = ['amount', 'recipient', 'review', 'sending', 'done']
 
 type Check =
   | { code: string; state: 'checking' }
@@ -91,6 +96,11 @@ export function NairaCashOut() {
   const [problem, setProblem] = useState<string | null>(null)
   const [took, setTook] = useState<number | null>(null)
   const sentAt = useRef(0)
+  const onKey = useCallback((key: Key) => {
+    setAmount((v) => applyKey(v, key, 2))
+    setCheck(null)
+    setCashOut(null)
+  }, [])
 
   useEffect(() => setRecents(readRecents()), [])
 
@@ -236,7 +246,7 @@ export function NairaCashOut() {
   if (info && !enabled)
     return (
       <div className="w-screen">
-        <Head title="Cash out to naira" href="/wallet/cash-out" />
+        <ScreenHead title="Cash out to naira" />
         <div className="w-empty w-empty-art">
           <Art name="kovi-sleep" size={112} />
           <strong>Naira isn’t on here yet</strong>
@@ -250,334 +260,308 @@ export function NairaCashOut() {
 
   if (step === 'done' && cashOut)
     return (
-      <Done
-        cashOut={cashOut}
-        bankName={bankName || cashOut.bank_name}
-        logo={bank?.logo ?? logoOf(cashOut.bank_code)}
-        who={who}
-        took={took}
-      />
+      <Steps step={step} order={ORDER}>
+        <Done
+          cashOut={cashOut}
+          bankName={bankName || cashOut.bank_name}
+          logo={bank?.logo ?? logoOf(cashOut.bank_code)}
+          who={who}
+          took={took}
+        />
+      </Steps>
     )
 
   if (step === 'sending' && cashOut)
     return (
-      <div className="w-screen cx-moment">
-        <Art name="kovi-ride" size={136} className="cx-ride" />
-        <p className="cx-moment-label">On its way to {titleCase(who)}</p>
-        <strong className="cx-moment-amount">{cashOut.naira}</strong>
-        <span className="cx-moment-to">
-          <BankLogo logo={bank?.logo} name={bankName} size={22} />
-          {bankName} · {spaced(account)}
-        </span>
-        <ol className="cx-steps" aria-live="polite">
-          <StepRow
-            state={cashOut.tx_hash ? 'done' : 'active'}
-            title="Left your wallet"
-            detail={`$${cashOut.amount} on Monad`}
-          />
-          <StepRow
-            state={cashOut.tx_hash ? 'done' : 'waiting'}
-            title="Ready for the bank"
-            detail="Turned into USDC for the transfer"
-          />
-          <StepRow
-            state={cashOut.tx_hash ? 'active' : 'waiting'}
-            title={`${bankName} is paying ${titleCase(who)}`}
-            detail="Usually a few seconds"
-          />
-          <StepRow
-            state="waiting"
-            title={`In ${titleCase(who)}’s account`}
-            detail={cashOut.naira}
-            last
-          />
-        </ol>
-        <p className="cx-fine">
-          You can close this. It keeps going, and it shows in your activity.
-        </p>
-        <Link href="/wallet" className="cx-line-button">
-          Close
-        </Link>
-      </div>
+      <Steps step={step} order={ORDER}>
+        <div className="w-screen cx-moment">
+          <Art name="kovi-ride" size={136} className="cx-ride" />
+          <p className="cx-moment-label">On its way to {titleCase(who)}</p>
+          <strong className="cx-moment-amount">{cashOut.naira}</strong>
+          <span className="cx-moment-to">
+            <BankLogo logo={bank?.logo} name={bankName} size={22} />
+            {bankName} · {spaced(account)}
+          </span>
+          <ol className="cx-steps" aria-live="polite">
+            <StepRow
+              state={cashOut.tx_hash ? 'done' : 'active'}
+              title="Left your wallet"
+              detail={`$${cashOut.amount} on Monad`}
+            />
+            <StepRow
+              state={cashOut.tx_hash ? 'done' : 'waiting'}
+              title="Ready for the bank"
+              detail="Turned into USDC for the transfer"
+            />
+            <StepRow
+              state={cashOut.tx_hash ? 'active' : 'waiting'}
+              title={`${bankName} is paying ${titleCase(who)}`}
+              detail="Usually a few seconds"
+            />
+            <StepRow
+              state="waiting"
+              title={`In ${titleCase(who)}’s account`}
+              detail={cashOut.naira}
+              last
+            />
+          </ol>
+          <p className="cx-fine">
+            You can close this. It keeps going, and it shows in your activity.
+          </p>
+          <Link href="/wallet" className="cx-line-button">
+            Close
+          </Link>
+        </div>
+      </Steps>
     )
 
   if (step === 'review' && cashOut)
     return (
-      <div className="w-screen">
-        <Head title="Check and send" onBack={() => setStep('recipient')} />
-        <div className="cx">
-          <section className="cx-hero">
-            <span className="cx-hero-who">
-              <Avatar name={who} logo={bank?.logo} size={46} />
-              <span>
-                <strong>{titleCase(who)}</strong>
-                <small>
-                  {bankName} · {spaced(account)}
-                </small>
+      <Steps step={step} order={ORDER}>
+        <div className="w-screen">
+          <ScreenHead title="Check and send" onBack={() => setStep('recipient')} />
+          <div className="cx">
+            <section className="cx-hero">
+              <span className="cx-hero-who">
+                <Avatar name={who} logo={bank?.logo} size={46} />
+                <span>
+                  <strong>{titleCase(who)}</strong>
+                  <small>
+                    {bankName} · {spaced(account)}
+                  </small>
+                </span>
               </span>
-            </span>
-            <span className="cx-hero-label">They get</span>
-            <strong className="cx-hero-amount">{cashOut.naira}</strong>
-            {/* biome-ignore lint/performance/noImgElement: pre-sized WebP art, no optimizer needed */}
-            <img className="cx-hero-coin" src="/art/coin-ngn.webp" alt="" />
-          </section>
-          <dl className="w-review-card">
-            <div className="w-review-row">
-              <dt>You send</dt>
-              <dd>${cashOut.amount}</dd>
-            </div>
-            <div className="w-review-row">
-              <dt>Rate</dt>
-              <dd>{nairaText(Number(cashOut.rate))} per $1</dd>
-            </div>
-            <div className="w-review-row">
-              <dt>Fees</dt>
-              <dd>{cashOut.fee === '₦0.00' ? 'None' : cashOut.fee}</dd>
-            </div>
-            <div className="w-review-row">
-              <dt>Arrives</dt>
-              <dd>In seconds</dd>
-            </div>
-          </dl>
-          <label className="cx-save">
-            <input type="checkbox" checked={save} onChange={() => setSave(!save)} />
-            Save {titleCase(who)} for next time
-          </label>
-          <p className="cx-fine">
-            {bankName} is paid as soon as your dollars arrive on Monad. The quote holds for 15
-            minutes.
-          </p>
-          {problem ? <p className="form-error">{problem}</p> : null}
-          <button
-            type="button"
-            className="pill pill-block"
-            data-tone="coral"
-            disabled={busy}
-            onClick={() => void send()}
-          >
-            <span className="pill-label">
-              {busy ? 'Approve with your passkey…' : `Send ${cashOut.naira}`}
-            </span>
-            <span className="pill-cap">
-              <Icon name="face" size={20} />
-            </span>
-          </button>
-          <p className="cx-fine">Your passkey approves it. Kova pays the network fee.</p>
+              <span className="cx-hero-label">They get</span>
+              <strong className="cx-hero-amount">{cashOut.naira}</strong>
+              {/* biome-ignore lint/performance/noImgElement: pre-sized WebP art, no optimizer needed */}
+              <img className="cx-hero-coin" src="/art/coin-ngn.webp" alt="" />
+            </section>
+            <dl className="w-review-card">
+              <div className="w-review-row">
+                <dt>You send</dt>
+                <dd>${cashOut.amount}</dd>
+              </div>
+              <div className="w-review-row">
+                <dt>Rate</dt>
+                <dd>{nairaText(Number(cashOut.rate))} per $1</dd>
+              </div>
+              <div className="w-review-row">
+                <dt>Fees</dt>
+                <dd>{cashOut.fee === '₦0.00' ? 'None' : cashOut.fee}</dd>
+              </div>
+              <div className="w-review-row">
+                <dt>Arrives</dt>
+                <dd>In seconds</dd>
+              </div>
+            </dl>
+            <label className="cx-save">
+              <input type="checkbox" checked={save} onChange={() => setSave(!save)} />
+              Save {titleCase(who)} for next time
+            </label>
+            <p className="cx-fine">
+              {bankName} is paid as soon as your dollars arrive on Monad. The quote holds for 15
+              minutes.
+            </p>
+            {problem ? <p className="form-error">{problem}</p> : null}
+            {/* As in the app: a slide, not a tap, between a review and money leaving. */}
+            <SlideToSend
+              label={problem ? 'Slide to try again' : `Slide to send ${cashOut.naira}`}
+              busy={busy}
+              onSend={() => void send()}
+            />
+            <p className="cx-fine">Your passkey approves it. Kova pays the network fee.</p>
+          </div>
         </div>
-      </div>
+      </Steps>
     )
 
   if (step === 'recipient')
     return (
-      <div className="w-screen">
-        <Head title="Cash out to" onBack={() => setStep('amount')} />
-        <div className="cx">
-          <p className="cx-sub">
-            ${amount} → {estimate?.naira ?? '…'}
-          </p>
-          {recents.length ? (
-            <>
-              <span className="cx-label">Recent</span>
-              <div className="cx-recents">
-                {recents.map((r) => (
-                  <button
-                    type="button"
-                    key={`${r.bankCode}-${r.accountNumber}`}
-                    className="cx-recent"
-                    onClick={() => {
-                      setAccount(r.accountNumber)
-                      const known = banks.find((b) => b.code === r.bankCode)
-                      void checkName(
-                        known ?? { name: r.bankName, code: r.bankCode, logo: r.logo },
-                        r.accountNumber,
-                      )
-                    }}
-                  >
-                    <Avatar name={r.name} logo={r.logo} size={30} />
-                    <span>
-                      <strong>{titleCase(r.name)}</strong>
-                      <small>
-                        {r.bankName} ••{r.accountNumber.slice(-4)}
-                      </small>
-                    </span>
-                  </button>
-                ))}
+      <Steps step={step} order={ORDER}>
+        <div className="w-screen">
+          <ScreenHead title="Cash out to" onBack={() => setStep('amount')} />
+          <div className="cx">
+            <p className="cx-sub">
+              ${amount} → {estimate?.naira ?? '…'}
+            </p>
+            {recents.length ? (
+              <>
+                <span className="cx-label">Recent</span>
+                <div className="cx-recents">
+                  {recents.map((r) => (
+                    <button
+                      type="button"
+                      key={`${r.bankCode}-${r.accountNumber}`}
+                      className="cx-recent"
+                      onClick={() => {
+                        setAccount(r.accountNumber)
+                        const known = banks.find((b) => b.code === r.bankCode)
+                        void checkName(
+                          known ?? { name: r.bankName, code: r.bankCode, logo: r.logo },
+                          r.accountNumber,
+                        )
+                      }}
+                    >
+                      <Avatar name={r.name} logo={r.logo} size={30} />
+                      <span>
+                        <strong>{titleCase(r.name)}</strong>
+                        <small>
+                          {r.bankName} ••{r.accountNumber.slice(-4)}
+                        </small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : null}
+            <label className="cx-label" htmlFor="cx-account">
+              Account number
+            </label>
+            <div className="cx-field">
+              <input
+                id="cx-account"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="10 digits"
+                value={grouped(account)}
+                onChange={(e) => {
+                  typeAccount(e.target.value)
+                  // The tenth digit closes the keyboard, so the banks below are in view.
+                  if (e.target.value.replace(/\D/g, '').length >= 10) e.target.blur()
+                }}
+              />
+              <span>{account.length < 10 ? `${account.length}/10` : ''}</span>
+            </div>
+            {account.length < 10 ? (
+              <p className="cx-hint">Type all 10 digits and Kova suggests the bank.</p>
+            ) : (
+              <>
+                <span className="cx-label">Pick bank</span>
+                <div className="cx-tiles">
+                  {suggestions.map((s) => (
+                    <BankTile
+                      key={s.bank.code}
+                      bank={s.bank}
+                      fits={s.reason === 'fits'}
+                      check={check?.code === s.bank.code ? check : null}
+                      onPick={() => void checkName(s.bank, account)}
+                    />
+                  ))}
+                  {bank && check && !suggestions.some((s) => s.bank.code === bank.code) ? (
+                    <BankTile
+                      bank={bank}
+                      check={check.code === bank.code ? check : null}
+                      onPick={() => void checkName(bank, account)}
+                    />
+                  ) : (
+                    <button type="button" className="cx-tile" onClick={() => setSheet(true)}>
+                      <span className="cx-tile-logo cx-tile-other">
+                        <Icon name="search" size={18} />
+                      </span>
+                      <span className="cx-tile-name">Other bank</span>
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+            {named ? (
+              <div className="cx-named" role="status">
+                <span className="cx-named-tick">
+                  <Icon name="check" size={14} />
+                </span>
+                <span>
+                  <strong>{named.name}</strong>
+                  <small>confirmed by {bankName}</small>
+                </span>
               </div>
-            </>
-          ) : null}
-          <label className="cx-label" htmlFor="cx-account">
-            Account number
-          </label>
-          <div className="cx-field">
-            <input
-              id="cx-account"
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="10 digits"
-              value={grouped(account)}
-              onChange={(e) => {
-                typeAccount(e.target.value)
-                // The tenth digit closes the keyboard, so the banks below are in view.
-                if (e.target.value.replace(/\D/g, '').length >= 10) e.target.blur()
+            ) : null}
+            {problem ? <p className="form-error">{problem}</p> : null}
+            <button
+              type="button"
+              className="pill pill-block cx-go"
+              data-tone="ink"
+              disabled={!named || !cashOut}
+              onClick={quote}
+            >
+              <span className="pill-label">{named ? 'Continue' : 'Pick a bank'}</span>
+              <span className="pill-cap">
+                <Icon name="arrow" size={18} />
+              </span>
+            </button>
+          </div>
+          {sheet ? (
+            <BankSheet
+              banks={banks}
+              onClose={() => setSheet(false)}
+              onPick={(b) => {
+                setSheet(false)
+                void checkName(b, account)
               }}
             />
-            <span>{account.length < 10 ? `${account.length}/10` : ''}</span>
-          </div>
-          {account.length < 10 ? (
-            <p className="cx-hint">Type all 10 digits and Kova suggests the bank.</p>
-          ) : (
-            <>
-              <span className="cx-label">Pick bank</span>
-              <div className="cx-tiles">
-                {suggestions.map((s) => (
-                  <BankTile
-                    key={s.bank.code}
-                    bank={s.bank}
-                    fits={s.reason === 'fits'}
-                    check={check?.code === s.bank.code ? check : null}
-                    onPick={() => void checkName(s.bank, account)}
-                  />
-                ))}
-                {bank && check && !suggestions.some((s) => s.bank.code === bank.code) ? (
-                  <BankTile
-                    bank={bank}
-                    check={check.code === bank.code ? check : null}
-                    onPick={() => void checkName(bank, account)}
-                  />
-                ) : (
-                  <button type="button" className="cx-tile" onClick={() => setSheet(true)}>
-                    <span className="cx-tile-logo cx-tile-other">
-                      <Icon name="search" size={18} />
-                    </span>
-                    <span className="cx-tile-name">Other bank</span>
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-          {named ? (
-            <div className="cx-named" role="status">
-              <span className="cx-named-tick">
-                <Icon name="check" size={14} />
-              </span>
-              <span>
-                <strong>{named.name}</strong>
-                <small>confirmed by {bankName}</small>
-              </span>
-            </div>
           ) : null}
-          {problem ? <p className="form-error">{problem}</p> : null}
+        </div>
+      </Steps>
+    )
+
+  const max = balance === null ? null : Math.min(Number(balance) / 1e6, 500)
+  return (
+    <Steps step={step} order={ORDER}>
+      <div className="w-screen">
+        <ScreenHead title="Cash out to naira" />
+        <div className="cx w-fill">
+          <div className="cx-amount">
+            <span className="cx-amount-label">You send</span>
+            <p className="cx-big" aria-live="polite">
+              <span aria-hidden="true">$</span>
+              <strong key={amount} className={amount ? 'cx-big-num' : 'cx-big-num cx-big-empty'}>
+                {amount || '0'}
+              </strong>
+              <span className="w-sr">dollars</span>
+            </p>
+            <span className="cx-get">
+              {/* biome-ignore lint/performance/noImgElement: pre-sized WebP art, no optimizer needed */}
+              <img src="/art/coin-ngn.webp" alt="" />
+              They get <strong>{estimate?.naira ?? '₦0.00'}</strong>
+            </span>
+          </div>
+          <div className="cx-chips">
+            <span className={short ? 'cx-chip cx-chip-bad' : 'cx-chip'}>
+              {balance === null
+                ? '…'
+                : short
+                  ? `You have ${formatUsd(balance)}`
+                  : `Available ${formatUsd(balance)}`}
+            </span>
+            {max !== null && max >= 1 ? (
+              <button
+                type="button"
+                className="cx-chip cx-chip-line"
+                onClick={() => setAmount((Math.floor(max * 100) / 100).toFixed(2))}
+              >
+                Max
+              </button>
+            ) : null}
+          </div>
+          <p className="cx-rate">
+            {info?.cash_out_rate ? `${nairaText(Number(info.cash_out_rate))} per $1 · ` : ''}No fees
+            · Lands in seconds
+          </p>
+          <Keypad onKey={onKey} />
           <button
             type="button"
             className="pill pill-block cx-go"
             data-tone="ink"
-            disabled={!named || !cashOut}
-            onClick={quote}
+            disabled={!amountOk || !estimate}
+            onClick={() => setStep('recipient')}
           >
-            <span className="pill-label">{named ? 'Continue' : 'Pick a bank'}</span>
+            <span className="pill-label">Continue</span>
             <span className="pill-cap">
               <Icon name="arrow" size={18} />
             </span>
           </button>
         </div>
-        {sheet ? (
-          <BankSheet
-            banks={banks}
-            onClose={() => setSheet(false)}
-            onPick={(b) => {
-              setSheet(false)
-              void checkName(b, account)
-            }}
-          />
-        ) : null}
       </div>
-    )
-
-  const max = balance === null ? null : Math.min(Number(balance) / 1e6, 500)
-  return (
-    <div className="w-screen">
-      <Head title="Cash out to naira" href="/wallet/cash-out" />
-      <div className="cx">
-        <div className="cx-amount">
-          <span className="cx-amount-label">You send</span>
-          <label className="cx-big">
-            <span aria-hidden="true">$</span>
-            <input
-              inputMode="decimal"
-              placeholder="0"
-              value={amount}
-              style={{ width: `${Math.max(1, amount.length) + 0.3}ch` }}
-              aria-label="Dollars to cash out"
-              onChange={(e) => {
-                const next = e.target.value.replace(/[^\d.]/g, '')
-                if (next === '' || DOLLARS.test(next)) {
-                  setAmount(next)
-                  setCheck(null)
-                  setCashOut(null)
-                }
-              }}
-            />
-          </label>
-          <span className="cx-get">
-            {/* biome-ignore lint/performance/noImgElement: pre-sized WebP art, no optimizer needed */}
-            <img src="/art/coin-ngn.webp" alt="" />
-            They get <strong>{estimate?.naira ?? '₦0.00'}</strong>
-          </span>
-        </div>
-        <div className="cx-chips">
-          <span className={short ? 'cx-chip cx-chip-bad' : 'cx-chip'}>
-            {balance === null
-              ? '…'
-              : short
-                ? `You have ${formatUsd(balance)}`
-                : `Available ${formatUsd(balance)}`}
-          </span>
-          {max !== null && max >= 1 ? (
-            <button
-              type="button"
-              className="cx-chip cx-chip-line"
-              onClick={() => setAmount((Math.floor(max * 100) / 100).toFixed(2))}
-            >
-              Max
-            </button>
-          ) : null}
-        </div>
-        <p className="cx-rate">
-          {info?.cash_out_rate ? `${nairaText(Number(info.cash_out_rate))} per $1 · ` : ''}No fees ·
-          Lands in seconds
-        </p>
-        <button
-          type="button"
-          className="pill pill-block cx-go"
-          data-tone="ink"
-          disabled={!amountOk || !estimate}
-          onClick={() => setStep('recipient')}
-        >
-          <span className="pill-label">Continue</span>
-          <span className="pill-cap">
-            <Icon name="arrow" size={18} />
-          </span>
-        </button>
-      </div>
-    </div>
-  )
-}
-
-/** The screen's head: back to a page, or a step back in the flow. */
-function Head({ title, href, onBack }: { title: string; href?: string; onBack?: () => void }) {
-  return (
-    <div className="w-head">
-      {onBack ? (
-        <button type="button" className="round" aria-label="Back" onClick={onBack}>
-          <Icon name="back" size={18} />
-        </button>
-      ) : (
-        <Link href={href ?? '/wallet'} className="round" aria-label="Back">
-          <Icon name="back" size={18} />
-        </Link>
-      )}
-      <h1>{title}</h1>
-    </div>
+    </Steps>
   )
 }
 
