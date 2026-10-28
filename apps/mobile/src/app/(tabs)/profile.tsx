@@ -118,7 +118,7 @@ export default function Profile() {
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Txt size={12} color={colors.onInk}>
-                  Your address on Monad
+                  Your wallet address
                 </Txt>
                 <View style={styles.network}>
                   <View
@@ -131,7 +131,7 @@ export default function Profile() {
                     ]}
                   />
                   <Txt weight="semi" size={10} color={colors.white}>
-                    {network.id === 'testnet' ? 'Testnet' : 'Mainnet'}
+                    {network.id === 'testnet' ? 'Testnet' : 'Live'}
                   </Txt>
                 </View>
               </View>

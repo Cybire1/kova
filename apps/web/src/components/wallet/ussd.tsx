@@ -139,7 +139,7 @@ function PocketSettings() {
       {info && !info.enabled ? (
         <section className="w-keys">
           <h2 className="w-section">USSD payments are paused</h2>
-          <p>Setup is not available on this network yet.</p>
+          <p>Setup isn’t available here yet.</p>
         </section>
       ) : null}
 

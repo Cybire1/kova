@@ -182,7 +182,7 @@ function NoCard() {
           </Txt>
           <View style={{ gap: 10, marginTop: 14 }}>
             <Point icon="lock" text="A PIN over $25, checked by Kova, never stored on the card." />
-            <Point icon="card" text="A daily limit you set on Monad. Nobody else can raise it." />
+            <Point icon="card" text="A daily limit you set. Nobody else can raise it." />
             <Point icon="snow" text="Freeze it in a second if it’s lost." />
           </View>
         </View>
@@ -466,7 +466,7 @@ function CardView({
           <Txt size={12} color={colors.muted} style={{ marginTop: 10, lineHeight: 17 }}>
             {card.frozen
               ? 'Frozen: it can’t spend anything until you unfreeze it.'
-              : `It can spend ${dollars(card.left_today)} more today. The limit is kept on Monad, so only you can change it. A PIN is asked over ${dollars(card.no_pin_limit)}.`}
+              : `It can spend ${dollars(card.left_today)} more today. The limit is checked on every tap, and only you can change it. A PIN is asked over ${dollars(card.no_pin_limit)}.`}
           </Txt>
         </View>
 

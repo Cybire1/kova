@@ -151,7 +151,7 @@ function ConversionForm() {
             </Txt>
             <Txt size={15}>
               {reverted
-                ? 'Your MON wasn’t converted. The network may have charged a transaction fee.'
+                ? 'Your MON wasn’t converted. A small transfer fee may still have been charged.'
                 : activity?.status === 'success'
                   ? 'Your dollars are ready to spend.'
                   : activity?.status === 'refund'
@@ -221,7 +221,7 @@ function ConversionForm() {
                 </Pressable>
               </View>
               <Txt size={12} color={colors.muted}>
-                Max leaves a little MON for the network fee.
+                Max leaves a little MON for the transfer fee.
               </Txt>
             </View>
             {plan ? (
@@ -239,7 +239,7 @@ function ConversionForm() {
                       : `$${plan.quote.route_fee_usd}`
                   }
                 />
-                <Row label="Network fee, up to" value={`${formatMon(plan.networkFee)} MON`} />
+                <Row label="Transfer fee, up to" value={`${formatMon(plan.networkFee)} MON`} />
                 <Txt size={12} color={colors.muted}>
                   The final dollar amount is set when conversion starts. Any refund returns to this
                   wallet.
@@ -268,7 +268,7 @@ function ConversionForm() {
           accessibilityRole="link"
           onPress={() => open(`https://monadvision.com/address/${wallet}`)}
         >
-          <Txt style={styles.link}>View wallet on Monad</Txt>
+          <Txt style={styles.link}>View wallet activity</Txt>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>

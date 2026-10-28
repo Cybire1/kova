@@ -282,7 +282,7 @@ export function BalanceCard() {
           <Link
             href="/wallet/convert-mon"
             className="w-chip w-chip-mon"
-            aria-label={`${formatMon(monBalance)} MON, about ${formatUsd(monValue)} at Chainlink's price. Convert to dollars`}
+            aria-label={`${formatMon(monBalance)} MON, about ${formatUsd(monValue)} at today’s price. Convert to dollars`}
           >
             {hideBalance
               ? 'Includes MON ≈ ••••'

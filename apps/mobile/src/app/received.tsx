@@ -123,7 +123,7 @@ export default function Received() {
                 Arrived
               </Txt>
               <Txt weight="semi" size={15}>
-                {byLink ? 'From a link, in about a second' : 'On Monad, final in under a second'}
+                {byLink ? 'From a link, in about a second' : 'Final in under a second'}
               </Txt>
             </View>
           </Sticker>
@@ -275,7 +275,7 @@ function PrivateArrival({
               <Txt weight="semi" size={14}>
                 Only you can see this came from {name.startsWith('0x') ? 'them' : first}.
               </Txt>{' '}
-              On Monad, it’s a payment to an address made just for it.
+              To everyone else, it’s a payment to an address made just for it.
             </Txt>
           </OnBeat>
         ) : null}

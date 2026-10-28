@@ -5765,6 +5765,9 @@ button.w-chip-private:disabled {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.2);
   animation: w-arrival-in 0.3s ease-out both;
 }
+.w-arrival:focus {
+  outline: none;
+}
 .w-arrival::backdrop {
   background: rgba(10, 22, 24, 0.44);
   backdrop-filter: blur(6px);
@@ -5833,7 +5836,7 @@ button.w-chip-private:disabled {
   display: inline-block;
   margin-top: 18px;
 }
-.w-arrival-note {
+.w-arrival .w-arrival-note {
   margin: 18px 0;
   padding: 14px;
   border-radius: 14px;
@@ -6331,7 +6334,7 @@ button.w-chip-private:disabled {
 }
 
 /* The arrival: one full-screen moment on ink. */
-.w-arrival {
+.w-parrival {
   position: fixed;
   inset: 0;
   z-index: 60;
@@ -6347,7 +6350,7 @@ button.w-chip-private:disabled {
   }
 }
 
-.w-arrival-top {
+.w-parrival .w-arrival-top {
   display: grid;
   place-items: center;
   height: 3.5rem;
@@ -6471,7 +6474,7 @@ button.w-chip-private:disabled {
   font-size: 0.8125rem;
 }
 
-.w-arrival-note {
+.w-parrival .w-arrival-note {
   position: relative;
   margin: 0.5rem 0 0;
   margin-inline: 0;
@@ -6483,7 +6486,7 @@ button.w-chip-private:disabled {
   animation-delay: 1.3s;
 }
 
-.w-arrival-note::before {
+.w-parrival .w-arrival-note::before {
   content: "";
   position: absolute;
   top: -0.7rem;
@@ -6512,7 +6515,7 @@ button.w-chip-private:disabled {
   font-weight: 650;
 }
 
-.w-arrival-note blockquote {
+.w-parrival .w-arrival-note blockquote {
   margin: 0;
   font-size: 1.1875rem;
   font-weight: 700;
@@ -6520,7 +6523,7 @@ button.w-chip-private:disabled {
   line-height: 1.3;
 }
 
-.w-arrival-note figcaption {
+.w-parrival .w-arrival-note figcaption {
   margin-top: 0.25rem;
   color: var(--on-tint);
   font-size: 0.75rem;
@@ -6825,7 +6828,7 @@ button.w-chip-private:disabled {
 
 /* Reduce motion: the moment is simply there, already open. */
 @media (prefers-reduced-motion: reduce) {
-  .w-arrival,
+  .w-parrival,
   .w-arrival-sheet,
   .w-arrival-sheet > *,
   .w-arrival-peek,
@@ -9121,4 +9124,101 @@ button.w-chip-private:disabled {
   border-radius: 0.375rem;
   background: var(--sunken);
   vertical-align: -0.375rem;
+}
+
+/* Get paid (request.tsx): the address for a crypto wallet or an exchange, folded under the code. */
+.w-crypto {
+  justify-self: stretch;
+  width: 100%;
+  border: 2px solid var(--ink);
+  border-radius: 1.375rem;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+}
+
+.w-crypto > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3rem;
+  padding: 0.5rem 0.625rem 0.5rem 1rem;
+  border-radius: 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.3;
+  list-style: none;
+  cursor: pointer;
+}
+
+.w-crypto > summary::-webkit-details-marker {
+  display: none;
+}
+
+.w-crypto-chev {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 50%;
+  background: var(--sunken);
+  transition: transform 0.3s var(--spring);
+}
+
+.w-crypto[open] .w-crypto-chev {
+  transform: rotate(180deg);
+}
+
+.w-crypto-body {
+  display: grid;
+  gap: 0.625rem;
+  padding: 0.125rem 0.625rem 0.75rem;
+  animation: w-fade 0.25s var(--spring);
+}
+
+.w-crypto-body .w-address {
+  background: #fff;
+}
+
+.w-crypto-body .w-fine {
+  padding: 0 0.375rem;
+}
+
+.w-crypto-body .w-mon-card {
+  margin-top: 0;
+  padding: 0.75rem 0.875rem;
+  border-radius: 1rem;
+  background: var(--teal-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .w-crypto-body {
+    animation: none;
+  }
+
+  .w-crypto-chev {
+    transition: none;
+  }
+}
+
+/*
+ * The names under the arc: centred under each face (the faces sit 4px past the edges), and a long
+ * one, like an address, grows inward instead of past the edge.
+ */
+.w-arc-you small,
+.w-arc-them small {
+  min-width: calc(100% - 8px);
+  text-align: center;
+}
+
+.w-arc-you small {
+  justify-self: start;
+  margin-left: 4px;
+}
+
+.w-arc-them small {
+  justify-self: end;
+  margin-right: 4px;
 }

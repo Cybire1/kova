@@ -133,7 +133,7 @@ export default function Receipt() {
               >
                 {incoming
                   ? 'An address made just for this payment. Only you can tell it’s yours.'
-                  : `On Monad it went to that address, not to ${isUnnamed(entry.name) ? 'them' : first}. Only ${first} can open it.`}
+                  : `To everyone else, it went to that address, not to ${isUnnamed(entry.name) ? 'them' : first}. Only ${first} can open it.`}
               </Txt>
               {receipt ? (
                 <Row
@@ -164,8 +164,8 @@ export default function Receipt() {
                 color={colors.muted}
                 style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}
               >
-                Signed on {incoming ? `${first}’s` : 'your'} phone with no signal, and settled on
-                Monad once a phone was online.
+                Signed on {incoming ? `${first}’s` : 'your'} phone with no signal, and settled once
+                a phone was online.
               </Txt>
             </>
           ) : null}
@@ -176,7 +176,7 @@ export default function Receipt() {
               color={colors.muted}
               style={{ textAlign: 'right', marginTop: -2, lineHeight: 17 }}
             >
-              Paid from an address only you can open. Your wallet doesn’t show on Monad.
+              Paid from an address only you can open. Nobody can tie it to your wallet.
             </Txt>
           ) : null}
           {entry.ms ? (
@@ -195,7 +195,7 @@ export default function Receipt() {
           {entry.txHash ? (
             <View style={{ alignItems: 'center', marginTop: 14 }}>
               <TextLink
-                label="View on Monadscan"
+                label="See proof"
                 onPress={() => void WebBrowser.openBrowserAsync(explorerTx(entry.txHash as string))}
               />
             </View>

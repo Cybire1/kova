@@ -198,7 +198,7 @@ export function TakingsCard({
               >
                 <Icon name="web" size={16} color={colors.white} />
                 <Txt weight="semi" size={14} color={colors.white}>
-                  View on Monadscan
+                  See proof
                 </Txt>
               </Pressable>
             ) : null}
@@ -278,7 +278,7 @@ export function TakingsCard({
             />
           </View>
           <Txt size={12} color={colors.onInk} style={styles.foot}>
-            Kova pays the gas. Each address signs its own move.
+            Kova covers the fees. Each address signs its own move.
           </Txt>
         </View>
       ) : (
@@ -354,8 +354,8 @@ export function TakingsInvite() {
             Keep your takings private
           </Txt>
           <Txt size={14} color={colors.muted} style={{ marginTop: 4, lineHeight: 20 }}>
-            Every sale goes to its own address that only your shop can open. Nobody on Monad can add
-            up your takings.
+            Every sale goes to its own address that only your shop can open. Nobody else can add up
+            your takings.
           </Txt>
         </View>
         <Kovi pose="key" size={74} />
@@ -395,7 +395,7 @@ export function PrivateSaleRow({ sale, last }: { sale: PrivateSale; last?: boole
   return (
     <Pressable
       accessibilityRole="link"
-      accessibilityLabel={`${formatUsd(sale.base)} private sale to ${shortAddress(sale.stealth_address)}, ${sale.moved ? `in ${home.long}` : 'waiting'}. View on Monadscan`}
+      accessibilityLabel={`${formatUsd(sale.base)} private sale to ${shortAddress(sale.stealth_address)}, ${sale.moved ? `in ${home.long}` : 'waiting'}. See proof`}
       onPress={() => void WebBrowser.openBrowserAsync(sale.explorer_url)}
       style={({ pressed }) => [styles.sale, !last && styles.saleRule, pressed && { opacity: 0.65 }]}
     >

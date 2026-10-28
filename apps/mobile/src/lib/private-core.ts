@@ -349,7 +349,7 @@ export interface MoveInOutcome {
 function moveProblem(error: unknown): string {
   const text = error instanceof Error ? error.message : String(error)
   if (/did not confirm|in time/i.test(text))
-    return 'Monad was slow to confirm it. Nothing is lost: move it in again in a moment.'
+    return 'It was slow to confirm. Nothing is lost: move it in again in a moment.'
   if (/lot of sends/i.test(text))
     return 'That’s a lot of moves at once. Move the rest in a few minutes.'
   return text

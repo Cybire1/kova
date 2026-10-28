@@ -1689,7 +1689,7 @@ export function WalletProvider({
             (locked
               ? 'Private note'
               : t.faucet
-                ? 'AUSD test faucet'
+                ? 'Free, to try Kova'
                 : t.naira === 'top_up'
                   ? 'Naira, through Paystack'
                   : t.naira === 'cash_out_refund'

@@ -157,7 +157,7 @@ function DepositForm({ wallet }: { wallet: Address }) {
                 Make it spendable.
               </Txt>
               <Txt size={14} color={colors.muted} style={{ marginTop: 5, lineHeight: 20 }}>
-                Send crypto. Receive AUSD in your Kova balance.
+                Send crypto. Receive dollars in your Kova balance.
               </Txt>
             </View>
           </View>
@@ -265,8 +265,8 @@ function DepositForm({ wallet }: { wallet: Address }) {
                     style={styles.input}
                   />
                   <Txt size={12} color={colors.muted}>
-                    Use a wallet you control. Refunds stay on {chain.name}, less network costs. If
-                    sending from an exchange, enter a personal wallet address.
+                    Use a wallet you control. Refunds stay on {chain.name}, less fees. If sending
+                    from an exchange, enter a personal wallet address.
                   </Txt>
                   {chain.vm === 'evm' ? (
                     <Txt selectable size={11} color={colors.muted}>
@@ -309,7 +309,7 @@ function DepositForm({ wallet }: { wallet: Address }) {
                     You’ll receive approximately
                   </Txt>
                   <Txt weight="bold" size={34} style={{ textAlign: 'center', marginTop: 4 }}>
-                    {formatUsd(parseUnits(quote.expected_ausd, 6))} <Txt size={16}>AUSD</Txt>
+                    {formatUsd(parseUnits(quote.expected_ausd, 6))}
                   </Txt>
                   <Txt size={14} color={colors.muted} style={{ textAlign: 'center', marginTop: 6 }}>
                     From {quote.amount} {quote.token.symbol} on {quote.chain.name}
@@ -374,7 +374,7 @@ function DepositForm({ wallet }: { wallet: Address }) {
                       style={styles.action}
                       onPress={() => {
                         void Share.share({
-                          message: `Send ${quote.amount} ${quote.token.symbol} on ${quote.chain.name} to ${quote.address}. Converted to AUSD in my Kova wallet. Use only this token and network; the conversion rate updates when funds arrive.`,
+                          message: `Send ${quote.amount} ${quote.token.symbol} on ${quote.chain.name} to ${quote.address}. Converted to dollars in my Kova wallet. Use only this token and network; the conversion rate updates when funds arrive.`,
                         }).catch(() => {})
                       }}
                     >
@@ -385,13 +385,13 @@ function DepositForm({ wallet }: { wallet: Address }) {
                     </Pressable>
                   </View>
                   <Txt size={12} color={colors.muted} style={styles.center}>
-                    We’ll convert your deposit to AUSD automatically. Reuse this address only for{' '}
+                    We’ll convert your deposit to dollars automatically. Reuse this address only for{' '}
                     {quote.token.symbol} on {quote.chain.name}. Prices and fees update when funds
                     arrive.
                   </Txt>
                   <Txt size={12} color={colors.muted} style={styles.center}>
                     Use the quoted amount. Very small deposits may not cover route costs. Your
-                    sending wallet or exchange charges its own network fee.
+                    sending wallet or exchange charges its own fee.
                   </Txt>
                   <Pressable
                     accessibilityRole="button"
@@ -436,7 +436,9 @@ function DepositForm({ wallet }: { wallet: Address }) {
                   <View style={{ padding: 16, gap: 4 }}>
                     <Txt size={14} weight="semi">
                       {d.status === 'success'
-                        ? `${d.received_ausd ? `${d.received_ausd} AUSD ` : ''}arrived`
+                        ? d.received_ausd
+                          ? `${formatUsd(parseUnits(d.received_ausd, 6))} arrived`
+                          : 'Arrived'
                         : d.status === 'refund'
                           ? 'Refunded to your source wallet'
                           : d.status === 'failure'

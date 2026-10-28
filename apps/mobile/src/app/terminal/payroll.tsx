@@ -374,7 +374,7 @@ export default function Payroll() {
                 <Txt size={13} color={colors.muted} style={{ lineHeight: 19 }}>
                   {people.some((p) => reachFor(p) === 'none')
                     ? 'People who can’t receive privately yet open Kova once to turn it on. Long-press someone to take them off.'
-                    : 'One Face ID approves everyone. Kova pays the gas. Long-press someone to take them off.'}
+                    : 'One Face ID approves everyone. Kova covers the fees. Long-press someone to take them off.'}
                 </Txt>
                 <PayButton
                   label={

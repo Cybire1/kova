@@ -300,7 +300,7 @@ export function StocksCard() {
     return (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Stocks. Tesla, Nvidia, Apple and more, live on Monad"
+        accessibilityLabel="Stocks. Tesla, Nvidia, Apple and more, live prices"
         onPress={open}
         style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.98 }] }]}
       >

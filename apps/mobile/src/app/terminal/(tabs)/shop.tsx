@@ -315,8 +315,8 @@ function TakingsGroup() {
             Private takings
           </Txt>
           <Txt size={13} color={colors.muted} style={{ lineHeight: 18, marginTop: 2 }}>
-            Every sale goes to its own address that only your shop can open. Nobody on Monad can add
-            up your takings.
+            Every sale goes to its own address that only your shop can open. Nobody else can add up
+            your takings.
           </Txt>
         </View>
         {switching ? (
@@ -343,8 +343,8 @@ function TakingsGroup() {
             Turn private takings off?
           </Txt>
           <Txt size={14} color={colors.muted} style={{ marginTop: 4, lineHeight: 20 }}>
-            New sales will go straight to {home.long} again, where anyone on Monad can see them.
-            Private sales you already have stay yours to move.
+            New sales will go straight to {home.long} again, where anyone can see them. Private
+            sales you already have stay yours to move.
           </Txt>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
             <Pressable

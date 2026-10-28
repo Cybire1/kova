@@ -97,7 +97,7 @@ function Outgoing({ item }: { item: OfflineItem }) {
         <Txt size={14} color={colors.onTint} style={styles.line}>
           {settled
             ? `To ${name}, signed on your phone with no signal.`
-            : `Show this to ${first}, or share it. It settles on Monad as soon as either phone is online.`}
+            : `Show this to ${first}, or share it. It settles as soon as either phone is online.`}
         </Txt>
         <Sticker radius={22} style={styles.statusCard}>
           <SettleStatus item={item} other={first} />
@@ -230,8 +230,8 @@ function Incoming({ item }: { item: OfflineItem }) {
               color={colors.onTint}
               style={{ textAlign: 'center', lineHeight: 18, paddingHorizontal: 10 }}
             >
-              Until it settles it can still fail, if {first} doesn’t have the money. It settles on
-              Monad as soon as either of you is online.
+              Until it settles it can still fail, if {first} doesn’t have the money. It settles as
+              soon as either of you is online.
             </Txt>
           </Animated.View>
         ) : null}

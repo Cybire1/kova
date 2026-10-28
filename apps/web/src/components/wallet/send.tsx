@@ -325,7 +325,7 @@ export function SendSheet({ to }: { to?: string }) {
                   <Avatar name={name} id={payee.address} size={40} />
                   <span className="w-sheet-who">
                     <strong>To {isUnnamed(name) ? short(payee.address) : name}</strong>
-                    <small>{isUnnamed(name) ? 'A Monad address' : short(payee.address)}</small>
+                    <small>{isUnnamed(name) ? 'A wallet address' : short(payee.address)}</small>
                   </span>
                 </div>
                 <p className="w-typed" aria-live="polite">
@@ -475,7 +475,7 @@ export function SendSheet({ to }: { to?: string }) {
                     ? `${stepLine(privateStep, route.from === 'top-up' ? route.moving : undefined)} Kova covers every fee.`
                     : quick
                       ? 'Your wallet is open, so this one needs no passkey.'
-                      : 'Your passkey approves it. Payments on Monad can’t be undone.'}
+                      : 'Your passkey approves it. Payments can’t be undone.'}
                 </p>
               </div>
             ) : null}
@@ -503,15 +503,15 @@ export function SendSheet({ to }: { to?: string }) {
                 )}
                 <span className="w-sheet-time">
                   <Icon name={sent.privately ? 'lock' : 'bolt'} size={14} />
-                  Arrived in {(sent.ms / 1000).toFixed(2)} s on Monad
+                  Arrived in {(sent.ms / 1000).toFixed(2)} s
                 </span>
                 {sent.privately ? (
                   announced ? (
                     <a className="w-announced" href={announced} target="_blank" rel="noreferrer">
-                      Announced on Monad <Icon name="external" size={13} />
+                      Delivered privately <Icon name="external" size={13} />
                     </a>
                   ) : (
-                    <span className="w-announcing">Announcing on Monad…</span>
+                    <span className="w-announcing">Delivering privately…</span>
                   )
                 ) : null}
                 <button type="button" className="pill pill-block" data-tone="ink" onClick={close}>
@@ -526,7 +526,7 @@ export function SendSheet({ to }: { to?: string }) {
                   </Link>
                   {sent.privately ? (
                     <a href={sent.explorer} target="_blank" rel="noreferrer" className="textlink">
-                      See it on Monad
+                      See proof
                     </a>
                   ) : null}
                 </span>
@@ -613,8 +613,8 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
       nad.state === 'looking'
         ? `Still looking up ${nad.name}.`
         : nad.state === 'none'
-          ? `No one has ${nad.name} on Monad.`
-          : `Couldn’t reach Monad to look up ${nad.name}. Try again.`,
+          ? `No one has ${nad.name} yet.`
+          : `Couldn’t look up ${nad.name}. Try again.`,
     )
   }
 
@@ -700,12 +700,12 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
             <strong>{nad.state === 'found' ? `Send to ${nad.name}` : nad.name}</strong>
             <small>
               {nad.state === 'found'
-                ? `Their Monad name, ${short(nad.address)}`
+                ? `Their .nad name, ${short(nad.address)}`
                 : nad.state === 'looking'
-                  ? 'Looking it up on Monad…'
+                  ? 'Looking it up…'
                   : nad.state === 'none'
-                    ? 'No one has this name on Monad yet'
-                    : 'Couldn’t reach Monad. Try again in a moment.'}
+                    ? 'No one has this name yet'
+                    : 'Couldn’t look it up. Try again in a moment.'}
             </small>
           </span>
           {nad.state === 'found' ? <Icon name="arrow" size={18} /> : null}
@@ -763,7 +763,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
             <small>
               {scanned.amount
                 ? `They asked for $${scanned.amount}${scanned.note ? `, for ${scanned.note}` : ''}`
-                : 'Monad address, ready to pay'}
+                : 'Wallet address, ready to pay'}
             </small>
           </span>
           <Icon name="arrow" size={18} />
@@ -775,7 +775,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
           <Art name="kovi-ride" size={104} className="w-bob" />
           <strong>Send your first payment</strong>
           <span>
-            Type a friend’s .nad name, or paste their Kova link or Monad address. It lands in about
+            Type a friend’s .nad name, or paste their Kova link or wallet address. It lands in about
             a second, and Kova covers the fee.
           </span>
         </div>

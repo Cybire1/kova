@@ -741,8 +741,8 @@ export default function CashOutScreen() {
             style={{ textAlign: 'center', lineHeight: 18 }}
           >
             {quote.partner === 'paj'
-              ? `${toBank} is paid as soon as your dollars arrive on Monad.`
-              : `Paystack pays ${toBank} once your dollars reach Kova on Monad.`}
+              ? `${toBank} is paid as soon as your dollars arrive.`
+              : `Paystack pays ${toBank} once your dollars reach Kova.`}
           </Txt>
           <SlideToSend
             label={problem ? 'Slide to try again' : `Slide to send ${quote.naira}`}
@@ -780,15 +780,12 @@ export default function CashOutScreen() {
             steps={[
               {
                 title: 'Left your wallet',
-                detail: `$${quote.amount} on Monad`,
+                detail: `$${quote.amount}`,
                 state: quote.tx_hash ? 'done' : 'active',
               },
               {
                 title: partnerHas,
-                detail:
-                  quote.partner === 'paj'
-                    ? 'Turned into USDC for the transfer'
-                    : 'Received by Kova on Monad',
+                detail: quote.partner === 'paj' ? 'Converted for the transfer' : 'Received by Kova',
                 state: quote.tx_hash ? 'done' : 'pending',
               },
               {
@@ -840,7 +837,7 @@ export default function CashOutScreen() {
               accessibilityRole="link"
             >
               <Txt weight="semi" size={14} color={colors.tealDeep}>
-                See the refund on Monad
+                See the refund
               </Txt>
             </Pressable>
           ) : null}
@@ -910,7 +907,7 @@ export default function CashOutScreen() {
                 style={styles.fact}
               >
                 <Txt size={14} color={colors.muted}>
-                  On Monad
+                  Proof
                 </Txt>
                 <Txt weight="bold" size={14} color={colors.tealDeep} style={{ marginLeft: 'auto' }}>
                   See the transaction
@@ -929,7 +926,7 @@ export default function CashOutScreen() {
                     `Kova cash-out: ${quote.naira} to ${toName}, ${toBank} ••••${quote.account_last4}`,
                     `You sent $${quote.amount} at ${nairaText(Number(quote.rate))} per $1`,
                     `Reference ${quote.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
-                    quote.tx_url ? `On Monad: ${quote.tx_url}` : null,
+                    quote.tx_url ? `Proof: ${quote.tx_url}` : null,
                   ]
                     .filter(Boolean)
                     .join('\n'),

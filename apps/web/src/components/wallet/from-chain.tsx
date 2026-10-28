@@ -138,7 +138,7 @@ function DepositForm({ wallet }: { wallet: string }) {
         <Art name="kovi-catch" size={80} />
         <div>
           <h1 className="w-title">Make it spendable.</h1>
-          <p className="w-fine">Send crypto. Receive AUSD in your Kova balance.</p>
+          <p className="w-fine">Send crypto. Receive dollars in your Kova balance.</p>
         </div>
       </div>
       {!sources && !problem ? (
@@ -283,7 +283,7 @@ function DepositForm({ wallet }: { wallet: string }) {
         >
           <small>You’ll receive approximately</small>
           <strong className="w-deposit-total">
-            {formatUsd(parseUnits(quote.expected_ausd, 6))} <span>AUSD</span>
+            {formatUsd(parseUnits(quote.expected_ausd, 6))}
           </strong>
           <p className="w-fine w-center">
             From {quote.amount} {quote.token.symbol} on {quote.chain.name}
@@ -330,7 +330,7 @@ function DepositForm({ wallet }: { wallet: string }) {
             </span>
           </button>
           <p className="w-fine w-center">
-            We’ll convert your deposit to AUSD automatically. This address is for{' '}
+            We’ll convert your deposit to dollars automatically. This address is for{' '}
             {quote.token.symbol} on {quote.chain.name}; you can reuse it for that route. Prices and
             fees update when funds arrive. Very small deposits may not cover the route costs.
           </p>
@@ -372,7 +372,9 @@ function DepositForm({ wallet }: { wallet: string }) {
                 <span className="w-list-text">
                   <strong>
                     {d.status === 'success'
-                      ? `${d.received_ausd ? `${d.received_ausd} AUSD ` : ''}Arrived`
+                      ? d.received_ausd
+                        ? `${formatUsd(parseUnits(d.received_ausd, 6))} arrived`
+                        : 'Arrived'
                       : d.status === 'refund'
                         ? 'Refunded to your source wallet'
                         : d.status === 'failure'

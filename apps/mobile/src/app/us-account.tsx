@@ -50,7 +50,7 @@ export default function UsAccountScreen() {
             lead="Clients and platforms abroad pay it like any US bank account, and it lands here as dollars you can keep, spend or send."
             facts={[
               ['They pay by', 'ACH or wire, from any US bank'],
-              ['It lands as', `${data.arrives_as} in this wallet, on Monad`],
+              ['It lands as', 'Dollars in this wallet'],
               ['In your name', 'After a quick identity check'],
               ['Partner', 'Bridge, a Stripe company'],
             ]}
@@ -197,7 +197,7 @@ export default function UsAccountScreen() {
               style={{ marginTop: 14, lineHeight: 19, textAlign: 'center' }}
             >
               ACH takes 1 to 3 business days and wires arrive the same day. Either way it lands here
-              as {data.arrives_as}.
+              as dollars.
             </Txt>
           </View>
         )}

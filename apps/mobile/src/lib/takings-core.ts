@@ -143,7 +143,7 @@ export interface MoveOutcome {
 /** Kova's relay speaks of payments; a move is the shop's own money going home. Said for what it is. */
 export function moveProblem(error: string): string {
   if (/did not confirm|in time/i.test(error))
-    return 'Monad was slow to confirm it. Nothing is lost: move it again in a moment.'
+    return 'It was slow to confirm. Nothing is lost: move it again in a moment.'
   if (/everything the address holds/i.test(error))
     return 'Its balance changed while moving. Try again.'
   if (/not one of this shop/i.test(error)) return 'Kova doesn’t list that address as this shop’s.'

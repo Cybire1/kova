@@ -72,8 +72,8 @@ export function CashOut() {
         </h1>
         <p className="w-lead">
           {stage.at === 'sent'
-            ? `${formatUsd(stage.amount)} went to Ramp Network on Monad. They pay it out to you; banks usually take minutes to a day.`
-            : 'Sell dollars for money in your account, with Ramp Network. Kova sends the dollars for you, gas-free, and your passkey approves it.'}
+            ? `${formatUsd(stage.amount)} went to Ramp Network. They pay it out to you; banks usually take minutes to a day.`
+            : 'Sell dollars for money in your account, with Ramp Network. Kova sends the dollars for you, and your passkey approves it.'}
         </p>
         <NairaRow
           href="/wallet/cash-out/naira"
@@ -98,8 +98,8 @@ export function CashOut() {
         {stage.at === 'problem' ? <p className="form-error">{stage.message}</p> : null}
         {settings && !settings.live ? (
           <p className="w-fine w-center">
-            Opens on Monad mainnet, where Ramp buys AUSD on Monad. On testnet there’s nothing real
-            to cash out.
+            Cash out opens on mykova.app, where Ramp buys your dollars. Test dollars can’t be cashed
+            out.
           </p>
         ) : null}
         {stage.at === 'sent' ? (

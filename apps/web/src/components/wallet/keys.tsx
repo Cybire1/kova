@@ -114,7 +114,7 @@ export function KeysScreen({ api }: { api: string }) {
     <div className="w-screen">
       <ScreenHead title="Keys" back="/wallet/profile" />
       <p className="w-lead">
-        Everything that spends your dollars gets its own key. Monad enforces each limit, and one tap
+        Everything that spends your dollars gets its own key, with a limit it can’t go over. One tap
         freezes any key. Your dollars stay in your wallet until a key spends them.
       </p>
 
@@ -261,9 +261,8 @@ export function KeysScreen({ api }: { api: string }) {
       </Link>
 
       <p className="w-fine">
-        Keys spend through Kova’s card contract on Monad: it holds each key’s daily limit and
-        whether it’s frozen, and every payment needs the key’s signature and Kova’s. Kova never
-        holds your dollars.
+        Each key has its own daily limit, checked on every payment, and a frozen key can’t spend.
+        Every payment needs the key’s approval and Kova’s. Kova never holds your dollars.
       </p>
     </div>
   )
@@ -462,9 +461,7 @@ function AgentForm({ owner, onMade }: { owner: Address; onMade: (key: SpendKey) 
           <Icon name="key" size={18} />
         </span>
       </button>
-      <small className="w-fine">
-        Your passkey signs the key’s limit onto Monad. Kova pays the network fee.
-      </small>
+      <small className="w-fine">Your passkey sets the key’s limit. No fees.</small>
     </form>
   )
 }
@@ -589,7 +586,7 @@ export function Received({ spendKey, onDone }: { spendKey: SpendKey; onDone?: ()
                 target="_blank"
                 rel="noreferrer"
               >
-                See it on Monad
+                See proof
               </a>
             ) : null}
           </p>

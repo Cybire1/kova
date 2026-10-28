@@ -117,7 +117,7 @@ export default function StockScreen() {
             </Txt>
             <Txt size={12} weight="semi" color={colors.muted} numberOfLines={1}>
               {stock.symbol}
-              {stock.exchange ? ` · ${stock.exchange}` : ''} · on Monad
+              {stock.exchange ? ` · ${stock.exchange}` : ''}
             </Txt>
           </View>
         </View>
@@ -260,7 +260,7 @@ export default function StockScreen() {
         </View>
         <Txt size={11} color={colors.muted}>
           {stock.period === 'closed'
-            ? 'Market closed: the last price the token traded at, from CoinGecko.'
+            ? 'Market closed: the last price it traded at, from CoinGecko.'
             : `Price from xStocks${points.length ? ', chart from CoinGecko' : ''}.`}
         </Txt>
       </ScrollView>

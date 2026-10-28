@@ -66,8 +66,8 @@ export default function SavingsScreen() {
             title="Dollars that earn"
             lead="Move the dollars you aren’t spending into savings, and they earn while they wait. Take them back any time."
             facts={[
-              ['Earns from', 'An AUSD savings vault on Monad'],
-              ['Moving in and out', 'One signature, Kova pays the gas'],
+              ['Earns from', 'A dollar savings vault'],
+              ['Moving in and out', 'One signature, Kova covers the fee'],
               ['Your savings', 'Held in your name, not Kova’s'],
             ]}
             feature="savings"

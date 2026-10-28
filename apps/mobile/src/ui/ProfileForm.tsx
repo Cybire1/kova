@@ -254,7 +254,7 @@ export function CurrencySheet({
       <View style={styles.provenance}>
         <Icon name={ratesLive() ? 'check' : 'info'} size={14} color={colors.muted} />
         <Txt size={12} color={colors.muted}>
-          {ratesLive() ? `${rateLabel()}, published on Monad` : 'Reference rates, updated by Kova'}
+          {ratesLive() ? rateLabel() : 'Reference rates, updated by Kova'}
         </Txt>
       </View>
     </Sheet>

@@ -74,7 +74,7 @@ export default function Stocks() {
           <View style={{ height: 44, justifyContent: 'center', alignItems: 'flex-start' }}>
             {holdingsFailed ? (
               <Txt size={14} color={colors.onInk}>
-                Can’t reach Monad right now. Pull to try again.
+                Can’t load your stocks right now. Pull to try again.
               </Txt>
             ) : (
               <ActivityIndicator color={colors.white} />
@@ -88,7 +88,7 @@ export default function Stocks() {
         {held.length > 0 ? (
           <>
             <Txt size={12} color={colors.onInk}>
-              In your wallet on Monad. Not part of your dollars.
+              In your wallet. Not part of your dollars.
             </Txt>
             <View style={styles.tiles}>
               {held.slice(0, 4).map((h, i) => (
@@ -104,8 +104,8 @@ export default function Stocks() {
           </>
         ) : holdings ? (
           <Txt size={13} color={colors.onInk} style={{ lineHeight: 19 }}>
-            You don’t own any stocks yet. Any xStocks you hold on Monad show up here, a slice of a
-            share at a time.
+            You don’t own any stocks yet. Any xStocks you hold show up here, a slice of a share at a
+            time.
           </Txt>
         ) : null}
       </View>
@@ -131,7 +131,7 @@ export default function Stocks() {
           {q.trim() ? 'Results' : 'Popular'}
         </Txt>
         <Txt size={12} weight="semi" color={colors.muted}>
-          {market?.period === 'closed' ? 'Market closed: last prices' : 'Live from xStocks'}
+          {market?.period === 'closed' ? 'Market closed: last prices' : 'Live prices'}
         </Txt>
       </View>
 
@@ -145,7 +145,7 @@ export default function Stocks() {
         )
       ) : stocks.length === 0 ? (
         <Txt size={14} color={colors.muted} style={{ marginTop: 8 }}>
-          No stock called “{q.trim()}” on Monad yet.
+          No stock called “{q.trim()}” here yet.
         </Txt>
       ) : (
         <View style={{ gap: 8 }}>
@@ -156,8 +156,8 @@ export default function Stocks() {
       )}
 
       <Txt size={11} color={colors.muted} style={styles.fine}>
-        Stocks in Kova are xStocks: tokens on Monad backed 1:1 by shares. Not available in the US
-        and some other countries.
+        Stocks in Kova are xStocks: tokens backed 1:1 by shares. Not available in the US and some
+        other countries.
       </Txt>
     </ScrollView>
   )

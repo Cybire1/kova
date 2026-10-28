@@ -5,7 +5,6 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import QRCode from 'react-native-qrcode-svg'
 import { cancelCharge, getCharge, type PaymentIntent, payLinkFor } from '@/lib/api'
 import { CardError, finishTap, isCancelled, type ReadTap, readTap } from '@/lib/card'
-import { settlementToken } from '@/lib/config'
 import { useShop } from '@/lib/shop'
 import { colors } from '@/lib/theme'
 import { KoviPeek, peekEdge } from '@/ui/art'
@@ -128,7 +127,7 @@ export default function CustomerDisplay() {
             {intent?.reference ? ` for ${intent.reference}` : ''}
           </Txt>
           <Txt size={15} color={colors.onTint}>
-            ${usd} {settlementToken.symbol} is in your settlement wallet.
+            ${usd} is in your settlement wallet.
           </Txt>
         </Rise>
         <View style={{ paddingHorizontal: 20 }}>
@@ -245,9 +244,7 @@ export default function CustomerDisplay() {
           {price}
         </Txt>
         <Txt weight="medium" size={16} color={colors.onTint}>
-          {price.startsWith('$')
-            ? `in ${settlementToken.symbol}`
-            : `$${usd} ${settlementToken.symbol}`}
+          {price.startsWith('$') ? 'in dollars' : `$${usd}`}
           {intent?.reference ? `  ·  ${intent.reference}` : ''}
         </Txt>
         {/* Room above the code for Kovi's head, so he never covers what's being paid for. */}
@@ -273,7 +270,7 @@ export default function CustomerDisplay() {
             <Icon name="scan" size={18} color={colors.white} />
           </View>
           <Txt weight="medium" size={15}>
-            Scan with Kova Pay or any Monad wallet
+            Scan with Kova Pay or any phone camera
           </Txt>
         </View>
         {tap.at === 'idle' && tap.problem ? (

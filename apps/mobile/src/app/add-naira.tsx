@@ -252,13 +252,7 @@ export default function AddNaira() {
               <Fact
                 label="Rate"
                 value={`₦${Number(quote.rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per dollar`}
-                hint={
-                  paj
-                    ? 'Fee included'
-                    : quote.rate_source === 'chainlink'
-                      ? 'Chainlink rate on Monad, plus 1%'
-                      : 'Market rate, plus 1%'
-                }
+                hint={paj ? 'Fee included' : 'Market rate, plus 1%'}
               />
               {paj ? (
                 <Fact label="Fee" value="In the rate" />
@@ -267,8 +261,8 @@ export default function AddNaira() {
               )}
               <Fact
                 label="Arrives"
-                value={paj ? 'When your transfer lands' : 'In seconds, on Monad'}
-                hint={paj ? 'The dollars come to this wallet on Monad' : undefined}
+                value={paj ? 'When your transfer lands' : 'In seconds'}
+                hint={paj ? 'The dollars come to this wallet' : undefined}
                 last
               />
             </View>
@@ -382,7 +376,7 @@ export default function AddNaira() {
                 accessibilityRole="link"
               >
                 <Txt weight="semi" size={14} color={colors.tealDeep}>
-                  See the transfer on Monad
+                  See the transfer
                 </Txt>
               </Pressable>
             ) : null}

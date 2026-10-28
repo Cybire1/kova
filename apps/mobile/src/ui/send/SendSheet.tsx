@@ -434,7 +434,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                 label="Settles"
                 value="When a phone is online"
                 icon="clock"
-                hint="On Monad · good for 7 days"
+                hint="Good for 7 days"
               />
             ) : (
               <Fact label="Arrives" value="In about a second" icon="bolt" />
@@ -507,7 +507,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
             <View style={styles.untrusted}>
               <Icon name="lock" size={16} color={colors.muted} />
               <Txt size={13} color={colors.muted} style={{ flex: 1, lineHeight: 18 }}>
-                {isUnnamed(name) ? 'They' : first} can’t receive privately yet, so Monad will show
+                {isUnnamed(name) ? 'They' : first} can’t receive privately yet, so anyone can see
                 who gets this one.
               </Txt>
             </View>
@@ -562,7 +562,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           <Txt size={12} color={colors.muted} style={{ textAlign: 'center', marginTop: 10 }}>
             {viaCode
               ? 'Face ID confirms it. Once they have the code, it’s theirs to settle.'
-              : 'Face ID confirms it. Payments on Monad can’t be undone.'}
+              : 'Face ID confirms it. Payments can’t be undone.'}
           </Txt>
         </Animated.View>
       ) : null}
@@ -592,9 +592,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
           <View style={styles.time}>
             <Icon name="bolt" size={16} color={colors.white} />
             <Txt weight="semi" size={14} color={colors.white}>
-              {entry.ms
-                ? `Arrived in ${(entry.ms / 1000).toFixed(2)} s on Monad`
-                : 'Arrived on Monad'}
+              {entry.ms ? `Arrived in ${(entry.ms / 1000).toFixed(2)} s` : 'Arrived'}
             </Txt>
           </View>
           {entry.privately && entry.oneTime ? (
@@ -660,8 +658,8 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
       nad.state === 'looking'
         ? `Still looking up ${nad.name}.`
         : nad.state === 'none'
-          ? `No one has ${nad.name} on Monad.`
-          : `Couldn’t reach Monad to look up ${nad.name}. Try again.`,
+          ? `No one has ${nad.name} yet.`
+          : `Couldn’t look up ${nad.name}. Try again.`,
     )
   }
 
@@ -789,12 +787,12 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
             </Txt>
             <Txt size={13} color={colors.onInk} numberOfLines={1}>
               {nad.state === 'found'
-                ? `Their Monad name, ${short(nad.address)}`
+                ? `Their wallet, ${short(nad.address)}`
                 : nad.state === 'looking'
-                  ? 'Looking it up on Monad…'
+                  ? 'Looking it up…'
                   : nad.state === 'none'
-                    ? 'No one has this name on Monad yet'
-                    : 'Couldn’t reach Monad. Try again in a moment.'}
+                    ? 'No one has this name yet'
+                    : 'Couldn’t look it up. Try again in a moment.'}
             </Txt>
           </View>
           {nad.state === 'found' ? (
@@ -827,7 +825,7 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
               Send to {direct.name || short(direct.address)}
             </Txt>
             <Txt size={13} color={colors.onInk}>
-              {direct.amount ? `They asked for $${direct.amount}` : 'Monad address, ready to pay'}
+              {direct.amount ? `They asked for $${direct.amount}` : 'Wallet address, ready to pay'}
             </Txt>
           </View>
           <View style={styles.directGo}>

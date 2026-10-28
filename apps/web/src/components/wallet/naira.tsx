@@ -239,7 +239,7 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
           </div>
           <div className="w-review-row">
             <dt>Arrives</dt>
-            <dd>{paj ? 'Once your transfer lands, on Monad' : 'In seconds, on Monad'}</dd>
+            <dd>{paj ? 'Once your transfer lands' : 'In seconds'}</dd>
           </div>
         </dl>
         {problem ? <p className="form-error">{problem}</p> : null}
@@ -341,7 +341,7 @@ function TopUpReturn({ reference }: { reference: string }) {
           </div>
           {topUp.tx_url ? (
             <div className="w-review-row">
-              <dt>On Monad</dt>
+              <dt>Proof</dt>
               <dd>
                 <a className="textlink" href={topUp.tx_url} target="_blank" rel="noreferrer">
                   See the transfer
@@ -429,7 +429,7 @@ export function NairaTransfer({ reference }: { reference: string }) {
         {settled && topUp.tx_url ? (
           <dl className="w-review-card">
             <div className="w-review-row">
-              <dt>On Monad</dt>
+              <dt>Proof</dt>
               <dd>
                 <a className="textlink" href={topUp.tx_url} target="_blank" rel="noreferrer">
                   See the transfer
@@ -493,7 +493,7 @@ export function NairaTransfer({ reference }: { reference: string }) {
           {received ? 'Naira received. Your dollars are on the way…' : 'Waiting for your transfer…'}
         </p>
         <p className="w-fine w-center">
-          Send exactly this amount, once. When it lands, the dollars come to your wallet on Monad.
+          Send exactly this amount, once. When it lands, the dollars come to your wallet.
         </p>
         {problem ? <p className="form-error">{problem}</p> : null}
         <a href={back} className="pill pill-block" data-tone="ink">

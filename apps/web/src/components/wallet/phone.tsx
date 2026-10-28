@@ -130,7 +130,7 @@ export function PhoneSend() {
         ) : !enabled ? (
           <section className="w-keys">
             <h2>Phone payments are coming</h2>
-            <p>Phone verification isn’t available on this network yet.</p>
+            <p>Phone verification isn’t available here yet.</p>
           </section>
         ) : (
           <>

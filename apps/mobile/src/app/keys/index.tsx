@@ -132,8 +132,8 @@ export default function Keys() {
         }
       >
         <Txt size={16} color={colors.onTint} style={styles.lead}>
-          Everything that spends your dollars gets its own key. Monad enforces each limit, and one
-          tap freezes any key.
+          Everything that spends your dollars gets its own key. Each limit is checked on every
+          payment, and one tap freezes any key.
         </Txt>
 
         {error || problem ? (
@@ -297,9 +297,8 @@ export default function Keys() {
         })}
 
         <Txt size={13} color={colors.muted} style={styles.fine}>
-          Keys spend through Kova’s card contract on Monad: it holds each key’s daily limit and
-          whether it’s frozen, and every payment needs the key’s signature and Kova’s. Kova never
-          holds your dollars.
+          Each key has its own daily limit, checked on every payment, and a frozen key can’t spend.
+          Every payment needs the key’s signature and Kova’s. Kova never holds your dollars.
         </Txt>
       </ScrollView>
     </Screen>
@@ -454,7 +453,7 @@ function AgentForm({ owner, onMade }: { owner: Address; onMade: (key: SpendKey) 
         }}
       />
       <Txt size={12} color={colors.muted}>
-        Face ID signs the key’s limit onto Monad. Kova pays the network fee.
+        Face ID sets the key’s limit. Kova covers the fee.
       </Txt>
     </View>
   )

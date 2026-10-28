@@ -762,8 +762,8 @@ function AskedToPay({
         color={colors.muted}
         style={{ textAlign: 'center', marginTop: 6, lineHeight: 21 }}
       >
-        They can pay from anywhere with Kova or any Monad wallet. The link stays open for a day, and
-        this updates when it’s paid.
+        They can pay from anywhere, with Kova or right in their browser. The link stays open for a
+        day, and this updates when it’s paid.
       </Txt>
       <Pressable
         accessibilityRole="button"

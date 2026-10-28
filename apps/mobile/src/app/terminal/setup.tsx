@@ -93,7 +93,7 @@ export default function TerminalSetup() {
           </Txt>
           <View style={styles.facts}>
             <Fact icon="tap" text={`Takes payments for ${paired.merchantName}`} />
-            <Fact icon="check" text="Settles in AUSD on Monad, in about a second" />
+            <Fact icon="check" text="Settles in dollars, in about a second" />
             <Fact
               icon="lock"
               text="Only this phone's key. Remove it from the dashboard any time"

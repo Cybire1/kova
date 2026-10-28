@@ -199,8 +199,8 @@ export default function LinkCard() {
             How much can it spend in a day?
           </Txt>
           <Txt size={16} color={colors.muted} style={styles.body}>
-            The card pays from your wallet, never more than this a day. It’s kept on Monad, so
-            nobody but you can raise it. You can change it whenever you like.
+            The card pays from your wallet, never more than this a day. It’s checked on every
+            payment, and nobody but you can raise it. You can change it whenever you like.
           </Txt>
         </Rise>
         <View style={styles.limits} accessibilityRole="radiogroup">

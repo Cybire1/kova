@@ -225,10 +225,10 @@ export default function Suppliers() {
                                   <Txt weight="bold" size={14}>
                                     {local}
                                   </Txt>{' '}
-                                  · {ratesLive() ? 'Chainlink rate on Monad' : 'reference rate'}
+                                  · {ratesLive() ? 'market rate' : 'reference rate'}
                                 </>
                               ) : (
-                                `To ${shortAddress(s.wallet_address)}, in dollars on Monad`
+                                `To ${shortAddress(s.wallet_address)}, in dollars`
                               )}
                             </Txt>
                             <Field
@@ -256,7 +256,7 @@ export default function Suppliers() {
                                 <Icon name="check" size={16} color={colors.tealDeep} />
                                 <Txt weight="semi" size={14} color={colors.tealDeep}>
                                   Paid {usd(paid.payment.amount)} in {(paid.ms / 1000).toFixed(2)} s
-                                  · Monadscan
+                                  · See proof
                                 </Txt>
                               </Pressable>
                             ) : null}
@@ -381,7 +381,7 @@ export default function Suppliers() {
                 </Card>
               ) : (
                 <Txt size={14} color={colors.muted} style={{ lineHeight: 20 }}>
-                  Every payment to a supplier lands here, checked on Monad.
+                  Every payment to a supplier lands here once it’s confirmed.
                 </Txt>
               )}
             </>

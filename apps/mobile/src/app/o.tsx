@@ -94,7 +94,7 @@ export default function OpenCode() {
         ? {
             pose: 'wave' as const,
             title: 'This one’s yours',
-            body: `You signed it to ${recipient}. Show it to them, or share it: it settles on Monad as soon as either phone is online.`,
+            body: `You signed it to ${recipient}. Show it to them, or share it: it settles as soon as either phone is online.`,
           }
         : result.kind === 'invalid'
           ? {

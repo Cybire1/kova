@@ -286,12 +286,12 @@ export function NairaCashOut() {
             <StepRow
               state={cashOut.tx_hash ? 'done' : 'active'}
               title="Left your wallet"
-              detail={`$${cashOut.amount} on Monad`}
+              detail={`$${cashOut.amount}`}
             />
             <StepRow
               state={cashOut.tx_hash ? 'done' : 'waiting'}
               title="Ready for the bank"
-              detail="Turned into USDC for the transfer"
+              detail="Converted for the transfer"
             />
             <StepRow
               state={cashOut.tx_hash ? 'active' : 'waiting'}
@@ -359,8 +359,7 @@ export function NairaCashOut() {
               Save {titleCase(who)} for next time
             </label>
             <p className="cx-fine">
-              {bankName} is paid as soon as your dollars arrive on Monad. The quote holds for 15
-              minutes.
+              {bankName} is paid as soon as your dollars arrive. The quote holds for 15 minutes.
             </p>
             {problem ? <p className="form-error">{problem}</p> : null}
             {/* As in the app: a slide, not a tap, between a review and money leaving. */}
@@ -369,7 +368,7 @@ export function NairaCashOut() {
               busy={busy}
               onSend={() => void send()}
             />
-            <p className="cx-fine">Your passkey approves it. Kova pays the network fee.</p>
+            <p className="cx-fine">Your passkey approves it.</p>
           </div>
         </div>
       </Steps>
@@ -785,7 +784,7 @@ function Done({
     `${cashOut.naira} sent to ${titleCase(who)}, ${bankName} ••${cashOut.account_last4}`,
     `$${cashOut.amount} at ${nairaText(Number(cashOut.rate))} per $1, with Kova`,
     `Reference ${reference}`,
-    cashOut.tx_url ? `On Monad: ${cashOut.tx_url}` : '',
+    cashOut.tx_url ? `Proof: ${cashOut.tx_url}` : '',
   ]
     .filter(Boolean)
     .join('\n')
@@ -849,7 +848,7 @@ function Done({
         </div>
         {cashOut.tx_url ? (
           <div className="w-review-row">
-            <dt>On Monad</dt>
+            <dt>Proof</dt>
             <dd>
               <a className="textlink" href={cashOut.tx_url} target="_blank" rel="noreferrer">
                 See the transaction

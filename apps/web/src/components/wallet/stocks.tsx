@@ -114,7 +114,7 @@ export function StocksCard() {
         </span>
         <span className="w-st-invite-text">
           <strong>Stocks</strong>
-          <small>Tesla, Nvidia, Apple… live from xStocks on Monad</small>
+          <small>Tesla, Nvidia, Apple… live prices</small>
         </span>
         <span className="w-shopcard-go">
           <Icon name="arrow" size={18} />
@@ -180,7 +180,7 @@ export function Stocks() {
         </strong>
         <span className="w-st-mine-note">
           {owned.length > 0
-            ? 'In your wallet on Monad. Not part of your dollars.'
+            ? 'In your wallet. Not part of your dollars.'
             : holdingsFailed
               ? 'Couldn’t read your stocks just now.'
               : 'You don’t own any stocks yet. Pick one below to see it live.'}
@@ -240,7 +240,7 @@ export function Stocks() {
           </div>
         )
       ) : stocks.length === 0 && !searching ? (
-        <p className="w-quiet">No stock on Monad matches “{query.trim()}”.</p>
+        <p className="w-quiet">No stock matches “{query.trim()}”.</p>
       ) : (
         <div className="w-st-list" aria-busy={searching}>
           {stocks.map((s) => (
@@ -336,7 +336,7 @@ export function StockDetail({ symbol }: { symbol: string }) {
           <h1>{stock.name}</h1>
           <small>
             {stock.symbol}
-            {stock.exchange ? ` · ${stock.exchange}` : ''} · on Monad
+            {stock.exchange ? ` · ${stock.exchange}` : ''}
           </small>
         </span>
       </div>
@@ -573,7 +573,7 @@ function BuySheet({ stock, onClose }: { stock: StockQuote; onClose: () => void }
           </div>
           <div>
             <dt>Lands in</dt>
-            <dd>About a second, on Monad</dd>
+            <dd>About a second</dd>
           </div>
         </dl>
 
@@ -611,8 +611,8 @@ function BuySheet({ stock, onClose }: { stock: StockQuote; onClose: () => void }
         ) : null}
 
         <p className="w-st-fine">
-          Stocks in Kova are xStocks: tokens on Monad mainnet backed 1:1 by shares. Not available in
-          the US and some other countries. Prices move outside market hours.
+          Stocks in Kova are xStocks: tokens backed 1:1 by shares. Not available in the US and some
+          other countries. Prices move outside market hours.
         </p>
       </div>
     </>

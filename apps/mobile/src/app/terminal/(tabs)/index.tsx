@@ -24,7 +24,6 @@ import {
   ringUp,
 } from '@/lib/api'
 import { sameBarcode, useCatalog } from '@/lib/catalog'
-import { settlementToken } from '@/lib/config'
 import {
   applyKey,
   currencyInfo,
@@ -567,8 +566,8 @@ function KeypadPanel({ bottom }: { bottom: number }) {
           </Txt>
           <Txt size={14} color={colors.onTint} numberOfLines={1} adjustsFontSizeToFit>
             {shop.currency === 'USD'
-              ? `Customer pays $${usd} in ${settlementToken.symbol}`
-              : `Customer pays $${usd} ${settlementToken.symbol} at ${formatLocal(1, shop.currency)} per dollar`}
+              ? `Customer pays $${usd}`
+              : `Customer pays $${usd} at ${formatLocal(1, shop.currency)} per dollar`}
           </Txt>
           {roomy ? (
             <TextInput

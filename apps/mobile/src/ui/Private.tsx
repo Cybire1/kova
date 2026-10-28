@@ -117,7 +117,7 @@ export function TopUpLine({ route, onInk }: { route: Route; onInk?: boolean }) {
         style={{ flex: 1, lineHeight: 18 }}
       >
         {formatUsd(route.moving)} of your private dollars moves into your balance for this; that
-        move is visible on Monad.
+        move is public.
       </Txt>
     </Animated.View>
   )
@@ -242,11 +242,11 @@ function PayFrom({
       <Txt size={12} color={colors.onTint} style={{ marginTop: 8, lineHeight: 17 }}>
         {route.from === 'private'
           ? route.gather
-            ? 'They’re in a few places, so they’re put together into one first: that ties them to each other on Monad, never to you. Then they pay, and Monad can’t tie it to your wallet.'
-            : 'Paid from an address only you can open. Monad can’t tie it to your wallet, and the change stays private.'
+            ? 'They’re in a few places, so they’re put together into one first: that ties them to each other, never to you. Then they pay, and nobody can tie it to your wallet.'
+            : 'Paid from an address only you can open. Nobody can tie it to your wallet, and the change stays private.'
           : balanceShort
-            ? 'From your wallet, after just enough private dollars move into it. It’s public on Monad that it came from you.'
-            : 'From your wallet, as usual. It’s public on Monad that it came from you.'}
+            ? 'From your wallet, after just enough private dollars move into it. It’s public that it came from you.'
+            : 'From your wallet, as usual. It’s public that it came from you.'}
       </Txt>
     </View>
   )
@@ -266,14 +266,14 @@ export function Announced({ url, at, onInk }: { url: string | null; at: number; 
     >
       <Icon name="check" size={14} color={color} strokeWidth={2.6} />
       <Txt weight="semi" size={13} color={color} style={{ textDecorationLine: 'underline' }}>
-        Announced on Monad
+        Delivered privately
       </Txt>
     </Pressable>
   ) : (
     <View style={styles.announced}>
       <Icon name="clock" size={14} color={onInk ? colors.onInk : colors.muted} />
       <Txt size={13} color={onInk ? colors.onInk : colors.muted}>
-        Announcing on Monad…
+        Delivering privately…
       </Txt>
     </View>
   )
@@ -340,7 +340,7 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
               </Txt>
               <Txt size={15} color={colors.onInk} style={{ lineHeight: 21 }}>
                 moved into your wallet in {(moved.ms / 1000).toFixed(1)} s. Still in your balance;
-                The move is public on Monad.
+                the move is public.
               </Txt>
             </>
           ) : (
@@ -362,7 +362,7 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
               >
                 <Icon name="web" size={16} color={colors.white} />
                 <Txt weight="semi" size={14} color={colors.white}>
-                  View on Monadscan
+                  See proof
                 </Txt>
               </Pressable>
             ) : null}
@@ -388,8 +388,8 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
             Receive privately
           </Txt>
           <Txt size={14} color={colors.onInk} style={{ marginTop: 4, lineHeight: 20 }}>
-            Let people send you dollars without the whole of Monad seeing they’re yours. Your wallet
-            makes your private keys with one signature, and they stay on this phone.
+            Let people send you dollars without anyone else seeing they’re yours. Your wallet makes
+            your private keys with one signature, and they stay on this phone.
           </Txt>
           <View style={{ marginTop: 14 }}>
             <PillButton
@@ -579,7 +579,7 @@ export function PrivateFlow({ receipt }: { receipt?: PrivateReceipt }) {
           pending={!receipt}
         />
         <Txt size={11} color={colors.muted}>
-          Public on Monad
+          Public
         </Txt>
       </View>
       <View style={styles.flowLine} />
@@ -659,8 +659,8 @@ export function SendPrivately({
   fromPrivate?: boolean
 }) {
   const said = fromPrivate
-    ? `On Monad, people will see ${formatUsd(amount)} move, but not who sent it or to whom.`
-    : `On Monad, people will see you sent ${formatUsd(amount)}, but not to whom.`
+    ? `People will see ${formatUsd(amount)} move, but not who sent it or to whom.`
+    : `People will see you sent ${formatUsd(amount)}, but not to whom.`
   return (
     <Pressable
       accessibilityRole="switch"
@@ -725,7 +725,7 @@ export function SentPrivately({
         </Txt>
       </View>
       <Txt size={14} color={colors.onTint} style={{ lineHeight: 20, marginTop: 8 }}>
-        On Monad, {formatUsd(amount)} went to{' '}
+        To everyone else, {formatUsd(amount)} went to{' '}
         <Txt weight="semi" size={14}>
           {shortAddress(oneTime)}
         </Txt>
@@ -746,7 +746,7 @@ export function SentPrivately({
         >
           <Icon name="web" size={15} />
           <Txt weight="semi" size={14} style={{ textDecorationLine: 'underline' }}>
-            See it on Monadscan
+            See proof
           </Txt>
         </Pressable>
       ) : null}

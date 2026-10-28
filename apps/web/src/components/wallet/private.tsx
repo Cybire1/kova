@@ -81,7 +81,7 @@ export function TopUpLine({ route }: { route: Route }) {
       <Icon name="lock" size={14} />
       <span>
         {formatUsd(route.moving)} of your private dollars moves into your balance for this; that
-        move is visible on Monad.
+        move is public.
       </span>
     </p>
   )
@@ -178,11 +178,11 @@ function PayFromChoice({
       <p className="w-payfrom-fine">
         {route.from === 'private'
           ? route.gather
-            ? 'They’re in a few places, so they’re put together into one first: that ties them to each other on Monad, never to you. Then they pay, and Monad can’t tie it to your wallet.'
-            : 'Paid from an address only you can open. Monad can’t tie it to your wallet, and the change stays private.'
+            ? 'They’re in a few places, so they’re put together into one first: that publicly ties them to each other, never to you. Then they pay, and nothing public ties it to your wallet.'
+            : 'Paid from an address only you can open. Nothing public ties it to your wallet, and the change stays private.'
           : short_
-            ? 'From your wallet, after just enough private dollars move into it. It’s public on Monad that it came from you.'
-            : 'From your wallet, as usual: it’s public on Monad that it came from you.'}
+            ? 'From your wallet, after just enough private dollars move into it. It’s public that it came from you.'
+            : 'From your wallet, as usual: it’s public that it came from you.'}
       </p>
     </div>
   )
@@ -217,9 +217,9 @@ export function PrivateSwitch({
         <strong>Send privately</strong>
         <small>
           {on && fromPrivate
-            ? `On Monad, people will see ${formatUsd(amount)} move, but not who sent it or to whom.`
+            ? `It’s public that ${formatUsd(amount)} moved, but not who sent it or to whom.`
             : on
-              ? `On Monad, people will see you sent ${formatUsd(amount)}, but not to whom.`
+              ? `It’s public that you sent ${formatUsd(amount)}, but not to whom.`
               : `Hide who gets it from everyone but ${first(name)}.`}
         </small>
       </span>
@@ -394,7 +394,7 @@ export function PrivateDollars() {
             <Icon name="info" size={18} />
             <span>
               <strong>How private works</strong>
-              <small>What’s public on Monad, and what only you can see</small>
+              <small>What’s public, and what only you can see</small>
             </span>
           </button>
           <button
@@ -427,11 +427,11 @@ export function PrivateDollars() {
             </span>
             <strong className="w-privcard-amount">{formatUsd(moved.amount)}</strong>
             <p>
-              moved into your wallet in {(moved.ms / 1000).toFixed(1)} s. Still in your balance; The
-              move is public on Monad.{' '}
+              moved into your wallet in {(moved.ms / 1000).toFixed(1)} s. Still in your balance; the
+              move is public.{' '}
               {moved.explorer ? (
                 <a href={moved.explorer} target="_blank" rel="noreferrer">
-                  See it on Monad
+                  See proof
                 </a>
               ) : null}
             </p>
@@ -475,9 +475,8 @@ export function PrivateDollars() {
         <div className="w-confirm" role="alertdialog" aria-label="Make them public">
           <strong>Make {shown(privateBalance)} public?</strong>
           <p>
-            Each private payment moves into your wallet, and every move is public on Monad, so
-            anyone can see these dollars reached you. They stay in your balance either way. Kova
-            covers the fee.
+            Each private payment moves into your wallet, and every move is public, so anyone can see
+            these dollars reached you. They stay in your balance either way. Kova covers the fee.
           </p>
           <button
             type="button"
@@ -504,14 +503,14 @@ export function PrivateDollars() {
           <PrivateFlow from={payments[0]} />
           <p>
             Someone who sends you dollars privately pays an address made just for that payment. Who
-            sent it and how much is public on Monad, but only your keys can tell the address is
-            yours, so nobody can add up what you receive.
+            sent it and how much is public, but only your keys can tell the address is yours, so
+            nobody can add up what you receive.
           </p>
           <small>
             They count in your balance straight away. When you pay a shop or send privately, Kova
             pays straight from them, so your wallet never shows. If a payment needs a little more
             than your balance holds, just enough moves in first, and Kova says so before it does:
-            that move is public on Monad.
+            that move is public.
           </small>
         </div>
       ) : null}
@@ -559,7 +558,7 @@ function PrivateFlow({ from }: { from?: Entry }) {
         <span className="w-flow-chip">
           {from?.oneTime ? short(from.oneTime) : 'its own address'}
         </span>
-        <small>Public on Monad</small>
+        <small>Public</small>
       </span>
       <span className="w-flow-line" />
       <span className="w-flow-end">
@@ -672,7 +671,7 @@ export function PrivateArrivalMoment() {
   const who = isUnnamed(arrival.name) ? 'them' : first(arrival.name)
   return (
     <div
-      className="w-arrival"
+      className="w-parrival"
       role="dialog"
       aria-modal="true"
       aria-label={`${arrival.name} sent you ${usd}, privately`}
@@ -722,8 +721,8 @@ export function PrivateArrivalMoment() {
               <Icon name="lock" size={15} />
             </span>
             <span>
-              <strong>Only you can see this came from {who}.</strong> On Monad, it’s a payment to an
-              address made just for it.
+              <strong>Only you can see this came from {who}.</strong> In public, it’s a payment to
+              an address made just for it.
             </span>
           </p>
         ) : null}

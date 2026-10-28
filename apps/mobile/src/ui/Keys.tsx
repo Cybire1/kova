@@ -217,7 +217,7 @@ export function Received({ spendKey, onDone }: { spendKey: SpendKey; onDone?: ()
       {open ? (
         done ? (
           <Txt weight="bold" size={15} color={colors.white} style={{ marginTop: 12 }}>
-            Paid ${done.amount} on Monad.
+            Paid ${done.amount}.
           </Txt>
         ) : (
           <View style={styles.form}>

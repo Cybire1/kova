@@ -74,7 +74,7 @@ export default function PayrollRunReceipt() {
                         onPress={() => void WebBrowser.openBrowserAsync(p.explorer_url as string)}
                       >
                         <Txt weight="semi" size={13} color={colors.tealDeep}>
-                          See it on Monadscan
+                          See proof
                         </Txt>
                       </Pressable>
                     ) : null}
@@ -86,8 +86,8 @@ export default function PayrollRunReceipt() {
               ))}
             </Card>
             <Txt size={13} color={colors.muted} style={{ marginTop: 14, lineHeight: 19 }}>
-              On Monad, {shop.name} pays these one-time addresses. Who they belong to is in this
-              book and in each person’s own wallet, nowhere else.
+              To everyone else, {shop.name} pays these one-time addresses. Who they belong to is in
+              this book and in each person’s own wallet, nowhere else.
             </Txt>
           </>
         ) : null}

@@ -99,8 +99,8 @@ export default function PrivateTakings() {
               <SalesFlow sales={t.sales} />
               <Txt size={14} color={colors.onTint} style={{ marginTop: 14, lineHeight: 20 }}>
                 Each sale is paid to an address made for that sale alone. Customers pay exactly as
-                before. Only your shop’s keys can tell these addresses are yours, so nobody reading
-                Monad can add up what you take.
+                before. Only your shop’s keys can tell these addresses are yours, so nobody else can
+                add up what you take.
               </Txt>
             </View>
 

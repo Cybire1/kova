@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Art, Icon } from '@/components/brand'
 import { personLink } from '@/lib/wallet/links'
 import {
@@ -110,10 +110,16 @@ export function Request() {
   )
 }
 
-/** Getting paid: your code, your link and your address. */
+/** Getting paid: your code and your link. Your address, for crypto wallets, is folded away below. */
 export function Receive() {
   const { profile, network } = useWallet()
   const origin = useOrigin()
+  // "Show my address" (Add money) opens straight to the address.
+  const crypto = useRef<HTMLDetailsElement>(null)
+  useEffect(() => {
+    if (crypto.current && new URLSearchParams(window.location.search).get('address') === '1')
+      crypto.current.open = true
+  }, [])
   if (!profile) return null
   const link = personLink(origin, {
     address: profile.address,
@@ -131,25 +137,35 @@ export function Receive() {
           <Art name="kovi-peek" size={104} className="w-code-kovi" />
           <QR value={link} size={200} label={`Code to pay ${profile.name}`} />
         </div>
-        <div className="w-address">
-          <span>
-            <small>Receive AUSD on Monad</small>
-            <code>{short(profile.address)}</code>
-          </span>
-          <CopyButton text={profile.address} />
-        </div>
-        <p className="w-fine w-center">
-          AUSD arrives ready to spend. MON sent here appears separately and needs conversion.
-        </p>
-        {network === 'mainnet' ? (
-          <Link className="w-mon-card" href="/wallet/add/chain">
-            <span>
-              <strong>Depositing MON or other crypto?</strong>
-              <small>Choose a token and network. We convert it to dollars for you.</small>
+        <details className="w-crypto" ref={crypto}>
+          <summary>
+            Paying from a crypto wallet or exchange?
+            <span className="w-crypto-chev">
+              <Icon name="chevronDown" size={16} />
             </span>
-            <Icon name="arrow" size={18} />
-          </Link>
-        ) : null}
+          </summary>
+          <div className="w-crypto-body">
+            <div className="w-address">
+              <span>
+                <small>Receive AUSD on Monad</small>
+                <code>{short(profile.address)}</code>
+              </span>
+              <CopyButton text={profile.address} />
+            </div>
+            <p className="w-fine">
+              AUSD arrives ready to spend. MON sent here appears separately and needs conversion.
+            </p>
+            {network === 'mainnet' ? (
+              <Link className="w-mon-card" href="/wallet/add/chain">
+                <span>
+                  <strong>Depositing MON or other crypto?</strong>
+                  <small>Choose a token and network. We convert it to dollars for you.</small>
+                </span>
+                <Icon name="arrow" size={18} />
+              </Link>
+            ) : null}
+          </div>
+        </details>
         <p className="w-offline-hint">
           <NoSignal size={15} />
           <span>

@@ -55,7 +55,7 @@ export default function AddMoney() {
     try {
       const top = await topUpLink(profile.address, profile.currency, 'kova://add-money')
       if (!top.live || !top.url)
-        return setCardNote('Opens on Monad mainnet: buys AUSD straight into this wallet')
+        return setCardNote('Not open yet: buys dollars straight into this wallet')
       await WebBrowser.openBrowserAsync(top.url)
       void refresh()
     } catch (error) {
@@ -121,9 +121,7 @@ export default function AddMoney() {
                 Add money
               </Txt>
               <Txt size={17} color={colors.onTint} style={styles.body}>
-                {depositsOn
-                  ? 'Turn MON and crypto from other networks into your Kova balance, or receive AUSD on Monad.'
-                  : 'Send AUSD on Monad to your Kova address.'}
+                Choose how to add dollars to your balance.
               </Txt>
             </>
           )}

@@ -115,7 +115,7 @@ export function PhoneSend({ initialPhone = '' }: { initialPhone?: string }) {
         {enabled === null ? (
           <Txt>Checking availability…</Txt>
         ) : !enabled ? (
-          <Txt>Phone payments aren’t available on this network yet.</Txt>
+          <Txt>Phone payments aren’t available yet.</Txt>
         ) : !target ? (
           <>
             <Txt>

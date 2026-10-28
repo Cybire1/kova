@@ -27,11 +27,8 @@ export function AddMoney() {
         <ScreenHead title="Add money" />
         <div className="w-empty w-empty-art">
           <Art name="kovi-catch" size={112} />
-          <strong>Send AUSD on Monad to your address</strong>
-          <span>
-            Pay by card or bank with Ramp Network, or send AUSD on Monad from an exchange or another
-            wallet.
-          </span>
+          <strong>Add dollars to your wallet</strong>
+          <span>Pay by card or bank, or send from an exchange or another wallet.</span>
         </div>
         {chainDeposits ? <FromAnotherChain /> : null}
         <MonConversionEntry />
@@ -43,7 +40,7 @@ export function AddMoney() {
         />
         <FromAbroadRow />
         <CardOrBank />
-        <Link href="/wallet/receive" className="pill pill-block" data-tone="ink">
+        <Link href="/wallet/receive?address=1" className="pill pill-block" data-tone="ink">
           <span className="pill-label">Show my address</span>
           <span className="pill-cap">
             <Icon name="arrow" size={18} />
@@ -79,7 +76,7 @@ export function AddMoney() {
         <h1 className="w-title">Free test dollars</h1>
         <p className="w-lead">
           Kova is running on Monad’s test network. It sends you $5 of test dollars a day to try
-          every payment for real, and pays the gas.
+          every payment for real, and covers every fee.
         </p>
         <dl className="w-review-card">
           <div className="w-review-row">
@@ -191,7 +188,7 @@ function CardOrBank() {
       className="w-add-chain"
       onClick={() => {
         if (top?.live && top.url) window.open(top.url, '_blank', 'noopener')
-        else setNote('Opens on Monad mainnet: buys AUSD straight into this wallet.')
+        else setNote('Not available just now.')
       }}
     >
       <span>

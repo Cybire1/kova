@@ -135,7 +135,7 @@ export default function BuyStock() {
             Lands in
           </Txt>
           <Txt size={13} weight="bold">
-            About a second, on Monad
+            About a second
           </Txt>
         </View>
       </View>
@@ -194,8 +194,8 @@ export default function BuyStock() {
       ) : null}
 
       <Txt size={11} color={colors.muted} style={styles.fine}>
-        Stocks in Kova are xStocks: tokens on Monad backed 1:1 by shares. Not available in the US
-        and some other countries. Prices move outside market hours.
+        Stocks in Kova are xStocks: tokens backed 1:1 by shares. Not available in the US and some
+        other countries. Prices move outside market hours.
       </Txt>
     </View>
   )

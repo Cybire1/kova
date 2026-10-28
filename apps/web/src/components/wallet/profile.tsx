@@ -66,7 +66,7 @@ export function Profile() {
             })}
           </span>
           <small className="w-pass-label">
-            Your address on Monad <em>{network === 'testnet' ? 'Testnet' : 'Mainnet'}</em>
+            Your wallet address {network === 'testnet' ? <em>Testnet</em> : null}
           </small>
           <code>{short(profile.address)}</code>
           <CopyButton text={profile.address} className="w-copy w-copy-ink" />
@@ -216,7 +216,7 @@ export function Profile() {
       {forgetting ? (
         <div className="w-forget">
           <p>
-            This browser forgets your wallet. Your money stays on Monad. Sign in again with
+            This browser forgets your wallet. Your money stays where it is. Sign in again with
             {profile.auth === 'google' ? ' the same Google account' : ' your Kova passkey'} to
             reopen it.
           </p>

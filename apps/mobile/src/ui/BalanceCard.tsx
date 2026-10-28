@@ -211,7 +211,7 @@ export function BalanceCard({
         {hasMon && mon ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`${mon.label} MON, about ${formatUsd(mon.value)} at Chainlink's price. Convert to dollars`}
+            accessibilityLabel={`${mon.label} MON, about ${formatUsd(mon.value)} at the market price. Convert to dollars`}
             onPress={() => router.push('/convert-mon')}
             style={({ pressed }) => [styles.chip, pressed && { opacity: 0.8 }]}
           >

@@ -251,9 +251,7 @@ export function Receipt({ id }: { id: string }) {
         <ScreenHead title="Receipt" back="/wallet/activity" />
         <div className="w-empty">
           <strong>Looking for this payment</strong>
-          <span>
-            It shows here as soon as Kova’s record of Monad has it, usually within a second or two.
-          </span>
+          <span>It shows here as soon as Kova records it, usually within a second or two.</span>
         </div>
       </div>
     )
@@ -430,13 +428,13 @@ export function Receipt({ id }: { id: string }) {
               </dt>
               <dd>
                 Private dollars
-                <small>An address only you can open paid it: Monad can’t tie it to you</small>
+                <small>An address only you can open paid it: nothing public ties it to you</small>
               </dd>
             </div>
           ) : null}
           {entry.oneTime ? (
             <div>
-              <dt>On Monad</dt>
+              <dt>Delivery</dt>
               <dd>
                 {entry.announced ? (
                   <a
@@ -445,12 +443,12 @@ export function Receipt({ id }: { id: string }) {
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Announced <Icon name="external" size={13} />
+                    Delivered privately <Icon name="external" size={13} />
                   </a>
                 ) : Date.now() - entry.at < 3 * 60_000 ? (
-                  <span className="w-announcing">Announcing…</span>
+                  <span className="w-announcing">Delivering privately…</span>
                 ) : (
-                  'Not announced'
+                  'Not delivered yet'
                 )}
               </dd>
             </div>
@@ -467,12 +465,12 @@ export function Receipt({ id }: { id: string }) {
           </div>
           <div>
             <dt>Amount</dt>
-            <dd>{formatUsd(BigInt(entry.amount))} AUSD</dd>
+            <dd>{formatUsd(BigInt(entry.amount))}</dd>
           </div>
         </dl>
         {entry.explorer ? (
           <a className="w-receipt-proof" href={entry.explorer} target="_blank" rel="noreferrer">
-            View on Monadscan <Icon name="external" size={15} />
+            See proof <Icon name="external" size={15} />
           </a>
         ) : null}
       </article>

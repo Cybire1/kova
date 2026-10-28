@@ -26,11 +26,15 @@ function ArrivalDialog({ entry, onDismiss }: { entry: Entry; onDismiss(): void }
     if (!node || node.open) return
     if (typeof node.showModal === 'function') node.showModal()
     else node.setAttribute('open', '')
+    // The card itself takes focus, so no control wears a focus ring the moment it opens; Tab
+    // still reaches Close and Done.
+    node.focus()
   }, [])
   const privately = Boolean(entry.oneTime)
   return (
     <dialog
       ref={dialog}
+      tabIndex={-1}
       className="w-arrival"
       aria-labelledby="w-arrival-title"
       aria-describedby="w-arrival-detail"

@@ -68,12 +68,15 @@ export function useLiveRates(): boolean {
 /** Whether the rates on screen are Chainlink's, rather than the fixed table. */
 export const ratesLive = () => current.source === 'chainlink'
 
-/** Where a rate on screen comes from: "Chainlink rate from 4 min ago", or "reference rate". */
+/**
+ * Where a rate on screen comes from, in plain words: "Market rate from 4 min ago" (Chainlink's,
+ * live), or "reference rate" (the fixed table).
+ */
 export function rateLabel(now = Date.now()): string {
   if (current.source !== 'chainlink') return 'reference rate'
-  if (!current.asOf) return 'Chainlink rate'
+  if (!current.asOf) return 'Market rate'
   const minutes = Math.max(0, Math.round((now - Date.parse(current.asOf)) / 60_000))
-  if (minutes < 1) return 'Chainlink rate, just now'
-  if (minutes < 90) return `Chainlink rate from ${minutes} min ago`
-  return `Chainlink rate from ${Math.round(minutes / 60)} h ago`
+  if (minutes < 1) return 'Market rate, just now'
+  if (minutes < 90) return `Market rate from ${minutes} min ago`
+  return `Market rate from ${Math.round(minutes / 60)} h ago`
 }

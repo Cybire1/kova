@@ -146,7 +146,7 @@ export function WaitingCard({ items }: { items: OfflineItem[] }) {
           </Txt>
         </View>
         <Txt size={13} color={colors.muted}>
-          {offline ? 'Once a phone is online' : 'Settling on Monad'}
+          {offline ? 'Once a phone is online' : 'Settling now'}
         </Txt>
       </View>
       <View style={styles.card}>
@@ -172,8 +172,8 @@ export function OfflineNotice() {
           Offline payment
         </Txt>
         <Txt size={13} color={colors.onTint} style={{ lineHeight: 18, marginTop: 1 }}>
-          Your phone signs it and it goes as a code. It settles on Monad as soon as either of you is
-          online. Up to $100 a code.
+          Your phone signs it and it goes as a code. It settles as soon as either of you is online.
+          Up to $100 a code.
         </Txt>
       </View>
     </View>
@@ -204,9 +204,7 @@ export function SettleStatus({
         </View>
         <View style={{ flex: 1 }}>
           <Txt weight="semi" size={15} color={ink}>
-            {item.ms && item.by === 'me'
-              ? `Settled in ${took(item.ms)} on Monad`
-              : 'Settled on Monad'}
+            {item.ms && item.by === 'me' ? `Settled in ${took(item.ms)}` : 'Settled'}
           </Txt>
           <Txt size={13} color={soft}>
             {item.by === 'them'
@@ -217,7 +215,7 @@ export function SettleStatus({
         </View>
         {item.txHash ? (
           <TextLink
-            label="Monadscan"
+            label="See proof"
             onPress={() => void WebBrowser.openBrowserAsync(explorerTx(item.txHash as string))}
             color={ink}
           />
@@ -271,9 +269,7 @@ export function SettleStatus({
           Waiting to settle
         </Txt>
         <Txt size={13} color={soft}>
-          {offline
-            ? `Nothing has moved yet · good until ${until(item)}`
-            : 'Handing it to Monad now…'}
+          {offline ? `Nothing has moved yet · good until ${until(item)}` : 'Handing it in now…'}
         </Txt>
       </View>
     </View>

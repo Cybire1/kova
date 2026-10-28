@@ -203,7 +203,7 @@ function ConversionForm() {
           <h2>{reverted ? 'Transfer didn’t go through' : conversionStatus(activity)}</h2>
           <p>
             {reverted
-              ? 'Your MON wasn’t converted. The network may have charged a transaction fee.'
+              ? 'Your MON wasn’t converted. A small fee may still have been taken.'
               : activity?.status === 'success'
                 ? 'Your dollars are ready to spend.'
                 : activity?.status === 'refund'
@@ -266,7 +266,7 @@ function ConversionForm() {
               </button>
             </div>
           </div>
-          <p className="w-fine">Max leaves a little MON for the network fee.</p>
+          <p className="w-fine">Max leaves a little MON to cover the fee.</p>
           {plan ? (
             <section className="w-mon-preview" aria-label="Conversion preview">
               <small>You receive approximately</small>
@@ -319,7 +319,7 @@ function ConversionForm() {
         target="_blank"
         rel="noreferrer"
       >
-        View wallet on Monad
+        See your wallet’s transfers
       </a>
     </div>
   )

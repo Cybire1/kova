@@ -126,7 +126,7 @@ export function Home() {
             <span>
               {network === 'testnet'
                 ? 'Free on Monad testnet, $5 a day'
-                : 'Deposit crypto, or add money by card or bank.'}
+                : 'By card or bank, or from another wallet.'}
             </span>
           </span>
           <span className="w-notice-cta">Add</span>
