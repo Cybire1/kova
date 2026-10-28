@@ -30,7 +30,9 @@ export function useArrivals(
           !wasReady ||
           seen ||
           (entry.kind !== 'received' && entry.kind !== 'added') ||
-          BigInt(entry.amount) <= 0n ||
+          // Less than a cent isn't news, and a cash-out's change isn't someone paying you.
+          BigInt(entry.amount) < 10_000n ||
+          entry.change ||
           entry.link ||
           entry.address?.toLowerCase() === wallet.toLowerCase() ||
           (privately && !entry.waiting) ||

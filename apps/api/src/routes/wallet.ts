@@ -120,8 +120,11 @@ async function notesFor(rows: TransferRow[]): Promise<Notes> {
   return new Map(found.map((n) => [n.txHash, { sealed: n.sealed, auth_nonce: n.authNonce }]))
 }
 
-/** Kova's treasury sends dollars for naira: a top-up landing, or a cash-out's dollars coming back. */
-type NairaMoves = Map<string, 'top_up' | 'cash_out_refund'>
+/**
+ * Kova sends dollars for naira: a top-up landing, a cash-out's dollars coming back, or the cent or
+ * so KovaCashOut returns after a cash-out's conversion (its change, not a payment).
+ */
+type NairaMoves = Map<string, 'top_up' | 'cash_out_refund' | 'cash_out_change'>
 
 async function nairaMovesFor(rows: TransferRow[]): Promise<NairaMoves> {
   const hashes = [...new Set(rows.map((r) => r.txHash))]
@@ -139,6 +142,10 @@ async function nairaMovesFor(rows: TransferRow[]): Promise<NairaMoves> {
   const moves: NairaMoves = new Map()
   for (const t of topUps) if (t.txHash) moves.set(t.txHash, 'top_up')
   for (const r of refunds) if (r.txHash) moves.set(r.txHash, 'cash_out_refund')
+  const cashOut = config.KOVA_CASH_OUT?.toLowerCase()
+  if (cashOut)
+    for (const r of rows)
+      if (r.fromAddress === cashOut && !moves.has(r.txHash)) moves.set(r.txHash, 'cash_out_change')
   return moves
 }
 

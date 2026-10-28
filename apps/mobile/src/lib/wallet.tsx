@@ -514,6 +514,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             ? await readNote(t.note, { from: t.from, to: profile.address, value: t.amount })
             : null
           const refund = t.kind === 'refund'
+          // The cent or so a cash-out's conversion returns: recorded quietly, never a "paid you".
+          const change = t.naira === 'cash_out_change'
           // Money out of a link: your own coming back, or one claimed here a moment ago.
           const fromLink = linkArrival(t.from)
           // The shop's own takings, moved home from a sale's one-time address: no stranger, and no surprise.
@@ -524,13 +526,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
               ? 'Added from your bank'
               : t.naira === 'cash_out_refund'
                 ? 'Cash-out returned'
-                : refund
-                  ? 'Refund'
-                  : fromTakings
-                    ? 'Private takings'
-                    : (fromLink?.name ??
-                      nameFor(t.from) ??
-                      `${t.from.slice(0, 6)}…${t.from.slice(-4)}`)
+                : change
+                  ? 'Cash-out change'
+                  : refund
+                    ? 'Refund'
+                    : fromTakings
+                      ? 'Private takings'
+                      : (fromLink?.name ??
+                        nameFor(t.from) ??
+                        `${t.from.slice(0, 6)}…${t.from.slice(-4)}`)
           await record({
             id: newId(),
             kind: t.faucet || t.naira === 'top_up' ? 'added' : 'received',
@@ -540,11 +544,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
               note ??
               (t.faucet
                 ? 'AUSD test faucet'
-                : refund
-                  ? 'Money back from a booking'
-                  : fromTakings
-                    ? 'From a private sale'
-                    : (fromLink?.detail ?? 'Arrived')),
+                : change
+                  ? 'Left over from the conversion'
+                  : refund
+                    ? 'Money back from a booking'
+                    : fromTakings
+                      ? 'From a private sale'
+                      : (fromLink?.detail ?? 'Arrived')),
             address: t.from,
             txHash: t.hash,
             at: Date.now(),
@@ -556,7 +562,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           const seen = shownRef.current.some(
             (e) => e.txHash?.toLowerCase() === t.hash.toLowerCase() && e.kind === 'received',
           )
-          if (!t.faucet && !fromLink?.quiet && !fromTakings && !seen)
+          // Less than a cent isn't news, and a cash-out's change isn't someone paying you.
+          if (
+            !t.faucet &&
+            !fromLink?.quiet &&
+            !fromTakings &&
+            !change &&
+            t.amount >= 10_000n &&
+            !seen
+          )
             setArrival({
               amount: t.amount,
               name,

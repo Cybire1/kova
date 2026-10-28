@@ -220,7 +220,7 @@ export interface IndexedTransfer {
   shop: { name: string; reference: string | null } | null
   faucet: boolean
   /** Dollars from Kova's treasury for naira: a top-up landing, or a cash-out's dollars coming back. */
-  naira?: 'top_up' | 'cash_out_refund' | null
+  naira?: 'top_up' | 'cash_out_refund' | 'cash_out_change' | null
   explorer_url: string
   created_at: string
   /** The sender's private note, sealed for the two of them, and the authorization nonce it's bound to. */

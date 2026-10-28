@@ -128,6 +128,8 @@ export interface Entry {
   locked?: boolean
   /** Money into or out of one of your links (Send as a link), not a person. */
   link?: boolean
+  /** The change a cash-out's conversion returns: recorded, never celebrated as a payment. */
+  change?: boolean
   /**
    * Sent or received privately: the one-time address it went to, which only the recipient's keys
    * can tell is theirs. `address` is still the person, when known.
@@ -1679,11 +1681,13 @@ export function WalletProvider({
               ? 'Added from your bank'
               : t.naira === 'cash_out_refund'
                 ? 'Cash-out returned'
-                : t.kind === 'refund'
-                  ? 'Refund'
-                  : link
-                    ? 'Your link'
-                    : (nameFor(t.from) ?? short(t.from)),
+                : t.naira === 'cash_out_change'
+                  ? 'Cash-out change'
+                  : t.kind === 'refund'
+                    ? 'Refund'
+                    : link
+                      ? 'Your link'
+                      : (nameFor(t.from) ?? short(t.from)),
           detail:
             sealed ??
             (locked
@@ -1694,13 +1698,16 @@ export function WalletProvider({
                   ? 'Naira, through Paystack'
                   : t.naira === 'cash_out_refund'
                     ? 'The bank couldn’t take it'
-                    : t.kind === 'refund'
-                      ? 'Money back'
-                      : link
-                        ? 'Taken back'
-                        : 'Arrived'),
+                    : t.naira === 'cash_out_change'
+                      ? 'Left over from the conversion'
+                      : t.kind === 'refund'
+                        ? 'Money back'
+                        : link
+                          ? 'Taken back'
+                          : 'Arrived'),
           ...(sealed !== null ? { private: 'both' as const } : locked ? { locked: true } : {}),
           ...(link ? { link: true } : {}),
+          ...(t.naira === 'cash_out_change' ? { change: true } : {}),
           address: t.from,
           txHash: t.tx_hash,
           explorer: t.explorer_url,

@@ -243,7 +243,7 @@ export interface Incoming {
   /** Test dollars from the testnet faucet, not from a person. */
   faucet: boolean
   /** Dollars from Kova's treasury for naira: a top-up landing, or a cash-out's dollars coming back. */
-  naira: 'top_up' | 'cash_out_refund' | null
+  naira: 'top_up' | 'cash_out_refund' | 'cash_out_change' | null
   /** The sender's private note, still sealed, and the authorization nonce it is bound to. */
   note: { sealed: SealedNote; auth_nonce: Hex } | null
 }
