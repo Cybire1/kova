@@ -30,12 +30,16 @@ export const metadata: Metadata = {
     title: 'Kova · Tap. Paid. Anywhere.',
     description: DESCRIPTION,
   },
+  // Added to an iPhone's Home Screen, Kova opens full screen like an app (app/manifest.ts).
+  appleWebApp: { capable: true, title: 'Kova', statusBarStyle: 'default' },
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: '#E7E5E0',
+  // Edge to edge on the Home Screen; the dock and sheets keep clear of the home bar themselves.
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

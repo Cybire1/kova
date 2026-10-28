@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Awning } from '@/components/awning'
 import { Art, Icon } from '@/components/brand'
 import { formatUsd, toBase } from '@/lib/wallet/money'
+import { InstallPrompt } from './install'
 import { KeysOnHome } from './keys'
 import { MonWalletCard } from './mon'
 import { MoneyRow } from './money'
@@ -41,6 +42,8 @@ export function Home() {
       </div>
 
       {profile.name ? null : <NameYourself />}
+
+      <InstallPrompt />
 
       <BalanceCard />
       <MonWalletCard />
