@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Icon } from '@/components/brand'
+import { useWallet } from './provider'
 
 /** Chrome's install prompt, held until the person asks for it. */
 interface InstallPromptEvent extends Event {
@@ -31,10 +32,12 @@ function dismissedLately() {
 
 /**
  * Kova on the Home Screen: it opens full screen, no browser bars, like the app. Offered on phones
- * that aren't running it that way yet: Android installs in one tap (the browser's own prompt), an
- * iPhone gets the three steps. Not now hides it for two weeks.
+ * that aren't running it that way yet, once Kova has been used: Android installs in one tap (the
+ * browser's own prompt), an iPhone gets the three steps. Not now hides it for two weeks.
  */
 export function InstallPrompt() {
+  // Offered once Kova has been useful (a payment, a send, money in), not on a first visit.
+  const { activity } = useWallet()
   const [how, setHow] = useState<'ios' | 'prompt' | null>(null)
   const [held, setHeld] = useState<InstallPromptEvent | null>(null)
   const [steps, setSteps] = useState(false)
@@ -58,7 +61,7 @@ export function InstallPrompt() {
     }
   }, [])
 
-  if (!how) return null
+  if (!how || activity.length === 0) return null
 
   const later = () => {
     try {
@@ -122,6 +125,11 @@ function IosSteps({ onClose }: { onClose: () => void }) {
         className={`w-sheet-scrim${closing ? ' w-sheet-out' : ''}`}
         onClick={close}
       />
+      {/CriOS/.test(navigator.userAgent) ? (
+        <span className={`w-install-arrow${closing ? ' w-sheet-out' : ''}`} aria-hidden="true">
+          <Icon name="up" size={22} />
+        </span>
+      ) : null}
       <div
         className={`w-sheet w-install-sheet${closing ? ' w-sheet-out' : ''}`}
         role="dialog"
