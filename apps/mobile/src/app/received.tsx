@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics'
 import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
-import { StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useReducedMotion } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { baseToNumber, formatLocal, formatUsd } from '@/lib/money'
@@ -12,7 +12,7 @@ import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { beats, DecodedNote, OnBeat, PeekingKovi, SealedEnvelope, SlideUp } from '@/ui/Arrival'
 import { when } from '@/ui/EntryRow'
-import { Icon } from '@/ui/Icon'
+import { Icon, type IconName } from '@/ui/Icon'
 import { NoteSlip } from '@/ui/LinkParts'
 import { Burst, CoinRain, PopIn } from '@/ui/motion'
 import { PrivateNote } from '@/ui/PrivateNote'
@@ -279,15 +279,56 @@ function PrivateArrival({
             </Txt>
           </OnBeat>
         ) : null}
-        <View style={{ marginTop: 'auto', paddingTop: 14 }}>
+        <View style={{ marginTop: 'auto', paddingTop: 14, gap: 10 }}>
           <PillButton
-            label="Done"
-            icon="check"
+            label="Keep it private"
+            icon="lock"
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
           />
+          {/* Or act on it now, without hunting for Private dollars later. */}
+          <View style={styles.arrivalActions}>
+            <ArrivalAction
+              icon="send"
+              label="Send to any wallet"
+              onPress={() => router.replace({ pathname: '/send', params: { from: 'private' } })}
+            />
+            <ArrivalAction
+              icon="receive"
+              label="Move to main wallet"
+              onPress={() => router.replace({ pathname: '/private', params: { move: '1' } })}
+            />
+          </View>
         </View>
       </SlideUp>
     </View>
+  )
+}
+
+/** One of the two things to do with private dollars right as they arrive. */
+function ArrivalAction({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: IconName
+  label: string
+  onPress: () => void
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={() => {
+        void Haptics.selectionAsync()
+        onPress()
+      }}
+      style={({ pressed }) => [styles.arrivalAction, pressed && { opacity: 0.7 }]}
+    >
+      <Icon name={icon} size={17} />
+      <Txt weight="semi" size={14} numberOfLines={1}>
+        {label}
+      </Txt>
+    </Pressable>
   )
 }
 
@@ -347,6 +388,21 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     minHeight: 270,
     gap: 10,
+  },
+  // Side by side when both fit, one under the other on a narrow phone: never a squeezed label.
+  arrivalActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  arrivalAction: {
+    flexGrow: 1,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    paddingHorizontal: 12,
   },
   inBalance: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 },
   inBalanceTick: {

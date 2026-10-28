@@ -76,6 +76,8 @@ export function SendSheet({ to }: { to?: string }) {
   } = useWallet()
 
   const asked = params.get('amount')
+  /** "Send to any wallet", from Private dollars: paid from them, to whoever, whatever their wallet. */
+  const fromPrivateMode = params.get('from') === 'private'
   const start: Payee | null =
     to && isAddress(to)
       ? {
@@ -185,14 +187,19 @@ export function SendSheet({ to }: { to?: string }) {
   // that's how this send goes, privately. When only both together cover it, just enough moves in.
   const { route, choose, choosable, from } = usePaymentRoute({
     amount,
-    direct: keyed,
-    privateFirst: privately,
+    // From Private dollars, they pay any wallet straight from their addresses; otherwise only
+    // someone with a private key (a plain send would show a stranger's address with no name).
+    direct: keyed || fromPrivateMode,
+    privateFirst: privately || fromPrivateMode,
+    initial: fromPrivateMode ? 'private' : null,
     paying: busy,
   })
   const fromPrivate = from === 'private'
-  /** Private dollars pay it though Send privately is off: it goes privately, they only go that way. */
-  const mustPrivate = fromPrivate && !privately
+  /** Private dollars pay someone with a private key though Send privately is off: it goes privately. */
+  const mustPrivate = fromPrivate && keyed && !privately
   const goPrivately = keyed && (privately || mustPrivate)
+  /** Private dollars paying a wallet that can't receive privately: from a one-time address, no note. */
+  const plainFromPrivate = fromPrivate && !keyed
   /** Short even with private dollars counted in. */
   const blocked = route.from === 'short'
   /** One balance: what you have, private dollars included. */
@@ -241,6 +248,7 @@ export function SendSheet({ to }: { to?: string }) {
         setPrivateStep('moving')
         await moveInFor(route.shortfall)
       }
+      // From private dollars to a plain wallet, the note stays in your own activity: never sent.
       const moved = await send(contact, amount, note, {
         privately: goPrivately,
         from,
@@ -307,6 +315,13 @@ export function SendSheet({ to }: { to?: string }) {
         <button type="button" className="w-sheet-grab" aria-label="Close" onClick={close} />
         <Fit>
           <div key={step} className={`w-step${back ? ' w-step-back' : ''}`}>
+            {/* Where it comes from, kept in sight from the first step: Send to any wallet. */}
+            {fromPrivateMode && step !== 'sent' ? (
+              <p className="w-sendfrom">
+                <Icon name="lock" size={13} /> From your private dollars,{' '}
+                {formatUsd(privateBalance)}
+              </p>
+            ) : null}
             {step === 'who' ? <Who onPick={pick} /> : null}
 
             {step === 'amount' && payee ? (
@@ -418,13 +433,15 @@ export function SendSheet({ to }: { to?: string }) {
                       value={note.trim()}
                       icon="lock"
                       hint={
-                        goPrivately
-                          ? `Sealed inside the payment: only ${first(name)} can open it`
-                          : reaches === null
-                            ? 'Sealing…'
-                            : reaches
-                              ? `Sealed: only you and ${first(name)} can read it`
-                              : `Sealed for you; ${first(name)} can’t get private notes yet`
+                        plainFromPrivate
+                          ? 'Kept for you: sending it would tie this payment to you'
+                          : goPrivately
+                            ? `Sealed inside the payment: only ${first(name)} can open it`
+                            : reaches === null
+                              ? 'Sealing…'
+                              : reaches
+                                ? `Sealed: only you and ${first(name)} can read it`
+                                : `Sealed for you; ${first(name)} can’t get private notes yet`
                       }
                     />
                   ) : null}
@@ -442,6 +459,16 @@ export function SendSheet({ to }: { to?: string }) {
                 {mustPrivate ? (
                   <p className="w-fine w-forced">
                     This one goes privately, from your private dollars.
+                  </p>
+                ) : null}
+                {plainFromPrivate ? (
+                  <p className="w-fine w-forced">
+                    <Icon name="lock" size={13} /> From your private dollars: {first(name)} sees a
+                    one-time address, never your wallet.
+                  </p>
+                ) : fromPrivateMode && amount > 0n && !fromPrivate && !blocked ? (
+                  <p className="w-fine w-forced">
+                    Your private dollars don’t cover this, so it comes from your main wallet.
                   </p>
                 ) : null}
                 <TopUpLine route={route} />
@@ -494,6 +521,11 @@ export function SendSheet({ to }: { to?: string }) {
                     {formatUsd(amount)} to {first(name)}
                     {sent.fromPrivate ? ', from your private dollars' : ''}. Only {first(name)} can
                     tell it’s theirs.
+                  </p>
+                ) : sent.fromPrivate ? (
+                  <p>
+                    {formatUsd(amount)} to {first(name)}, from your private dollars: they saw a
+                    one-time address, never your wallet.
                   </p>
                 ) : (
                   <p>

@@ -79,15 +79,18 @@ export function usePaymentRoute({
   direct,
   privateFirst = false,
   paying = false,
+  initial = null,
 }: {
   amount: bigint
   balance: bigint | null
   direct: boolean
   privateFirst?: boolean
   paying?: boolean
+  /** Where it should come from before anyone picks under Details: private, from "Send to any wallet". */
+  initial?: PaySource | null
 }) {
   const p = usePrivate()
-  const [choice, choose] = useState<PaySource | null>(null)
+  const [choice, choose] = useState<PaySource | null>(initial)
   const now = p.route({ amount, balance, direct, privateFirst, choice })
   const held = useRef(now)
   if (!paying) held.current = now

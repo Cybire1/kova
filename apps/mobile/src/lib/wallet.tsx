@@ -900,8 +900,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     ) => {
       const text = note?.trim()
       if (!profile) throw new Error('No wallet on this phone')
-      if (options.signer && !options.privately)
-        throw new Error('Private dollars only go out privately.')
+      // A signer without privately is Send to any wallet: one of your one-time addresses pays them
+      // plainly, so whoever is paid sees that address, never yours, and the note stays with you.
+      const plainFromPrivate = Boolean(options.signer && !options.privately)
       // Privately: their key is checked before anything is signed, then a one-time address is made
       // for this payment alone, with a memo sealed to it (you, your name, your note) that only their
       // viewing key opens. Kova announces it without them.
@@ -926,11 +927,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         } else stealth = generateStealthPayment(meta, memo)
       }
       // A note on a private send travels in its memo; on any other, sealed for them and for you (or
-      // for you alone when they have no note key yet).
+      // for you alone when they have no note key yet). From private dollars to a plain wallet, it's
+      // kept here only: sealed to your key, it would tie the payment to you.
+      const seal = Boolean(text && !stealth && !plainFromPrivate)
       const [account, mine, theirs] = await Promise.all([
         options.signer ?? unlock(amount),
-        text && !stealth ? myNoteKeys() : null,
-        text && !stealth ? theirNoteKey(to.address) : null,
+        seal ? myNoteKeys() : null,
+        seal ? theirNoteKey(to.address) : null,
       ])
       const sealing = text && mine ? { text, mine: mine.publicKey, theirs } : undefined
       const { hash, ms } = await sendMoney(
@@ -952,7 +955,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         kind: 'sent',
         amount: amount.toString(),
         name: to.name,
-        detail: text || (stealth ? 'Sent privately' : 'Sent'),
+        detail:
+          text ||
+          (stealth ? 'Sent privately' : plainFromPrivate ? 'Sent from private dollars' : 'Sent'),
         address: to.address,
         txHash: hash,
         ms,

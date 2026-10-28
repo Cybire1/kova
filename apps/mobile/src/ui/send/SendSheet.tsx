@@ -88,7 +88,14 @@ const SIDE = 20
  * same sheet becomes the receipt. The sheet is sized to each step, so it grows for the keypad and
  * settles low once the money has landed, showing your balance behind it as it drops.
  */
-export function SendSheet({ payee }: { payee?: Payee }) {
+export function SendSheet({
+  payee,
+  fromPrivateMode = false,
+}: {
+  payee?: Payee
+  /** "Send to any wallet", from Private dollars: paid from them, to whoever, whatever their wallet. */
+  fromPrivateMode?: boolean
+}) {
   const { profile, balance, send, contacts, noteReaches } = useWallet()
   const dollars = usePrivate()
   // No signal: the payment is signed here and goes as a code, settling once either phone is online.
@@ -133,19 +140,24 @@ export function SendSheet({ payee }: { payee?: Payee }) {
   // One balance: dollars sent to you privately count in what you have.
   const mine = dollars.keysHere ? dollars.waiting : 0n
   const have = balance === null ? null : balance + mine
-  // Where it comes from, by the privacy router. Private dollars only go out privately, to someone who
-  // can receive that way; a private send spends them first. When the balance is short and they cover
-  // it, that's how this send goes, privately.
+  // Where it comes from, by the privacy router. Private dollars pay someone who can receive privately
+  // (a private send spends them first; when the balance is short and they cover it, that's how this
+  // send goes, privately) or, from Private dollars, any wallet straight from their addresses.
+  const keyed = reach === 'yes'
   const { route, choose, choosable } = usePaymentRoute({
     amount,
     balance,
-    direct: !viaCode && reach === 'yes',
-    privateFirst: privately,
+    direct: !viaCode && (keyed || fromPrivateMode),
+    privateFirst: privately || fromPrivateMode,
+    initial: fromPrivateMode ? 'private' : null,
     paying: busy,
   })
   const fromPrivate = !viaCode && route.from === 'private'
-  const forced = fromPrivate && !privately
-  const sendPrivately = !viaCode && (privately || forced) && reach === 'yes'
+  /** Private dollars pay someone with a private key though Send privately is off: it goes privately. */
+  const forced = fromPrivate && keyed && !privately
+  /** Private dollars paying a wallet that can't receive privately: from a one-time address, no note. */
+  const plainFromPrivate = fromPrivate && !keyed
+  const sendPrivately = !viaCode && (privately || forced) && keyed
   const over = viaCode ? (limit !== null && amount > limit) || overCap : route.from === 'short'
   // With Send privately on, wait for their key's check: a private send never quietly goes out in the
   // open. And when the balance alone doesn't cover it, whether they can receive privately decides
@@ -181,10 +193,12 @@ export function SendSheet({ payee }: { payee?: Payee }) {
       }
       const text = note.trim() || undefined
       // The router's way. From private dollars: one of your one-time addresses pays, and your wallet's
-      // signature in the sealed memo tells them it's you. Short: just enough moves in first.
+      // signature in the sealed memo tells them it's you; to a wallet that can't receive privately,
+      // it pays plainly and the note stays with you. Short: just enough moves in first.
       const done = await dollars.pay(route, amount, {
         fromBalance: () => send(payee, amount, text, { privately: sendPrivately }),
-        fromPrivate: (account) => send(payee, amount, text, { privately: true, signer: account }),
+        fromPrivate: (account) =>
+          send(payee, amount, text, { privately: !plainFromPrivate, signer: account }),
       })
       // Let Kovi finish the leg he is on: the flight is timed to about what the chain takes.
       await new Promise((r) => setTimeout(r, Math.max(0, 1360 - (Date.now() - started))))
@@ -283,6 +297,15 @@ export function SendSheet({ payee }: { payee?: Payee }) {
 
   return (
     <View style={styles.sheet}>
+      {/* Where it comes from, kept in sight from the first step: Send to any wallet. */}
+      {fromPrivateMode && step !== 'sent' ? (
+        <View style={styles.fromPrivate}>
+          <Icon name="lock" size={14} color={colors.white} strokeWidth={2.4} />
+          <Txt weight="semi" size={13} color={colors.white}>
+            From your private dollars, {formatUsd(dollars.waiting)}
+          </Txt>
+        </View>
+      ) : null}
       {step === 'who' ? (
         <Animated.View key="who" entering={enter} style={pad}>
           <Who onPick={pick} />
@@ -453,11 +476,13 @@ export function SendSheet({ payee }: { payee?: Payee }) {
                 value={note.trim()}
                 icon="lock"
                 hint={
-                  reaches === null
-                    ? 'Sealing…'
-                    : reaches
-                      ? `Sealed: only you and ${first} can read it`
-                      : `Sealed for you; ${first} can’t get private notes yet`
+                  plainFromPrivate
+                    ? 'Kept for you: sending it would tie this payment to you'
+                    : reaches === null
+                      ? 'Sealing…'
+                      : reaches
+                        ? `Sealed: only you and ${first} can read it`
+                        : `Sealed for you; ${first} can’t get private notes yet`
                 }
               />
             ) : null}
@@ -510,6 +535,21 @@ export function SendSheet({ payee }: { payee?: Payee }) {
               <Txt size={13} color={colors.muted} style={{ flex: 1, lineHeight: 18 }}>
                 {isUnnamed(name) ? 'They' : first} can’t receive privately yet, so anyone can see
                 who gets this one.
+              </Txt>
+            </View>
+          ) : null}
+          {/* Send to any wallet: where it comes from, said plainly once their key's check is in. */}
+          {!viaCode &&
+          fromPrivateMode &&
+          reach !== 'checking' &&
+          amount > 0n &&
+          (plainFromPrivate || (!fromPrivate && !over)) ? (
+            <View style={styles.untrusted}>
+              <Icon name="lock" size={16} color={colors.muted} />
+              <Txt size={13} color={colors.muted} style={{ flex: 1, lineHeight: 18 }}>
+                {plainFromPrivate
+                  ? `From your private dollars: ${isUnnamed(name) ? 'they see' : `${first} sees`} a one-time address, never your wallet.`
+                  : 'Your private dollars don’t cover this, so it comes from your main wallet.'}
               </Txt>
             </View>
           ) : null}
@@ -596,6 +636,16 @@ export function SendSheet({ payee }: { payee?: Payee }) {
               {entry.ms ? `Arrived in ${(entry.ms / 1000).toFixed(2)} s` : 'Arrived'}
             </Txt>
           </View>
+          {entry.fromPrivate && !entry.privately ? (
+            <Txt
+              size={14}
+              color={colors.onTint}
+              style={{ textAlign: 'center', marginTop: 14, lineHeight: 20 }}
+            >
+              Paid from your private dollars: {isUnnamed(name) ? 'they saw' : `${first} saw`} a
+              one-time address, never your wallet.
+            </Txt>
+          ) : null}
           {entry.privately && entry.oneTime ? (
             <View style={{ alignSelf: 'stretch', marginTop: 18 }}>
               <SentPrivately
@@ -1176,6 +1226,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   noteInput: { flex: 1, height: '100%', fontFamily: fonts.medium, fontSize: 15, color: colors.ink },
+  fromPrivate: {
+    alignSelf: 'center',
+    marginTop: 20,
+    marginBottom: -8,
+    height: 30,
+    paddingHorizontal: 13,
+    borderRadius: 15,
+    backgroundColor: colors.fill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   offlineTag: {
     marginTop: 14,
     height: 36,

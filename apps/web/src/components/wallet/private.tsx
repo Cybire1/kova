@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Art, Icon } from '@/components/brand'
 import { baseToNumber, formatLocal, formatUsd } from '@/lib/wallet/money'
@@ -49,14 +51,17 @@ export function usePaymentRoute({
   direct,
   privateFirst = false,
   paying = false,
+  initial = null,
 }: {
   amount: bigint
   direct: boolean
   privateFirst?: boolean
   paying?: boolean
+  /** Where it should come from before anyone picks under Details: private, from "Send to any wallet". */
+  initial?: PayFrom | null
 }) {
   const { balance, route: routeOf } = useWallet()
-  const [choice, choose] = useState<PayFrom | null>(null)
+  const [choice, choose] = useState<PayFrom | null>(initial)
   const now = routeOf({ amount, balance, direct, privateFirst, choice })
   const held = useRef(now)
   if (!paying) held.current = now
@@ -328,8 +333,10 @@ export function CheckPrivate() {
 
 /**
  * Private dollars: the part of your balance only you can tell is yours. How much is private and
- * who it's from, a plain button to move them to the main wallet (with what that gives away, once),
- * how it works a tap away, every private payment, and whether people can send to you privately.
+ * who it's from, then the two things people come here to do, as big buttons: send them to any
+ * wallet (straight from the private addresses, so the wallet paid never sees yours) or move them to
+ * the main wallet (public, said once). How it works a tap away, every private payment, and whether
+ * people can send to you privately.
  */
 export function PrivateDollars() {
   const { activity, privateBalance, privateOpen, privateUnchecked, moveIn, movingIn, hideBalance } =
@@ -339,6 +346,15 @@ export function PrivateDollars() {
   const [how, setHow] = useState(false)
   const [moved, setMoved] = useState<MovedIn | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
+  // From the arrival's "Move to main wallet": straight to the question, once.
+  const params = useSearchParams()
+  const askMove = params.get('move') === '1'
+  const asked = useRef(false)
+  useEffect(() => {
+    if (!askMove || asked.current || privateBalance <= 0n) return
+    asked.current = true
+    setConfirming(true)
+  }, [askMove, privateBalance])
 
   const payments = useMemo(
     () => activity.filter((e) => e.oneTime && e.kind === 'received'),
@@ -470,13 +486,19 @@ export function PrivateDollars() {
         {problem ? <p className="w-privcard-problem">{problem}</p> : null}
       </section>
 
-      {/* The way out of private, where people look for it: under the amount, with its one catch. */}
+      {/* What people come here to do, where they look for it: right under the amount. */}
       {privateBalance > 0n && !movingIn && !confirming ? (
         <div className="w-privmove">
+          <Link href="/wallet/send?from=private" className="pill pill-block" data-tone="coral">
+            <span className="pill-label">Send to any wallet</span>
+            <span className="pill-cap">
+              <Icon name="send" size={18} />
+            </span>
+          </Link>
           <button
             type="button"
             className="pill pill-block"
-            data-tone="ink"
+            data-tone="light"
             onClick={() => setConfirming(true)}
           >
             <span className="pill-label">Move to main wallet</span>
@@ -485,7 +507,8 @@ export function PrivateDollars() {
             </span>
           </button>
           <p className="w-fine">
-            You don’t need to, to spend them: Kova pays and sends from private dollars privately.
+            Sending pays straight from your private dollars: the wallet you pay sees a one-time
+            address, never yours. Moving them to your main wallet is public.
           </p>
         </div>
       ) : null}
@@ -751,11 +774,30 @@ export function PrivateArrivalMoment() {
           data-tone="ink"
           onClick={clearPrivateArrival}
         >
-          <span className="pill-label">Done</span>
+          <span className="pill-label">Keep it private</span>
           <span className="pill-cap">
-            <Icon name="check" size={18} />
+            <Icon name="lock" size={18} />
           </span>
         </button>
+        {/* Or act on it now, without hunting for the Private dollars screen later. */}
+        <div className="w-arrival-actions">
+          <Link
+            href="/wallet/send?from=private"
+            className="w-arrival-action"
+            onClick={clearPrivateArrival}
+          >
+            <Icon name="send" size={16} />
+            Send to any wallet
+          </Link>
+          <Link
+            href="/wallet/private?move=1"
+            className="w-arrival-action"
+            onClick={clearPrivateArrival}
+          >
+            <Icon name="receive" size={16} />
+            Move to main wallet
+          </Link>
+        </div>
       </div>
     </div>
   )

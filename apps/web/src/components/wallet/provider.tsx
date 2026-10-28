@@ -1277,12 +1277,15 @@ export function WalletProvider({
       const text = note?.trim()
       const person = getAddress(to.address)
       const privately = options.privately === true
-      const fromPrivate = privately && options.from === 'private'
+      // Private dollars pay a private send, or (Send to any wallet) any wallet straight from their
+      // one-time addresses: whoever is paid sees that address, never yours.
+      const fromPrivate = options.from === 'private'
       // A plain send's note is sealed for them and for you (for you alone if they have no note key);
-      // a private send's note rides inside its sealed memo instead.
+      // a private send's note rides inside its sealed memo instead. From private dollars to a plain
+      // wallet, it stays in your own activity: sealed to your key, it would tie the payment to you.
       const [account, theirs, meta] = await Promise.all([
         unlock(amount),
-        text && !privately ? fetchNoteKey(person) : null,
+        text && !privately && !fromPrivate ? fetchNoteKey(person) : null,
         privately ? fetchPrivateKey(person) : null,
       ])
       // Privately only to a key their own wallet signed: never one Kova could have swapped in.
@@ -1292,7 +1295,7 @@ export function WalletProvider({
         )
       const secret = vaultSecret.current
       const sealing =
-        text && secret && !privately
+        text && secret && !privately && !fromPrivate
           ? { text, mine: noteKeys(secret).publicKey, theirs }
           : undefined
       let moved: Moved
@@ -1344,13 +1347,27 @@ export function WalletProvider({
           )
           oneTime = payment.address
         }
+      } else if (fromPrivate) {
+        // Send to any wallet: signed by a one-time address (put together first if it takes
+        // several), so the wallet paid, and Monad, never see yours.
+        const keys = await privateKeys(account)
+        const { account: payer, source } = await privateSource(
+          account,
+          keys,
+          amount,
+          options.onStep,
+        )
+        options.onStep?.('paying')
+        moved = await sendMoney(network, payer, person, amount)
+        void spentFrom(source)
       } else moved = await sendMoney(network, account, person, amount, sealing)
       spend(amount)
       remember(moved.hash, {
         ...(sealing ? { private: sealing.theirs ? ('both' as const) : ('you' as const) } : {}),
         ...(oneTime && text ? { private: 'both' as const } : {}),
         name: to.name,
-        detail: text || (oneTime ? 'Sent privately' : 'Sent'),
+        detail:
+          text || (oneTime ? 'Sent privately' : fromPrivate ? 'Sent from private dollars' : 'Sent'),
         ms: moved.ms,
         kind: 'sent',
         to: to.address,

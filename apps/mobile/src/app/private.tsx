@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics'
-import { useFocusEffect, useLocalSearchParams } from 'expo-router'
-import { type ReactNode, useCallback, useMemo, useState } from 'react'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Modal,
@@ -30,15 +30,17 @@ function dayOf(at: number) {
 }
 
 /**
- * Private dollars: the part of your balance only you can tell is yours. Nothing to manage here:
- * what's private and who it's from at the top, a plain button to move them to the main wallet (with
- * what that gives away, said once), how it works a tap away, every private payment below, and
+ * Private dollars: the part of your balance only you can tell is yours. What's private and who it's
+ * from at the top, then the two things people come here to do, as big buttons: send them to any
+ * wallet (straight from the private addresses, so the wallet paid never sees yours) or move them to
+ * the main wallet (public, said once). How it works a tap away, every private payment below, and
  * whether people can send to you privately at the bottom.
  */
 export default function PrivateDollars() {
   const p = usePrivate()
   // Development only: `menu=1` opens the ⋯ and `how=1` How private works, for screenshots.
   const dev = useLocalSearchParams<{ menu?: string; how?: string }>()
+  const { move } = useLocalSearchParams<{ move?: string }>()
   const [refreshing, setRefreshing] = useState(false)
   const [menu, setMenu] = useState(__DEV__ && dev.menu === '1')
   const [confirming, setConfirming] = useState(false)
@@ -64,6 +66,14 @@ export default function PrivateDollars() {
   }, [p.receipts])
   const payments = days.reduce((n, d) => n + d.receipts.length, 0)
   const canMakePublic = p.keysHere && p.waiting > 0n && !p.progress
+
+  // From a private payment's arrival, "Move to main wallet": straight to the question, once.
+  const asked = useRef(false)
+  useEffect(() => {
+    if (move !== '1' || asked.current || !canMakePublic) return
+    asked.current = true
+    setConfirming(true)
+  }, [move, canMakePublic])
 
   return (
     <Screen edges={['top']}>
@@ -96,20 +106,27 @@ export default function PrivateDollars() {
               <PrivateCard plain />
             </Rise>
 
-            {/* The way out of private, where people look for it: right under the amount. */}
+            {/* What people come here to do, where they look for it: right under the amount. */}
             {canMakePublic ? (
-              <View style={{ marginTop: 14, gap: 8 }}>
+              <View style={{ marginTop: 14, gap: 10 }}>
+                <PillButton
+                  label="Send to any wallet"
+                  icon="send"
+                  tone="coral"
+                  onPress={() => router.push({ pathname: '/send', params: { from: 'private' } })}
+                />
                 <PillButton
                   label="Move to main wallet"
                   icon="receive"
+                  tone="white"
                   onPress={() => {
                     void Haptics.selectionAsync()
                     setConfirming(true)
                   }}
                 />
                 <Txt size={13} color={colors.muted} style={{ textAlign: 'center', lineHeight: 18 }}>
-                  You don’t need to, to spend them: Kova pays and sends from private dollars
-                  privately.
+                  Sending pays straight from your private dollars: the wallet you pay sees a
+                  one-time address, never yours. Moving them to your main wallet is public.
                 </Txt>
               </View>
             ) : null}

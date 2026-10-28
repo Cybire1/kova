@@ -120,7 +120,11 @@ export function Sticker({
   )
 }
 
-/** The primary action: a black pill with its icon in a white disc on the right. */
+/**
+ * The primary action: a black pill with its icon in a white disc on the right. Coral, the pay
+ * colour, for an action that spends: ink text on it (white doesn't hold contrast at this size), as on
+ * mykova.app.
+ */
 export function PillButton({
   label,
   icon = 'arrow',
@@ -134,12 +138,15 @@ export function PillButton({
   onPress: () => void
   disabled?: boolean
   loading?: boolean
-  tone?: 'ink' | 'white'
+  tone?: 'ink' | 'white' | 'coral'
 }) {
   const scale = useSharedValue(1)
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
-  const bg = tone === 'ink' ? colors.fill : colors.surface
-  const fg = tone === 'ink' ? colors.white : colors.ink
+  const coral = tone === 'coral'
+  const bg = tone === 'ink' ? colors.fill : coral ? colors.coral : colors.surface
+  const fg = tone === 'ink' ? colors.white : coral ? colors.dark : colors.ink
+  const disc = coral ? colors.white : fg
+  const glyph = coral ? colors.coralDeep : bg
   return (
     <Pressable
       accessibilityRole="button"
@@ -168,8 +175,8 @@ export function PillButton({
         <Txt weight="medium" size={16} color={fg}>
           {label}
         </Txt>
-        <View style={[styles.pillDisc, { backgroundColor: fg }]}>
-          {loading ? <ActivityIndicator color={bg} /> : <Icon name={icon} color={bg} />}
+        <View style={[styles.pillDisc, { backgroundColor: disc }]}>
+          {loading ? <ActivityIndicator color={glyph} /> : <Icon name={icon} color={glyph} />}
         </View>
       </Animated.View>
     </Pressable>

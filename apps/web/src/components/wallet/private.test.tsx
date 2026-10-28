@@ -2,13 +2,16 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { PrivateDollars } from './private'
+import { PrivateArrivalMoment, PrivateDollars } from './private'
 
 /** The wallet as the Private dollars screen sees it: private dollars waiting, or none. */
 const state = vi.hoisted(() => ({
   privateBalance: 4_970_000n,
   moveIn: vi.fn(),
+  search: '',
+  clearPrivateArrival: vi.fn(),
 }))
+vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(state.search) }))
 vi.mock('./provider', () => ({
   isUnnamed: () => false,
   short: (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`,
@@ -20,6 +23,10 @@ vi.mock('./provider', () => ({
     moveIn: state.moveIn,
     movingIn: null,
     hideBalance: false,
+    privateArrival: { id: 'a1', amount: 4_970_000n, name: 'Ada Obi' },
+    clearPrivateArrival: state.clearPrivateArrival,
+    profile: { address: '0x7171732ec724CF39b8e2ee08C762d04AFab36696', currency: 'USD' },
+    rates: {},
   }),
 }))
 vi.mock('./activity', () => ({ ScreenHead: () => null }))
@@ -27,6 +34,8 @@ vi.mock('./ui', () => ({ EntryRow: () => null }))
 vi.mock('@/components/brand', () => ({ Icon: () => null, Art: () => null }))
 
 beforeEach(() => {
+  state.search = ''
+  state.clearPrivateArrival.mockReset()
   state.privateBalance = 4_970_000n
   state.moveIn.mockReset()
   // As the wallet does: once moved, nothing is private any more.
@@ -62,5 +71,39 @@ describe('Private dollars', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Keep them private' }))
     expect(screen.queryByRole('alertdialog')).toBeNull()
     expect(state.moveIn).not.toHaveBeenCalled()
+  })
+
+  it('offers Send to any wallet first, straight from private dollars', () => {
+    render(<PrivateDollars />)
+    const send = screen.getByRole('link', { name: /Send to any wallet/ })
+    expect(send.getAttribute('href')).toBe('/wallet/send?from=private')
+  })
+
+  it('asks straight away when opened from an arrival to move them', () => {
+    state.search = 'move=1'
+    render(<PrivateDollars />)
+    expect(screen.getByRole('alertdialog', { name: 'Move to main wallet' })).toBeTruthy()
+  })
+})
+
+describe('A private payment arriving', () => {
+  beforeEach(() => {
+    // Reduced motion: the envelope is simply open.
+    window.matchMedia = vi.fn(() => ({
+      matches: true,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia
+  })
+  it('can be kept private, sent to any wallet, or moved to the main wallet, right there', () => {
+    render(<PrivateArrivalMoment />)
+    expect(screen.getByRole('link', { name: /Send to any wallet/ }).getAttribute('href')).toBe(
+      '/wallet/send?from=private',
+    )
+    expect(screen.getByRole('link', { name: /Move to main wallet/ }).getAttribute('href')).toBe(
+      '/wallet/private?move=1',
+    )
+    fireEvent.click(screen.getByRole('button', { name: /Keep it private/ }))
+    expect(state.clearPrivateArrival).toHaveBeenCalledTimes(1)
   })
 })

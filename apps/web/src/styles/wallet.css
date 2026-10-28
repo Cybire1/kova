@@ -6238,11 +6238,52 @@ button.w-chip-private:disabled {
   font-weight: 650;
 }
 
-/* The way out of private, right under the amount, and the one line that says you rarely need it. */
+/* What people come to Private dollars to do, right under the amount: send anywhere, or move to main. */
 .w-privmove {
   display: grid;
+  gap: 0.625rem;
+  margin-top: 0.875rem;
+  text-align: center;
+}
+
+/* Send to any wallet: where the money comes from, kept in sight on every step. */
+.w-sendfrom {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0 0 0.75rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: var(--fill);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+/* A private payment's arrival: the two things to do with it now, under Keep it private. Side by
+   side when both fit, one under the other on a narrow phone: never a wrapped label. */
+.w-arrival-actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.75rem;
+  margin-top: 0.625rem;
+}
+
+.w-arrival-action {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
   text-align: center;
 }
 
