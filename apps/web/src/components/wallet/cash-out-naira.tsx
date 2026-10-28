@@ -109,6 +109,8 @@ export function NairaCashOut() {
         name?: string
         cashOut?: CashOutToPay
         took?: number
+        /** For the sending step: how long ago the payment left, so "Done in N seconds" counts from it. */
+        elapsed?: number
       }
       if (c.amount) setAmount(c.amount)
       if (c.account) setAccount(c.account)
@@ -116,6 +118,7 @@ export function NairaCashOut() {
       if (c.bank && c.name) setCheck({ code: c.bank.code, state: 'named', name: c.name })
       if (c.cashOut) setCashOut(c.cashOut)
       if (c.took) setTook(c.took)
+      sentAt.current = Date.now() - (c.elapsed ?? 0)
       setStep(c.step)
     } catch {
       // Not a capture link: start at the beginning.

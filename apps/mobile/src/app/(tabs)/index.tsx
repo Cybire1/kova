@@ -1,4 +1,5 @@
 import { formatMon, monInDollars } from '@kova/monad'
+import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useCallback, useEffect, useState } from 'react'
@@ -43,6 +44,14 @@ import { StocksCard } from '@/ui/Stocks'
  * screen on a solid teal card, since money at rest is teal across Kova; Pay sits right beneath it,
  * Send and Request beside Pay, and the people you pay are one tap away.
  */
+/** Four banks people know, bundled so Cash out shows them at once, even offline. */
+const BANK_LOGOS = [
+  { id: 'opay', logo: require('../../../assets/banks/opay.png') },
+  { id: 'moniepoint', logo: require('../../../assets/banks/moniepoint.png') },
+  { id: 'gtbank', logo: require('../../../assets/banks/gtbank.png') },
+  { id: 'kuda', logo: require('../../../assets/banks/kuda.png') },
+]
+
 export default function Home() {
   const { profile, balance, monBalance, activity, contacts, refresh } = useWallet()
   // MON counts in the total at Chainlink's MON / USD price on Monad, read again with the balance.
@@ -84,11 +93,11 @@ export default function Home() {
   useEffect(() => {
     void naira.info().then((info) => setNairaOn(info.enabled))
   }, [])
+  const ramp = nairaOn === false && !isTestnet
   const cashOut = useCallback(() => {
-    if (nairaOn === false && !isTestnet)
-      void WebBrowser.openBrowserAsync(`${webUrl}/wallet/cash-out`)
+    if (ramp) void WebBrowser.openBrowserAsync(`${webUrl}/wallet/cash-out`)
     else router.push('/cash-out')
-  }, [nairaOn])
+  }, [ramp])
 
   if (!profile) return null
   const empty = balance === 0n && !(monBalance && monBalance > 0n)
@@ -176,18 +185,6 @@ export default function Home() {
             <View style={[styles.payIcon, { backgroundColor: colors.coral }]}>
               <Icon name="scan" color={colors.white} />
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Cash out to your bank"
-              onPress={cashOut}
-              hitSlop={6}
-              style={({ pressed }) => [styles.cashOut, pressed && { opacity: 0.75 }]}
-            >
-              <Txt weight="bold" size={13} color={colors.white}>
-                Cash out
-              </Txt>
-              <Icon name="arrow" size={14} color={colors.white} />
-            </Pressable>
           </View>
           <View>
             <Txt weight="bold" size={34} color={colors.white} style={{ letterSpacing: -1 }}>
@@ -203,6 +200,35 @@ export default function Home() {
           <ActionTile kind="request" onPress={() => router.push('/request')} />
         </View>
       </View>
+
+      {/* Cash out, where everyone sees it: to any Nigerian bank in naira, or Ramp's off-ramp. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Cash out to any bank"
+        onPress={cashOut}
+        style={({ pressed }) => [styles.cashOut, pressed && { transform: [{ scale: 0.98 }] }]}
+      >
+        <View style={{ flex: 1, gap: 8 }}>
+          <Txt weight="bold" size={17} color={colors.white} style={{ letterSpacing: -0.3 }}>
+            Cash out to any bank
+          </Txt>
+          <View style={styles.cashOutRow}>
+            {ramp ? null : (
+              <View style={styles.cashOutBanks}>
+                {BANK_LOGOS.map((bank) => (
+                  <Image key={bank.id} source={bank.logo} style={styles.cashOutBank} />
+                ))}
+              </View>
+            )}
+            <Txt weight="semi" size={13} color={colors.white} style={{ opacity: 0.9 }}>
+              {ramp ? 'To your bank or card' : 'Naira, in seconds'}
+            </Txt>
+          </View>
+        </View>
+        <View style={styles.cashOutGo}>
+          <Icon name="arrow" size={18} color={colors.ink} />
+        </View>
+      </Pressable>
 
       <KeysOnHome />
 
@@ -518,16 +544,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  waves: { position: 'absolute', right: -14, top: 58 },
+  waves: { position: 'absolute', right: -14, top: 40 },
   payTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   cashOut: {
+    marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    height: 34,
-    paddingHorizontal: 12,
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    gap: 12,
+    paddingVertical: 14,
+    paddingLeft: 18,
+    paddingRight: 12,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.coral,
+  },
+  cashOutRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cashOutBanks: { flexDirection: 'row', gap: 4 },
+  cashOutBank: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.white },
+  cashOutGo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   small: { flex: 1, padding: 14, paddingHorizontal: 16, justifyContent: 'space-between' },
   travel: {

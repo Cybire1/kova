@@ -46,23 +46,11 @@ export function Home() {
       <MonWalletCard />
 
       <div className="w-hero">
-        <div className="w-pay">
-          {/* The whole card pays; Cash out sits on top of it as its own link. */}
-          <Link
-            href="/wallet/pay"
-            className="w-pay-link"
-            aria-label="Pay. Scan a code or pay a link"
-          />
+        <Link href="/wallet/pay" className="w-pay" aria-label="Pay. Scan a code or pay a link">
           <span className="w-pay-icons">
             <span className="w-pay-icon w-pay-icon-coral">
               <Icon name="scan" size={20} />
             </span>
-            <Link
-              href={naira?.enabled ? '/wallet/cash-out/naira' : '/wallet/cash-out'}
-              className="w-pay-cash"
-            >
-              Cash out <Icon name="arrow" size={15} />
-            </Link>
           </span>
           <svg
             className="w-pay-waves"
@@ -79,12 +67,36 @@ export function Home() {
             <span className="w-pay-label">Pay</span>
             <span className="w-pay-sub">Scan a code or pay a link</span>
           </span>
-        </div>
+        </Link>
         <div className="w-hero-side">
           <ActionTile kind="send" />
           <ActionTile kind="request" />
         </div>
       </div>
+
+      {/* Cash out, where everyone sees it: to any Nigerian bank (naira), or with Ramp elsewhere. */}
+      <Link
+        href={naira?.enabled === false ? '/wallet/cash-out' : '/wallet/cash-out/naira'}
+        className="w-cashout"
+      >
+        <span className="w-cashout-text">
+          <strong>Cash out to any bank</strong>
+          <span className="w-cashout-row">
+            {naira?.enabled === false ? null : (
+              <span className="w-cashout-banks" aria-hidden="true">
+                {['opay', 'moniepoint', 'gtbank', 'kuda'].map((bank) => (
+                  // biome-ignore lint/performance/noImgElement: a 96 px logo, already sized
+                  <img key={bank} src={`/banks/${bank}.png`} alt="" width={28} height={28} />
+                ))}
+              </span>
+            )}
+            <small>{naira?.enabled === false ? 'To your bank or card' : 'Naira, in seconds'}</small>
+          </span>
+        </span>
+        <span className="w-cashout-go" aria-hidden="true">
+          <Icon name="arrow" size={18} />
+        </span>
+      </Link>
 
       <KeysOnHome />
 
