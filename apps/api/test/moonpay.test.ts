@@ -123,11 +123,15 @@ describe('MoonPay top-ups', () => {
     expect(params.has('redirectURL')).toBe(false)
     expect(params.has('allowedIpAddress')).toBe(false)
   })
-  it('opens the sandbox with test keys', async () => {
-    relay()
+  it('opens the sandbox with test keys, on testnet only, paying the test wallet itself', async () => {
+    const fetch = relay()
     config.MOONPAY_PUBLISHABLE_KEY = 'pk_test_kova'
     config.MOONPAY_SECRET_KEY = 'sk_test_kova'
+    expect(await moonPayTopUp(wallet, 'USD')).toMatchObject({ live: false, url: null })
+    config.KOVA_NETWORK = 'testnet'
     const top = await moonPayTopUp(wallet, 'USD')
+    expect(fetch).not.toHaveBeenCalled()
+    expect(new URL(top.url ?? '').searchParams.get('walletAddress')).toBe(wallet)
     const url = new URL(top.url ?? '')
     expect(url.origin).toBe('https://buy-sandbox.moonpay.com')
     // The sandbox has no USDC on Base; its test USDC is on Ethereum.

@@ -84,17 +84,18 @@ export async function moonPayTopUp(
   const publishable = config.MOONPAY_PUBLISHABLE_KEY
   const secret = config.MOONPAY_SECRET_KEY
   const off: TopUp = { live: false, provider: 'MoonPay', url: null, min_usd: MIN_USD }
-  // USDC on Base and Relay are mainnet things; deposits also have their own switch.
-  if (config.KOVA_NETWORK !== 'mainnet' || !publishable || !secret) return off
-  if (config.KOVA_CHAIN_DEPOSITS !== '1' || !config.RELAY_API_KEY) return off
-  const fiat = FIAT.has(currency) ? currency : 'USD'
-  // MoonPay's sandbox has no USDC on Base, so test keys buy its test USDC (Ethereum) instead:
-  // nothing real moves, and the checkout, the signing and the IP check are what get tried.
+  if (!publishable || !secret) return off
+  // Test keys are MoonPay's sandbox, where nothing real moves: they open only on testnet, so
+  // nobody on mainnet meets a pretend checkout, and pay the test wallet itself in the sandbox's
+  // test USDC (it has none on Base). Live keys open only on mainnet, through the Base route.
   const sandbox = publishable.startsWith('pk_test_')
+  if (config.KOVA_NETWORK !== (sandbox ? 'testnet' : 'mainnet')) return off
+  if (!sandbox && (config.KOVA_CHAIN_DEPOSITS !== '1' || !config.RELAY_API_KEY)) return off
+  const fiat = FIAT.has(currency) ? currency : 'USD'
   const params = new URLSearchParams({
     apiKey: publishable,
     currencyCode: sandbox ? 'usdc' : 'usdc_base',
-    walletAddress: await depositAddress(wallet),
+    walletAddress: sandbox ? wallet : await depositAddress(wallet),
     baseCurrencyCode: fiat.toLowerCase(),
     theme: 'light',
   })
