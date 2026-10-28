@@ -143,6 +143,51 @@ describe('deposit availability', () => {
     await chainDepositSources()
     expect(fetch).toHaveBeenCalledTimes(2)
   })
+  it('offers every network that takes deposit addresses: the main ones first, then A to Z', async () => {
+    const network = (
+      id: number,
+      displayName: string,
+      solverCurrencies: { address: string; symbol: string; decimals: number }[],
+    ) => ({
+      id,
+      displayName,
+      vmType: 'evm',
+      depositEnabled: true,
+      depositAddressEnabled: true,
+      solverCurrencies,
+    })
+    const c = catalogue()
+    c.chains.push(
+      network(57073, 'Ink', [{ address: zeroAddress, symbol: 'ETH', decimals: 18 }]),
+      network(33139, 'ApeChain', [{ address: zeroAddress, symbol: 'APE', decimals: 18 }]),
+      network(5042, 'Arc', [
+        { address: '0x3600000000000000000000000000000000000000', symbol: 'USDC', decimals: 6 },
+        { address: zeroAddress, symbol: 'USDC', decimals: 18 },
+      ]),
+      {
+        ...network(1088, 'Metis', [{ address: other, symbol: 'WETH', decimals: 18 }]),
+        depositAddressEnabled: false,
+      },
+    )
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => Response.json(url.endsWith('/chains') ? c : { requests: [] })),
+    )
+    const sources = await chainDepositSources()
+    expect(sources.chains.map((chain) => chain.name)).toEqual([
+      'Monad',
+      'Base',
+      'Solana',
+      'Arc',
+      'ApeChain',
+      'Ink',
+    ])
+    // Arc's two USDC entries are one balance: one chip, the network's own coin.
+    expect(sources.chains[3]?.tokens).toEqual([
+      { address: zeroAddress, symbol: 'USDC', decimals: 18 },
+    ])
+    expect(sources.chains[4]?.tokens.map((t) => t.symbol)).toEqual(['APE'])
+  })
   it('closes every route when Monad is disabled', async () => {
     const c = catalogue()
     if (c.chains[0]) c.chains[0].depositEnabled = false

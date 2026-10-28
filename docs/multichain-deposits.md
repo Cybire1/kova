@@ -12,7 +12,7 @@ The client saves conversion recovery details per wallet before broadcasting, the
 
 ## Routes and asset checks
 
-The catalogue reads Relay's live `/chains` endpoint, caches it for 60 seconds, and includes only enabled networks with deposit-address support. Inputs must appear in that network's `solverCurrencies` and Kova's token allowlist. The offered networks are Monad, Base, Ethereum, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Solana, Tron and Bitcoin when available. Supported source tokens vary by network; the UI never advertises a token on every EVM chain.
+The catalogue reads Relay's live `/chains` endpoint, caches it for 60 seconds, and offers every enabled network with deposit-address support (53 on 28 Oct 2026). Monad, Base, Ethereum, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Solana, Tron, Bitcoin and Arc come first; the rest follow A to Z. Inputs must appear in that network's `solverCurrencies` and be either on Kova's token allowlist (dollar coins, ETH, WETH and the majors) or the EVM network's own coin. When a network lists one coin twice (Arc's USDC is its own coin and an ERC-20 view of the same balance), Kova offers the network's own. Supported source tokens vary by network; the UI never advertises a token on every EVM chain.
 
 Every quote pins destination chain **143** and the AUSD contract **`0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a`**, validates recipient, origin chain/token/decimals/amount, destination token/decimals, deposit address, request ID and minimum output before returning instructions. Amounts use integer base units. Inputs cannot change the destination or Kova's fee. Slippage is capped at 50 basis points. Kova adds no application fee.
 

@@ -12,13 +12,19 @@ import { KovaError } from '../errors.js'
 
 const RELAY = 'https://api.relay.link'
 const AUSD = '0x00000000efe302beaa2b3e6e1b18d08d69a9012a'
-const CHAIN_IDS = [143, 8453, 1, 42161, 10, 137, 56, 43114, 792703809, 728126428, 8253038]
+/** The networks people use most, first and in this order; every other network Relay takes
+ * deposit addresses on follows, A to Z. */
+const FEATURED = [143, 8453, 1, 42161, 10, 137, 56, 43114, 792703809, 728126428, 8253038, 5042]
+/** Coins accepted on any network, besides each EVM network's own coin. */
 const SYMBOLS = new Set([
   'MON',
   'USDC',
   'USDT',
   'USDT0',
+  'USD₮0',
+  'USDe',
   'ETH',
+  'WETH',
   'SOL',
   'BTC',
   'TRX',
@@ -121,29 +127,39 @@ async function depositChains(): Promise<DepositChain[]> {
   const parsed = chainsResponse.safeParse(await relay('/chains'))
   if (!parsed.success)
     throw new KovaError('chain_error', 'The deposit provider returned an unreadable token list.')
-  const chains = CHAIN_IDS.flatMap((id) => {
-    const chain = parsed.data.chains.find((c) => c.id === id)
-    if (
-      !chain ||
-      chain.disabled ||
-      !chain.depositEnabled ||
-      !chain.depositAddressEnabled ||
-      !['evm', 'svm', 'tvm', 'bvm'].includes(chain.vmType)
-    )
-      return []
-    const tokens = (chain.solverCurrencies ?? [])
-      .filter((t) => SYMBOLS.has(t.symbol))
-      .sort((a, b) => {
-        const priority = id === 143 ? ['MON', 'USDC', 'USDT0'] : ['USDC', 'USDT']
-        return (
-          (priority.indexOf(a.symbol) < 0 ? 99 : priority.indexOf(a.symbol)) -
-          (priority.indexOf(b.symbol) < 0 ? 99 : priority.indexOf(b.symbol))
-        )
-      })
-    return tokens.length
-      ? [{ id, name: chain.displayName, vm: chain.vmType as DepositChain['vm'], tokens }]
-      : []
-  })
+  const rank = (id: number) => (FEATURED.includes(id) ? FEATURED.indexOf(id) : FEATURED.length)
+  const chains = parsed.data.chains
+    .flatMap((chain) => {
+      const { id } = chain
+      if (
+        chain.disabled ||
+        !chain.depositEnabled ||
+        !chain.depositAddressEnabled ||
+        !['evm', 'svm', 'tvm', 'bvm'].includes(chain.vmType)
+      )
+        return []
+      const native = (t: { address: string }) => chain.vmType === 'evm' && t.address === zeroAddress
+      const allowed = (chain.solverCurrencies ?? []).filter(
+        (t) => SYMBOLS.has(t.symbol) || native(t),
+      )
+      const tokens = allowed
+        // One chip per coin: Arc lists USDC twice (its own coin, and an ERC-20 view of the same
+        // balance), so keep the network's own, which is what wallets send.
+        .filter((t) => native(t) || !allowed.some((u) => u.symbol === t.symbol && native(u)))
+        .filter((t, i, all) => all.findIndex((u) => u.symbol === t.symbol) === i)
+        .sort((a, b) => {
+          const priority =
+            id === 143 ? ['MON', 'USDC', 'USDT0'] : ['USDC', 'USDT', 'USDT0', 'USD₮0']
+          return (
+            (priority.indexOf(a.symbol) < 0 ? 99 : priority.indexOf(a.symbol)) -
+            (priority.indexOf(b.symbol) < 0 ? 99 : priority.indexOf(b.symbol))
+          )
+        })
+      return tokens.length
+        ? [{ id, name: chain.displayName, vm: chain.vmType as DepositChain['vm'], tokens }]
+        : []
+    })
+    .sort((a, b) => rank(a.id) - rank(b.id) || a.name.localeCompare(b.name))
   // Even if an origin works, do not offer it while Monad itself is disabled.
   if (!chains.some((c) => c.id === 143)) return []
   // A nonempty key is not sufficient: verify tracking access before advertising deposits.
