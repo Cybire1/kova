@@ -27,6 +27,7 @@ export default function AddMoney() {
   const [problem, setProblem] = useState<string | null>(null)
 
   const [cardNote, setCardNote] = useState<string | null>(null)
+  const [cardProvider, setCardProvider] = useState('MoonPay')
   const [depositsOn, setDepositsOn] = useState(false)
   const address = profile?.address
   useEffect(() => {
@@ -48,12 +49,13 @@ export default function AddMoney() {
     void naira.info().then((info) => setNairaOn(info.enabled))
   }, [])
 
-  /** Ramp's hosted checkout, in the in-app browser; it sends AUSD on Monad to this wallet. */
+  /** The card and bank checkout (MoonPay or Ramp), in the in-app browser; its dollars land here. */
   const cardOrBank = async () => {
     if (!profile) return
     void Haptics.selectionAsync()
     try {
       const top = await topUpLink(profile.address, profile.currency, 'kova://add-money')
+      setCardProvider(top.provider)
       if (!top.live || !top.url)
         return setCardNote('Not open yet: buys dollars straight into this wallet')
       await WebBrowser.openBrowserAsync(top.url)
@@ -188,7 +190,7 @@ export default function AddMoney() {
                       Card or bank
                     </Txt>
                     <Txt size={13} color={colors.muted}>
-                      {cardNote ?? 'Card, Apple Pay or bank, with Ramp Network'}
+                      {cardNote ?? `Card, Apple Pay or bank, with ${cardProvider}`}
                     </Txt>
                   </View>
                   <Icon name="card" size={20} />

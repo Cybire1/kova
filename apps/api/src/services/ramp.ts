@@ -14,11 +14,13 @@ const FIAT = new Set(['USD', 'EUR', 'GBP', 'MXN'])
 
 export interface TopUp {
   live: boolean
-  provider: 'Ramp Network'
-  /** The hosted widget, set up for this wallet; null until Kova is on mainnet with a Ramp key. */
+  provider: 'Ramp Network' | 'MoonPay'
+  /** The hosted widget, set up for this wallet; null until Kova is on mainnet with a provider key. */
   url: string | null
   /** Ramp's smallest card purchase, in euros. */
-  min_eur: number
+  min_eur?: number
+  /** MoonPay's smallest card purchase, in dollars. */
+  min_usd?: number
 }
 
 export function topUpFor(

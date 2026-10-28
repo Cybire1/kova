@@ -40,6 +40,7 @@ import {
 } from '../services/chain-deposits.js'
 import { depositAddress, depositsTo, isSource, SOURCES } from '../services/deposits.js'
 import { giveTestDollars } from '../services/faucet.js'
+import { moonPayConfigured, moonPayTopUp } from '../services/moonpay.js'
 import { cashOutFor, topUpFor } from '../services/ramp.js'
 import { indexedThrough } from '../workers/watcher.js'
 
@@ -501,17 +502,27 @@ export const walletRoutes = new Hono()
       })
     return c.json({ object: 'note_key', address, public_key })
   })
-  .get('/wallets/:address/top-up', (c) => {
+  .get('/wallets/:address/top-up', async (c) => {
     const wallet = walletAddress(c)
     const currency = (c.req.query('currency') ?? 'USD').toUpperCase()
     const dollars = Number(c.req.query('amount') ?? '')
     const returnTo = c.req.query('return_to')
-    // Only Kova's own pages and app may be where Ramp sends people back.
+    // Only Kova's own pages and app may be where the provider sends people back.
     const safeReturn =
       returnTo && /^(https:\/\/mykova\.app\/|kova:\/\/)/.test(returnTo) ? returnTo : undefined
+    const amount = Number.isFinite(dollars) ? dollars : undefined
+    if (!moonPayConfigured())
+      return c.json({ object: 'top_up', ...topUpFor(wallet, currency, amount, safeReturn) })
+    // A MoonPay link is tied to the IP that asked for it, so it's made for this visitor only.
+    const visitor = ip(c)
+    limit(`top-up:${visitor}`, 60, 3_600_000, 'Too many top-up links. Try again shortly.')
     return c.json({
       object: 'top_up',
-      ...topUpFor(wallet, currency, Number.isFinite(dollars) ? dollars : undefined, safeReturn),
+      ...(await moonPayTopUp(wallet, currency, {
+        dollars: amount,
+        returnTo: safeReturn,
+        clientIp: visitor,
+      })),
     })
   })
   .get('/wallets/:address/cash-out', (c) => {

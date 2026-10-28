@@ -1,6 +1,6 @@
 import { failure, kovaPublic } from '@/lib/api'
 
-/** A card or bank top-up link for this wallet (Ramp Network, AUSD on Monad). */
+/** A card or bank top-up link for this wallet (MoonPay or Ramp Network), made for this visitor. */
 export async function GET(request: Request, context: { params: Promise<{ address: string }> }) {
   const { address } = await context.params
   const query = new URL(request.url).search

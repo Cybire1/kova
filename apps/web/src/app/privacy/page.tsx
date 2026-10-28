@@ -102,6 +102,10 @@ const OTHERS: { who: string; body: string }[] = [
     body: 'Moves naira in and out of Nigerian banks. It gets the bank details or the email for that payment.',
   },
   {
+    who: 'MoonPay',
+    body: 'Adding dollars with a card or a bank. MoonPay asks for what it needs, such as your ID and payment details, under its own privacy policy. It gets your wallet’s deposit address and your connection’s IP address, which ties the checkout to you.',
+  },
+  {
     who: 'Ramp Network',
     body: 'Adding or cashing out dollars with a card or a bank on the website. Ramp asks for what it needs, such as your ID and bank details, under its own privacy policy.',
   },

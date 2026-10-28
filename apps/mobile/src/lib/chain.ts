@@ -318,9 +318,9 @@ export const depositsTo = (address: Address, depositAddress: string) =>
     `/v1/wallets/${address}/deposits?address=${encodeURIComponent(depositAddress)}`,
   ).then((r) => r.data)
 
-/** A card or bank top-up (Ramp Network, buying AUSD on Monad), or why it isn't open yet. */
+/** A card or bank top-up (MoonPay or Ramp Network), or why it isn't open yet. */
 export const topUpLink = (address: Address, currency: string, returnTo: string) =>
-  kova<{ live: boolean; url: string | null; min_eur: number }>(
+  kova<{ live: boolean; url: string | null; provider: string }>(
     `/v1/wallets/${address}/top-up?currency=${currency}&return_to=${encodeURIComponent(returnTo)}`,
   )
 

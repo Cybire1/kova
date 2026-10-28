@@ -76,6 +76,13 @@ const schema = z.object({
   RELAY_API_KEY: z.string().optional(),
   /** Ramp Network: card and bank top-ups (and cash-out), buying AUSD on Monad. Key from partner@ramp.network. */
   RAMP_HOST_API_KEY: z.string().optional(),
+  /**
+   * MoonPay (dashboard.moonpay.com): card and bank top-ups, through a deposit from Base. The
+   * publishable key (pk_…) goes in the widget link; the secret key (sk_…) signs it and never leaves
+   * the API. With both set, Card or bank uses MoonPay instead of Ramp (services/moonpay.ts).
+   */
+  MOONPAY_PUBLISHABLE_KEY: z.string().startsWith('pk_').optional(),
+  MOONPAY_SECRET_KEY: z.string().startsWith('sk_').optional(),
   /** Paystack: naira in and out (services/naira.ts). A test key (sk_test_…) moves no real money. */
   PAYSTACK_SECRET_KEY: z.string().optional(),
   /** Kova's spread on naira each way, a fraction of the market rate (0.01 = 1%). */

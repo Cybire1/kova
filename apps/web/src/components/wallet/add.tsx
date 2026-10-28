@@ -165,14 +165,19 @@ function FromAnotherChain() {
   )
 }
 
-/** Ramp Network's checkout in a new tab; it sends AUSD on Monad to this wallet. */
+/**
+ * The card and bank checkout (MoonPay, or Ramp Network) in a new tab; its dollars land in this
+ * wallet. A MoonPay link only opens on this visitor's own connection.
+ */
 function CardOrBank() {
   const { profile } = useWallet()
-  const [top, setTop] = useState<{ live: boolean; url: string | null } | null>(null)
+  const [top, setTop] = useState<{ live: boolean; url: string | null; provider?: string } | null>(
+    null,
+  )
   const [note, setNote] = useState<string | null>(null)
   const address = profile?.address
   const currency = profile?.currency
-  // Fetched ahead, so the tap opens Ramp at once (a tab opened after a wait counts as a pop-up).
+  // Fetched ahead, so the tap opens it at once (a tab opened after a wait counts as a pop-up).
   useEffect(() => {
     if (!address) return
     void fetch(
@@ -193,7 +198,7 @@ function CardOrBank() {
     >
       <span>
         <strong>Card or bank</strong>
-        <small>{note ?? 'Card, Apple Pay or bank, with Ramp Network'}</small>
+        <small>{note ?? `Card, Apple Pay or bank, with ${top?.provider ?? 'MoonPay'}`}</small>
       </span>
       <Icon name="card" size={18} />
     </button>
