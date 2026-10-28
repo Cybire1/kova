@@ -35,7 +35,7 @@ import {
 import { useShop } from '@/lib/shop'
 import { useStall } from '@/lib/stall'
 import { load, save } from '@/lib/storage'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, pair } from '@/lib/theme'
 import { Kovi } from '@/ui/art'
 import { Icon, type IconName } from '@/ui/Icon'
 import { Keypad } from '@/ui/Keypad'
@@ -201,10 +201,10 @@ export default function Till() {
                     <Icon
                       name={m.icon}
                       size={17}
-                      color={on ? colors.white : colors.ink}
+                      color={on ? colors.onChosen : colors.ink}
                       strokeWidth={on ? 2.6 : 2}
                     />
-                    <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
+                    <Txt weight="semi" size={14} color={on ? colors.onChosen : colors.ink}>
                       {m.label}
                     </Txt>
                   </Pressable>
@@ -252,16 +252,16 @@ export default function Till() {
             void Haptics.selectionAsync()
             setPicking((p) => !p)
           }}
-          style={[styles.currency, picking && { backgroundColor: colors.ink }]}
+          style={[styles.currency, picking && { backgroundColor: colors.chosen }]}
         >
-          <Txt weight="bold" size={15} color={picking ? colors.white : colors.ink}>
+          <Txt weight="bold" size={15} color={picking ? colors.onChosen : colors.ink}>
             {currencyInfo[shop.currency].symbol.trim()} {shop.currency}
           </Txt>
           <Icon
             name={picking ? 'chevronUp' : 'chevronDown'}
             size={16}
             strokeWidth={2.4}
-            color={picking ? colors.white : colors.ink}
+            color={picking ? colors.onChosen : colors.ink}
           />
         </Pressable>
       </View>
@@ -318,10 +318,10 @@ export default function Till() {
               <Icon
                 name={m.icon}
                 size={17}
-                color={on ? colors.white : colors.ink}
+                color={on ? colors.onChosen : colors.ink}
                 strokeWidth={on ? 2.6 : 2}
               />
-              <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
+              <Txt weight="semi" size={14} color={on ? colors.onChosen : colors.ink}>
                 {m.label}
               </Txt>
               {m.id !== 'keypad' && count > 0 && !on ? <View style={styles.modeDot} /> : null}
@@ -558,7 +558,10 @@ function KeypadPanel({ bottom }: { bottom: number }) {
           <Txt
             weight="semi"
             size={roomy ? 64 : 52}
-            style={[styles.big, typed === '' && { color: 'rgba(13,13,18,0.28)' }]}
+            style={[
+              styles.big,
+              typed === '' && { color: pair('rgba(13,13,18,0.28)', 'rgba(236,232,223,0.22)') },
+            ]}
             numberOfLines={1}
             adjustsFontSizeToFit
           >
@@ -574,7 +577,7 @@ function KeypadPanel({ bottom }: { bottom: number }) {
               value={note}
               onChangeText={setNote}
               placeholder="What's it for? (optional)"
-              placeholderTextColor="rgba(13,13,18,0.45)"
+              placeholderTextColor={pair('rgba(13,13,18,0.45)', 'rgba(236,232,223,0.4)')}
               maxLength={60}
               style={styles.note}
             />
@@ -704,7 +707,7 @@ function ItemsPanel({
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Find an item"
-                placeholderTextColor="rgba(13,13,18,0.45)"
+                placeholderTextColor={pair('rgba(13,13,18,0.45)', 'rgba(236,232,223,0.4)')}
                 style={styles.searchInput}
               />
             </View>
@@ -725,7 +728,7 @@ function ItemsPanel({
                     onPress={() => setShelf(name)}
                     style={[styles.shelf, on && styles.shelfOn]}
                   >
-                    <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
+                    <Txt weight="semi" size={14} color={on ? colors.onChosen : colors.ink}>
                       {name ?? 'All'}
                     </Txt>
                   </Pressable>
@@ -757,7 +760,7 @@ function ItemsPanel({
               </View>
               {item.sold_out || (item.stock !== null && item.stock <= 5) ? (
                 <View
-                  style={[styles.stockTag, item.sold_out && { backgroundColor: colors.ink }]}
+                  style={[styles.stockTag, item.sold_out && { backgroundColor: colors.fill }]}
                   pointerEvents="none"
                 >
                   <Txt weight="bold" size={11} color={colors.white}>
@@ -968,7 +971,7 @@ function ScanPanel({
             value={code}
             onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 14))}
             placeholder="Barcode number"
-            placeholderTextColor="rgba(13,13,18,0.45)"
+            placeholderTextColor={pair('rgba(13,13,18,0.45)', 'rgba(236,232,223,0.4)')}
             keyboardType="number-pad"
             autoFocus
             onSubmitEditing={submitTyped}
@@ -1113,17 +1116,17 @@ function NotInCatalogue({
 }
 
 const styles = StyleSheet.create({
-  cart: { backgroundColor: colors.surface, borderLeftWidth: 2, borderLeftColor: colors.ink },
+  cart: { backgroundColor: colors.surface, borderLeftWidth: 2, borderLeftColor: colors.line },
   shelf: {
     height: 38,
     paddingHorizontal: 16,
     borderRadius: 19,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     justifyContent: 'center',
   },
-  shelfOn: { backgroundColor: colors.ink },
+  shelfOn: { backgroundColor: colors.chosen },
   stockTag: {
     position: 'absolute',
     left: 14,
@@ -1154,7 +1157,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 14,
     borderTopWidth: 2,
-    borderTopColor: colors.ink,
+    borderTopColor: colors.line,
     gap: 10,
   },
   cartTotal: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
@@ -1171,7 +1174,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1186,7 +1189,7 @@ const styles = StyleSheet.create({
     padding: 6,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   currencyItem: {
@@ -1203,7 +1206,7 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   mode: {
@@ -1215,7 +1218,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
-  modeOn: { backgroundColor: colors.ink },
+  modeOn: { backgroundColor: colors.chosen },
   modeDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.coral, marginLeft: 2 },
   entry: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, gap: 4 },
   big: { letterSpacing: -3 },
@@ -1225,7 +1228,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     paddingHorizontal: 16,
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: pair('rgba(255,255,255,0.5)', 'rgba(255,255,255,0.08)'),
     fontFamily: fonts.medium,
     fontSize: 15,
     color: colors.ink,
@@ -1252,7 +1255,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 23,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1265,20 +1268,20 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     paddingHorizontal: 14,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: pair('rgba(255,255,255,0.55)', 'rgba(255,255,255,0.08)'),
     marginBottom: 2,
   },
   searchInput: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: colors.ink },
   tile: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 6,
     paddingBottom: 10,
     gap: 4,
   },
-  tileIn: { backgroundColor: colors.white },
+  tileIn: { backgroundColor: colors.raised },
   tileName: { marginTop: 4, minHeight: 34, lineHeight: 17 },
   qty: {
     position: 'absolute',
@@ -1290,7 +1293,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: colors.coral,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1303,7 +1306,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1313,8 +1316,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderRadius: 28,
     borderWidth: 2,
-    borderColor: colors.ink,
-    backgroundColor: colors.ink,
+    borderColor: colors.line,
+    backgroundColor: colors.fill,
     overflow: 'hidden',
   },
   beam: {
@@ -1363,18 +1366,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     letterSpacing: 1,
   },
   typeAdd: {
     height: 46,
     paddingHorizontal: 18,
     borderRadius: 23,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     justifyContent: 'center',
   },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 7 },
-  backdrop: { flex: 1, backgroundColor: 'rgba(11,26,29,0.32)' },
+  backdrop: { flex: 1, backgroundColor: pair('rgba(11,26,29,0.32)', 'rgba(0,0,0,0.6)') },
   sheet: {
     backgroundColor: colors.paper,
     borderTopLeftRadius: 32,
@@ -1387,6 +1390,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: 'rgba(11,26,29,0.16)',
+    backgroundColor: colors.rule,
   },
 })

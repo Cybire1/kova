@@ -1,3 +1,4 @@
+import type { ColorValue } from 'react-native'
 import Svg, { Circle, Path, Rect } from 'react-native-svg'
 import { colors, density } from '@/lib/theme'
 
@@ -29,7 +30,7 @@ export function NavIcon({
   name: NavIconName
   active?: boolean
   size?: number
-  color: string
+  color: ColorValue
 }) {
   const line = {
     stroke: color,
@@ -37,7 +38,7 @@ export function NavIcon({
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
   }
-  const fill = (accent: string) => (active ? accent : 'none')
+  const fill = (accent: ColorValue) => (active ? accent : 'none')
 
   return (
     <Svg width={size * density.icon} height={size * density.icon} viewBox="0 0 24 24">

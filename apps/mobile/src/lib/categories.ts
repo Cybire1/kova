@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { ColorValue } from 'react-native'
 import { categorize, type SpendingCategory } from './api'
 import { load, save } from './storage'
 import type { Entry } from './wallet'
@@ -8,7 +9,7 @@ import type { Entry } from './wallet'
  * money sent to people is always "Family and friends". Each answer is kept on the phone, so a
  * payment is only ever asked about once.
  */
-export const categoryInfo: Record<SpendingCategory, { label: string; color: string }> = {
+export const categoryInfo: Record<SpendingCategory, { label: string; color: ColorValue }> = {
   food: { label: 'Eating out', color: '#D46558' },
   groceries: { label: 'Groceries', color: '#46878B' },
   travel: { label: 'Travel', color: '#376B70' },

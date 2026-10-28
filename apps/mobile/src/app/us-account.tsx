@@ -4,7 +4,7 @@ import * as WebBrowser from 'expo-web-browser'
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { getUsAccount, openUsAccount, type UsAccount, viewUsAccount } from '@/lib/partners'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, inkAt } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon } from '@/ui/Icon'
 import { NotYet, problemOf, SandboxNote, useMoney } from '@/ui/Money'
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     height: 54,
     paddingHorizontal: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 18,
     backgroundColor: colors.surface,
     fontFamily: fonts.semi,
@@ -260,12 +260,12 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingHorizontal: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 22,
     backgroundColor: colors.surface,
   },
   bankRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-  rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(11,26,29,0.18)' },
+  rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: inkAt(0.18) },
   copy: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 999,
     backgroundColor: colors.paper,
   },

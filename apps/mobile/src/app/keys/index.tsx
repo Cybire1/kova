@@ -1,7 +1,14 @@
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
+import {
+  type ColorValue,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native'
 import type { Address } from 'viem'
 import { apiUrl, shareWebUrl } from '@/lib/config'
 import {
@@ -14,7 +21,7 @@ import {
   type SpendKey,
   switchOn,
 } from '@/lib/spend-keys'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon, type IconName } from '@/ui/Icon'
 import {
@@ -41,7 +48,7 @@ const groups: {
   kind: Kind
   title: string
   icon: IconName
-  tone: string
+  tone: ColorValue
   empty: string
   add: string
 }[] = [
@@ -151,7 +158,7 @@ export default function Keys() {
               Kova shows the token once. In Claude Code, this one line connects it.
             </Txt>
             <View style={styles.code}>
-              <Txt size={13} color={colors.surface} selectable>
+              <Txt size={13} color={colors.onFill} selectable>
                 {token.line}
               </Txt>
             </View>
@@ -332,7 +339,7 @@ function InviteForm({
           Whoever opens it first accepts it on their own phone. Then you switch it on here.
         </Txt>
         <View style={styles.code}>
-          <Txt size={13} color={colors.surface} selectable>
+          <Txt size={13} color={colors.onFill} selectable>
             {link}
           </Txt>
         </View>
@@ -373,7 +380,7 @@ function InviteForm({
               onPress={() => setPeriod(p)}
               style={[styles.period, period === p && styles.periodOn]}
             >
-              <Txt weight="bold" size={14} color={period === p ? colors.white : colors.ink}>
+              <Txt weight="bold" size={14} color={period === p ? colors.onChosen : colors.ink}>
                 a {p}
               </Txt>
             </Pressable>
@@ -473,8 +480,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.sunken,
   },
-  code: { padding: 12, borderRadius: 14, backgroundColor: colors.ink },
-  token: { borderWidth: 2, borderColor: colors.tealDeep, backgroundColor: '#E5EFEF' },
+  code: { padding: 12, borderRadius: 14, backgroundColor: colors.fill },
+  token: {
+    borderWidth: 2,
+    borderColor: colors.tealDeep,
+    backgroundColor: pair('#E5EFEF', '#1B2324'),
+  },
   twoUp: { flexDirection: 'row', gap: 10, alignItems: 'flex-end' },
   periods: { flexDirection: 'row', gap: 6 },
   period: {
@@ -482,9 +493,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 23,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     justifyContent: 'center',
   },
-  periodOn: { backgroundColor: colors.ink },
+  periodOn: { backgroundColor: colors.chosen },
   fine: { marginTop: 10, lineHeight: 18 },
 })

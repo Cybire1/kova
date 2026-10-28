@@ -35,7 +35,7 @@ export function MonWalletCard({ usd = null }: { usd?: bigint | null }) {
         marginTop: 12,
         padding: 12,
         borderWidth: 2,
-        borderColor: colors.ink,
+        borderColor: colors.line,
         borderRadius: 22,
         backgroundColor: colors.tealLight,
         flexDirection: 'row',

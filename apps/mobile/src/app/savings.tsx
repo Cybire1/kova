@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { formatUsd } from '@/lib/money'
 import { getSavings, type Savings, saveIn, saveOut } from '@/lib/partners'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, inkAt } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { NotYet, problemOf, SandboxNote, useMoney } from '@/ui/Money'
 import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
@@ -100,7 +100,7 @@ export default function SavingsScreen() {
                   onPress={() => setMode(m)}
                   style={[styles.toggleItem, mode === m && styles.toggleOn]}
                 >
-                  <Txt weight="semi" size={15} color={mode === m ? colors.surface : colors.ink}>
+                  <Txt weight="semi" size={15} color={mode === m ? colors.onChosen : colors.ink}>
                     {m === 'in' ? 'Move in' : 'Move out'}
                   </Txt>
                 </Pressable>
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     marginTop: 22,
     padding: 4,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 999,
     backgroundColor: colors.surface,
   },
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 999,
   },
-  toggleOn: { backgroundColor: colors.ink },
+  toggleOn: { backgroundColor: colors.chosen },
   money: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 64,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 20,
     backgroundColor: colors.surface,
   },
@@ -216,10 +216,10 @@ const styles = StyleSheet.create({
     marginTop: 22,
     paddingHorizontal: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 22,
     backgroundColor: colors.surface,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-  rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(11,26,29,0.18)' },
+  rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: inkAt(0.18) },
 })

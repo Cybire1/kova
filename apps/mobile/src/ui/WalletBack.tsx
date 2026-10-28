@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   pressed: { transform: [{ scale: 0.96 }] },

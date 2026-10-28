@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native'
 import QRCode from 'react-native-qrcode-svg'
-import { colors } from '@/lib/theme'
+import { palette } from '@/lib/theme'
 import { KoviPeek, peekEdge } from './art'
 import { Sticker } from './primitives'
 
@@ -13,8 +13,8 @@ export function CodeCard({ value, size = 220 }: { value: string; size?: number }
           <QRCode
             value={value}
             size={size}
-            color={colors.ink}
-            backgroundColor={colors.surface}
+            color={palette.light.ink}
+            backgroundColor={palette.light.surface}
             ecl="M"
           />
         </View>

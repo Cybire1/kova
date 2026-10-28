@@ -1,11 +1,21 @@
+import { reloadAppAsync } from 'expo'
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react'
+import { Appearance, Platform, Settings } from 'react-native'
 import { load, save } from './storage'
+import { chosenLook, LOOK_KEY } from './theme'
 
 /**
- * Settings that are not money: which side of the counter this phone is on, and whether the
- * balance shows. The Kova Card's state lives on Monad and with Kova (lib/card.ts), not here.
+ * Settings that are not money: which side of the counter this phone is on, whether the balance
+ * shows, and light or dark. The Kova Card's state lives on Monad and with Kova (lib/card.ts), not
+ * here.
  */
 export type Mode = 'pay' | 'terminal'
+
+/** Light, dark, or whatever the phone is set to (the default). */
+export type Look = 'system' | 'light' | 'dark'
+
+/** Where to go once the app has reloaded for a new look: back to the setting that changed it. */
+export const AFTER_RELOAD_KEY = 'KovaAfterReload'
 
 interface Prefs {
   ready: boolean
@@ -14,10 +24,19 @@ interface Prefs {
   /** Hides the balance on Home, for glances in public. */
   hideBalance: boolean
   setHideBalance: (hide: boolean) => void
+  look: Look
+  /** Saves the look and reloads the app in it (`from` is the screen to come back to). */
+  setLook: (look: Look, from?: string) => void
 }
 
 const PREFS = 'kova.prefs.v1'
 const defaults = { mode: 'pay' as Mode, hideBalance: false }
+
+/** The look this run of the app was drawn in (lib/theme.ts reads it before any style exists). */
+const startLook: Look = chosenLook ?? 'system'
+
+// Native parts (the keyboard, alerts, the status bar, sheets' chrome) follow the same look.
+Appearance.setColorScheme(chosenLook)
 
 const PrefsContext = createContext<Prefs | null>(null)
 
@@ -41,9 +60,13 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const update = useCallback((next: typeof defaults) => {
-    setState(next)
-    void save(PREFS, next)
+  // Functional, so two settings changed in one go (a dev link, say) don't undo each other.
+  const update = useCallback((change: Partial<typeof defaults>) => {
+    setState((current) => {
+      const next = { ...current, ...change }
+      void save(PREFS, next)
+      return next
+    })
   }, [])
 
   return (
@@ -51,9 +74,16 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
       value={{
         ready,
         mode: state.mode,
-        setMode: (mode) => update({ ...state, mode }),
+        setMode: (mode) => update({ mode }),
         hideBalance: state.hideBalance,
-        setHideBalance: (hideBalance) => update({ ...state, hideBalance }),
+        setHideBalance: (hideBalance) => update({ hideBalance }),
+        look: startLook,
+        setLook: (look, from) => {
+          if (look === startLook || Platform.OS !== 'ios') return
+          // Every style is made once, from the look the app started in: redraw it all in the new one.
+          Settings.set({ [LOOK_KEY]: look, ...(from ? { [AFTER_RELOAD_KEY]: from } : {}) })
+          void reloadAppAsync('Appearance changed')
+        },
       }}
     >
       {children}

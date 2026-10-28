@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { View } from 'react-native'
+import { type ColorValue, View } from 'react-native'
 import { colors } from '@/lib/theme'
 import { Kovi, type KoviPose, koviFeet } from './art'
 import { Floor } from './Floor'
@@ -19,7 +19,7 @@ export function Stage({
   pose: KoviPose
   size?: number
   motion?: 'bounce' | 'bob' | 'still'
-  floor?: string
+  floor?: ColorValue
   children?: ReactNode
 }) {
   const floorW = size * 0.86

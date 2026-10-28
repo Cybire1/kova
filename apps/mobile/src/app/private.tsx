@@ -10,12 +10,13 @@ import {
   StyleSheet,
   View,
 } from 'react-native'
-import Animated, { FadeIn } from 'react-native-reanimated'
+import { FadeIn } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { formatUsd } from '@/lib/money'
 import { usePrivate } from '@/lib/private'
 import type { PrivateReceipt } from '@/lib/private-core'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
+import Animated from '@/ui/animated'
 import { Icon, type IconName } from '@/ui/Icon'
 import { PrivateCard, PrivateFlow, PrivateRow, ReceivingCard } from '@/ui/Private'
 import { Header, PillButton, Rise, RoundButton, Screen, TextLink, Txt } from '@/ui/primitives'
@@ -308,7 +309,7 @@ const styles = StyleSheet.create({
   explain: {
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 14,
     marginTop: 10,
@@ -316,7 +317,7 @@ const styles = StyleSheet.create({
   none: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderStyle: 'dashed',
     padding: 16,
   },
@@ -324,11 +325,11 @@ const styles = StyleSheet.create({
   list: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
-  backdrop: { flex: 1, backgroundColor: 'rgba(11,26,29,0.32)' },
+  backdrop: { flex: 1, backgroundColor: pair('rgba(11,26,29,0.32)', 'rgba(0,0,0,0.6)') },
   sheet: {
     backgroundColor: colors.paper,
     borderTopLeftRadius: 32,
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: 'rgba(11,26,29,0.16)',
+    backgroundColor: colors.rule,
     marginBottom: 8,
   },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',

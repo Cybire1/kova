@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native'
+import { type ColorValue, StyleSheet, View } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
 import { colors } from '@/lib/theme'
 import { Coin, Plane } from './art'
@@ -11,7 +11,13 @@ import { Sticker, Txt } from './primitives'
  */
 export function ActionTile({ kind, onPress }: { kind: 'send' | 'request'; onPress: () => void }) {
   const send = kind === 'send'
-  const tone: { fill: string; disc: string; icon: IconName; label: string; caption: string } = send
+  const tone: {
+    fill: ColorValue
+    disc: ColorValue
+    icon: IconName
+    label: string
+    caption: string
+  } = send
     ? {
         fill: colors.coralSoft,
         disc: colors.coral,

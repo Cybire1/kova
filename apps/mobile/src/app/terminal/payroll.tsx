@@ -32,7 +32,7 @@ import {
 } from '@/lib/business'
 import { useShop } from '@/lib/shop'
 import { useStall } from '@/lib/stall'
-import { colors } from '@/lib/theme'
+import { colors, inkAt } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Kovi } from '@/ui/art'
 import {
@@ -336,7 +336,7 @@ export default function Payroll() {
                       accessibilityRole="button"
                       onPress={() => void add()}
                       disabled={busy}
-                      style={[styles.small, { backgroundColor: colors.ink }]}
+                      style={[styles.small, { backgroundColor: colors.fill }]}
                     >
                       <Txt weight="semi" size={14} color={colors.white}>
                         Add to payroll
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 7,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -522,6 +522,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: 'rgba(11,26,29,0.35)',
+    borderColor: inkAt(0.35),
   },
 })

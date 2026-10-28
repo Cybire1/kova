@@ -167,14 +167,14 @@ const styles = StyleSheet.create({
   explain: {
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 14,
   },
   none: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderStyle: 'dashed',
     padding: 16,
   },
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   list: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },

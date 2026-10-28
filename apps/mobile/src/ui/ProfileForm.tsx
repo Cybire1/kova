@@ -9,7 +9,7 @@ import {
   formatUsd,
 } from '@/lib/money'
 import { rateLabel, ratesLive } from '@/lib/rates'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, pair } from '@/lib/theme'
 import { Coin } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Rise, Txt } from '@/ui/primitives'
@@ -110,7 +110,7 @@ export function ProfileForm({
             value={name}
             onChangeText={onName}
             placeholder="Your name"
-            placeholderTextColor="rgba(31,52,56,0.38)"
+            placeholderTextColor={pair('rgba(31,52,56,0.38)', 'rgba(233,229,221,0.38)')}
             autoFocus
             autoCapitalize="words"
             autoComplete="name"
@@ -229,7 +229,7 @@ export function CurrencySheet({
               <Txt
                 weight="bold"
                 size={26}
-                color={on ? colors.white : colors.ink}
+                color={on ? colors.onChosen : colors.ink}
                 style={{ letterSpacing: -0.5 }}
               >
                 {c.symbol}
@@ -237,7 +237,7 @@ export function CurrencySheet({
               <Txt
                 weight="semi"
                 size={15}
-                color={on ? colors.white : colors.ink}
+                color={on ? colors.onChosen : colors.ink}
                 style={{ marginTop: 6 }}
               >
                 {c.name}
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     borderRadius: 30,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.coralSoft,
     paddingHorizontal: 20,
     paddingTop: 16,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     height: 0,
     borderBottomWidth: 2,
     borderStyle: 'dashed',
-    borderColor: colors.ink,
+    borderColor: colors.line,
     opacity: 0.35,
     marginTop: 2,
   },
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     borderRadius: 15,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   note: { marginTop: 14, lineHeight: 20, paddingHorizontal: 4 },
@@ -353,12 +353,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  tileOn: { backgroundColor: colors.ink },
+  tileOn: { backgroundColor: colors.chosen },
   provenance: {
     flexDirection: 'row',
     alignItems: 'center',

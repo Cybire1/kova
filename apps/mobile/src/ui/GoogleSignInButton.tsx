@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

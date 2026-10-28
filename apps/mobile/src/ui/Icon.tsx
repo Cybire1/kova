@@ -1,3 +1,4 @@
+import type { ColorValue } from 'react-native'
 import Svg, { Circle, Path, Rect } from 'react-native-svg'
 import { colors, density } from '@/lib/theme'
 
@@ -132,7 +133,7 @@ export function Icon({
 }: {
   name: IconName
   size?: number
-  color?: string
+  color?: ColorValue
   strokeWidth?: number
 }) {
   const common = {

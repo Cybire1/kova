@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useState } from 'react'
 import {
+  type ColorValue,
   Linking,
   Pressable,
   ScrollView,
@@ -15,7 +16,7 @@ import {
 import QRCode from 'react-native-qrcode-svg'
 import { posterLinkFor, stallLinkFor, tableLinkFor } from '@/lib/api'
 import { useStall } from '@/lib/stall'
-import { colors } from '@/lib/theme'
+import { colors, palette } from '@/lib/theme'
 import { Awning } from '@/ui/Awning'
 import { Kovi } from '@/ui/art'
 import { Icon, type IconName } from '@/ui/Icon'
@@ -82,7 +83,7 @@ export default function ShareStall() {
                 }}
                 style={[styles.pick, on && styles.pickOn]}
               >
-                <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
+                <Txt weight="semi" size={14} color={on ? colors.onChosen : colors.ink}>
                   {i ? `Table ${i}` : 'Counter'}
                 </Txt>
               </Pressable>
@@ -126,12 +127,12 @@ export default function ShareStall() {
               <QRCode
                 value={link}
                 size={qr}
-                color={colors.ink}
-                backgroundColor={colors.white}
+                color={palette.light.ink}
+                backgroundColor={palette.light.white}
                 ecl="H"
                 logo={coin}
                 logoSize={qr * 0.2}
-                logoBackgroundColor={colors.white}
+                logoBackgroundColor={palette.light.white}
                 logoMargin={4}
                 logoBorderRadius={qr}
               />
@@ -202,7 +203,7 @@ function Action({
 }: {
   icon: IconName
   label: string
-  tone: string
+  tone: ColorValue
   onPress: () => void
 }) {
   return (
@@ -235,10 +236,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     justifyContent: 'center',
   },
-  pickOn: { backgroundColor: colors.ink },
+  pickOn: { backgroundColor: colors.chosen },
   tableBadge: {
     position: 'absolute',
     top: 16,
@@ -248,15 +249,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     borderRadius: 27,
     borderWidth: 2,
-    borderColor: colors.ink,
-    backgroundColor: colors.ink,
+    borderColor: colors.line,
+    backgroundColor: colors.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   card: {
     borderRadius: 30,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: colors.white,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
   link: {
     marginTop: 14,
@@ -286,7 +287,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,

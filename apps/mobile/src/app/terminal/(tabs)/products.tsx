@@ -165,7 +165,7 @@ export default function Products() {
                   c.id === 'low' && !on && { borderColor: colors.coral },
                 ]}
               >
-                <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
+                <Txt weight="semi" size={14} color={on ? colors.onChosen : colors.ink}>
                   {c.label}
                 </Txt>
               </Pressable>
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     height: 48,
     paddingHorizontal: 20,
     borderRadius: 24,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
@@ -414,15 +414,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 19,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     justifyContent: 'center',
   },
-  chipOn: { backgroundColor: colors.ink },
+  chipOn: { backgroundColor: colors.chosen },
   table: {
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surface,
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderStyle: 'dashed',
     justifyContent: 'center',
   },

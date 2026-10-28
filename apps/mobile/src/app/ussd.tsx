@@ -14,7 +14,7 @@ import {
   takeBack,
   turnOff,
 } from '@/lib/pocket'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon } from '@/ui/Icon'
 import { Chip, Header, PillButton, Rise, Screen, Sticker, TextLink, Txt } from '@/ui/primitives'
@@ -283,7 +283,7 @@ function SetUp({
                 onPress={() => setCap(c)}
                 style={[styles.choice, cap === c && styles.choiceOn]}
               >
-                <Txt weight="semi" size={16} color={cap === c ? colors.white : colors.ink}>
+                <Txt weight="semi" size={16} color={cap === c ? colors.onChosen : colors.ink}>
                   ${c}
                 </Txt>
               </Pressable>
@@ -335,7 +335,7 @@ function Confirm({
           if (digits.length === 6) onSubmit(digits)
         }}
         placeholder="000000"
-        placeholderTextColor="#B4B9B8"
+        placeholderTextColor={pair('#B4B9B8', '#4A4744')}
         keyboardType="number-pad"
         textContentType="oneTimeCode"
         autoComplete="sms-otp"
@@ -532,7 +532,7 @@ function Live({
               onPress={() => onCap(c)}
               style={[styles.choice, on && styles.choiceOn]}
             >
-              <Txt weight="semi" size={16} color={on ? colors.white : colors.ink}>
+              <Txt weight="semi" size={16} color={on ? colors.onChosen : colors.ink}>
                 ${c}
               </Txt>
             </Pressable>
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
   phone: {
     width: 112,
     borderRadius: 26,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     padding: 9,
     paddingBottom: 12,
     alignItems: 'center',
@@ -852,7 +852,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
     fontFamily: 'Manrope_600SemiBold',
@@ -864,18 +864,18 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  choiceOn: { backgroundColor: colors.ink },
+  choiceOn: { backgroundColor: colors.chosen },
   code: {
     marginTop: 24,
     height: 64,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     textAlign: 'center',
     fontFamily: 'Manrope_600SemiBold',
@@ -887,7 +887,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 28,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.tealSoft,
     padding: 20,
   },
@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
     minHeight: 56,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -909,7 +909,7 @@ const styles = StyleSheet.create({
     minHeight: 64,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -927,7 +927,7 @@ const styles = StyleSheet.create({
   },
   bankList: {
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 16,
     backgroundColor: colors.surface,
     overflow: 'hidden',

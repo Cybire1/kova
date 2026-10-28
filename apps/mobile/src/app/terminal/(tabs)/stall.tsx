@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  type ColorValue,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -19,7 +20,7 @@ import { type CatalogItem, posterLinkFor, stallLinkFor, updateItem, updateStall 
 import { useCatalog } from '@/lib/catalog'
 import { useShop } from '@/lib/shop'
 import { useStall } from '@/lib/stall'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
 import { Awning } from '@/ui/Awning'
 import { Coin, Kovi } from '@/ui/art'
 import { Icon, type IconName } from '@/ui/Icon'
@@ -577,7 +578,7 @@ function ShareTile({
   icon: IconName
   label: string
   onPress: () => void
-  tone: string
+  tone: ColorValue
 }) {
   return (
     <Pressable
@@ -671,13 +672,13 @@ const styles = StyleSheet.create({
     paddingRight: 14,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     marginTop: 2,
   },
-  openKnob: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.ink },
+  openKnob: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.line },
   link: {
     marginTop: 12,
     alignSelf: 'flex-start',
@@ -696,7 +697,7 @@ const styles = StyleSheet.create({
     height: 88,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -705,7 +706,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: pair('rgba(255,255,255,0.6)', 'rgba(255,255,255,0.1)'),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -720,7 +721,7 @@ const styles = StyleSheet.create({
     height: 40,
     paddingHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -729,7 +730,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
@@ -791,8 +792,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 1,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
-    backgroundColor: colors.white,
+    borderColor: colors.line,
+    backgroundColor: colors.raised,
   },
   dialKey: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   stampPreview: {
@@ -809,7 +810,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
@@ -822,7 +823,7 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',

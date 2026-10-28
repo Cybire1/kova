@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import {
   ActivityIndicator,
+  type ColorValue,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -167,7 +168,7 @@ function Tile({
   onPress,
 }: {
   icon: IconName
-  tint: string
+  tint: ColorValue
   title: string
   amount: string
   sub: string
@@ -208,7 +209,7 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.teal,
   },
   tile: {
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   tileIcon: {

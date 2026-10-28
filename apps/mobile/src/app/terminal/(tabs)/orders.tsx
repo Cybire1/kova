@@ -1,13 +1,21 @@
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
-import Animated, { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated'
+import {
+  type ColorValue,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native'
+import { FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { Order, OrderStatus } from '@/lib/api'
 import { useOrders } from '@/lib/orders'
 import { useStall } from '@/lib/stall'
 import { colors } from '@/lib/theme'
+import Animated from '@/ui/animated'
 import { Avatar, Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Ping } from '@/ui/motion'
@@ -45,7 +53,7 @@ const COLUMNS: {
   title: string
   next: OrderStatus
   action: string
-  tone: string
+  tone: ColorValue
 }[] = [
   { status: 'new', title: 'New', next: 'preparing', action: 'Start', tone: colors.coral },
   { status: 'preparing', title: 'Preparing', next: 'ready', action: 'Ready', tone: colors.yellow },
@@ -204,7 +212,7 @@ function OrderList() {
               }}
               style={[styles.filter, on && styles.filterOn]}
             >
-              <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
+              <Txt weight="semi" size={14} color={on ? colors.onChosen : colors.ink}>
                 {t.label}
               </Txt>
               {t.count ? (
@@ -516,7 +524,7 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 12,
   },
-  columnDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: colors.ink },
+  columnDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: colors.line },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   live: {
     flexDirection: 'row',
@@ -534,12 +542,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 19,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  filterOn: { backgroundColor: colors.ink },
+  filterOn: { backgroundColor: colors.chosen },
   filterCount: {
     minWidth: 22,
     height: 22,
@@ -552,7 +560,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
@@ -571,7 +579,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: colors.paper,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
   perforation: {
     marginHorizontal: 18,
@@ -620,7 +628,7 @@ const styles = StyleSheet.create({
     paddingLeft: 18,
     paddingRight: 6,
     borderRadius: 26,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -640,7 +648,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.coral,
     alignItems: 'center',
     justifyContent: 'center',
@@ -682,7 +690,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 23,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',

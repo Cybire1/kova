@@ -226,7 +226,7 @@ export default function Home() {
           </View>
         </View>
         <View style={styles.cashOutGo}>
-          <Icon name="arrow" size={18} color={colors.ink} />
+          <Icon name="arrow" size={18} color={colors.dark} />
         </View>
       </Pressable>
 
@@ -499,14 +499,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   shop: {
     marginTop: 12,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
   pay: {
     flex: 1.35,
     borderRadius: 30,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     padding: 18,
     justifyContent: 'space-between',
     overflow: 'hidden',
@@ -556,7 +556,7 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.coral,
   },
   cashOutRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
     height: 66,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.tealSoft,
     flexDirection: 'row',
     alignItems: 'center',
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: colors.sunken,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     padding: 12,
     paddingLeft: 14,
     flexDirection: 'row',
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
     height: 36,
     paddingHorizontal: 16,
     borderRadius: 18,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     justifyContent: 'center',
   },
   section: { marginTop: 26, marginBottom: 12 },
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',

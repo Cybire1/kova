@@ -16,7 +16,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated'
+import { FadeInDown, FadeOutDown } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   getCheckout,
@@ -30,9 +30,10 @@ import {
 } from '@/lib/api'
 import { tableFrom } from '@/lib/links'
 import { type DisplayCurrency, formatLocal } from '@/lib/money'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, pair } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Awning } from '@/ui/Awning'
+import Animated from '@/ui/animated'
 import { Coin, Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { usePaymentRoute } from '@/ui/Private'
@@ -824,14 +825,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  tableChip: { backgroundColor: colors.coral, borderWidth: 2, borderColor: colors.ink },
+  tableChip: { backgroundColor: colors.coral, borderWidth: 2, borderColor: colors.line },
   stampCard: {
     marginHorizontal: 20,
     marginTop: 16,
     padding: 14,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.tealSoft,
   },
   stampHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -841,14 +842,14 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderStyle: 'dashed',
     backgroundColor: 'rgba(255,255,255,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stampOn: { borderStyle: 'solid', backgroundColor: colors.white },
-  stampFree: { borderStyle: 'solid', backgroundColor: colors.white },
+  stampOn: { borderStyle: 'solid', backgroundColor: colors.raised },
+  stampFree: { borderStyle: 'solid', backgroundColor: colors.raised },
   freeLine: { borderTopWidth: 1, borderColor: colors.sunken },
   freeStamp: {
     width: 32,
@@ -866,17 +867,17 @@ const styles = StyleSheet.create({
     paddingRight: 10,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
-  itemIn: { backgroundColor: colors.white },
+  itemIn: { backgroundColor: colors.raised },
   add: {
     width: 38,
     height: 38,
     borderRadius: 19,
     backgroundColor: colors.coral,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -884,7 +885,7 @@ const styles = StyleSheet.create({
   bar: {
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
@@ -899,7 +900,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backdrop: { flex: 1, backgroundColor: 'rgba(11,26,29,0.32)' },
+  backdrop: { flex: 1, backgroundColor: pair('rgba(11,26,29,0.32)', 'rgba(0,0,0,0.6)') },
   sheet: {
     maxHeight: '88%',
     backgroundColor: colors.paper,
@@ -913,13 +914,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: 'rgba(11,26,29,0.16)',
+    backgroundColor: colors.rule,
   },
   basket: {
     marginTop: 14,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
   },
@@ -931,14 +932,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderTopWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
   label: { marginTop: 16, marginBottom: 8, marginLeft: 4 },
   input: {
     height: 46,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
     fontFamily: fonts.medium,

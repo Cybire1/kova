@@ -1,7 +1,15 @@
 import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, Share, StyleSheet, TextInput, View } from 'react-native'
+import {
+  ActivityIndicator,
+  type ColorValue,
+  Pressable,
+  Share,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native'
 import { type Address, getAddress, isAddress } from 'viem'
 import {
   answer,
@@ -13,7 +21,7 @@ import {
   type SpendKey,
   spendFrom,
 } from '@/lib/spend-keys'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, pair } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon, type IconName } from '@/ui/Icon'
 import { Txt } from '@/ui/primitives'
@@ -47,7 +55,7 @@ export function useKeys() {
   return { list, problem, load }
 }
 
-export function KeyIcon({ name, tone = colors.tealSoft }: { name: IconName; tone?: string }) {
+export function KeyIcon({ name, tone = colors.tealSoft }: { name: IconName; tone?: ColorValue }) {
   return (
     <View style={[styles.icon, { backgroundColor: tone }]}>
       <Icon name={name} size={18} color={colors.ink} />
@@ -289,18 +297,18 @@ export const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
-  miniInk: { backgroundColor: colors.ink },
+  miniInk: { backgroundColor: colors.fill },
   field: { gap: 4 },
   input: {
     height: 46,
     paddingHorizontal: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 23,
-    backgroundColor: colors.white,
+    backgroundColor: colors.raised,
     fontFamily: fonts.semi,
     fontSize: 16,
     color: colors.ink,
@@ -311,11 +319,11 @@ export const styles = StyleSheet.create({
     gap: 12,
     padding: 12,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 22,
     backgroundColor: colors.surface,
   },
-  approval: { borderColor: colors.coral, backgroundColor: '#FBEDEA' },
+  approval: { borderColor: colors.coral, backgroundColor: pair('#FBEDEA', '#2A1714') },
   rowText: { flex: 1, minWidth: 0, gap: 2 },
   actions: { flexDirection: 'row', gap: 6 },
   allowance: { padding: 14, borderRadius: 24, backgroundColor: colors.tealDeep },

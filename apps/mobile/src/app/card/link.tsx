@@ -221,7 +221,7 @@ export default function LinkCard() {
                 <Txt
                   weight="bold"
                   size={30}
-                  color={on ? colors.white : colors.ink}
+                  color={on ? colors.onChosen : colors.ink}
                   style={{ letterSpacing: -1 }}
                 >
                   ${l}
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: 20, paddingBottom: 16, paddingTop: 16 },
   steps: { flexDirection: 'row', gap: 6 },
   step: { width: 18, height: 6, borderRadius: 3, backgroundColor: colors.sunken },
-  stepOn: { width: 28, backgroundColor: colors.ink },
+  stepOn: { width: 28, backgroundColor: colors.chosen },
   limits: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingHorizontal: 20, marginTop: 28 },
   limit: {
     width: '47%',
@@ -299,19 +299,19 @@ const styles = StyleSheet.create({
     height: 104,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  limitOn: { backgroundColor: colors.ink },
+  limitOn: { backgroundColor: colors.chosen },
   fact: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   factIcon: {
     width: 38,
     height: 38,
     borderRadius: 19,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',

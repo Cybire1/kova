@@ -132,9 +132,9 @@ export function PeopleSheet({
                     void Haptics.selectionAsync()
                     setP({ ...p, cabin: c.id })
                   }}
-                  style={[styles.cabin, on && { backgroundColor: colors.ink }]}
+                  style={[styles.cabin, on && { backgroundColor: colors.chosen }]}
                 >
-                  <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
+                  <Txt weight="semi" size={14} color={on ? colors.onChosen : colors.ink}>
                     {c.label}
                   </Txt>
                 </Pressable>
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
   },
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
   cabins: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   cabin: {
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     justifyContent: 'center',
   },
 })

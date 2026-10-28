@@ -15,7 +15,7 @@ import {
 import QRCode from 'react-native-qrcode-svg'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getTrip, payLinkFor, type Trip, type TripShare } from '@/lib/api'
-import { colors } from '@/lib/theme'
+import { colors, palette } from '@/lib/theme'
 import { clock, day, useTravel } from '@/lib/travel'
 import { Flyer, Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
@@ -393,8 +393,8 @@ function BoardingPass({ trip }: { trip: Trip }) {
                   <QRCode
                     value={trip.booking_reference}
                     size={78}
-                    color={colors.ink}
-                    backgroundColor={colors.surface}
+                    color={palette.light.ink}
+                    backgroundColor={palette.light.surface}
                   />
                 </View>
               ) : null}
@@ -474,8 +474,8 @@ function Voucher({ trip }: { trip: Trip }) {
               <QRCode
                 value={trip.booking_reference}
                 size={70}
-                color={colors.ink}
-                backgroundColor={colors.surface}
+                color={palette.light.ink}
+                backgroundColor={palette.light.surface}
               />
             ) : null}
           </View>
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
   total: {
     marginTop: 16,
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     gap: 2,
   },
   share: {
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   shareDone: { backgroundColor: colors.tealSoft },
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   bookedHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
-  pass: { marginBottom: 14, borderRadius: 28, backgroundColor: colors.ink, overflow: 'hidden' },
+  pass: { marginBottom: 14, borderRadius: 28, backgroundColor: colors.fill, overflow: 'hidden' },
   passTop: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16, paddingBottom: 6 },
   passLogo: {
     width: 34,
@@ -584,11 +584,11 @@ const styles = StyleSheet.create({
   voucher: {
     borderRadius: 28,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
-  voucherPhoto: { height: 160, borderBottomWidth: 2, borderColor: colors.ink },
+  voucherPhoto: { height: 160, borderBottomWidth: 2, borderColor: colors.line },
   voucherDates: {
     flexDirection: 'row',
     alignItems: 'center',

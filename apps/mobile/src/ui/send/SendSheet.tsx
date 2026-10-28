@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import Animated, { FadeIn, FadeInLeft, FadeInRight } from 'react-native-reanimated'
+import { FadeIn, FadeInLeft, FadeInRight } from 'react-native-reanimated'
 import { type Address, getAddress, isAddressEqual } from 'viem'
 import { parseScanned } from '@/lib/links'
 import {
@@ -31,8 +31,9 @@ import { usePrivate } from '@/lib/private'
 import { fetchReceivingKey, UntrustedKey } from '@/lib/private-core'
 import { rateLabel } from '@/lib/rates'
 import { load, save } from '@/lib/storage'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, pair } from '@/lib/theme'
 import { type Contact, type Entry, isUnnamed, useWallet } from '@/lib/wallet'
+import Animated from '@/ui/animated'
 import { Avatar, Flyer } from '../art'
 import { Icon, type IconName } from '../Icon'
 import { Keypad } from '../Keypad'
@@ -319,7 +320,7 @@ export function SendSheet({ payee }: { payee?: Payee }) {
             <Txt
               weight="semi"
               size={64}
-              style={[styles.big, typed === '' && { color: '#B4B9B8' }]}
+              style={[styles.big, typed === '' && { color: pair('#B4B9B8', '#4A4744') }]}
               numberOfLines={1}
               adjustsFontSizeToFit
             >
@@ -1125,7 +1126,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1168,7 +1169,7 @@ const styles = StyleSheet.create({
     paddingLeft: 14,
     paddingRight: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1180,7 +1181,7 @@ const styles = StyleSheet.create({
     height: 36,
     paddingHorizontal: 14,
     borderRadius: 18,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
@@ -1199,7 +1200,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1209,7 +1210,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 6,
@@ -1245,14 +1246,14 @@ const styles = StyleSheet.create({
     height: 34,
     paddingHorizontal: 14,
     borderRadius: 17,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
   },
   field: {
     marginTop: 14,
     height: 50,
     borderRadius: 25,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1272,7 +1273,7 @@ const styles = StyleSheet.create({
   direct: {
     marginTop: 12,
     borderRadius: 24,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1290,7 +1291,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingVertical: 10,
     paddingLeft: 12,
@@ -1319,7 +1320,7 @@ const styles = StyleSheet.create({
   list: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },

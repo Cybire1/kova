@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
 import { Icon } from './Icon'
 import { Txt } from './primitives'
 
@@ -34,9 +34,9 @@ const styles = StyleSheet.create({
   paper: {
     transform: [{ rotate: '-1.5deg' }],
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 18,
-    backgroundColor: '#F6E7C8',
+    backgroundColor: pair('#F6E7C8', '#1F1A12'),
     paddingHorizontal: 18,
     paddingTop: 20,
     paddingBottom: 14,
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     width: 74,
     height: 20,
     borderRadius: 3,
-    backgroundColor: 'rgba(169, 201, 201, 0.85)',
+    backgroundColor: pair('rgba(169, 201, 201, 0.85)', 'rgba(95, 165, 169, 0.6)'),
     transform: [{ rotate: '3deg' }],
   },
   lock: {
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     height: 26,
     paddingHorizontal: 10,
     borderRadius: 13,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
   },
   text: { letterSpacing: -0.4, lineHeight: 28 },
 })

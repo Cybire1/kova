@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
 import { Txt } from '../primitives'
 
 /** A sheet that rises from the bottom, on paper, with a grip and an optional title. */
@@ -51,7 +51,7 @@ export function Sheet({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(11,26,29,0.32)' },
+  backdrop: { flex: 1, backgroundColor: pair('rgba(11,26,29,0.32)', 'rgba(0,0,0,0.6)') },
   sheet: {
     maxHeight: '90%',
     backgroundColor: colors.paper,
@@ -65,6 +65,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: 'rgba(11,26,29,0.16)',
+    backgroundColor: colors.rule,
   },
 })

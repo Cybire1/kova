@@ -1,13 +1,9 @@
 import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSpring,
-} from 'react-native-reanimated'
+import { useAnimatedStyle, useSharedValue, withDelay, withSpring } from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
+import Animated from '@/ui/animated'
 import { Coin } from './art'
 import { Txt } from './primitives'
 
@@ -159,13 +155,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
   card: {
     position: 'absolute',
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     alignItems: 'center',
     paddingTop: 12,
@@ -176,9 +172,9 @@ const styles = StyleSheet.create({
   slip: {
     transform: [{ rotate: '-1.5deg' }],
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 18,
-    backgroundColor: '#F6E7C8',
+    backgroundColor: pair('#F6E7C8', '#1F1A12'),
     paddingHorizontal: 18,
     paddingTop: 18,
     paddingBottom: 14,
@@ -191,7 +187,7 @@ const styles = StyleSheet.create({
     width: 74,
     height: 20,
     borderRadius: 3,
-    backgroundColor: 'rgba(169, 201, 201, 0.85)',
+    backgroundColor: pair('rgba(169, 201, 201, 0.85)', 'rgba(95, 165, 169, 0.6)'),
     transform: [{ rotate: '3deg' }],
   },
 })

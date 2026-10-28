@@ -108,7 +108,11 @@ export default function Seats() {
                     onPress={() => setSegment(i)}
                     style={[styles.tab, i === segment && styles.tabOn]}
                   >
-                    <Txt weight="semi" size={14} color={i === segment ? colors.white : colors.ink}>
+                    <Txt
+                      weight="semi"
+                      size={14}
+                      color={i === segment ? colors.onChosen : colors.ink}
+                    >
                       {g ? `${g.from.iata} to ${g.to.iata}` : `Flight ${i + 1}`}
                     </Txt>
                   </Pressable>
@@ -135,7 +139,7 @@ export default function Seats() {
                     <Txt
                       weight="semi"
                       size={14}
-                      color={i === traveller ? colors.white : colors.ink}
+                      color={i === traveller ? colors.onChosen : colors.ink}
                     >
                       Traveller {i + 1}
                       {chosen ? `, ${chosen.designator}` : ''}
@@ -259,10 +263,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     justifyContent: 'center',
   },
-  tabOn: { backgroundColor: colors.ink },
+  tabOn: { backgroundColor: colors.chosen },
   legend: { flexDirection: 'row', justifyContent: 'center', gap: 14, paddingVertical: 10 },
   legendSwatch: { width: 16, height: 16, borderRadius: 5, borderWidth: 2 },
   fuselage: {
@@ -270,7 +274,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 60,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   row: { flexDirection: 'row', alignItems: 'center', marginVertical: 3 },
@@ -280,9 +284,9 @@ const styles = StyleSheet.create({
   aisle: { marginRight: 22 },
   cell: { width: CELL, height: CELL },
   seat: { borderRadius: 9, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  seatFree: { backgroundColor: colors.white, borderColor: colors.ink },
-  seatPaid: { backgroundColor: colors.tealSoft, borderColor: colors.ink },
-  seatMine: { backgroundColor: colors.coral, borderColor: colors.ink },
+  seatFree: { backgroundColor: colors.raised, borderColor: colors.line },
+  seatPaid: { backgroundColor: colors.tealSoft, borderColor: colors.line },
+  seatMine: { backgroundColor: colors.coral, borderColor: colors.line },
   seatTaken: { backgroundColor: colors.sunken, borderColor: colors.sunken },
   bar: {
     position: 'absolute',
@@ -296,6 +300,6 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     backgroundColor: colors.paper,
     borderTopWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
 })

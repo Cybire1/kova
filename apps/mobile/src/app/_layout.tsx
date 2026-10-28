@@ -8,19 +8,20 @@ import {
 import { router, Stack, useRootNavigationState } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
+import * as SystemUI from 'expo-system-ui'
 import { useEffect } from 'react'
-import { Platform, Settings } from 'react-native'
+import { Platform, Settings, useColorScheme } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { GoogleWalletProvider } from '@/lib/google-wallet'
 import { OfflineProvider } from '@/lib/offline'
-import { PrefsProvider, usePrefs } from '@/lib/prefs'
+import { AFTER_RELOAD_KEY, PrefsProvider, usePrefs } from '@/lib/prefs'
 import { PrivateProvider } from '@/lib/private'
 import { useLiveRates } from '@/lib/rates'
 import { StallProvider } from '@/lib/stall'
 import { TakingsProvider } from '@/lib/takings'
 import { TerminalProvider } from '@/lib/terminal'
-import { colors } from '@/lib/theme'
+import { colors, palette } from '@/lib/theme'
 import { TravelProvider } from '@/lib/travel'
 import { useWallet, WalletProvider } from '@/lib/wallet'
 import { OrderWatcher } from '@/lib/watch'
@@ -42,6 +43,36 @@ function DevLaunch() {
     const link = Settings.get('KovaDevLink')
     if (typeof link === 'string' && link) router.replace(`/dev?${link}` as never)
   }, [navigation?.key])
+  return null
+}
+
+/**
+ * After the app reloads in a new look (Appearance on You, lib/prefs.tsx), back to the screen that
+ * changed it, once the start route has sent the wallet home.
+ */
+let resumed = false
+function AfterReload() {
+  const navigation = useRootNavigationState()
+  const { status } = useWallet()
+  const { ready, mode } = usePrefs()
+  useEffect(() => {
+    if (resumed || Platform.OS !== 'ios' || !navigation?.key || !ready) return
+    if (status === 'loading') return
+    resumed = true
+    const to = Settings.get(AFTER_RELOAD_KEY)
+    if (typeof to !== 'string' || !to) return
+    Settings.set({ [AFTER_RELOAD_KEY]: '' })
+    if (status !== 'none' && mode === 'pay') setTimeout(() => router.navigate(to as never), 300)
+  }, [navigation?.key, status, ready, mode])
+  return null
+}
+
+/** The window's own ground, which shows behind sheets as they open: paper, or black in the dark. */
+function Ground() {
+  const scheme = useColorScheme()
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(palette[scheme === 'dark' ? 'dark' : 'light'].paper)
+  }, [scheme])
   return null
 }
 
@@ -110,7 +141,9 @@ export default function RootLayout() {
                     <PrivateProvider>
                       <OfflineProvider>
                         <TravelProvider>
-                          <StatusBar style="dark" />
+                          <StatusBar style="auto" />
+                          <Ground />
+                          <AfterReload />
                           <ArrivalWatcher />
                           <OrderWatcher />
                           <DevLaunch />

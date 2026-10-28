@@ -5,6 +5,7 @@
  *
  * Geometry matches docs/design/logo/*.svg (a 200×200 canvas, waves centred on 62,100).
  */
+import type { ColorValue } from 'react-native'
 import Svg, { Circle, Path } from 'react-native-svg'
 import { colors } from '@/lib/theme'
 
@@ -22,8 +23,8 @@ export function LogoMark({
   wave = colors.coral,
 }: {
   size?: number
-  stem?: string
-  wave?: string
+  stem?: ColorValue
+  wave?: ColorValue
 }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200" accessibilityLabel="Kova">
@@ -42,8 +43,8 @@ export function Wordmark({
   coin = colors.coral,
 }: {
   height?: number
-  ink?: string
-  coin?: string
+  ink?: ColorValue
+  coin?: ColorValue
 }) {
   const w = 15.5
   const line = {

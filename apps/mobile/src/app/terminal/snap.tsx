@@ -12,7 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import Animated, {
+import {
   Easing,
   useAnimatedStyle,
   useReducedMotion,
@@ -24,6 +24,7 @@ import { createItem, type MenuImport, readMenuPhoto } from '@/lib/api'
 import { type PhotoSource, takePhoto } from '@/lib/photos'
 import { useStall } from '@/lib/stall'
 import { colors, fonts } from '@/lib/theme'
+import Animated from '@/ui/animated'
 import { Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
     height: 250,
     borderRadius: 36,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
     alignItems: 'center',
@@ -328,7 +329,7 @@ const styles = StyleSheet.create({
   lines: {
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
@@ -345,11 +346,11 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkOn: { backgroundColor: colors.ink },
+  checkOn: { backgroundColor: colors.chosen },
   name: { fontFamily: fonts.semi, fontSize: 16, color: colors.ink, paddingVertical: 2 },
   price: {
     flexDirection: 'row',

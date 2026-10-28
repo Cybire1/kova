@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics'
 import { type ReactNode, useEffect, useState } from 'react'
 import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
-import Animated, {
+import {
   Easing,
   type SharedValue,
   useAnimatedStyle,
@@ -13,7 +13,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
+import Animated from '@/ui/animated'
 import { KoviPeek, peekEdge } from './art'
 import { Icon } from './Icon'
 import { Burst } from './motion'
@@ -453,7 +454,7 @@ const styles = StyleSheet.create({
     right: 0,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.tealDeep,
   },
   flap: { position: 'absolute', left: 0, right: 0 },
@@ -462,7 +463,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderRadius: 14,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     alignItems: 'center',
     paddingTop: 12,
@@ -485,7 +486,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     backgroundColor: colors.coral,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -493,9 +494,9 @@ const styles = StyleSheet.create({
   slip: {
     transform: [{ rotate: '-1.2deg' }],
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 18,
-    backgroundColor: '#F6E7C8',
+    backgroundColor: pair('#F6E7C8', '#1F1A12'),
     paddingHorizontal: 16,
     paddingTop: 18,
     paddingBottom: 12,
@@ -508,7 +509,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 20,
     borderRadius: 3,
-    backgroundColor: 'rgba(169, 201, 201, 0.85)',
+    backgroundColor: pair('rgba(169, 201, 201, 0.85)', 'rgba(95, 165, 169, 0.6)'),
     transform: [{ rotate: '3deg' }],
   },
   slipLock: {
@@ -521,7 +522,7 @@ const styles = StyleSheet.create({
     height: 24,
     paddingHorizontal: 9,
     borderRadius: 12,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
   },
   whisper: {
     position: 'absolute',
@@ -530,7 +531,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     justifyContent: 'center',
   },
   whisperTail: {
@@ -542,7 +543,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRightWidth: 2,
     borderBottomWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     transform: [{ rotate: '45deg' }],
   },
 })

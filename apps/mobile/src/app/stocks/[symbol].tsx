@@ -180,9 +180,9 @@ export default function StockScreen() {
                   void Haptics.selectionAsync()
                   setRange(r)
                 }}
-                style={[styles.range, r === range && { backgroundColor: colors.ink }]}
+                style={[styles.range, r === range && { backgroundColor: colors.chosen }]}
               >
-                <Txt weight="bold" size={13} color={r === range ? colors.white : colors.ink}>
+                <Txt weight="bold" size={13} color={r === range ? colors.onChosen : colors.ink}>
                   {r}
                 </Txt>
               </Pressable>
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   chartCard: {
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 26,
     padding: 12,
     paddingBottom: 10,
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   own: {
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     borderRadius: 26,
     padding: 16,
     flexDirection: 'row',
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     borderRadius: 29,
     backgroundColor: colors.coral,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     top: -12,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 3,

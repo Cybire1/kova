@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { Address } from 'viem'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, pair } from '@/lib/theme'
 import { isUnnamed, useWallet } from '@/lib/wallet'
 import { Avatar } from './art'
 import { PillButton, Txt } from './primitives'
@@ -99,7 +99,7 @@ export function NameSheet({
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(11,26,29,0.32)' },
+  backdrop: { flex: 1, backgroundColor: pair('rgba(11,26,29,0.32)', 'rgba(0,0,0,0.6)') },
   sheet: {
     backgroundColor: colors.paper,
     borderTopLeftRadius: 32,
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: 'rgba(11,26,29,0.16)',
+    backgroundColor: colors.rule,
   },
   face: { alignSelf: 'center', marginTop: 18 },
   input: {
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 22,
     fontFamily: fonts.semi,

@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 44,
     borderTopRightRadius: 44,
     borderTopWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     paddingHorizontal: 28,
     paddingTop: 36,
     justifyContent: 'space-between',

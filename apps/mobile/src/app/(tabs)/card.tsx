@@ -4,6 +4,7 @@ import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  type ColorValue,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,7 +13,7 @@ import {
   View,
 } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import Animated, {
+import {
   Easing,
   useAnimatedStyle,
   useReducedMotion,
@@ -25,6 +26,7 @@ import { changeCard, type KovaCard, listCards, removeCard } from '@/lib/card'
 import { load as loadSaved, save } from '@/lib/storage'
 import { colors } from '@/lib/theme'
 import { isUnnamed, useWallet } from '@/lib/wallet'
+import Animated from '@/ui/animated'
 import { type CardDesign, CardDesignPicker, CardFace } from '@/ui/CardFace'
 import { dockClearance } from '@/ui/Dock'
 import { Icon, type IconName } from '@/ui/Icon'
@@ -314,7 +316,7 @@ function CardView({
         <Txt weight="bold" size={32} style={{ letterSpacing: -1 }}>
           Card
         </Txt>
-        <View style={[styles.status, { backgroundColor: card.frozen ? colors.ink : colors.teal }]}>
+        <View style={[styles.status, { backgroundColor: card.frozen ? colors.fill : colors.teal }]}>
           <Icon name={card.frozen ? 'snow' : 'tap'} size={14} color={colors.white} />
           <Txt weight="semi" size={13} color={colors.white}>
             {card.frozen ? 'Frozen' : 'Ready to tap'}
@@ -353,7 +355,7 @@ function CardView({
               accessibilityState={{ selected: i === selected }}
               style={[styles.pick, i === selected && styles.pickOn]}
             >
-              <Txt weight="semi" size={14} color={i === selected ? colors.white : colors.ink}>
+              <Txt weight="semi" size={14} color={i === selected ? colors.onChosen : colors.ink}>
                 •••• {c.last_four}
               </Txt>
             </Pressable>
@@ -371,7 +373,7 @@ function CardView({
           <Animated.View
             style={[
               styles.thumb,
-              { width: trackW / 2, backgroundColor: card.frozen ? colors.ink : colors.teal },
+              { width: trackW / 2, backgroundColor: card.frozen ? colors.fill : colors.teal },
               thumb,
             ]}
           />
@@ -455,7 +457,7 @@ function CardView({
                   {pending === `limit:${l}` ? (
                     <ActivityIndicator color={colors.ink} size="small" />
                   ) : (
-                    <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
+                    <Txt weight="semi" size={14} color={on ? colors.onChosen : colors.ink}>
                       ${l}
                     </Txt>
                   )}
@@ -613,11 +615,11 @@ function Choice({
       style={styles.choice}
     >
       {busy ? (
-        <ActivityIndicator color={on ? colors.white : colors.ink} />
+        <ActivityIndicator color={on ? colors.onChosen : colors.ink} />
       ) : (
-        <Icon name={icon} size={15} color={on ? colors.white : colors.ink} />
+        <Icon name={icon} size={15} color={on ? colors.onChosen : colors.ink} />
       )}
-      <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
+      <Txt weight="semi" size={14} color={on ? colors.onChosen : colors.ink}>
         {label}
       </Txt>
     </Pressable>
@@ -633,7 +635,7 @@ function Row({
   children,
 }: {
   icon: IconName
-  tint: string
+  tint: ColorValue
   label: string
   value: string
   last?: boolean
@@ -680,15 +682,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     justifyContent: 'center',
   },
-  pickOn: { backgroundColor: colors.ink },
+  pickOn: { backgroundColor: colors.chosen },
   switch: {
     height: 48,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     padding: 4,
@@ -699,7 +701,7 @@ const styles = StyleSheet.create({
   section: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 16,
     overflow: 'hidden',
@@ -719,11 +721,11 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tickOn: { backgroundColor: colors.ink },
+  tickOn: { backgroundColor: colors.chosen },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

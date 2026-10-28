@@ -210,7 +210,7 @@ export const styles = StyleSheet.create({
   body: { padding: 20, paddingBottom: 60, gap: 20 },
   input: {
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 18,
     padding: 14,
     color: colors.ink,

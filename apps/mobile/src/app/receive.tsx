@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { Pressable, ScrollView, Share, StyleSheet, View } from 'react-native'
-import Animated, {
+import {
   Easing,
   FadeIn,
   useAnimatedStyle,
@@ -15,6 +15,7 @@ import { personLink } from '@/lib/links'
 import { useOffline } from '@/lib/offline'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import Animated from '@/ui/animated'
 import { CodeCard } from '@/ui/CodeCard'
 import { Icon } from '@/ui/Icon'
 import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     marginTop: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 20,
     backgroundColor: colors.surface,
     overflow: 'hidden',
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     borderTopWidth: 2,
-    borderTopColor: colors.ink,
+    borderTopColor: colors.line,
   },
   pressed: { backgroundColor: colors.sunken },
   footer: { paddingHorizontal: 20, paddingBottom: 12, paddingTop: 8 },

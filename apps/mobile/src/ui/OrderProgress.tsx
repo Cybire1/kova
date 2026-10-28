@@ -70,7 +70,7 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
               <View
                 style={[
                   styles.disc,
-                  done && { backgroundColor: colors.ink },
+                  done && { backgroundColor: colors.chosen },
                   now && {
                     backgroundColor: step.status === 'ready' ? colors.coral : colors.tealSoft,
                     transform: [{ scale: 1.12 }],
@@ -80,7 +80,7 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
                 <Icon
                   name={done ? 'check' : step.icon}
                   size={15}
-                  color={done ? colors.white : colors.ink}
+                  color={done ? colors.onChosen : colors.ink}
                   strokeWidth={2.4}
                 />
               </View>
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: colors.sunken,
   },
-  fill: { position: 'absolute', left: '12%', top: 16, height: 2, backgroundColor: colors.ink },
+  fill: { position: 'absolute', left: '12%', top: 16, height: 2, backgroundColor: colors.fill },
   stop: { width: '25%', alignItems: 'center', gap: 6 },
   discWrap: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
   disc: {
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',

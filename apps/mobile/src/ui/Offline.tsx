@@ -1,11 +1,12 @@
 import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { Pressable, StyleSheet, View } from 'react-native'
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
+import { FadeIn, FadeOut } from 'react-native-reanimated'
 import { explorerTx } from '@/lib/chain'
 import { formatUsd } from '@/lib/money'
 import { type OfflineItem, useOffline, useOfflineName } from '@/lib/offline'
 import { colors } from '@/lib/theme'
+import Animated from '@/ui/animated'
 import { Avatar } from './art'
 import { when } from './EntryRow'
 import { Icon } from './Icon'
@@ -84,7 +85,7 @@ export function WaitingAvatar({
             width: badge,
             height: badge,
             borderRadius: badge / 2,
-            backgroundColor: tone === 'danger' ? colors.danger : colors.ink,
+            backgroundColor: tone === 'danger' ? colors.danger : colors.fill,
           },
         ]}
       >
@@ -199,7 +200,7 @@ export function SettleStatus({
   if (item.status === 'settled')
     return (
       <View style={styles.status}>
-        <View style={[styles.statusIcon, { backgroundColor: colors.ink }]}>
+        <View style={[styles.statusIcon, { backgroundColor: colors.fill }]}>
           <Icon name="bolt" size={17} color={colors.white} />
         </View>
         <View style={{ flex: 1 }}>
@@ -261,7 +262,7 @@ export function SettleStatus({
     )
   return (
     <View style={styles.status}>
-      <View style={[styles.statusIcon, { backgroundColor: colors.ink }]}>
+      <View style={[styles.statusIcon, { backgroundColor: colors.fill }]}>
         <Icon name="clock" size={17} color={colors.white} />
       </View>
       <View style={{ flex: 1 }}>
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     borderRadius: 13,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
@@ -333,7 +334,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderStyle: 'dashed',
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
@@ -347,14 +348,14 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.tealSoft,
   },
   noticeIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },

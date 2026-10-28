@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 46 },
   mine: {
     marginTop: 54,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     borderRadius: 28,
     padding: 18,
     gap: 4,
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',

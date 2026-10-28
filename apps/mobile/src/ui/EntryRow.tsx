@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: -3,
     bottom: -3,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     borderWidth: 2,
     borderColor: colors.surface,
     alignItems: 'center',

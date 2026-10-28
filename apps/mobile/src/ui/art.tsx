@@ -9,7 +9,7 @@
  * on top in the app's own type, never baked into the images.
  */
 import { Image } from 'expo-image'
-import { View } from 'react-native'
+import { type ColorValue, View } from 'react-native'
 import { colors } from '@/lib/theme'
 import { Wordmark } from './Logo'
 import { Txt } from './primitives'
@@ -104,7 +104,7 @@ export function Coin({ size = 44, symbol = '$' }: { size?: number; symbol?: stri
 }
 
 /** A painted sparkle. `fill` picks the nearest of the painted colours. */
-export function Sparkle({ size = 28, fill = colors.yellow }: { size?: number; fill?: string }) {
+export function Sparkle({ size = 28, fill = colors.yellow }: { size?: number; fill?: ColorValue }) {
   const key =
     fill === colors.white || fill === colors.surface
       ? 'white'
@@ -298,7 +298,7 @@ export function Avatar({ name, id, size = 56 }: { name: string; id?: string; siz
 }
 
 /** A merchant's badge: a little shop front, for payments to businesses. */
-export function ShopBadge({ size = 44 }: { size?: number; fill?: string }) {
+export function ShopBadge({ size = 44 }: { size?: number; fill?: ColorValue }) {
   return <Art source={art.shop} width={size} height={size} />
 }
 

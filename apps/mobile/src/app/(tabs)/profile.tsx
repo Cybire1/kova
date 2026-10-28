@@ -10,6 +10,7 @@ import { naira } from '@/lib/api'
 import { isTestnet, network, webUrl } from '@/lib/config'
 import { personLink } from '@/lib/links'
 import { currencyInfo, type DisplayCurrency, formatUsd } from '@/lib/money'
+import { type Look, usePrefs } from '@/lib/prefs'
 import { usePrivate } from '@/lib/private'
 import { rateLabel, ratesLive } from '@/lib/rates'
 import {
@@ -20,7 +21,7 @@ import {
   useSessionState,
 } from '@/lib/session'
 import { useStall } from '@/lib/stall'
-import { colors } from '@/lib/theme'
+import { colors, pair, palette } from '@/lib/theme'
 import { vaultSavedAt } from '@/lib/vault'
 import { useWallet } from '@/lib/wallet'
 import { Avatar } from '@/ui/art'
@@ -160,8 +161,8 @@ export default function Profile() {
             <QRCode
               value={link}
               size={68}
-              color={colors.ink}
-              backgroundColor={colors.surface}
+              color={palette.light.ink}
+              backgroundColor={palette.light.surface}
               ecl="L"
             />
           </Pressable>
@@ -233,6 +234,7 @@ export default function Profile() {
           void setCurrency(next)
         }}
       />
+      <LookCard />
       {profile.demo ? (
         <View style={styles.keys}>
           <View style={styles.keysTop}>
@@ -394,6 +396,48 @@ function MoneyCard({
           setPicking(false)
         }}
       />
+    </View>
+  )
+}
+
+const LOOKS: { id: Look; label: string }[] = [
+  { id: 'system', label: 'System' },
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' },
+]
+
+/** Light or dark, or as the phone is set (the default): every screen follows at once. */
+function LookCard() {
+  const { look, setLook } = usePrefs()
+  return (
+    <View style={styles.look}>
+      <Txt weight="semi" size={16}>
+        Appearance
+      </Txt>
+      <Txt size={13} color={colors.muted}>
+        System follows your phone, day and night. Kova reopens in the new look.
+      </Txt>
+      <View style={styles.lookToggle} accessibilityRole="radiogroup">
+        {LOOKS.map((option) => {
+          const on = look === option.id
+          return (
+            <Pressable
+              key={option.id}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: on }}
+              onPress={() => {
+                void Haptics.selectionAsync()
+                setLook(option.id, '/profile')
+              }}
+              style={[styles.lookItem, on && styles.lookOn]}
+            >
+              <Txt weight="semi" size={14} color={on ? colors.onChosen : colors.ink}>
+                {option.label}
+              </Txt>
+            </Pressable>
+          )
+        })}
+      </View>
     </View>
   )
 }
@@ -571,7 +615,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pass: { marginTop: 16, borderRadius: 28, backgroundColor: colors.ink },
+  pass: { marginTop: 16, borderRadius: 28, backgroundColor: colors.fill },
   passTop: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, paddingBottom: 16 },
   ring: { borderRadius: 31, borderWidth: 3, borderColor: colors.yellow, padding: 2 },
   network: {
@@ -615,16 +659,39 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingVertical: 12,
     paddingHorizontal: 12,
   },
+  look: {
+    marginTop: 14,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    padding: 16,
+  },
+  lookToggle: {
+    flexDirection: 'row',
+    marginTop: 12,
+    padding: 4,
+    borderRadius: 999,
+    backgroundColor: colors.sunken,
+  },
+  lookItem: {
+    flex: 1,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+  },
+  lookOn: { backgroundColor: colors.chosen },
   money: {
     marginTop: 14,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.teal,
     padding: 16,
   },
@@ -637,7 +704,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   moneyRule: { height: 2, borderRadius: 1, backgroundColor: colors.tealDeep, marginVertical: 12 },
@@ -653,7 +720,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 16,
   },
@@ -662,7 +729,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -675,7 +742,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: colors.sunken,
   },
-  sessionOpen: { backgroundColor: '#DCEBEA' },
+  sessionOpen: { backgroundColor: pair('#DCEBEA', '#1B2324') },
   liveDotWrap: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
   liveDot: { width: 12, height: 12, borderRadius: 6 },
   lock: {
@@ -686,7 +753,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   rules: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
@@ -695,7 +762,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     justifyContent: 'center',
   },
   backup: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12 },
@@ -703,7 +770,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     padding: 16,
     backgroundColor: colors.surface,
   },
@@ -712,7 +779,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },

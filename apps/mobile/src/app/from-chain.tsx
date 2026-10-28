@@ -20,7 +20,7 @@ import QRCode from 'react-native-qrcode-svg'
 import { type Address, parseUnits } from 'viem'
 import { chainDepositActivity, chainDepositQuote, chainDepositSources } from '@/lib/chain'
 import { formatUsd } from '@/lib/money'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, palette } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
@@ -203,7 +203,7 @@ function DepositForm({ wallet }: { wallet: Address }) {
                       <Txt
                         weight="semi"
                         size={14}
-                        color={token.address === t.address ? colors.white : colors.ink}
+                        color={token.address === t.address ? colors.onChosen : colors.ink}
                       >
                         {t.symbol}
                       </Txt>
@@ -338,8 +338,8 @@ function DepositForm({ wallet }: { wallet: Address }) {
                     <QRCode
                       value={quote.address}
                       size={176}
-                      color={colors.ink}
-                      backgroundColor={colors.surface}
+                      color={palette.light.ink}
+                      backgroundColor={palette.light.surface}
                       ecl="M"
                     />
                   </View>
@@ -557,19 +557,19 @@ const styles = StyleSheet.create({
   tokens: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   token: {
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 11,
     backgroundColor: colors.surface,
   },
-  selected: { backgroundColor: colors.ink },
+  selected: { backgroundColor: colors.chosen },
   amount: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 22,
     paddingHorizontal: 18,
     backgroundColor: colors.surface,
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 18,
     padding: 14,
     backgroundColor: colors.surface,
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

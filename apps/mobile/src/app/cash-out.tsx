@@ -7,6 +7,7 @@ import * as WebBrowser from 'expo-web-browser'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  type ColorValue,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
@@ -25,7 +26,7 @@ import type { CashOutToPay } from '@/lib/chain'
 import { applyKey, formatUsd, groupTyped, type Key, toBase } from '@/lib/money'
 import { usePrivate } from '@/lib/private'
 import { useSessionCovers } from '@/lib/session'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, inkAt, pair } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Coin, Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
@@ -712,7 +713,7 @@ export default function CashOutScreen() {
             }}
             style={styles.saveRow}
           >
-            <View style={[styles.box, save && { backgroundColor: colors.ink }]}>
+            <View style={[styles.box, save && { backgroundColor: colors.chosen }]}>
               {save ? <Icon name="check" size={15} color={colors.white} strokeWidth={3} /> : null}
             </View>
             <Txt weight="bold" size={15}>
@@ -1112,7 +1113,7 @@ function BankLogo({ uri, name, size }: { uri?: string | null; name: string; size
         borderRadius: size / 2,
         backgroundColor: colors.white,
         borderWidth: 1,
-        borderColor: 'rgba(11,26,29,0.08)',
+        borderColor: inkAt(0.08),
       }}
       contentFit="cover"
       transition={120}
@@ -1132,8 +1133,8 @@ function Person({
   name: string
   logo?: string | null
   size?: number
-  tone: string
-  ring: string
+  tone: ColorValue
+  ring: ColorValue
 }) {
   const badge = Math.round(size * 0.52)
   return (
@@ -1253,7 +1254,7 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     borderRadius: 999,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   chips: {
@@ -1275,7 +1276,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 13,
     borderRadius: 999,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
   recent: {
     flexDirection: 'row',
@@ -1286,7 +1287,7 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     borderRadius: 999,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   // The same field as Send's: a 50 pt pill with a 2 pt ink edge.
@@ -1297,7 +1298,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   accountInput: {
@@ -1309,7 +1310,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     color: colors.ink,
   },
-  rule: { borderBottomWidth: 1, borderBottomColor: 'rgba(11,26,29,0.1)' },
+  rule: { borderBottomWidth: 1, borderBottomColor: inkAt(0.1) },
   // Three across: five banks for the number and "Other bank", all in view under the field.
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tile: {
@@ -1322,14 +1323,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   tileOn: { backgroundColor: colors.tealSoft },
   tileBusy: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    backgroundColor: pair('rgba(255,255,255,0.72)', 'rgba(22,22,22,0.72)'),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1362,7 +1363,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.tealSoft,
   },
   confirmedTick: {
@@ -1377,7 +1378,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     overflow: 'hidden',
     borderRadius: 28,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     padding: 20,
   },
   heroWho: { flexDirection: 'row', alignItems: 'center', gap: 14 },
@@ -1385,7 +1386,7 @@ const styles = StyleSheet.create({
   facts: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
   },
@@ -1403,7 +1404,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 7,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1418,7 +1419,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingTop: 18,
     paddingHorizontal: 18,
@@ -1446,10 +1447,16 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#B9B7B2',
+    borderColor: pair('#B9B7B2', '#3A3A3A'),
     backgroundColor: colors.paper,
   },
-  stepLine: { width: 2, flex: 1, minHeight: 22, backgroundColor: '#C9C7C2', marginVertical: 4 },
+  stepLine: {
+    width: 2,
+    flex: 1,
+    minHeight: 22,
+    backgroundColor: pair('#C9C7C2', '#2C2C2C'),
+    marginVertical: 4,
+  },
   outline: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1458,14 +1465,14 @@ const styles = StyleSheet.create({
     minHeight: 56,
     borderRadius: 999,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
   solid: {
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 56,
     borderRadius: 999,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
   },
   celebrate: { height: 176, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
   doneBadge: {
@@ -1491,11 +1498,16 @@ const styles = StyleSheet.create({
   receipt: {
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
   },
-  dashed: { borderTopWidth: 2, borderStyle: 'dashed', borderColor: '#C9C7C2', marginVertical: 2 },
+  dashed: {
+    borderTopWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: pair('#C9C7C2', '#2C2C2C'),
+    marginVertical: 2,
+  },
   doneActions: { flexDirection: 'row', gap: 10 },
   logoFallback: {
     backgroundColor: colors.tealDeep,
@@ -1503,7 +1515,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badge: { position: 'absolute', borderWidth: 2, padding: 0 },
-  backdrop: { flex: 1, backgroundColor: 'rgba(11,26,29,0.32)' },
+  backdrop: { flex: 1, backgroundColor: pair('rgba(11,26,29,0.32)', 'rgba(0,0,0,0.6)') },
   sheet: {
     height: '86%',
     backgroundColor: colors.paper,
@@ -1517,7 +1529,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: 'rgba(11,26,29,0.16)',
+    backgroundColor: colors.rule,
   },
   sheetHead: {
     flexDirection: 'row',
@@ -1534,7 +1546,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   searchInput: {
@@ -1555,7 +1567,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   sheetList: {
@@ -1563,7 +1575,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },

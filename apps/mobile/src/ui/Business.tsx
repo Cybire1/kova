@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import {
   ActivityIndicator,
+  type ColorValue,
   Pressable,
   StyleSheet,
   TextInput,
@@ -32,7 +33,7 @@ export function SectionTitle({ children, right }: { children: string; right?: Re
   )
 }
 
-export function Avatar({ name, tint = colors.tealSoft }: { name: string; tint?: string }) {
+export function Avatar({ name, tint = colors.tealSoft }: { name: string; tint?: ColorValue }) {
   return (
     <View style={[styles.avatar, { backgroundColor: tint }]}>
       <Txt weight="bold" size={16}>
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
@@ -198,8 +199,8 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
-    backgroundColor: colors.white,
+    borderColor: colors.line,
+    backgroundColor: colors.raised,
     paddingHorizontal: 14,
     fontFamily: fonts.semi,
     fontSize: 16,

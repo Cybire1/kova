@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics'
 import { Image } from 'expo-image'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { type DisplayCurrency, formatLocal } from '@/lib/money'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
 import { Icon } from './Icon'
 import { Txt } from './primitives'
 
@@ -14,7 +14,7 @@ export const dollars = (price: string | number) =>
 export const about = (price: string | number, currency: DisplayCurrency) =>
   currency === 'USD' ? null : `about ${formatLocal(Number(price), currency)}`
 
-const tones = [colors.tealSoft, colors.coralSoft, colors.sunken, '#F3D6D0']
+const tones = [colors.tealSoft, colors.coralSoft, colors.sunken, pair('#F3D6D0', '#2A1D1A')]
 
 /** What an item looks like everywhere: its photo, or its first letter on a tone picked from its name. */
 export function ItemFace({
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 1,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   stepKey: { alignItems: 'center', justifyContent: 'center' },

@@ -2,11 +2,12 @@ import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { useEffect, useRef, useState } from 'react'
 import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native'
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated'
+import { FadeIn, FadeOut } from 'react-native-reanimated'
 import Svg, { Circle } from 'react-native-svg'
 import { baseToNumber, type DisplayCurrency, formatLocal, formatUsd } from '@/lib/money'
 import { usePrefs } from '@/lib/prefs'
 import { colors } from '@/lib/theme'
+import Animated from '@/ui/animated'
 import { Coin } from './art'
 import { Icon } from './Icon'
 import { Txt } from './primitives'
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: colors.teal,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 18,
@@ -345,7 +346,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
@@ -369,8 +370,8 @@ const styles = StyleSheet.create({
   takings: {
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     paddingHorizontal: 10,
   },
-  private: { backgroundColor: colors.ink, paddingHorizontal: 11 },
+  private: { backgroundColor: colors.fill, paddingHorizontal: 11 },
 })

@@ -12,7 +12,7 @@ import {
   requestAccess,
   type Savings,
 } from '@/lib/partners'
-import { colors } from '@/lib/theme'
+import { colors, inkAt } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import type { KoviPose } from './art'
 import { Icon } from './Icon'
@@ -155,12 +155,12 @@ const styles = StyleSheet.create({
     marginTop: 18,
     paddingHorizontal: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 22,
     backgroundColor: colors.surface,
   },
   fact: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 12 },
-  rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(11,26,29,0.18)' },
+  rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: inkAt(0.18) },
   listed: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
     padding: 14,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 18,
     backgroundColor: colors.tealSoft,
   },
@@ -229,17 +229,17 @@ export function MoneyTiles() {
         onPress={() => router.push('/dollar-card')}
         style={({ pressed }) => [
           tiles.tile,
-          { backgroundColor: colors.ink },
+          { backgroundColor: colors.fill },
           pressed && tiles.pressed,
         ]}
       >
         <View style={[tiles.icon, { borderColor: colors.surface }]}>
-          <Icon name="card" size={16} color={colors.surface} />
+          <Icon name="card" size={16} color={colors.onFill} />
         </View>
         <Txt weight="semi" size={12} color={colors.onInk}>
           Dollar card
         </Txt>
-        <Txt weight="bold" size={15} color={colors.surface} numberOfLines={2}>
+        <Txt weight="bold" size={15} color={colors.onFill} numberOfLines={2}>
           {card?.card
             ? `•••• ${card.card.last_four}${card.card.frozen ? ' · Frozen' : ''}`
             : 'Spend anywhere'}
@@ -265,17 +265,17 @@ export function DollarCardRow() {
             { position: 'relative', top: 0, left: 0, borderColor: colors.surface },
           ]}
         >
-          <Icon name="card" size={16} color={colors.surface} />
+          <Icon name="card" size={16} color={colors.onFill} />
         </View>
         <View style={{ flex: 1 }}>
-          <Txt weight="semi" size={16} color={colors.surface}>
+          <Txt weight="semi" size={16} color={colors.onFill}>
             Dollar card
           </Txt>
           <Txt size={13} color={colors.onInk}>
             Online and in shops, from your Kova dollars
           </Txt>
         </View>
-        <Icon name="arrow" size={18} color={colors.surface} />
+        <Icon name="arrow" size={18} color={colors.onFill} />
       </Pressable>
     </View>
   )
@@ -313,7 +313,7 @@ const tiles = StyleSheet.create({
     padding: 14,
     paddingTop: 54,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 24,
   },
   pressed: { transform: [{ scale: 0.98 }] },
@@ -325,7 +325,7 @@ const tiles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -335,9 +335,9 @@ const tiles = StyleSheet.create({
     gap: 12,
     padding: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 24,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
   },
   add: {
     flexDirection: 'row',
@@ -346,7 +346,7 @@ const tiles = StyleSheet.create({
     paddingHorizontal: 18,
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 24,
     backgroundColor: colors.surface,
   },

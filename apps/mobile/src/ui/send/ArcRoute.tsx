@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
-import Animated, {
+import {
   Easing,
   useAnimatedProps,
   useAnimatedStyle,
@@ -15,6 +15,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import Svg, { Path } from 'react-native-svg'
 import { colors } from '@/lib/theme'
+import Animated, { plain, useLook } from '@/ui/animated'
 import { Avatar, Flyer } from '../art'
 import { Icon } from '../Icon'
 import { Txt } from '../primitives'
@@ -47,6 +48,8 @@ export function ArcRoute({
   leg: Leg
   privately?: boolean
 }) {
+  // The animated line is drawn by Reanimated, which takes plain colours (ui/animated.tsx).
+  const look = useLook()
   const reduced = useReducedMotion()
   const from = { x: FACE / 2 + 4, y: BASE - FACE / 2 - 6 }
   const to = { x: width - FACE / 2 - 4, y: BASE - FACE / 2 - 6 }
@@ -126,7 +129,7 @@ export function ArcRoute({
       <Svg width={width} height={BASE} style={StyleSheet.absoluteFill}>
         <AnimatedPath
           d={d}
-          stroke={colors.ink}
+          stroke={plain(colors.ink, look)}
           strokeWidth={3}
           strokeLinecap="round"
           strokeDasharray="0.1 14"
@@ -198,7 +201,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     borderWidth: 2,
     borderColor: colors.paper,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },

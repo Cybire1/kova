@@ -6,7 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { formatUsd } from '@/lib/money'
 import { askStockAlert, getStock, getStockAlerts } from '@/lib/stocks'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon } from '@/ui/Icon'
 import { Txt } from '@/ui/primitives'
@@ -112,9 +112,9 @@ export default function BuyStock() {
               void Haptics.selectionAsync()
               setAmount(n)
             }}
-            style={[styles.chip, n === amount && { backgroundColor: colors.ink }]}
+            style={[styles.chip, n === amount && { backgroundColor: colors.chosen }]}
           >
-            <Txt weight="bold" size={15} color={n === amount ? colors.white : colors.ink}>
+            <Txt weight="bold" size={15} color={n === amount ? colors.onChosen : colors.ink}>
               ${n}
             </Txt>
           </Pressable>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: colors.sunken,
     borderWidth: 2,
-    borderColor: '#8E9A9C',
+    borderColor: pair('#8E9A9C', '#4A4A4A'),
     borderStyle: 'dashed',
     flexDirection: 'row',
     alignItems: 'center',
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: '#B9B7B2',
+    backgroundColor: pair('#B9B7B2', '#3A3A3A'),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     top: 14,
     backgroundColor: colors.coral,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   tell: {
     height: 52,
     borderRadius: 26,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },

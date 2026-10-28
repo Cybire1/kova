@@ -16,7 +16,7 @@ import { type DisplayCurrency, displayCurrencies, formatLocal } from '@/lib/mone
 import { ratesLive } from '@/lib/rates'
 import { useShop } from '@/lib/shop'
 import { useStall } from '@/lib/stall'
-import { colors } from '@/lib/theme'
+import { colors, inkAt } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Kovi } from '@/ui/art'
 import {
@@ -173,7 +173,7 @@ export default function Suppliers() {
                         key={s.id}
                         style={[
                           i > 0 && businessStyles.rule,
-                          expanded && { backgroundColor: colors.white },
+                          expanded && { backgroundColor: colors.raised },
                         ]}
                       >
                         <View style={businessStyles.row}>
@@ -196,7 +196,7 @@ export default function Suppliers() {
                               setPaid(null)
                               setProblem(null)
                             }}
-                            style={[styles.mini, !expanded && { backgroundColor: colors.ink }]}
+                            style={[styles.mini, !expanded && { backgroundColor: colors.fill }]}
                           >
                             <Txt
                               weight="semi"
@@ -304,9 +304,9 @@ export default function Suppliers() {
                           accessibilityRole="radio"
                           accessibilityState={{ selected: on }}
                           onPress={() => setDraft((d) => ({ ...d, currency: c }))}
-                          style={[styles.chip, on && { backgroundColor: colors.ink }]}
+                          style={[styles.chip, on && { backgroundColor: colors.chosen }]}
                         >
-                          <Txt weight="semi" size={13} color={on ? colors.white : colors.ink}>
+                          <Txt weight="semi" size={13} color={on ? colors.onChosen : colors.ink}>
                             {c}
                           </Txt>
                         </Pressable>
@@ -318,7 +318,7 @@ export default function Suppliers() {
                       accessibilityRole="button"
                       onPress={() => void add()}
                       disabled={busy}
-                      style={[styles.small, { backgroundColor: colors.ink }]}
+                      style={[styles.small, { backgroundColor: colors.fill }]}
                     >
                       <Txt weight="semi" size={14} color={colors.white}>
                         Save supplier
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     justifyContent: 'center',
   },
   small: {
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -430,6 +430,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: 'rgba(11,26,29,0.35)',
+    borderColor: inkAt(0.35),
   },
 })

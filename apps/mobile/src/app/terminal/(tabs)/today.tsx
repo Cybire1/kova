@@ -1,12 +1,19 @@
 import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native'
+import {
+  type ColorValue,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  View,
+} from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { getSummary, listCharges, type PaymentIntent, type Summary } from '@/lib/api'
 import { formatLocal } from '@/lib/money'
 import { useShop } from '@/lib/shop'
 import { useTakings } from '@/lib/takings'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
 import { Avatar, Kovi, ShopBadge } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Txt } from '@/ui/primitives'
@@ -14,10 +21,10 @@ import { shopDockClearance } from '@/ui/ShopDock'
 import { freshMove, PrivateSaleRow, TakingsCard, TakingsInvite } from '@/ui/Takings'
 import { WalletBack } from '@/ui/WalletBack'
 
-const labels: Record<PaymentIntent['status'], { text: string; color: string }> = {
+const labels: Record<PaymentIntent['status'], { text: string; color: ColorValue }> = {
   paid: { text: 'Paid', color: colors.positive },
-  requires_payment: { text: 'Waiting', color: '#8A6A1F' },
-  processing: { text: 'Confirming', color: '#8A6A1F' },
+  requires_payment: { text: 'Waiting', color: pair('#8A6A1F', '#D9A441') },
+  processing: { text: 'Confirming', color: pair('#8A6A1F', '#D9A441') },
   held: { text: 'Held', color: colors.danger },
   failed: { text: 'Failed', color: colors.danger },
   canceled: { text: 'Canceled', color: colors.muted },
@@ -234,7 +241,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 28,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.tealSoft,
     padding: 20,
     paddingRight: 100,
@@ -251,7 +258,7 @@ const styles = StyleSheet.create({
   privateList: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
@@ -262,7 +269,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: colors.tealSoft,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },

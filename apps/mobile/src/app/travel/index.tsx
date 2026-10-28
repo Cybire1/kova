@@ -257,8 +257,8 @@ export default function Travel() {
                   }}
                   style={[styles.kind, on && styles.kindOn]}
                 >
-                  <Icon name={k.icon} size={18} color={on ? colors.white : colors.ink} />
-                  <Txt weight="semi" size={15} color={on ? colors.white : colors.ink}>
+                  <Icon name={k.icon} size={18} color={on ? colors.onChosen : colors.ink} />
+                  <Txt weight="semi" size={15} color={on ? colors.onChosen : colors.ink}>
                     {k.label}
                   </Txt>
                 </Pressable>
@@ -542,7 +542,7 @@ const styles = StyleSheet.create({
     paddingLeft: 18,
     borderRadius: 30,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   sentenceInput: {
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     backgroundColor: colors.coral,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -580,18 +580,18 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  kindOn: { backgroundColor: colors.ink },
+  kindOn: { backgroundColor: colors.chosen },
   form: {
     marginTop: 12,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
   },
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.paper,
     alignItems: 'center',
     justifyContent: 'center',
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   tripArt: {

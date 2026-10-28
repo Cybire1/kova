@@ -2,7 +2,7 @@ import { router } from 'expo-router'
 import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native'
 import { type DisplayCurrency, guessCurrency } from '@/lib/money'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { KeyScene } from '@/ui/art'
 import { Bob } from '@/ui/motion'
@@ -97,8 +97,13 @@ export default function Setup() {
 
 const styles = StyleSheet.create({
   steps: { flexDirection: 'row', gap: 6, marginRight: 4 },
-  step: { width: 18, height: 8, borderRadius: 4, backgroundColor: 'rgba(13,13,18,0.2)' },
-  stepOn: { width: 36, backgroundColor: colors.ink },
+  step: {
+    width: 18,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: pair('rgba(13,13,18,0.2)', 'rgba(236,232,223,0.2)'),
+  },
+  stepOn: { width: 36, backgroundColor: colors.chosen },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   copy: { paddingHorizontal: 28, paddingBottom: 12 },
   title: { letterSpacing: -1, lineHeight: 40 },

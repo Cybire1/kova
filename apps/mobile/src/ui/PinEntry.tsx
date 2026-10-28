@@ -1,13 +1,9 @@
 import * as Haptics from 'expo-haptics'
 import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated'
+import { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated'
 import { colors } from '@/lib/theme'
+import Animated from '@/ui/animated'
 import { Keypad } from './Keypad'
 import { Txt } from './primitives'
 
@@ -78,7 +74,7 @@ export function PinEntry({
 
 const styles = StyleSheet.create({
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 16 },
-  dot: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.ink },
-  dotOn: { backgroundColor: colors.ink },
+  dot: { width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.line },
+  dotOn: { backgroundColor: colors.chosen },
   dotError: { borderColor: colors.danger },
 })

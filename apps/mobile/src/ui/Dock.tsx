@@ -68,7 +68,7 @@ export function Dock({ state, navigation }: BottomTabBarProps) {
               name={tab.icon}
               active={focused}
               size={26}
-              color={focused ? colors.ink : 'rgba(255,255,255,0.66)'}
+              color={focused ? colors.dark : 'rgba(255,255,255,0.66)'}
             />
           )}
         </View>
@@ -125,14 +125,14 @@ const styles = StyleSheet.create({
     right: 20,
     height: H,
     borderRadius: H / 2,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 6,
   },
   slot: { flex: 1, height: H, alignItems: 'center', justifyContent: 'center' },
   tab: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  tabOn: { backgroundColor: colors.surface },
+  tabOn: { backgroundColor: colors.onFill },
   /** You, on the Profile tab: your own face in a ring that lights up yellow when you're there. */
   face: { borderRadius: 18, borderWidth: 2, padding: 1 },
   pay: {

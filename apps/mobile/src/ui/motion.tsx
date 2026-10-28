@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from 'react'
-import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
-import Animated, {
+import { type ColorValue, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
+import {
   Easing,
   useAnimatedStyle,
   useReducedMotion,
@@ -12,6 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated'
 import { colors } from '@/lib/theme'
+import Animated from '@/ui/animated'
 import { Coin, Flake, Sparkle } from './art'
 
 type Point = { x: number; y: number }
@@ -136,7 +137,7 @@ export function Ping({
   delay = 0,
 }: {
   size: number
-  color?: string
+  color?: ColorValue
   delay?: number
 }) {
   const reduced = useReducedMotion()
@@ -350,7 +351,7 @@ function Falling({
 export function Burst({
   spots,
 }: {
-  spots: { x: number; y: number; size: number; fill: string; delay: number }[]
+  spots: { x: number; y: number; size: number; fill: ColorValue; delay: number }[]
 }) {
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>

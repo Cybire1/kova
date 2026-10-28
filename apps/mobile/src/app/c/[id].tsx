@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import Animated, { FadeIn } from 'react-native-reanimated'
+import { FadeIn } from 'react-native-reanimated'
 import { type Hex, isAddressEqual } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { getLink, type PaymentLink } from '@/lib/chain'
@@ -19,6 +19,7 @@ import { baseToNumber, formatLocal, formatUsd, toBase } from '@/lib/money'
 import { linkKey, linkUrl, plainUsd, shareMessage } from '@/lib/paylinks'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import Animated from '@/ui/animated'
 import { Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Envelope, NoteSlip } from '@/ui/LinkParts'

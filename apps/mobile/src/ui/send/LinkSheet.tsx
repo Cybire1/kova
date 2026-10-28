@@ -3,14 +3,15 @@ import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Pressable, Share, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native'
-import Animated, { FadeIn, FadeInLeft, FadeInRight } from 'react-native-reanimated'
+import { FadeIn, FadeInLeft, FadeInRight } from 'react-native-reanimated'
 import type { Hex } from 'viem'
 import type { PaymentLink } from '@/lib/chain'
 import { applyKey, formatUsd, groupTyped, toBase } from '@/lib/money'
 import { linkUrl, plainUsd, shareMessage } from '@/lib/paylinks'
 import { usePrivate } from '@/lib/private'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, pair } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import Animated from '@/ui/animated'
 import { Icon, type IconName } from '../Icon'
 import { Keypad } from '../Keypad'
 import { Envelope } from '../LinkParts'
@@ -140,7 +141,7 @@ export function LinkSheet({
             <Txt
               weight="semi"
               size={64}
-              style={[styles.big, typed === '' && { color: '#B4B9B8' }]}
+              style={[styles.big, typed === '' && { color: pair('#B4B9B8', '#4A4744') }]}
               numberOfLines={1}
               adjustsFontSizeToFit
             >
@@ -402,7 +403,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -432,7 +433,7 @@ const styles = StyleSheet.create({
     paddingLeft: 14,
     paddingRight: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
@@ -443,7 +444,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 6,
@@ -482,7 +483,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderStyle: 'dashed',
   },
   row: { flexDirection: 'row', gap: 10 },
@@ -491,7 +492,7 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 23,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

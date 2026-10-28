@@ -68,7 +68,7 @@ export function ShopDock({ state, navigation }: BottomTabBarProps) {
               name={tab.icon}
               active={focused}
               size={26}
-              color={focused ? colors.ink : 'rgba(255,255,255,0.66)'}
+              color={focused ? colors.dark : 'rgba(255,255,255,0.66)'}
             />
           )}
         </View>
@@ -143,14 +143,14 @@ const styles = StyleSheet.create({
     right: 20,
     height: H,
     borderRadius: H / 2,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 6,
   },
   slot: { flex: 1, height: H, alignItems: 'center', justifyContent: 'center' },
   tab: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  tabOn: { backgroundColor: colors.surface },
+  tabOn: { backgroundColor: colors.onFill },
   badgeRing: { borderRadius: 18, borderWidth: 2, padding: 1 },
   count: {
     position: 'absolute',
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: colors.coral,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,11 +1,12 @@
 import { router, Stack, usePathname } from 'expo-router'
 import { useEffect } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
-import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated'
+import { FadeInUp, FadeOutUp } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { OrdersProvider, useOrders } from '@/lib/orders'
 import { ShopProvider } from '@/lib/shop'
 import { colors } from '@/lib/theme'
+import Animated from '@/ui/animated'
 import { Avatar } from '@/ui/art'
 import { Txt } from '@/ui/primitives'
 import { dollars } from '@/ui/StallParts'
@@ -130,7 +131,7 @@ const styles = StyleSheet.create({
     padding: 10,
     paddingRight: 12,
     borderRadius: 26,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
   },
   see: {
     height: 32,

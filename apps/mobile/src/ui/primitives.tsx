@@ -3,6 +3,7 @@ import { router } from 'expo-router'
 import { type ReactNode, useEffect } from 'react'
 import {
   ActivityIndicator,
+  type ColorValue,
   Pressable,
   type StyleProp,
   StyleSheet,
@@ -11,14 +12,10 @@ import {
   View,
   type ViewStyle,
 } from 'react-native'
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated'
+import { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors, density, fonts } from '@/lib/theme'
+import Animated from '@/ui/animated'
 import { Icon, type IconName } from './Icon'
 
 type Weight = keyof typeof fonts
@@ -34,7 +31,7 @@ export function Txt({
   exact,
   style,
   ...rest
-}: TextProps & { weight?: Weight; size?: number; color?: string; exact?: boolean }) {
+}: TextProps & { weight?: Weight; size?: number; color?: ColorValue; exact?: boolean }) {
   return (
     <Text
       {...rest}
@@ -69,7 +66,7 @@ export function Sticker({
   children: ReactNode
   onPress?: () => void
   radius?: number
-  fill?: string
+  fill?: ColorValue
   outline?: boolean
   disabled?: boolean
   style?: StyleProp<ViewStyle>
@@ -89,7 +86,7 @@ export function Sticker({
           borderRadius: radius,
           backgroundColor: fill,
           borderWidth: outline ? 2 : 0,
-          borderColor: colors.ink,
+          borderColor: colors.line,
           overflow: 'hidden',
         },
         onPress ? null : style,
@@ -141,7 +138,7 @@ export function PillButton({
 }) {
   const scale = useSharedValue(1)
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
-  const bg = tone === 'ink' ? colors.ink : colors.surface
+  const bg = tone === 'ink' ? colors.fill : colors.surface
   const fg = tone === 'ink' ? colors.white : colors.ink
   return (
     <Pressable
@@ -164,7 +161,7 @@ export function PillButton({
         style={[
           styles.pill,
           { backgroundColor: bg, opacity: disabled ? 0.35 : 1 },
-          tone === 'white' && { borderWidth: 2, borderColor: colors.ink },
+          tone === 'white' && { borderWidth: 2, borderColor: colors.line },
           style,
         ]}
       >
@@ -189,7 +186,7 @@ export function RoundButton({
   icon: IconName
   label: string
   onPress: () => void
-  fill?: string
+  fill?: ColorValue
   size?: number
 }) {
   return (
@@ -204,7 +201,7 @@ export function RoundButton({
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: fill ?? 'rgba(11,26,29,0.07)',
+          backgroundColor: fill ?? colors.wash,
         },
         pressed && { transform: [{ scale: 0.92 }], opacity: 0.8 },
       ]}
@@ -221,7 +218,7 @@ export function TextLink({
 }: {
   label: string
   onPress: () => void
-  color?: string
+  color?: ColorValue
 }) {
   return (
     <Pressable accessibilityRole="link" onPress={onPress} hitSlop={10}>
@@ -247,7 +244,7 @@ export function Screen({
   style,
 }: {
   children: ReactNode
-  bg?: string
+  bg?: ColorValue
   edges?: ('top' | 'bottom')[]
   style?: StyleProp<ViewStyle>
 }) {
@@ -314,7 +311,7 @@ export function Header({
 }
 
 /** A small black status chip, like "Settled" or "Frozen". */
-export function Chip({ label, dot, icon }: { label: string; dot?: string; icon?: IconName }) {
+export function Chip({ label, dot, icon }: { label: string; dot?: ColorValue; icon?: IconName }) {
   return (
     <View style={styles.chip}>
       {dot ? <View style={[styles.chipDot, { backgroundColor: dot }]} /> : null}
@@ -378,7 +375,7 @@ const styles = StyleSheet.create({
     height: 28,
     paddingHorizontal: 10,
     borderRadius: 14,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,

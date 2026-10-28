@@ -1,13 +1,8 @@
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated'
+import { type ColorValue, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { SpendingCategory } from '@/lib/api'
 import { categoryInfo, useSpendingCategories } from '@/lib/categories'
@@ -15,6 +10,7 @@ import { formatUsd } from '@/lib/money'
 import { useOffline } from '@/lib/offline'
 import { colors } from '@/lib/theme'
 import { type Entry, useWallet } from '@/lib/wallet'
+import Animated from '@/ui/animated'
 import { Kovi } from '@/ui/art'
 import { dockClearance } from '@/ui/Dock'
 import { EntryRow } from '@/ui/EntryRow'
@@ -361,7 +357,7 @@ function Legend({
   value,
   align,
 }: {
-  color: string
+  color: ColorValue
   label: string
   value: string
   align?: 'right'
@@ -412,7 +408,7 @@ function FilterSwitch({ value, onChange }: { value: Filter; onChange: (f: Filter
             }}
             style={styles.filterItem}
           >
-            <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
+            <Txt weight="semi" size={14} color={on ? colors.onChosen : colors.ink}>
               {f.label}
             </Txt>
           </Pressable>
@@ -430,13 +426,13 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  month: { marginTop: 16, borderRadius: 28, backgroundColor: colors.ink, padding: 18 },
+  month: { marginTop: 16, borderRadius: 28, backgroundColor: colors.fill, padding: 18 },
   split: {
     flexDirection: 'row',
     height: 12,
@@ -465,7 +461,7 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     padding: 3,
@@ -476,7 +472,7 @@ const styles = StyleSheet.create({
     top: 3,
     bottom: 3,
     borderRadius: 17,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.chosen,
   },
   filterItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   dayHead: {
@@ -488,7 +484,7 @@ const styles = StyleSheet.create({
   day: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
   },
@@ -499,7 +495,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 14,
     paddingBottom: 8,
@@ -526,7 +522,7 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 21,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',

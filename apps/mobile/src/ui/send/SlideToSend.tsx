@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import Animated, {
+import {
   Easing,
   interpolate,
   useAnimatedStyle,
@@ -16,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 import { colors } from '@/lib/theme'
+import Animated from '@/ui/animated'
 import { Icon } from '../Icon'
 import { Txt } from '../primitives'
 
@@ -174,7 +175,7 @@ const styles = StyleSheet.create({
   track: {
     height: HEIGHT,
     borderRadius: HEIGHT / 2,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     justifyContent: 'center',
     overflow: 'hidden',
   },

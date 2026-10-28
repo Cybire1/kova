@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     overflow: 'hidden',
   },
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
   best: {
     position: 'absolute',
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: colors.coral,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
   score: {
     height: 22,

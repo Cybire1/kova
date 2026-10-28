@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics'
 import { useEffect, useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
 import { day, nights, today } from '@/lib/travel'
 import { PillButton, Txt } from '../primitives'
 import { Sheet } from './Sheet'
@@ -116,9 +116,9 @@ export function DateSheet({
                   onOneWay(o.v)
                   if (o.v) setB(null)
                 }}
-                style={[styles.toggleItem, single === o.v && { backgroundColor: colors.ink }]}
+                style={[styles.toggleItem, single === o.v && { backgroundColor: colors.chosen }]}
               >
-                <Txt weight="semi" size={13} color={single === o.v ? colors.white : colors.ink}>
+                <Txt weight="semi" size={13} color={single === o.v ? colors.onChosen : colors.ink}>
                   {o.label}
                 </Txt>
               </Pressable>
@@ -167,7 +167,9 @@ export function DateSheet({
                       <Txt
                         weight={edge ? 'bold' : 'medium'}
                         size={15}
-                        color={edge ? colors.white : past ? '#B9B6AF' : colors.ink}
+                        color={
+                          edge ? colors.onChosen : past ? pair('#B9B6AF', '#4A4744') : colors.ink
+                        }
                       >
                         {i + 1}
                       </Txt>
@@ -197,7 +199,7 @@ const styles = StyleSheet.create({
     gap: 2,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   toggleItem: { height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: 'center' },
@@ -229,5 +231,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dayOn: { backgroundColor: colors.ink },
+  dayOn: { backgroundColor: colors.chosen },
 })

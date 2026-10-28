@@ -4,7 +4,7 @@ import { router } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useRef, useState } from 'react'
 import { Pressable, StyleSheet, Switch, View } from 'react-native'
-import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated'
+import { FadeIn, LinearTransition } from 'react-native-reanimated'
 import { explorerTx } from '@/lib/chain'
 import { formatUsd } from '@/lib/money'
 import { type Route, type SpendProgress, usePrivate } from '@/lib/private'
@@ -12,6 +12,7 @@ import type { PrivateReceipt } from '@/lib/private-core'
 import { type MoveProgress, shortAddress } from '@/lib/takings-core'
 import { colors } from '@/lib/theme'
 import { isUnnamed, useWallet } from '@/lib/wallet'
+import Animated from '@/ui/animated'
 import { Avatar } from './art'
 import { PrivateAvatar, when } from './EntryRow'
 import { Icon } from './Icon'
@@ -217,14 +218,14 @@ function PayFrom({
           <Icon
             name={key === 'private' ? 'lock' : 'home'}
             size={14}
-            color={on ? colors.white : colors.ink}
+            color={on ? colors.onChosen : colors.ink}
             strokeWidth={2.4}
           />
-          <Txt weight="semi" size={13} color={on ? colors.white : colors.ink}>
+          <Txt weight="semi" size={13} color={on ? colors.onChosen : colors.ink}>
             {label}
           </Txt>
         </View>
-        <Txt weight="bold" size={16} color={on ? colors.white : colors.ink} numberOfLines={1}>
+        <Txt weight="bold" size={16} color={on ? colors.onChosen : colors.ink} numberOfLines={1}>
           {value}
         </Txt>
       </Pressable>
@@ -674,10 +675,10 @@ export function SendPrivately({
       style={[styles.send, on && styles.sendOn]}
     >
       <View style={[styles.sendLock, { backgroundColor: on ? colors.coral : colors.sunken }]}>
-        <Icon name="lock" size={16} color={on ? colors.white : colors.ink} strokeWidth={2.4} />
+        <Icon name="lock" size={16} color={on ? colors.onChosen : colors.ink} strokeWidth={2.4} />
       </View>
       <View style={{ flex: 1 }}>
-        <Txt weight="semi" size={15} color={on ? colors.white : colors.ink}>
+        <Txt weight="semi" size={15} color={on ? colors.onChosen : colors.ink}>
           Send privately
         </Txt>
         <Txt size={12} color={on ? colors.onInk : colors.muted} style={{ lineHeight: 16 }}>
@@ -755,7 +756,7 @@ export function SentPrivately({
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 28, backgroundColor: colors.ink, padding: 18, overflow: 'hidden' },
+  card: { borderRadius: 28, backgroundColor: colors.fill, padding: 18, overflow: 'hidden' },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   lockDisc: {
     width: 32,
@@ -821,13 +822,13 @@ const styles = StyleSheet.create({
   flow: { flexDirection: 'row', alignItems: 'flex-start' },
   flowEnd: { alignItems: 'center', gap: 5, width: 84 },
   flowMiddle: { alignItems: 'center', gap: 5, paddingTop: 6 },
-  flowLine: { flex: 1, height: 2, marginTop: 20, backgroundColor: colors.ink, minWidth: 8 },
+  flowLine: { flex: 1, height: 2, marginTop: 20, backgroundColor: colors.fill, minWidth: 8 },
   flowYou: {
     width: 40,
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.teal,
     alignItems: 'center',
     justifyContent: 'center',
@@ -835,7 +836,7 @@ const styles = StyleSheet.create({
   receiving: {
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 14,
   },
@@ -850,7 +851,7 @@ const styles = StyleSheet.create({
   offer: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 12,
     gap: 10,
@@ -860,7 +861,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -870,13 +871,13 @@ const styles = StyleSheet.create({
     gap: 12,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingVertical: 10,
     paddingLeft: 12,
     paddingRight: 10,
   },
-  sendOn: { backgroundColor: colors.ink },
+  sendOn: { backgroundColor: colors.chosen },
   sendLock: {
     width: 34,
     height: 34,
@@ -888,7 +889,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 14,
   },
@@ -900,14 +901,14 @@ const styles = StyleSheet.create({
     height: 26,
     paddingHorizontal: 10,
     borderRadius: 13,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
   },
   sentLink: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
   announced: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   payFrom: {
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 12,
     marginTop: 8,
@@ -942,12 +943,12 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.paper,
     paddingVertical: 8,
     paddingHorizontal: 10,
     gap: 2,
   },
-  optionOn: { backgroundColor: colors.ink },
+  optionOn: { backgroundColor: colors.chosen },
   optionTop: { flexDirection: 'row', alignItems: 'center', gap: 5 },
 })

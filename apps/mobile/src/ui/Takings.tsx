@@ -1,13 +1,14 @@
 import * as Haptics from 'expo-haptics'
 import * as WebBrowser from 'expo-web-browser'
 import { ActivityIndicator, Pressable, Share, StyleSheet, View } from 'react-native'
-import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated'
+import { FadeIn, LinearTransition } from 'react-native-reanimated'
 import { isAddressEqual } from 'viem'
 import { formatUsd } from '@/lib/money'
 import { useTakings } from '@/lib/takings'
 import { type MoveProgress, type PrivateSale, shortAddress } from '@/lib/takings-core'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import Animated from '@/ui/animated'
 import { Kovi } from './art'
 import { when } from './EntryRow'
 import { Icon } from './Icon'
@@ -551,9 +552,9 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   chipInk: { borderColor: 'rgba(255,255,255,0.28)' },
-  chipPaper: { borderColor: colors.ink, backgroundColor: colors.surface },
+  chipPaper: { borderColor: colors.line, backgroundColor: colors.surface },
   chipPending: { borderStyle: 'dashed' },
-  card: { borderRadius: 28, backgroundColor: colors.ink, padding: 18, overflow: 'hidden' },
+  card: { borderRadius: 28, backgroundColor: colors.fill, padding: 18, overflow: 'hidden' },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   lockDisc: {
     width: 32,
@@ -627,7 +628,7 @@ const styles = StyleSheet.create({
   invite: {
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 16,
     paddingBottom: 14,
@@ -639,7 +640,7 @@ const styles = StyleSheet.create({
     height: 42,
     paddingHorizontal: 18,
     borderRadius: 21,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -657,7 +658,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -665,7 +666,7 @@ const styles = StyleSheet.create({
   books: {
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 14,
   },
@@ -695,28 +696,28 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: colors.coralSoft,
     borderWidth: 1.5,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
   },
-  flowDash: { width: 10, height: 2, backgroundColor: colors.ink },
-  flowReach: { flex: 1, minWidth: 8, height: 2, backgroundColor: colors.ink },
+  flowDash: { width: 10, height: 2, backgroundColor: colors.fill },
+  flowReach: { flex: 1, minWidth: 8, height: 2, backgroundColor: colors.fill },
   bracket: {
     width: 2,
     alignSelf: 'stretch',
     marginVertical: 13,
     borderRadius: 1,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
   },
-  flowArrow: { width: 14, height: 2, backgroundColor: colors.ink },
+  flowArrow: { width: 14, height: 2, backgroundColor: colors.fill },
   flowWallet: {
     width: 68,
     height: 64,
     borderRadius: 18,
     backgroundColor: colors.teal,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,

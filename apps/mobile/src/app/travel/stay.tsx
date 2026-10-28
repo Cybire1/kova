@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     gap: 4,
   },
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     height: 38,
     paddingHorizontal: 18,
     borderRadius: 19,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     justifyContent: 'center',
   },
 })

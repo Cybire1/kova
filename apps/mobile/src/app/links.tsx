@@ -4,6 +4,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react
 import {
   ActivityIndicator,
   Alert,
+  type ColorValue,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -11,7 +12,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native'
-import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated'
+import { FadeIn, LinearTransition } from 'react-native-reanimated'
 import type { Hex } from 'viem'
 import { linksFrom, type PaymentLink, recordLink } from '@/lib/chain'
 import { formatUsd, toBase } from '@/lib/money'
@@ -26,6 +27,7 @@ import {
 } from '@/lib/paylinks'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import Animated from '@/ui/animated'
 import { Kovi } from '@/ui/art'
 import { Icon, type IconName } from '@/ui/Icon'
 import { EnvelopeBadge } from '@/ui/LinkParts'
@@ -386,7 +388,7 @@ function LinkCard({
   )
 }
 
-function Status({ label, fill }: { label: string; fill: string }) {
+function Status({ label, fill }: { label: string; fill: ColorValue }) {
   return (
     <View style={[styles.status, { backgroundColor: fill }]}>
       <Txt weight="semi" size={12}>
@@ -396,7 +398,7 @@ function Status({ label, fill }: { label: string; fill: string }) {
   )
 }
 
-function Stat({ dot, label }: { dot: string; label: string }) {
+function Stat({ dot, label }: { dot: ColorValue; label: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: dot }} />
@@ -441,7 +443,7 @@ function SmallButton({
 const styles = StyleSheet.create({
   loading: { paddingTop: 80, alignItems: 'center' },
   empty: { alignItems: 'center', paddingTop: 40, paddingHorizontal: 8 },
-  summary: { marginTop: 10, borderRadius: 28, backgroundColor: colors.ink, padding: 18, gap: 2 },
+  summary: { marginTop: 10, borderRadius: 28, backgroundColor: colors.fill, padding: 18, gap: 2 },
   summaryRow: { flexDirection: 'row', gap: 16, marginTop: 8 },
   problem: {
     flexDirection: 'row',
@@ -457,7 +459,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: 12,
   },
@@ -475,7 +477,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

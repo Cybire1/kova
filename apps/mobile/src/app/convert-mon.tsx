@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     gap: 14,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   inputRow: {
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 18,
     paddingHorizontal: 16,
     marginVertical: 10,

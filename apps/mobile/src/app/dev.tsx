@@ -34,7 +34,7 @@ import { stashWallet, unstashWallet } from '@/lib/dev-slots'
 import type { DisplayCurrency } from '@/lib/money'
 import { useOffline } from '@/lib/offline'
 import { clearOffline } from '@/lib/offline-store'
-import { type Mode, usePrefs } from '@/lib/prefs'
+import { type Look, type Mode, usePrefs } from '@/lib/prefs'
 import { explainedKey, usePrivate } from '@/lib/private'
 import { publishReceivingKey } from '@/lib/private-core'
 import {
@@ -200,7 +200,10 @@ export default function Dev() {
     fake?: string
     fund?: string
     mode?: string
+    /** Appearance: system, light or dark, as You sets it. */
+    theme?: string
     to?: string
+    /** A screen to open over `to`, or `receipt` for the newest receipt. */
     then?: string
     reset?: string
     pay?: string
@@ -255,6 +258,8 @@ export default function Dev() {
     key?: string
   }>()
   const wallet = useWallet()
+  const walletRef = useRef(wallet)
+  walletRef.current = wallet
   const prefs = usePrefs()
   const terminal = useTerminal()
   const stall = useStall()
@@ -326,6 +331,7 @@ export default function Dev() {
           return router.replace((params.to as never) || '/')
         }
         if (params.mode) prefs.setMode(params.mode as Mode)
+        if (params.theme) prefs.setLook(params.theme as Look)
         if (params.name && wallet.status === 'none') {
           if (progress.current.created) return
           progress.current.created = true
@@ -654,8 +660,14 @@ export default function Dev() {
           return router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })
         }
         router.replace((params.to as never) || '/')
-        // A screen to open over that one, e.g. `then=/send` for the send sheet over Home.
-        if (params.then) setTimeout(() => router.push(params.then as never), 600)
+        // A screen to open over that one, e.g. `then=/send` for the send sheet over Home;
+        // `then=receipt` opens the newest receipt.
+        if (params.then)
+          setTimeout(() => {
+            const newest = walletRef.current.activity[0]
+            if (params.then !== 'receipt') router.push(params.then as never)
+            else if (newest) router.push({ pathname: '/receipt/[id]', params: { id: newest.id } })
+          }, 1500)
         // On the screen it was asked from, so it shows the move as it happens.
         if (params.movein)
           setTimeout(() => {

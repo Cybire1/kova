@@ -5,7 +5,7 @@
     "scheme": "kova",
     "version": "0.1.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#E7E5E0",
     "newArchEnabled": true,
     "ios": {
@@ -84,7 +84,11 @@
           "image": "./assets/brand/splash-mark.png",
           "imageWidth": 150,
           "resizeMode": "contain",
-          "backgroundColor": "#E7E5E0"
+          "backgroundColor": "#E7E5E0",
+          "dark": {
+            "image": "./assets/brand/splash-mark-dark.png",
+            "backgroundColor": "#000000"
+          }
         }
       ]
     ],

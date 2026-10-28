@@ -8,11 +8,11 @@ import {
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { useMemo, useState } from 'react'
-import { type LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native'
+import { type ColorValue, type LayoutChangeEvent, Pressable, StyleSheet, View } from 'react-native'
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg'
 import { usePrefs } from '@/lib/prefs'
 import { stockUsd, useStockHoldings } from '@/lib/stocks'
-import { colors } from '@/lib/theme'
+import { colors, inkAt, pair } from '@/lib/theme'
 import { Icon } from './Icon'
 import { Txt } from './primitives'
 
@@ -28,12 +28,12 @@ export function StockLogo({
   uri,
   size = 42,
   round,
-  outline = colors.ink,
+  outline = colors.line,
 }: {
   uri: string
   size?: number
   round?: boolean
-  outline?: string | null
+  outline?: ColorValue | null
 }) {
   return (
     <Image
@@ -59,15 +59,15 @@ export function ShareRing({
   logo,
   size = 52,
   stroke = 6,
-  track = 'rgba(11,26,29,0.12)',
+  track = inkAt(0.12),
   fill = colors.coral,
 }: {
   shares: number
   logo?: string
   size?: number
   stroke?: number
-  track?: string
-  fill?: string
+  track?: ColorValue
+  fill?: ColorValue
 }) {
   const r = (size - stroke) / 2
   const length = 2 * Math.PI * r
@@ -200,7 +200,7 @@ export function PriceChart({
             x2={width}
             y1={shape.open}
             y2={shape.open}
-            stroke="#B9B7B2"
+            stroke={pair('#B9B7B2', '#3A3A3A')}
             strokeWidth={1}
             strokeDasharray="3 5"
           />
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 14,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   stack: { flexDirection: 'row' },
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.tealSoft,
     padding: 14,
     gap: 12,
@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     alignItems: 'center',
     justifyContent: 'center',
   },

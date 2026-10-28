@@ -217,7 +217,7 @@ export default function Book() {
                       <Txt
                         weight="semi"
                         size={13}
-                        color={p.title === t.id ? colors.white : colors.ink}
+                        color={p.title === t.id ? colors.onChosen : colors.ink}
                       >
                         {t.label}
                       </Txt>
@@ -273,7 +273,7 @@ export default function Book() {
                         <Txt
                           weight="semi"
                           size={14}
-                          color={p.gender === g.id ? colors.white : colors.ink}
+                          color={p.gender === g.id ? colors.onChosen : colors.ink}
                         >
                           {g.label}
                         </Txt>
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     gap: 10,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -534,17 +534,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     justifyContent: 'center',
   },
-  chipOn: { backgroundColor: colors.ink },
+  chipOn: { backgroundColor: colors.chosen },
   gender: { flex: 1, alignItems: 'center', height: 44 },
   twoCol: { flexDirection: 'row', gap: 8 },
   input: {
     height: 44,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.paper,
     paddingHorizontal: 14,
     fontFamily: fonts.medium,
@@ -558,10 +558,10 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
-  choiceOn: { backgroundColor: colors.white, borderWidth: 3 },
+  choiceOn: { backgroundColor: colors.raised, borderWidth: 3 },
   choiceIcon: {
     width: 40,
     height: 40,
@@ -575,12 +575,12 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioOn: { borderColor: colors.ink },
-  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.ink },
+  radioOn: { borderColor: colors.line },
+  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.fill },
   friend: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 44 },
   friendRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   addFriend: {
@@ -601,6 +601,6 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     backgroundColor: colors.paper,
     borderTopWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
 })

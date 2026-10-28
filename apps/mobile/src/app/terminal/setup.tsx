@@ -13,7 +13,7 @@ import {
 import { usePrefs } from '@/lib/prefs'
 import { useStall } from '@/lib/stall'
 import { useTerminal } from '@/lib/terminal'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, inkAt } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Kovi, ShopBadge } from '@/ui/art'
 import { Icon, type IconName } from '@/ui/Icon'
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.tealSoft,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     marginTop: 28,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 16,
   },
@@ -328,12 +328,12 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: 'rgba(11,26,29,0.18)',
+    borderColor: inkAt(0.18),
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  boxFilled: { borderColor: colors.ink },
+  boxFilled: { borderColor: colors.line },
   boxActive: { borderColor: colors.coral },
   hidden: { position: 'absolute', opacity: 0, height: 1, width: 1 },
   scan: {
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     height: 44,
     paddingHorizontal: 16,
     borderRadius: 22,
-    backgroundColor: 'rgba(11,26,29,0.07)',
+    backgroundColor: colors.wash,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 22,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     paddingHorizontal: 18,
     fontFamily: fonts.medium,

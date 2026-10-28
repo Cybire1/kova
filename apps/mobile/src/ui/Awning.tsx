@@ -1,8 +1,11 @@
 import Svg, { G, Path, Rect } from 'react-native-svg'
-import { colors } from '@/lib/theme'
+import { colors, pair } from '@/lib/theme'
 
-/** The awning's light stripe: a shade warmer than white, like canvas. */
-export const canvas = '#F8F7F3'
+/** The awning's light stripe: a shade warmer than white, like canvas. In the dark the awning keeps
+ * its stripes, quietened (as on mykova.app). */
+export const canvas = pair('#F8F7F3', '#242424')
+const coralStripe = pair('#D46558', '#5C2B25')
+const tealStripe = pair('#46878B', '#1F3A3C')
 
 /**
  * A market stall's awning: coral and canvas stripes with a scalloped edge, outlined in ink like
@@ -22,7 +25,7 @@ export function Awning({
   stripe?: number
   tone?: 'coral' | 'teal'
 }) {
-  const fill = tone === 'coral' ? colors.coral : colors.teal
+  const fill = tone === 'coral' ? coralStripe : tealStripe
   const r = stripe / 2
   // Leave room under the scallops for their outline.
   const edge = height - r - 1.5
@@ -38,14 +41,14 @@ export function Awning({
             <Path
               d={`M${x} ${edge} A${r} ${r} 0 0 0 ${x + stripe} ${edge} Z`}
               fill={color}
-              stroke={colors.ink}
+              stroke={colors.line}
               strokeWidth={2}
               strokeLinejoin="round"
             />
           </G>
         )
       })}
-      <Rect x={0} y={0} width={width} height={2} fill={colors.ink} />
+      <Rect x={0} y={0} width={width} height={2} fill={colors.line} />
     </Svg>
   )
 }

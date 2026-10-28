@@ -2,7 +2,7 @@ import { parseAmount } from '@kova/monad'
 import * as Haptics from 'expo-haptics'
 import * as WebBrowser from 'expo-web-browser'
 import { useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { type ColorValue, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { webUrl } from '@/lib/config'
 import { formatUsd } from '@/lib/money'
 import {
@@ -12,7 +12,7 @@ import {
   revealDollarCard,
   setDollarCard,
 } from '@/lib/partners'
-import { colors } from '@/lib/theme'
+import { colors, inkAt } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon, type IconName } from '@/ui/Icon'
 import { NotYet, problemOf, SandboxNote, useMoney } from '@/ui/Money'
@@ -104,7 +104,7 @@ export default function DollarCardScreen() {
             {data.sandbox ? <SandboxNote text="Card sandbox: a test card, no money moves" /> : null}
             <View style={[styles.card, card.frozen && styles.cardFrozen]}>
               <View style={styles.cardTop}>
-                <Txt weight="bold" size={24} color={colors.surface} style={{ letterSpacing: -0.8 }}>
+                <Txt weight="bold" size={24} color={colors.onFill} style={{ letterSpacing: -0.8 }}>
                   kova
                 </Txt>
                 {card.frozen ? (
@@ -119,7 +119,7 @@ export default function DollarCardScreen() {
                   </Txt>
                 )}
               </View>
-              <Txt weight="semi" size={20} color={colors.surface} style={{ letterSpacing: 1.6 }}>
+              <Txt weight="semi" size={20} color={colors.onFill} style={{ letterSpacing: 1.6 }}>
                 •••• •••• •••• {card.last_four}
               </Txt>
               <View style={styles.cardTop}>
@@ -197,7 +197,7 @@ export default function DollarCardScreen() {
                     }
                     style={[styles.limit, on && styles.limitOn]}
                   >
-                    <Txt weight="semi" size={15} color={on ? colors.surface : colors.ink}>
+                    <Txt weight="semi" size={15} color={on ? colors.onChosen : colors.ink}>
                       ${dollars.toLocaleString('en-US')}
                     </Txt>
                   </Pressable>
@@ -252,7 +252,7 @@ function Action({
   label: string
   onPress: () => void
   disabled?: boolean
-  fill?: string
+  fill?: ColorValue
 }) {
   return (
     <Pressable
@@ -279,9 +279,9 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: 'space-between',
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 24,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
   },
   cardFrozen: { backgroundColor: '#3E4C4F' },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 20,
   },
   section: { marginTop: 22, marginBottom: 8, marginLeft: 4 },
@@ -311,18 +311,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 999,
     backgroundColor: colors.surface,
   },
-  limitOn: { backgroundColor: colors.ink },
+  limitOn: { backgroundColor: colors.chosen },
   list: {
     paddingHorizontal: 16,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     borderRadius: 22,
     backgroundColor: colors.surface,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-  rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: 'rgba(11,26,29,0.18)' },
+  rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: inkAt(0.18) },
 })

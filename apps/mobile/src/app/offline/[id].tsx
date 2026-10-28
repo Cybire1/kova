@@ -3,12 +3,13 @@ import * as Haptics from 'expo-haptics'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useRef } from 'react'
 import { Share, StyleSheet, useWindowDimensions, View } from 'react-native'
-import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated'
+import { FadeIn, ZoomIn } from 'react-native-reanimated'
 import { shareWebUrl } from '@/lib/config'
 import { baseToNumber, formatLocal, formatUsd } from '@/lib/money'
 import { type OfflineItem, useOffline, useOfflineName } from '@/lib/offline'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import Animated from '@/ui/animated'
 import { CodeCard } from '@/ui/CodeCard'
 import { Icon } from '@/ui/Icon'
 import { Burst, CoinRain, PopIn } from '@/ui/motion'
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
     height: 64,
     paddingHorizontal: 22,
     borderRadius: 32,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     transform: [{ rotate: '-8deg' }],
   },
   amount: { letterSpacing: -1.5, marginTop: 14 },
@@ -278,7 +279,7 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     backgroundColor: colors.surface,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     justifyContent: 'center',
   },
   bubbleTail: {
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRightWidth: 2,
     borderBottomWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     transform: [{ rotate: '45deg' }],
   },
   copy: { alignItems: 'center', paddingHorizontal: 24 },

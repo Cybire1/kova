@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
-import { FlatList, Pressable, StyleSheet, View } from 'react-native'
+import { type ColorValue, FlatList, Pressable, StyleSheet, View } from 'react-native'
 import { type FlightOffer, type FlightSearch, type Slice, searchFlights } from '@/lib/api'
 import { formatLocal } from '@/lib/money'
 import { colors } from '@/lib/theme'
@@ -182,7 +182,7 @@ function Chip({
       style={[styles.chip, on && styles.chipOn, icon && !on && { borderColor: colors.coral }]}
     >
       {icon ? <Icon name="sparkle" size={14} color={on ? colors.white : colors.coralDeep} /> : null}
-      <Txt weight="semi" size={14} color={on ? colors.white : colors.ink}>
+      <Txt weight="semi" size={14} color={on ? colors.onChosen : colors.ink}>
         {label}
       </Txt>
     </Pressable>
@@ -302,7 +302,7 @@ export function SliceLine({ slice }: { slice: Slice }) {
   )
 }
 
-function Tag({ label, tone, light }: { label: string; tone: string; light?: boolean }) {
+function Tag({ label, tone, light }: { label: string; tone: ColorValue; light?: boolean }) {
   return (
     <View style={[styles.tag, { backgroundColor: tone }]}>
       <Txt weight="semi" size={12} color={light ? colors.white : colors.ink}>
@@ -323,24 +323,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 19,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
   },
-  chipOn: { backgroundColor: colors.ink, borderColor: colors.ink },
+  chipOn: { backgroundColor: colors.chosen, borderColor: colors.line },
   card: {
     padding: 14,
     gap: 12,
     borderRadius: 26,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
-  cardBest: { borderColor: colors.coral, borderWidth: 3, backgroundColor: colors.white },
+  cardBest: { borderColor: colors.coral, borderWidth: 3, backgroundColor: colors.raised },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logo: {
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: colors.white,
+    backgroundColor: colors.raised,
     borderWidth: 1,
     borderColor: colors.sunken,
     alignItems: 'center',
@@ -349,8 +349,8 @@ const styles = StyleSheet.create({
   slice: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   track: { flex: 1, alignItems: 'center', gap: 3 },
   trackLine: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', gap: 4 },
-  trackDot: { width: 7, height: 7, borderRadius: 4, borderWidth: 2, borderColor: colors.ink },
-  trackRule: { flex: 1, height: 2, borderRadius: 1, backgroundColor: colors.ink },
+  trackDot: { width: 7, height: 7, borderRadius: 4, borderWidth: 2, borderColor: colors.line },
+  trackRule: { flex: 1, height: 2, borderRadius: 1, backgroundColor: colors.fill },
   stopDot: {
     position: 'absolute',
     width: 9,

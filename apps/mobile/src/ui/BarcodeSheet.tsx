@@ -118,7 +118,7 @@ export function BarcodeSheet({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.ink },
+  screen: { flex: 1, backgroundColor: colors.fill },
   top: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     paddingRight: 6,
     borderRadius: 25,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
   input: { flex: 1, fontFamily: fonts.semi, fontSize: 17, color: colors.ink, letterSpacing: 1 },
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     height: 42,
     paddingHorizontal: 18,
     borderRadius: 21,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.fill,
     justifyContent: 'center',
   },
 })

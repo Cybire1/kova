@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Share, StyleSheet, TextInput, View } from 'react-native'
 import { personLink } from '@/lib/links'
 import { applyKey, groupTyped } from '@/lib/money'
-import { colors, fonts } from '@/lib/theme'
+import { colors, fonts, pair } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { CodeCard } from '@/ui/CodeCard'
 import { Keypad } from '@/ui/Keypad'
@@ -69,7 +69,7 @@ export default function Request() {
         <Txt
           weight="semi"
           size={72}
-          style={[{ letterSpacing: -2.5 }, typed === '' && { color: '#B4B9B8' }]}
+          style={[{ letterSpacing: -2.5 }, typed === '' && { color: pair('#B4B9B8', '#4A4744') }]}
           numberOfLines={1}
           adjustsFontSizeToFit
         >

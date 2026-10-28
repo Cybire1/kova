@@ -44,7 +44,7 @@ export function ShopRail({ state, navigation }: BottomTabBarProps) {
           if (!route) return null
           const focused = state.index === index
           const count = item.name === 'orders' ? toHand.length : 0
-          const color = focused ? colors.ink : colors.onInk
+          const color = focused ? colors.dark : colors.onInk
           return (
             <Pressable
               key={route.key}
@@ -102,7 +102,7 @@ export function ShopRail({ state, navigation }: BottomTabBarProps) {
 }
 
 const styles = StyleSheet.create({
-  rail: { width: RAIL, backgroundColor: colors.ink, alignItems: 'center', paddingHorizontal: 12 },
+  rail: { width: RAIL, backgroundColor: colors.fill, alignItems: 'center', paddingHorizontal: 12 },
   mark: {
     width: 56,
     height: 56,
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
   },
-  itemOn: { backgroundColor: colors.surface },
+  itemOn: { backgroundColor: colors.onFill },
   count: {
     position: 'absolute',
     top: 6,
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     backgroundColor: colors.coral,
     borderWidth: 2,
-    borderColor: colors.ink,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
