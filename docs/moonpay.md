@@ -18,10 +18,12 @@ Apple Pay or bank payment, checks the buyer, and pays out.
 ## Turning it on
 
 1. Make a MoonPay account at dashboard.moonpay.com and copy the keys from Developers.
-2. In Railway, on the API service (monad-mainnet): `MOONPAY_PUBLISHABLE_KEY` and `MOONPAY_SECRET_KEY`.
-   `pk_test_`/`sk_test_` open MoonPay's sandbox (USDC on Base has no test mode, so the sandbox
-   checks the widget and signing only); `pk_live_`/`sk_live_` are real purchases.
-3. Deploy the API. Card or bank opens MoonPay at once.
+2. In Railway, `MOONPAY_PUBLISHABLE_KEY` and `MOONPAY_SECRET_KEY` on an API service:
+   - test keys (`pk_test_`/`sk_test_`) on **monad → api** (testnet, web-monad.up.railway.app): MoonPay's
+     sandbox, paying the test wallet itself in its test USDC (it has no USDC on Base);
+   - live keys (`pk_live_`/`sk_live_`) on **monad-mainnet → api** (mykova.app): real purchases, through
+     the Base route. Each kind opens only on its own network.
+3. Deploy (or restart) that API. Card or bank opens MoonPay at once.
 
 ## Going live with MoonPay
 
