@@ -7,6 +7,9 @@
  * `fit`, the width it is drawn for, and then the awning scales with the page instead, so a poster
  * previewed on a phone is the poster, smaller.
  */
+const PAPER = 'var(--awning-paper, #f8f7f3)'
+const LINE = 'var(--awning-line, #0b1a1d)'
+
 export function Awning({
   height = 56,
   stripe = 24,
@@ -20,7 +23,7 @@ export function Awning({
   tone?: 'coral' | 'teal'
   fit?: number
 }) {
-  const fill = tone === 'coral' ? '#d46558' : '#46878b'
+  const fill = tone === 'coral' ? 'var(--awning-coral, #d46558)' : 'var(--awning-teal, #46878b)'
   const id = `awning-${tone}-${stripe}-${height}${fit ? `-${fit}` : ''}`
   const r = stripe / 2
   const edge = height - r
@@ -36,26 +39,24 @@ export function Awning({
     >
       <defs>
         <pattern id={id} width={stripe * 2} height={height} patternUnits="userSpaceOnUse">
-          <rect x="0" y="0" width={stripe} height={edge} fill={fill} />
-          <rect x={stripe} y="0" width={stripe} height={edge} fill="#f8f7f3" />
+          <rect x="0" y="0" width={stripe} height={edge} style={{ fill }} />
+          <rect x={stripe} y="0" width={stripe} height={edge} style={{ fill: PAPER }} />
           <path
             d={`M0 ${edge} A${r} ${r} 0 0 0 ${stripe} ${edge} Z`}
-            fill={fill}
-            stroke="#0b1a1d"
+            style={{ fill, stroke: LINE }}
             strokeWidth="2"
             strokeLinejoin="round"
           />
           <path
             d={`M${stripe} ${edge} A${r} ${r} 0 0 0 ${stripe * 2} ${edge} Z`}
-            fill="#f8f7f3"
-            stroke="#0b1a1d"
+            style={{ fill: PAPER, stroke: LINE }}
             strokeWidth="2"
             strokeLinejoin="round"
           />
         </pattern>
       </defs>
       <rect x="0" y="0" width={width} height={height} fill={`url(#${id})`} />
-      <rect x="0" y="0" width={width} height="2" fill="#0b1a1d" />
+      <rect x="0" y="0" width={width} height="2" style={{ fill: LINE }} />
     </svg>
   )
 }

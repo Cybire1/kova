@@ -152,7 +152,7 @@
   flex: none;
   width: 0.625rem;
   height: 0.625rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: var(--net-testnet);
 }
@@ -189,7 +189,7 @@
   container-type: inline-size;
   margin-top: 0.375rem;
   padding: 1rem 1.125rem 1.125rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--teal);
   color: #fff;
@@ -253,7 +253,7 @@
   align-items: center;
   height: 1.875rem;
   padding: 0 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--coral-soft);
   color: var(--ink);
@@ -368,7 +368,7 @@
   min-width: 0;
   container-type: inline-size;
   padding: 0.875rem 0.875rem 0.8125rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
 }
@@ -386,7 +386,7 @@
   place-items: center;
   width: 2rem;
   height: 2rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: var(--coral-soft);
 }
@@ -464,7 +464,7 @@
 .gr-chart {
   min-width: 0;
   padding: 1rem 1rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
 }
@@ -539,7 +539,7 @@
 .gr-fill {
   display: block;
   max-height: 84%;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 0.5rem;
   background: var(--bar);
   transform-origin: bottom;
@@ -596,7 +596,7 @@
   gap: 0.05rem;
   padding: 0.4rem 0.65rem;
   border-radius: 0.8rem;
-  background: var(--ink);
+  background: var(--fill);
   color: #e6eeee;
   font-size: 0.75rem;
   font-weight: 600;
@@ -652,7 +652,7 @@
 .gr-sources {
   min-width: 0;
   padding: 1rem 1rem 0.375rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
 }
@@ -744,7 +744,7 @@
   position: relative;
   margin-top: 3.25rem;
   padding: 2.25rem 1.25rem 1.375rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.75rem;
   background: var(--coral-soft);
   text-align: center;
@@ -1012,7 +1012,7 @@
   gap: 0.75rem;
   margin-top: 1.125rem;
   padding: 0.75rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
   text-align: left;
@@ -1049,7 +1049,7 @@
 
 .gr-progress span {
   height: 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--paper);
   transition: background-color 0.5s var(--spring);
@@ -1078,7 +1078,7 @@
   align-items: center;
   gap: 0 0.75rem;
   padding: 0.875rem 0.875rem 0.875rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: transparent;
   transition:
@@ -1106,7 +1106,7 @@
   place-items: center;
   width: 2.25rem;
   height: 2.25rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: var(--surface);
   font-size: 0.9375rem;
@@ -1233,7 +1233,7 @@
 .gr-shop {
   position: relative;
   margin-top: 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
   overflow: hidden;
@@ -1288,7 +1288,7 @@
   width: 2.375rem;
   height: 2.375rem;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   transition: transform 0.4s var(--spring);
 }
@@ -1347,7 +1347,7 @@
 
 .gr-main-card {
   padding: 1rem 1rem 0.5rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
 }

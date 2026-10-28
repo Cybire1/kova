@@ -16,6 +16,12 @@
   color: var(--ink);
 }
 
+:root[data-theme="dark"] .w-app {
+  --teal-light: #232323;
+  --on-tint: #e0ddd6;
+  --on-teal: #dcebea;
+}
+
 /* On a phone the wallet is drawn at the app's density: 15 px text, 48 px pills. */
 @media (max-width: 640px) {
   .w-app,
@@ -75,7 +81,7 @@
   min-width: 0;
   max-width: 100%;
   padding: 3px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
 }
@@ -115,7 +121,7 @@
 }
 
 .w-switch .w-switch-on {
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -230,7 +236,7 @@
   height: var(--dock-h);
   padding: 0 0.375rem;
   border-radius: 999px;
-  background: var(--ink);
+  background: var(--fill);
   box-shadow: 0 14px 30px -16px rgba(11, 26, 29, 0.6);
   transform: translateX(-50%);
 }
@@ -300,7 +306,7 @@
   padding: 0 1.125rem 0 0.875rem;
   border-radius: 999px;
   background: var(--coral);
-  color: var(--ink);
+  color: var(--dark);
   font-size: 0.9375rem;
   font-weight: 800;
   text-decoration: none;
@@ -356,7 +362,7 @@
   position: relative;
   margin-top: 0.875rem;
   padding: 0.875rem 1.125rem 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--teal);
   color: #fff;
@@ -427,7 +433,7 @@
   gap: 0.25rem;
   height: 2rem;
   padding: 0 0.75rem 0 0.55rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   color: var(--ink);
@@ -527,7 +533,7 @@
   justify-content: space-between;
   padding: 1rem;
   border-radius: 1.5rem;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   text-decoration: none;
   overflow: hidden;
@@ -596,7 +602,7 @@
   flex-direction: column;
   justify-content: space-between;
   padding: 0.7rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   color: var(--ink);
   text-decoration: none;
@@ -664,7 +670,7 @@
   gap: 0.75rem;
   margin-top: 1.25rem;
   padding: 0.75rem 0.75rem 0.75rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--sunken);
   color: var(--ink);
@@ -678,7 +684,7 @@
   place-items: center;
   width: 2.375rem;
   height: 2.375rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: var(--teal-light);
 }
@@ -709,7 +715,7 @@
   height: 2.25rem;
   padding: 0 1rem;
   border-radius: 999px;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   font-size: 0.875rem;
   font-weight: 700;
@@ -733,7 +739,7 @@
   width: 1.75rem;
   height: 1.75rem;
   padding: 0;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: var(--surface);
   color: var(--ink);
@@ -883,7 +889,7 @@
   position: relative;
   display: block;
   margin-top: 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
   color: var(--ink);
@@ -941,7 +947,7 @@
   width: 2.375rem;
   height: 2.375rem;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   transition: transform 0.4s var(--spring);
 }
@@ -955,7 +961,7 @@
   gap: 0.75rem;
   margin-top: 0.875rem;
   padding: 0.875rem 1rem 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--coral-soft);
 }
@@ -980,7 +986,7 @@
   min-width: 0;
   height: var(--pill-h);
   padding: 0 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   font: inherit;
@@ -1091,7 +1097,7 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
   padding: 0.875rem 1.125rem 1.125rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--coral-soft);
 }
@@ -1139,7 +1145,7 @@
   max-width: 13rem;
   height: 2.5rem;
   padding: 0 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   color: var(--ink);
@@ -1242,7 +1248,7 @@
   gap: 0.25rem;
   padding: 1rem 1.125rem 1.125rem;
   border-radius: 1.5rem;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -1396,7 +1402,7 @@
   height: 2.625rem;
   margin: 1rem 0 0.25rem;
   padding: 3px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
 }
@@ -1420,7 +1426,7 @@
 }
 
 .w-filter-on {
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -1447,7 +1453,7 @@
 .w-day-card {
   display: grid;
   padding: 0.125rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
 }
@@ -1503,7 +1509,7 @@
   place-items: center;
   width: 1.75rem;
   height: 1.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: var(--surface);
   color: var(--ink);
@@ -1525,7 +1531,7 @@
   min-width: 0;
   height: 2.5rem;
   padding: 0 0.9rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   font: inherit;
@@ -1589,7 +1595,7 @@
   gap: 0.5rem;
   height: 3rem;
   padding: 0 0.3125rem 0 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
 }
@@ -1642,7 +1648,7 @@
   height: 2.25rem;
   border-radius: 50%;
   background: var(--coral);
-  color: var(--ink);
+  color: var(--dark);
 }
 
 .w-match {
@@ -1654,7 +1660,7 @@
   padding: 0.625rem 0.875rem 0.625rem 0.625rem;
   border: 0;
   border-radius: 1.375rem;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   font: inherit;
   text-align: left;
@@ -1726,7 +1732,7 @@
   padding: 0 0.85rem;
   border-radius: 999px;
   background: var(--coral);
-  color: var(--ink);
+  color: var(--dark);
   font-size: 0.875rem;
   font-weight: 700;
   line-height: 2rem;
@@ -1791,7 +1797,7 @@ button.w-person {
 .w-note {
   height: 2.75rem;
   padding: 0 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   font: inherit;
@@ -1826,7 +1832,7 @@ button.w-person {
   place-items: center;
   width: var(--key);
   height: var(--key);
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: var(--surface);
   color: var(--ink);
@@ -1888,7 +1894,7 @@ button.w-person {
   width: 100%;
   margin: 0.625rem 0;
   padding: 0.875rem 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
   font-size: 0.875rem;
@@ -1989,7 +1995,7 @@ button.w-person {
 .w-code-card {
   margin: 0.375rem 0;
   padding: 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: #fff;
 }
@@ -2011,7 +2017,7 @@ button.w-person {
   gap: 1rem;
   width: 100%;
   padding: 0.4375rem 0.4375rem 0.4375rem 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   text-align: left;
@@ -2098,7 +2104,7 @@ button.w-person {
   gap: 0.875rem;
   padding: 1rem 1rem 1rem 1.125rem;
   border-radius: 1.5rem;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -2169,7 +2175,7 @@ button.w-person {
   display: grid;
   justify-items: center;
   padding: 0.625rem 0.25rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: var(--surface);
   color: var(--muted);
@@ -2200,7 +2206,7 @@ button.w-person {
   gap: 0.875rem;
   margin-top: 0.75rem;
   padding: 0.875rem 0.875rem 0.875rem 1.125rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--teal);
   color: #fff;
@@ -2230,7 +2236,7 @@ button.w-person {
   place-items: center;
   height: 2.25rem;
   padding: 0 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   color: var(--ink);
@@ -2252,7 +2258,7 @@ button.w-person {
   gap: 0.625rem;
   margin-top: 0.75rem;
   padding: 0.875rem 1rem 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
 }
@@ -2284,7 +2290,7 @@ button.w-person {
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -2324,7 +2330,7 @@ button.w-person {
 
 .w-rules span {
   padding: 0.1875rem 0.625rem;
-  border: 1.5px solid var(--ink);
+  border: 1.5px solid var(--line);
   border-radius: 999px;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -2384,7 +2390,7 @@ button.w-person {
   max-height: 52vh;
   margin: 0 0 0.875rem;
   border-radius: 1.5rem;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   overflow: hidden;
 }
@@ -2501,7 +2507,7 @@ button.w-person {
   gap: 0.25rem;
   width: min(100%, 26rem);
   padding: 1.5rem 1.125rem 1.25rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--surface);
   text-align: center;
@@ -2570,7 +2576,7 @@ button.w-person {
   gap: 0.3rem;
   margin: 0.75rem 0 0.25rem;
   padding: 0.875rem 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--coral-soft);
   color: var(--ink);
@@ -2633,7 +2639,7 @@ button.w-person {
   max-height: calc(100dvh - 1rem);
   overflow: auto;
   padding: 0 1.25rem calc(1rem + env(safe-area-inset-bottom, 0px));
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-bottom: 0;
   border-radius: 1.5rem 1.5rem 0 0;
   background: var(--paper);
@@ -2655,7 +2661,7 @@ button.w-person {
     bottom: 1.5rem;
     max-height: calc(100dvh - 3rem);
     padding-bottom: 1.25rem;
-    border-bottom: 2px solid var(--ink);
+    border-bottom: 2px solid var(--line);
     border-radius: 1.75rem;
   }
 }
@@ -2938,7 +2944,7 @@ button.w-person {
 .w-facts {
   margin: 0.875rem 0;
   padding: 0.25rem 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.25rem;
   background: var(--surface);
   font-size: 0.875rem;
@@ -3009,7 +3015,7 @@ button.w-person {
   position: relative;
   height: 60px;
   border-radius: 30px;
-  background: var(--ink);
+  background: var(--fill);
   overflow: hidden;
   user-select: none;
   touch-action: none;
@@ -3212,7 +3218,7 @@ button.w-person {
   margin-top: 0.5rem;
   padding: 0.375rem 0.8rem;
   border-radius: 999px;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   font-size: 0.8125rem;
   font-weight: 700;
@@ -3309,7 +3315,7 @@ button.w-person {
   gap: 0.75rem;
   margin: 0.875rem 0 0;
   padding: 0.75rem 0.75rem 0.75rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: #f6e7c8;
   font-size: 0.875rem;
@@ -3323,7 +3329,7 @@ button.w-person {
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -3344,7 +3350,7 @@ button.w-person {
   padding: 0 1rem;
   border: 0;
   border-radius: 999px;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   font: inherit;
   font-weight: 700;
@@ -3359,7 +3365,7 @@ button.w-person {
   gap: 0.75rem;
   margin-top: 0.75rem;
   padding: 0.75rem 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
   color: var(--ink);
@@ -3396,7 +3402,7 @@ button.w-person {
   justify-items: center;
   gap: 0.4rem;
   padding: 0.7rem 0.25rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: var(--surface);
   color: var(--ink);
@@ -3415,7 +3421,7 @@ button.w-person {
 }
 
 .w-chain[aria-selected="true"] {
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -3424,7 +3430,7 @@ button.w-person {
   place-items: center;
   width: 2.375rem;
   height: 2.375rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: #8fa2e8;
   color: var(--ink);
@@ -3446,7 +3452,7 @@ button.w-person {
 
 .w-chain-soon {
   margin-top: 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--surface);
 }
@@ -3457,7 +3463,7 @@ button.w-person {
   gap: 0.5rem;
   margin-top: 1rem;
   padding: 1.125rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--surface);
   animation: w-fade 0.3s ease both;
@@ -3515,7 +3521,7 @@ button.w-add-chain {
 
 .w-moment-reward {
   padding: 0.3rem 0.85rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--coral-soft);
   font-size: 0.8125rem;
@@ -3598,7 +3604,7 @@ button.w-add-chain {
   display: grid;
   justify-items: center;
   padding: 1.75rem 1rem 1.625rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--teal);
   color: #fff;
@@ -3671,7 +3677,7 @@ button.w-add-chain {
   border: 3px solid #fff;
   border-radius: 0.8rem;
   background: var(--coral);
-  color: var(--ink);
+  color: var(--dark);
   font-size: 1.375rem;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -3704,7 +3710,7 @@ button.w-add-chain {
   padding: 0 0.75rem;
   border-radius: 999px;
   background: #fff;
-  color: var(--ink);
+  color: var(--dark);
   font-size: 0.8125rem;
   font-weight: 750;
   box-shadow: 0 0 0 2px var(--ink);
@@ -3767,7 +3773,7 @@ button.w-add-chain {
   z-index: 1;
   margin: -0.875rem 0.875rem 0;
   padding: 0.625rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 0.875rem;
   background: #fff;
   font-size: 0.875rem;
@@ -3797,7 +3803,7 @@ button.w-add-chain {
   display: grid;
   gap: 0.625rem;
   padding: 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--surface);
   animation: rise 0.5s var(--spring) 0.12s both;
@@ -3905,7 +3911,7 @@ button.w-add-chain {
   gap: 0.25rem;
   height: var(--pill-h);
   padding: 3px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: #fff;
 }
@@ -3932,7 +3938,7 @@ button.w-add-chain {
   padding: 0 1.05rem;
   border: 0;
   border-radius: 999px;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   font: inherit;
   font-weight: 700;
@@ -4031,10 +4037,10 @@ button.w-add-chain {
 .lk-name input {
   height: var(--pill-h);
   padding: 0 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: #fff;
-  color: var(--ink);
+  color: var(--dark);
   font: inherit;
   font-size: 1.0625rem;
   font-weight: 700;
@@ -4053,7 +4059,7 @@ button.w-add-chain {
   margin-bottom: 0.375rem;
   padding: 0.875rem;
   border-radius: 1.25rem;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -4065,7 +4071,7 @@ button.w-add-chain {
   height: 2.25rem;
   border-radius: 50%;
   background: var(--coral);
-  color: var(--ink);
+  color: var(--dark);
 }
 
 .lk-mine-text {
@@ -4097,7 +4103,7 @@ button.w-add-chain {
   border: 0;
   border-radius: 999px;
   background: var(--coral);
-  color: var(--ink);
+  color: var(--dark);
   font: inherit;
   font-size: 0.875rem;
   font-weight: 700;
@@ -4171,7 +4177,7 @@ button.w-add-chain {
 .w-entry-link {
   display: grid;
   place-items: center;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   background: var(--teal);
   color: #fff;
 }
@@ -4206,7 +4212,7 @@ button.w-add-chain {
   flex: none;
   width: 2.5rem;
   height: 2.5rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: var(--teal);
   color: #fff;
@@ -4218,7 +4224,7 @@ button.w-add-chain {
   height: 2.75rem;
   border-color: var(--on-ink);
   background: var(--coral);
-  color: var(--ink);
+  color: var(--dark);
 }
 
 .w-linkrow-text {
@@ -4303,7 +4309,7 @@ button.w-add-chain {
   width: 100%;
   margin-top: 0.625rem;
   padding: 0.375rem 0.375rem 0.375rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: #fff;
   text-align: left;
@@ -4385,7 +4391,7 @@ button.w-add-chain {
 
 .lk-row {
   padding: 0.75rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
 }
@@ -4489,7 +4495,7 @@ button.w-add-chain {
   border: 0;
   border-radius: 999px;
   background: var(--coral);
-  color: var(--ink);
+  color: var(--dark);
   font: inherit;
   font-size: 0.875rem;
   font-weight: 700;
@@ -4600,7 +4606,7 @@ button.w-add-chain {
   gap: 0.3rem;
   padding: 0 0.7rem 0 0.6rem;
   border: 0;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -4662,7 +4668,7 @@ button.w-chip-private:disabled {
   min-height: 1.125rem;
   border: 2px solid var(--ring, var(--paper));
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -4686,7 +4692,7 @@ button.w-chip-private:disabled {
   row-gap: 0.25rem;
   margin-top: 0.75rem;
   padding: 0.75rem 0.75rem 0.75rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: #f6e7c8;
   line-height: 1.3;
@@ -4700,7 +4706,7 @@ button.w-chip-private:disabled {
   width: 2.375rem;
   height: 2.375rem;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -4745,7 +4751,7 @@ button.w-chip-private:disabled {
   padding: 0 1rem 0 0.75rem;
   border: 0;
   border-radius: 999px;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   font: inherit;
   font-size: 0.875rem;
@@ -4788,7 +4794,7 @@ button.w-chip-private:disabled {
   align-items: center;
   gap: 0.3rem;
   background: #f6e7c8;
-  color: var(--ink);
+  color: var(--dark);
 }
 
 /* Send privately, on the review: a lock, what it means, and the switch. */
@@ -4799,7 +4805,7 @@ button.w-chip-private:disabled {
   gap: 0.75rem;
   margin: 0 0 0.875rem;
   padding: 0.625rem 0.875rem 0.625rem 0.625rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.25rem;
   background: var(--surface);
   cursor: pointer;
@@ -4815,7 +4821,7 @@ button.w-chip-private:disabled {
   place-items: center;
   width: 2.25rem;
   height: 2.25rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: var(--paper);
   color: var(--ink);
@@ -4825,7 +4831,7 @@ button.w-chip-private:disabled {
 }
 
 .w-private-switch-on .w-private-switch-icon {
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -4876,7 +4882,7 @@ button.w-chip-private:disabled {
 }
 
 .w-private-switch input:checked + .w-private-switch-track {
-  background: var(--ink);
+  background: var(--fill);
 }
 
 .w-private-switch input:checked + .w-private-switch-track::after {
@@ -4904,7 +4910,7 @@ button.w-chip-private:disabled {
   height: 1.5rem;
   border: 2px solid var(--paper);
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   animation: w-pop 0.4s cubic-bezier(0.34, 1.8, 0.5, 1) both;
 }
@@ -4928,7 +4934,7 @@ button.w-chip-private:disabled {
   gap: 0.75rem;
   margin-top: 0.75rem;
   padding: 0.75rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
 }
@@ -4944,7 +4950,7 @@ button.w-chip-private:disabled {
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -4983,7 +4989,7 @@ button.w-chip-private:disabled {
   margin: 0 0 0.875rem;
   text-align: left;
   padding: 0.75rem 0.75rem 0.625rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.25rem;
   background: var(--surface);
 }
@@ -5008,7 +5014,7 @@ button.w-chip-private:disabled {
   gap: 0.0625rem;
   min-width: 0;
   padding: 0.5rem 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 0.875rem;
   background: var(--paper);
   color: var(--ink);
@@ -5053,7 +5059,7 @@ button.w-chip-private:disabled {
 }
 
 .w-payfrom-option[data-on] {
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -5063,8 +5069,8 @@ button.w-chip-private:disabled {
 
 .w-payfrom-private[data-on] {
   background: #f6e7c8;
-  color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--ink);
+  color: var(--dark);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 .w-payfrom-private[data-on] small {
@@ -5115,7 +5121,7 @@ button.w-chip-private:disabled {
   padding: 0.375rem 0.8rem;
   border-radius: 999px;
   background: #f6e7c8;
-  color: var(--ink);
+  color: var(--dark);
   font-size: 0.8125rem;
   font-weight: 650;
   text-align: center;
@@ -5162,7 +5168,7 @@ button.w-chip-private:disabled {
   width: 100%;
   min-height: 3.25rem;
   padding: 0 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: var(--surface);
   color: var(--ink);
@@ -5196,7 +5202,7 @@ button.w-chip-private:disabled {
   gap: 0.25rem;
   min-height: 3.25rem;
   padding: 0 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: var(--surface);
   font-size: 1.5rem;
@@ -5306,7 +5312,7 @@ button.w-chip-private:disabled {
   gap: 0.75rem;
   margin-top: 0.625rem;
   padding: 0.75rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
 }
@@ -5370,7 +5376,7 @@ button.w-chip-private:disabled {
   gap: 0.75rem;
   margin-top: 0.625rem;
   padding: 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
 }
@@ -5388,7 +5394,7 @@ button.w-chip-private:disabled {
   min-width: 0;
   height: 2.75rem;
   padding: 0 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: #fff;
   font: inherit;
@@ -5413,7 +5419,7 @@ button.w-chip-private:disabled {
   display: block;
   padding: 0.75rem;
   border-radius: 0.875rem;
-  background: var(--ink);
+  background: var(--fill);
   color: #f1efea;
   font-size: 0.8125rem;
   line-height: 1.45;
@@ -5460,7 +5466,7 @@ button.w-chip-private:disabled {
 
 .w-allowance .mini {
   background: #fff;
-  color: var(--ink);
+  color: var(--dark);
 }
 
 .w-allowance .w-keyform {
@@ -5560,7 +5566,7 @@ button.w-chip-private:disabled {
   gap: 0.5rem;
 }
 .w-deposit-tokens button {
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 2rem;
   padding: 0.55rem 1rem;
   background: var(--surface);
@@ -5570,7 +5576,7 @@ button.w-chip-private:disabled {
   cursor: pointer;
 }
 .w-deposit-tokens button[aria-pressed="true"] {
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 .w-deposit-details {
@@ -5617,7 +5623,7 @@ button.w-chip-private:disabled {
   gap: 12px;
   padding: 16px;
   margin-top: 12px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 22px;
   background: var(--teal-light, #c4dada);
   color: var(--ink);
@@ -5689,7 +5695,7 @@ button.w-chip-private:disabled {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 24px;
   padding: 20px;
   background: var(--surface, #fffdf8);
@@ -5709,7 +5715,7 @@ button.w-chip-private:disabled {
   display: flex;
   gap: 12px;
   padding: 14px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 18px;
 }
 .w-mon-input input {
@@ -5727,8 +5733,8 @@ button.w-chip-private:disabled {
   min-height: 44px;
   border: 0;
   border-radius: 22px;
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--fill);
+  color: var(--on-fill);
   font: inherit;
   cursor: pointer;
 }
@@ -5756,7 +5762,7 @@ button.w-chip-private:disabled {
   max-height: calc(100dvh - 32px);
   margin: auto;
   padding: 22px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 30px;
   background: #c4dada;
   color: var(--ink);
@@ -5804,7 +5810,7 @@ button.w-chip-private:disabled {
   top: 30px;
   right: 20%;
   padding: 9px 16px;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 18px;
   background: var(--paper);
   font-weight: 700;
@@ -6067,7 +6073,7 @@ button.w-chip-private:disabled {
   display: grid;
   margin: -0.25rem 0 0.75rem;
   padding: 0.25rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.25rem;
   background: var(--surface);
   animation: rise 0.25s var(--spring);
@@ -6114,7 +6120,7 @@ button.w-chip-private:disabled {
   gap: 0.5rem;
   padding: 1.125rem;
   border-radius: 1.75rem;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   animation: rise 0.4s var(--spring);
 }
@@ -6200,7 +6206,7 @@ button.w-chip-private:disabled {
   justify-items: center;
   margin-top: 0.75rem;
   padding: 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--surface);
   text-align: center;
@@ -6250,7 +6256,7 @@ button.w-chip-private:disabled {
   gap: 0.625rem;
   margin-top: 0.625rem;
   padding: 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--surface);
   animation: rise 0.3s var(--spring);
@@ -6294,7 +6300,7 @@ button.w-chip-private:disabled {
   place-items: center;
   width: 2.5rem;
   height: 2.5rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: var(--coral-soft);
   font-weight: 800;
@@ -6325,7 +6331,7 @@ button.w-chip-private:disabled {
   min-width: 0.5rem;
   height: 2px;
   margin-top: 1.25rem;
-  background: var(--ink);
+  background: var(--fill);
 }
 
 .w-quiet-count {
@@ -6340,7 +6346,7 @@ button.w-chip-private:disabled {
   z-index: 60;
   display: flex;
   flex-direction: column;
-  background: var(--ink);
+  background: var(--fill);
   animation: arrival-in 0.3s ease-out;
 }
 
@@ -6407,7 +6413,7 @@ button.w-chip-private:disabled {
   top: -0.5rem;
   left: 108px;
   padding: 0.3rem 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   color: var(--ink);
@@ -6424,8 +6430,8 @@ button.w-chip-private:disabled {
   left: 0.75rem;
   width: 10px;
   height: 10px;
-  border-right: 2px solid var(--ink);
-  border-bottom: 2px solid var(--ink);
+  border-right: 2px solid var(--line);
+  border-bottom: 2px solid var(--line);
   background: var(--surface);
   transform: rotate(45deg);
 }
@@ -6479,7 +6485,7 @@ button.w-chip-private:disabled {
   margin: 0.5rem 0 0;
   margin-inline: 0;
   padding: 1.125rem 1rem 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: #f6e7c8;
   transform: rotate(-1deg);
@@ -6509,7 +6515,7 @@ button.w-chip-private:disabled {
   height: 1.5rem;
   padding: 0 0.55rem;
   border-radius: 999px;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   font-size: 0.6875rem;
   font-weight: 650;
@@ -6560,7 +6566,7 @@ button.w-chip-private:disabled {
   align-items: flex-start;
   gap: 0.625rem;
   padding: 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.25rem;
   background: var(--surface);
   color: var(--on-tint);
@@ -6581,7 +6587,7 @@ button.w-chip-private:disabled {
   width: 1.875rem;
   height: 1.875rem;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -6602,7 +6608,7 @@ button.w-chip-private:disabled {
   position: absolute;
   inset: auto 0 0;
   height: calc(var(--w) * 0.62);
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 18px;
   background: var(--teal-deep);
 }
@@ -6689,7 +6695,7 @@ button.w-chip-private:disabled {
   gap: 0.125rem;
   height: calc(var(--w) * 0.62 * 0.84);
   padding-top: 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 14px;
   background: var(--surface);
   color: var(--ink);
@@ -6763,7 +6769,7 @@ button.w-chip-private:disabled {
 .w-env-seal {
   display: grid;
   place-items: center;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   background: var(--coral);
   color: #fff;
   animation: seal-break 0.62s 0.38s ease-in-out both;
@@ -6912,7 +6918,7 @@ button.w-chip-private:disabled {
   align-items: center;
   gap: 0.4rem;
   padding: 0.25rem 0.625rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1rem;
   background: var(--surface);
   font-size: 0.75rem;
@@ -6938,7 +6944,7 @@ button.w-chip-private:disabled {
 .w-st-home {
   display: block;
   margin-top: 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   color: var(--ink);
   text-decoration: none;
@@ -7065,7 +7071,7 @@ button.w-chip-private:disabled {
   margin-top: 2.25rem;
   padding: 1.125rem 1.25rem 1rem;
   border-radius: 1.75rem;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -7166,7 +7172,7 @@ button.w-chip-private:disabled {
   height: 3rem;
   margin-top: 0.875rem;
   padding: 0 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--surface);
   color: var(--muted);
@@ -7285,7 +7291,7 @@ button.w-chip-private:disabled {
 }
 
 .w-st-head .w-st-logo {
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 0.875rem;
 }
 
@@ -7347,7 +7353,7 @@ button.w-chip-private:disabled {
   display: grid;
   gap: 0.5rem;
   padding: 0.75rem 0.75rem 0.625rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.625rem;
   background: var(--surface);
 }
@@ -7383,7 +7389,7 @@ button.w-chip-private:disabled {
   position: absolute;
   width: 0.75rem;
   height: 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: var(--teal);
   transform: translate(-60%, -50%);
@@ -7428,7 +7434,7 @@ button.w-chip-private:disabled {
 }
 
 .w-st-ranges button[aria-pressed="true"] {
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -7439,7 +7445,7 @@ button.w-chip-private:disabled {
   margin-top: 0.875rem;
   padding: 1rem;
   border-radius: 1.625rem;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -7510,7 +7516,7 @@ button.w-chip-private:disabled {
   width: 100%;
   height: 3.625rem;
   margin-top: 1.25rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.8rem;
   background: var(--coral);
   color: #fff;
@@ -7530,7 +7536,7 @@ button.w-chip-private:disabled {
   top: -0.75rem;
   right: 0.75rem;
   padding: 0.2rem 0.5rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 0.625rem;
   background: var(--surface);
   color: var(--ink);
@@ -7564,7 +7570,7 @@ button.w-chip-private:disabled {
 }
 
 .w-st-sheet-top .w-st-logo {
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 0.875rem;
 }
 
@@ -7600,7 +7606,7 @@ button.w-chip-private:disabled {
 
 .w-st-chips button {
   height: 2.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
   color: var(--ink);
@@ -7611,7 +7617,7 @@ button.w-chip-private:disabled {
 }
 
 .w-st-chips button[aria-pressed="true"] {
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -7699,7 +7705,7 @@ button.w-chip-private:disabled {
 }
 
 .w-st-tell {
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   cursor: pointer;
 }
@@ -7788,7 +7794,7 @@ button.w-chip-private:disabled {
   gap: 0.5rem;
   margin-top: 0.5rem;
   padding: 0.4rem 0.9rem 0.4rem 0.4rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   font-size: 0.875rem;
@@ -7831,7 +7837,7 @@ button.w-chip-private:disabled {
 }
 
 .cx-chip-line {
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   background: transparent;
   font-weight: 800;
   cursor: pointer;
@@ -7868,7 +7874,7 @@ button.w-chip-private:disabled {
   align-items: center;
   gap: 0.5rem;
   padding: 0.3rem 0.8rem 0.3rem 0.3rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   color: var(--ink);
@@ -7907,7 +7913,7 @@ button.w-chip-private:disabled {
   gap: 0.5rem;
   min-height: 3.25rem;
   padding: 0 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: var(--surface);
   font-size: 1.25rem;
@@ -7965,7 +7971,7 @@ button.w-chip-private:disabled {
 .cx-list,
 .cx-all {
   overflow: hidden;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
 }
@@ -8032,7 +8038,7 @@ button.w-chip-private:disabled {
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -8086,7 +8092,7 @@ button.w-chip-private:disabled {
   align-items: center;
   gap: 0.625rem;
   padding: 0.5rem 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.25rem;
   background: var(--teal-soft);
 }
@@ -8169,7 +8175,7 @@ button.w-chip-private:disabled {
   gap: 0.625rem;
   min-height: 3.25rem;
   padding: 0 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: var(--surface);
   color: var(--muted);
@@ -8207,7 +8213,7 @@ button.w-chip-private:disabled {
   align-items: center;
   gap: 0.375rem;
   padding: 0.625rem 0.25rem 0.5rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: var(--surface);
   color: var(--ink);
@@ -8246,7 +8252,7 @@ button.w-chip-private:disabled {
   margin-top: 0.5rem;
   padding: 1rem 1.125rem;
   border-radius: 1.5rem;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
@@ -8388,7 +8394,7 @@ button.w-chip-private:disabled {
   width: 100%;
   margin: 1.25rem 0 0.5rem;
   padding: 1.125rem 1.125rem 0.375rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--surface);
   list-style: none;
@@ -8470,7 +8476,7 @@ button.w-chip-private:disabled {
   width: 100%;
   min-height: 3.375rem;
   margin-top: 0.5rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: transparent;
   color: var(--ink);
@@ -8671,7 +8677,7 @@ button.w-chip-private:disabled {
   gap: 0.3rem;
   min-height: 5rem;
   padding: 0.6rem 0.25rem 0.5rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: var(--surface);
   color: var(--ink);
@@ -8751,7 +8757,7 @@ button.w-chip-private:disabled {
   gap: 0.75rem;
   margin-top: 0.75rem;
   padding: 0.875rem 0.75rem 0.875rem 1.125rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--coral);
   color: #fff;
@@ -8793,12 +8799,12 @@ button.w-chip-private:disabled {
 .w-cashout-banks {
   display: flex;
   flex: none;
-  gap: 0.25rem;
+  gap: 0.1875rem;
 }
 
 .w-cashout-banks img {
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.375rem;
+  height: 1.375rem;
   border-radius: 50%;
   background: #fff;
 }
@@ -8811,7 +8817,7 @@ button.w-chip-private:disabled {
   height: 2.5rem;
   border-radius: 50%;
   background: #fff;
-  color: var(--ink);
+  color: var(--dark);
 }
 
 /*
@@ -8994,7 +9000,7 @@ button.w-chip-private:disabled {
   gap: 0.75rem;
   margin: 0.25rem 0 0.75rem;
   padding: 0.625rem 0.5rem 0.625rem 0.625rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.25rem;
   background: var(--surface);
   animation: rise 0.5s var(--spring) backwards;
@@ -9087,7 +9093,7 @@ button.w-chip-private:disabled {
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.75rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1rem;
   background: var(--surface);
   font-size: 0.9375rem;
@@ -9109,7 +9115,7 @@ button.w-chip-private:disabled {
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   font-size: 0.75rem;
   font-weight: 800;
@@ -9130,7 +9136,7 @@ button.w-chip-private:disabled {
 .w-crypto {
   justify-self: stretch;
   width: 100%;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
   color: var(--ink);
@@ -9221,4 +9227,73 @@ button.w-chip-private:disabled {
 .w-arc-them small {
   justify-self: end;
   margin-right: 4px;
+}
+
+/*
+ * The dark theme's few exceptions: surfaces that are drawn rather than tokenised (a paper receipt,
+ * the arrival card, the sealed note).
+ */
+:root[data-theme="dark"] .w-arrival {
+  background: var(--surface);
+}
+
+/* Getting paid is black in the dark, like every other screen. */
+:root[data-theme="dark"] .w-app-teal {
+  background: var(--paper);
+}
+
+:root[data-theme="dark"] .w-app-teal .w-top {
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+}
+
+:root[data-theme="dark"] .w-receipt {
+  background: var(--surface);
+}
+
+:root[data-theme="dark"] .w-parrival .w-arrival-note {
+  background: #3b3324;
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .cx-step-line {
+  background: #3a3a3a;
+}
+
+:root[data-theme="dark"] .w-app-teal .w-offline-hint {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/*
+ * Colour in the dark is a glow, not a block: the balance, your currency and Cash out are dark
+ * cards lit softly from a corner in their colour; coral is kept whole only for the one action
+ * that moves money. The awning keeps its stripes, quietened.
+ */
+:root[data-theme="dark"] .w-balance,
+:root[data-theme="dark"] .w-money {
+  background:
+    radial-gradient(120% 130% at 100% 0%, rgba(95, 165, 169, 0.26), transparent 60%), var(--surface);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .w-balance .w-chip,
+:root[data-theme="dark"] .w-balance .w-chip-mon {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .w-cashout {
+  background:
+    radial-gradient(110% 160% at 0% 0%, rgba(225, 112, 95, 0.24), transparent 62%), var(--surface);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .w-cashout-go {
+  background: var(--coral);
+  color: var(--dark);
+}
+
+:root[data-theme="dark"] {
+  --awning-coral: #5c2b25;
+  --awning-paper: #242424;
+  --awning-line: transparent;
 }

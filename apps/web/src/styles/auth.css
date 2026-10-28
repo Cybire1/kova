@@ -276,7 +276,7 @@
   display: grid;
   gap: 0.75rem;
   padding: 1.15rem 1.15rem 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--surface);
   animation: rise 0.5s var(--spring);

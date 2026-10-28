@@ -71,13 +71,13 @@
 
 .of-slip-to strong {
   background: var(--coral);
-  color: var(--ink);
+  color: var(--dark);
   box-shadow: 0 0 0 2px var(--ink);
 }
 
 .of-slip-to code {
   background: #fff;
-  color: var(--ink);
+  color: var(--dark);
   font-family: inherit;
   font-variant-numeric: tabular-nums;
   box-shadow: 0 0 0 2px var(--ink);
@@ -112,7 +112,7 @@
 .of-slip-tag-settled {
   border-color: var(--ink);
   background: #fff;
-  color: var(--ink);
+  color: var(--dark);
   box-shadow: 0 0 0 2px #fff;
   transform: rotate(-3deg);
   animation: of-stamp 0.5s cubic-bezier(0.34, 1.6, 0.5, 1) 0.15s both;
@@ -268,7 +268,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.625rem;
   padding: 0.75rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: var(--coral-soft);
   animation: w-fade 0.3s ease both;

@@ -89,7 +89,7 @@ export function Home() {
               <span className="w-cashout-banks" aria-hidden="true">
                 {['opay', 'moniepoint', 'gtbank', 'kuda'].map((bank) => (
                   // biome-ignore lint/performance/noImgElement: a 96 px logo, already sized
-                  <img key={bank} src={`/banks/${bank}.png`} alt="" width={28} height={28} />
+                  <img key={bank} src={`/banks/${bank}.png`} alt="" width={22} height={22} />
                 ))}
               </span>
             )}

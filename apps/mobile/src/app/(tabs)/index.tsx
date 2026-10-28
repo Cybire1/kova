@@ -560,8 +560,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.coral,
   },
   cashOutRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  cashOutBanks: { flexDirection: 'row', gap: 4 },
-  cashOutBank: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.white },
+  cashOutBanks: { flexDirection: 'row', gap: 3 },
+  cashOutBank: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.white },
   cashOutGo: {
     width: 40,
     height: 40,

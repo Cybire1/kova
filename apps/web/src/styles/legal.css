@@ -20,7 +20,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.45rem 0.95rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   font-weight: 700;
@@ -80,7 +80,7 @@
 
 .pv-card {
   padding: 1.5rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.75rem;
   background: var(--surface);
 }
@@ -140,7 +140,7 @@
 
 .pv-list {
   margin: 1.5rem 0 0;
-  border-top: 2px solid var(--ink);
+  border-top: 2px solid var(--line);
 }
 
 .pv-row {
@@ -195,8 +195,8 @@
   margin-top: 4rem;
   padding: 1.75rem;
   border-radius: 1.75rem;
-  background: var(--ink);
-  color: var(--surface);
+  background: var(--fill);
+  color: var(--on-fill);
 }
 
 .pv-contact h2 {

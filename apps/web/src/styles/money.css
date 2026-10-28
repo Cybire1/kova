@@ -42,7 +42,7 @@
   gap: 0.5rem;
   margin: 0;
   padding: 0.75rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: var(--teal-soft);
   color: var(--ink);
@@ -89,7 +89,7 @@
 .m-field input {
   width: 100%;
   padding: 0.85rem 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1rem;
   background: var(--surface);
   color: var(--ink);
@@ -103,7 +103,7 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1rem;
   background: var(--surface);
   color: var(--ink);
@@ -127,7 +127,7 @@
   gap: 0;
   margin: 0;
   padding: 0.25rem 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
 }
@@ -181,7 +181,7 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.3rem 0.6rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--paper);
   color: var(--ink);
@@ -197,7 +197,7 @@
   gap: 1.5rem;
   aspect-ratio: 1.586;
   padding: 1.25rem 1.375rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background:
     radial-gradient(circle at 88% 12%, rgba(212, 101, 88, 0.55), transparent 42%), var(--ink);
@@ -264,7 +264,7 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 0.85rem 0.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: var(--surface);
   color: var(--ink);
@@ -290,7 +290,7 @@
 
 .m-limit {
   padding: 0.7rem 0.25rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
   color: var(--ink);
@@ -301,8 +301,8 @@
 }
 
 .m-limit[aria-pressed="true"] {
-  background: var(--ink);
-  color: var(--surface);
+  background: var(--fill);
+  color: var(--on-fill);
 }
 
 .m-list {
@@ -310,7 +310,7 @@
   gap: 0;
   margin: 0;
   padding: 0 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   background: var(--surface);
   list-style: none;
@@ -360,7 +360,7 @@
   gap: 0.75rem;
   width: min(100%, 26rem);
   padding: 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--paper);
 }
@@ -368,7 +368,7 @@
 .m-reveal-frame {
   width: 100%;
   height: 14rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.125rem;
   background: var(--surface);
 }
@@ -398,7 +398,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   padding: 0.25rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--surface);
 }
@@ -416,8 +416,8 @@
 }
 
 .m-toggle button[aria-selected="true"] {
-  background: var(--ink);
-  color: var(--surface);
+  background: var(--fill);
+  color: var(--on-fill);
 }
 
 /* Home: savings and the card, side by side. */
@@ -435,7 +435,7 @@
   align-content: end;
   min-height: 6.5rem;
   padding: 3.25rem 0.875rem 0.875rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.375rem;
   color: var(--ink);
   text-decoration: none;
@@ -451,8 +451,8 @@
 }
 
 .m-tile[data-tone="ink"] {
-  background: var(--ink);
-  color: var(--surface);
+  background: var(--fill);
+  color: var(--on-fill);
 }
 
 .m-tile small {

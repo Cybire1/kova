@@ -22,6 +22,11 @@
   --positive: #2e7268;
   --danger: #b03e32;
   --hairline: rgba(11, 26, 29, 0.1);
+  /* Ink's three jobs, split so a dark theme can tell them apart; in light they're all ink. */
+  --line: var(--ink); /* outlines */
+  --fill: var(--ink); /* dark surfaces: the Pay card, the dock, black pills */
+  --dark: #0b1a1d; /* text on bright colours (white, coral), in either theme */
+  --on-fill: var(--surface); /* light text on a dark fill */
 
   --font: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --spring: cubic-bezier(0.32, 0.72, 0, 1);
@@ -33,6 +38,34 @@
   --pill-pl: 1.5rem;
 
   color-scheme: light;
+}
+
+/*
+ * Kova in the dark (data-theme="dark" on <html>, set before the first paint by the root layout).
+ * The same system on black: warm cream text, grey cards without outlines, coral and teal lifted a
+ * step so they hold their contrast.
+ */
+:root[data-theme="dark"] {
+  --paper: #000;
+  --surface: #161616;
+  --sunken: #222;
+  --ink: #e9e5dd;
+  --muted: #8f8b85;
+  --on-ink: #b3b0aa;
+  --teal: #5fa5a9;
+  --teal-deep: #4b9095;
+  --teal-soft: #1b1b1b;
+  --coral: #e1705f;
+  --coral-deep: #b9564a;
+  --coral-soft: #2a1714;
+  --positive: #5cb6a8;
+  --danger: #e8705f;
+  --hairline: rgba(236, 232, 223, 0.12);
+  /* No outlines in the dark: cards stand off the black by their own grey. */
+  --line: transparent;
+  --fill: #1b1b1b;
+  --on-fill: #e9e5dd;
+  color-scheme: dark;
 }
 
 @media (max-width: 640px) {
@@ -162,7 +195,7 @@ p {
 /* --- Pills and round buttons --------------------------------------------- */
 
 .pill {
-  --bg: var(--ink);
+  --bg: var(--fill);
   --fg: #fff;
   --cap: var(--surface);
   --cap-fg: var(--ink);
@@ -196,7 +229,7 @@ p {
 .pill[data-tone="coral"] {
   --bg: var(--coral);
   /* Ink on coral passes contrast at button size; white does not. */
-  --fg: var(--ink);
+  --fg: var(--dark);
   --cap: #fff;
   --cap-fg: var(--coral-deep);
   font-weight: 700;
@@ -205,9 +238,9 @@ p {
 .pill[data-tone="light"] {
   --bg: var(--surface);
   --fg: var(--ink);
-  --cap: var(--ink);
+  --cap: var(--fill);
   --cap-fg: #fff;
-  box-shadow: inset 0 0 0 2px var(--ink);
+  box-shadow: inset 0 0 0 2px var(--line);
 }
 
 .pill-cap {
@@ -238,6 +271,13 @@ p {
 
 .pill:disabled .pill-cap {
   transform: none;
+}
+
+:root[data-theme="dark"] .pill:disabled {
+  --bg: #2a2a2a;
+  --fg: #8a8780;
+  --cap: #1c1c1c;
+  --cap-fg: #8a8780;
 }
 
 .pill-wide {
@@ -311,7 +351,7 @@ p {
 /* --- Cards ------------------------------------------------------------------ */
 
 .card {
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.75rem;
   background: var(--surface);
 }
@@ -567,7 +607,7 @@ p {
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
   font-size: 0.75rem;
   font-weight: 700;
@@ -580,7 +620,7 @@ p {
   gap: 1rem;
   margin-top: 1.25rem;
   padding: 1.25rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.75rem;
   background: var(--surface);
   text-align: center;
@@ -621,7 +661,7 @@ p {
   display: grid;
   place-items: center;
   height: 3.5rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 0.9rem;
   background: var(--paper);
   font-size: 1.5rem;
@@ -739,7 +779,7 @@ p {
 .key {
   width: 4.5rem;
   height: 4.5rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 50%;
   background: var(--surface);
   font-size: 1.75rem;
@@ -777,7 +817,7 @@ p {
   gap: 1rem;
   width: 100%;
   padding: 1.75rem 1.25rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 2rem;
   background: var(--surface);
 }
@@ -1081,7 +1121,7 @@ p {
   width: 100%;
   min-height: 3.5rem;
   padding: 0.6rem 1.1rem 0.6rem 0.6rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.25rem;
   background: var(--surface);
   color: var(--ink);
@@ -1131,13 +1171,13 @@ p {
 .wallet-glyph {
   display: grid;
   place-items: center;
-  background: var(--ink);
+  background: var(--fill);
   color: #fff;
 }
 
 .wallet-glyph-coral {
   background: var(--coral);
-  color: var(--ink);
+  color: var(--dark);
 }
 
 .wallet-sub {
@@ -1161,7 +1201,7 @@ p {
   min-height: 3.75rem;
   margin-top: 0.4rem;
   padding: 0.6rem 1.1rem 0.6rem 0.6rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.25rem;
   background: var(--surface);
   color: var(--ink);
@@ -1352,7 +1392,7 @@ p {
   position: relative;
   margin: 1.25rem 0 0;
   padding: 1.125rem 1.125rem 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--surface);
   animation: rise 0.5s var(--spring) 0.35s both;
@@ -1437,7 +1477,7 @@ p {
 .keep-name input {
   height: var(--pill-h);
   padding: 0 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--paper);
   color: var(--ink);

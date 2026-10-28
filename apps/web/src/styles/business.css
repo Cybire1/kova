@@ -17,7 +17,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1.6rem 1.75rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.9rem;
   background: var(--teal);
   color: #fff;
@@ -61,7 +61,7 @@
   align-content: start;
   gap: 0.35rem;
   padding: 1.25rem 1.35rem 1.1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.6rem;
   background: var(--surface);
   color: var(--ink);
@@ -192,10 +192,10 @@
 .biz-pay-note {
   height: 2.9rem;
   padding: 0 1rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 0.95rem;
   background: #fff;
-  color: var(--ink);
+  color: var(--dark);
   font: inherit;
   font-weight: 600;
 }
@@ -218,7 +218,7 @@
 }
 
 .biz-people {
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.2rem;
   background: #fff;
 }
@@ -498,7 +498,7 @@
   display: grid;
   gap: 0.15rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid var(--ink);
+  border-bottom: 2px solid var(--line);
 }
 
 .biz-receipt-total p {
@@ -576,7 +576,7 @@
 /* --- Suppliers ------------------------------------------------------------------------------------ */
 
 .biz-supplier-list {
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   border-radius: 1.2rem;
   background: #fff;
 }
@@ -605,7 +605,7 @@
 
 .biz-pay-amount {
   height: 3.6rem;
-  border: 2px solid var(--ink);
+  border: 2px solid var(--line);
   background: #fff;
   font-size: 1.6rem;
 }

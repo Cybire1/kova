@@ -42,10 +42,20 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
+/**
+ * The theme, set before the first paint so a dark page never flashes light. Dark is opt-in while
+ * every screen is checked in it: ?theme=dark turns it on for this browser, ?theme=light off.
+ */
+const THEME = `try{var q=new URLSearchParams(location.search).get('theme');if(q==='dark'||q==='light')localStorage.setItem('kova.theme',q);if(localStorage.getItem('kova.theme')==='dark')document.documentElement.dataset.theme='dark'}catch(e){}`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed script, no input in it
+          dangerouslySetInnerHTML={{ __html: THEME }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
