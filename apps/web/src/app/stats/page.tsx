@@ -3,9 +3,11 @@ import Link from 'next/link'
 import { Art, Brand, Icon, type IconName, Pill } from '@/components/brand'
 import { LiveUpdated } from '@/components/stats-view'
 import {
+  type Day,
   dollars,
   type Network,
   type NetworkStats,
+  naira,
   PUBLIC_API,
   readStats,
   sourceName,
@@ -21,7 +23,7 @@ export const revalidate = 60
 export const metadata: Metadata = {
   title: { absolute: 'Kova, live' },
   description:
-    'How many people use Kova on Monad, what they’ve paid and the dollars they’ve sent by link: counted on each network, updated every minute. Totals only.',
+    'How many people use Kova on Monad, what they’ve paid, the dollars they’ve sent by link and what they’ve cashed out to naira: counted on each network, updated every minute. Totals only.',
 }
 
 const NETWORKS: Network[] = ['mainnet', 'testnet']
@@ -55,11 +57,12 @@ async function statsFor(network: Network): Promise<NetworkStats | null> {
 }
 
 /** The last 14 UTC dates, for a chart frame before any numbers have come in. */
-function lastDays() {
+function lastDays(): Day[] {
   return Array.from({ length: 14 }, (_, i) => ({
     date: new Date(Date.now() - (13 - i) * 86_400_000).toISOString().slice(0, 10),
     people: 0,
     payments: 0,
+    cash_outs: 0,
   }))
 }
 
@@ -92,8 +95,8 @@ export default async function StatsPage() {
           <p className="gr-eyebrow">On Monad, mainnet and testnet</p>
           <h1 className="gr-title">Kova, live</h1>
           <p className="gr-lead">
-            Everyone using Kova, what they’ve paid and the dollars they’ve sent by link. Counted
-            straight from Kova on each network.
+            Everyone using Kova, what they’ve paid, the dollars they’ve sent by link and what
+            they’ve cashed out to naira. Counted straight from Kova on each network.
           </p>
         </section>
 
@@ -180,6 +183,28 @@ export default async function StatsPage() {
             extra={known ? `${whole(all.links_claimed)} claimed` : undefined}
             split={split(nets, (s) => whole(s.links))}
           />
+          {/* Cash-outs lead with mainnet's: testnet's go through Paystack's test mode, no naira. */}
+          <Stat
+            icon="out"
+            tone="coral"
+            label="Cashed out"
+            value={mainnet ? dollars(Number(mainnet.cash_out_volume)) : null}
+            extra={mainnet ? `${whole(mainnet.cash_outs)} to Nigerian banks` : undefined}
+            split={split(nets, (s) => dollars(Number(s.cash_out_volume)), {
+              mainnet: 'on mainnet',
+              testnet: 'test dollars',
+            })}
+          />
+          <Stat
+            icon="down"
+            tone="teal"
+            label="Naira paid out"
+            value={mainnet ? naira(Number(mainnet.cash_out_naira)) : null}
+            split={split(nets, (s) => naira(Number(s.cash_out_naira)), {
+              mainnet: 'to banks',
+              testnet: 'test',
+            })}
+          />
         </section>
 
         <section className="gr-charts" aria-label="The last 14 days">
@@ -196,6 +221,13 @@ export default async function StatsPage() {
             days={known ? all.daily : lastDays()}
             pick="payments"
             known={known}
+          />
+          <Bars
+            title="Cash-outs to naira"
+            unit={['cash-out', 'cash-outs']}
+            days={mainnet ? mainnet.daily : lastDays()}
+            pick="cash_outs"
+            known={Boolean(mainnet)}
           />
         </section>
 
@@ -394,8 +426,8 @@ function Bars({
 }: {
   title: string
   unit: [string, string]
-  days: { date: string; people: number; payments: number }[]
-  pick: 'people' | 'payments'
+  days: Day[]
+  pick: 'people' | 'payments' | 'cash_outs'
   known: boolean
 }) {
   const values = days.map((d) => d[pick])

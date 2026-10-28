@@ -31,7 +31,36 @@ const token = getToken('testnet', 'AUSD')
 async function stats() {
   const response = await app.request('/v1/public/stats')
   expect(response.status).toBe(200)
-  return (await response.json()) as { people: number; payments: number; shops: number }
+  return (await response.json()) as {
+    people: number
+    payments: number
+    shops: number
+    cash_outs: number
+    cash_out_volume: string
+    cash_out_naira: string
+    daily: { date: string; cash_outs: number }[]
+  }
+}
+
+/** A cash-out to naira in `status`, as the API records it (paid once the bank is paid). */
+async function cashOut(status: string, dollars: string, kobo: bigint) {
+  await db.insert(schema.cashOuts).values({
+    id: uuidv7(),
+    network: 'testnet',
+    walletAddress: privateKeyToAccount(generatePrivateKey()).address,
+    amount: parseAmount(dollars),
+    naira: kobo,
+    rate: '1376.47',
+    fee: 0n,
+    bankCode: '100004',
+    bankName: 'Opay',
+    accountNumber: '8031234567',
+    accountName: 'ADA OBI',
+    status,
+    partner: 'paj',
+    expiresAt: new Date(Date.now() + 900_000),
+    paidAt: status === 'paid' ? new Date() : null,
+  })
 }
 
 /** A paid charge at a fresh shop, as the chain watcher would record it. */
@@ -108,5 +137,23 @@ describe('public numbers', () => {
     const after = await stats()
     expect(after.payments - before.payments).toBe(1)
     expect(after.people - before.people).toBe(1)
+  })
+
+  it('counts cash-outs that reached the bank: how many, their dollars and their naira', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(Date.now() + 61_000)
+    const before = await stats()
+
+    await cashOut('paid', '2.00', 275_294n)
+    await cashOut('quoted', '5.00', 688_235n)
+    await cashOut('failed', '3.00', 412_941n)
+
+    vi.setSystemTime(Date.now() + 61_000)
+    const after = await stats()
+    expect(after.cash_outs - before.cash_outs).toBe(1)
+    expect(Number(after.cash_out_volume) - Number(before.cash_out_volume)).toBeCloseTo(2, 6)
+    expect(Number(after.cash_out_naira) - Number(before.cash_out_naira)).toBeCloseTo(2752.94, 2)
+    const today = (s: typeof after) => s.daily.at(-1)?.cash_outs ?? 0
+    expect(today(after) - today(before)).toBe(1)
   })
 })

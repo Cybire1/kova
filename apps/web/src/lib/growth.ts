@@ -76,14 +76,31 @@ export interface NetworkStats {
   volume: string
   links: number
   links_claimed: number
+  /** Cash-outs to naira that reached the bank; on testnet, Paystack's test mode moves no naira. */
+  cash_outs: number
+  /** The dollars they took, e.g. "2.00", and the naira they paid, e.g. "2752.94". */
+  cash_out_volume: string
+  cash_out_naira: string
   /** The last 14 days, oldest first, by UTC date. */
-  daily: { date: string; people: number; payments: number }[]
+  daily: Day[]
   sources: { ref: string; visits: number; wallets: number }[]
   updated_at: string
 }
 
+/** One UTC day: new people, payments and cash-outs. */
+export interface Day {
+  date: string
+  people: number
+  payments: number
+  cash_outs: number
+}
+
 const count = (value: unknown) =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.round(value) : null
+
+/** A decimal amount from the API, or "0.00" from an API that doesn't count it yet. */
+const decimal = (value: unknown) =>
+  typeof value === 'string' && /^\d+(\.\d+)?$/.test(value) ? value : '0.00'
 
 /** A reply from the API, checked field by field: an API mid-deploy can't break the page. */
 export function readStats(body: unknown): NetworkStats | null {
@@ -116,7 +133,7 @@ export function readStats(body: unknown): NetworkStats | null {
           /^\d{4}-\d{2}-\d{2}$/.test(day.date) &&
           p !== null &&
           n !== null
-          ? [{ date: day.date, people: p, payments: n }]
+          ? [{ date: day.date, people: p, payments: n, cash_outs: count(day?.cash_outs) ?? 0 }]
           : []
       })
     : []
@@ -139,6 +156,9 @@ export function readStats(body: unknown): NetworkStats | null {
     volume: b.volume,
     links,
     links_claimed,
+    cash_outs: count(b.cash_outs) ?? 0,
+    cash_out_volume: decimal(b.cash_out_volume),
+    cash_out_naira: decimal(b.cash_out_naira),
     daily,
     sources,
     updated_at: updated ? (b.updated_at as string) : new Date().toISOString(),
@@ -155,7 +175,7 @@ export interface Together {
   volume: number
   links: number
   links_claimed: number
-  daily: { date: string; people: number; payments: number }[]
+  daily: Day[]
   sources: { ref: string; visits: number; wallets: number }[]
   /** The older of the two, so "updated" never claims fresher numbers than it has. */
   updated_at: string | null
@@ -163,11 +183,15 @@ export interface Together {
 
 export function together(parts: NetworkStats[]): Together {
   const sum = (pick: (s: NetworkStats) => number) => parts.reduce((total, s) => total + pick(s), 0)
-  const days = new Map<string, { people: number; payments: number }>()
+  const days = new Map<string, Omit<Day, 'date'>>()
   for (const s of parts)
     for (const d of s.daily) {
-      const day = days.get(d.date) ?? { people: 0, payments: 0 }
-      days.set(d.date, { people: day.people + d.people, payments: day.payments + d.payments })
+      const day = days.get(d.date) ?? { people: 0, payments: 0, cash_outs: 0 }
+      days.set(d.date, {
+        people: day.people + d.people,
+        payments: day.payments + d.payments,
+        cash_outs: day.cash_outs + d.cash_outs,
+      })
     }
   const refs = new Map<string, { visits: number; wallets: number }>()
   for (const s of parts)
@@ -207,6 +231,15 @@ export function dollars(n: number) {
     minimumFractionDigits: big ? 0 : 2,
     maximumFractionDigits: big ? 0 : 2,
   })
+}
+
+/** Naira as people read them: kobo while they matter, whole naira past ₦1,000,000. */
+export function naira(n: number) {
+  const big = n >= 1_000_000
+  return `₦${n.toLocaleString('en-NG', {
+    minimumFractionDigits: big ? 0 : 2,
+    maximumFractionDigits: big ? 0 : 2,
+  })}`
 }
 
 /** "just now", "a minute ago", "5 minutes ago", "2 hours ago". */

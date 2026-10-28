@@ -10,8 +10,8 @@ import { clientIp, limit } from '../limits.js'
 import { demoAddresses } from '../services/demo.js'
 
 /**
- * Public numbers: how many people use Kova on this network, what they've paid and sent, and where
- * new people came from. Only totals leave the server: never an address, a name or an amount by person.
+ * Public numbers: how many people use Kova on this network, what they've paid and sent, what they've
+ * cashed out to naira, and where new people came from. Only totals leave the server: never an address, a name or an amount by person.
  *
  * A person is a wallet that did something only Kova wallets do: made its passkey vault, published a
  * note key, took test dollars, paid a Kova charge, made or claimed a link, or owns a shop. Each network
@@ -30,7 +30,11 @@ interface Numbers {
   volume: string
   links: number
   links_claimed: number
-  daily: { date: string; people: number; payments: number }[]
+  /** Cash-outs to naira that reached the bank: how many, the dollars they took, the naira they paid. */
+  cash_outs: number
+  cash_out_volume: string
+  cash_out_naira: string
+  daily: { date: string; people: number; payments: number; cash_outs: number }[]
   sources: { ref: string; visits: number; wallets: number }[]
   updated_at: string
 }
@@ -71,22 +75,30 @@ async function compute(): Promise<Numbers> {
       : sql`true`
   const people = sql`select address, min(at) as first from (${seen}) s where address like '0x%' and ${notOwn(sql`address`)} group by address`
   const paidByOthers = sql`status = 'paid' and ${notOwn(sql`lower(payer_address)`)}`
-  const [total, recent, shops, payments, volume, links, claimed] = await Promise.all([
-    count(sql`select count(*) from (${people}) p`),
-    count(sql`select count(*) from (${people}) p where first > now() - interval '7 days'`),
-    count(
-      sql`select count(*) from merchants where status = 'active' and ${notOwn(sql`coalesce(lower(owner_address), '')`)} and ${notOwn(sql`lower(settlement_address)`)}`,
-    ),
-    count(sql`select count(*) from payments where ${paidByOthers}`),
-    count(sql`select coalesce(sum(amount), 0) from payments where ${paidByOthers}`),
-    count(sql`select count(*) from payment_links`),
-    count(sql`select count(*) from payment_links where status = 'claimed'`),
-  ])
+  const cashedOut = sql`status = 'paid' and ${notOwn(sql`lower(wallet_address)`)}`
+  const [total, recent, shops, payments, volume, links, claimed, cashOuts, cashOutDollars, kobo] =
+    await Promise.all([
+      count(sql`select count(*) from (${people}) p`),
+      count(sql`select count(*) from (${people}) p where first > now() - interval '7 days'`),
+      count(
+        sql`select count(*) from merchants where status = 'active' and ${notOwn(sql`coalesce(lower(owner_address), '')`)} and ${notOwn(sql`lower(settlement_address)`)}`,
+      ),
+      count(sql`select count(*) from payments where ${paidByOthers}`),
+      count(sql`select coalesce(sum(amount), 0) from payments where ${paidByOthers}`),
+      count(sql`select count(*) from payment_links`),
+      count(sql`select count(*) from payment_links where status = 'claimed'`),
+      count(sql`select count(*) from cash_outs where ${cashedOut}`),
+      count(sql`select coalesce(sum(amount), 0) from cash_outs where ${cashedOut}`),
+      count(sql`select coalesce(sum(naira), 0) from cash_outs where ${cashedOut}`),
+    ])
   const newPeople = await rows<{ day: string; n: string }>(
     sql`select to_char(date_trunc('day', first), 'YYYY-MM-DD') as day, count(*) as n from (${people}) p where first > now() - interval '14 days' group by 1`,
   )
   const paid = await rows<{ day: string; n: string }>(
     sql`select to_char(date_trunc('day', created_at), 'YYYY-MM-DD') as day, count(*) as n from payments where ${paidByOthers} and created_at > now() - interval '14 days' group by 1`,
+  )
+  const cashed = await rows<{ day: string; n: string }>(
+    sql`select to_char(date_trunc('day', paid_at), 'YYYY-MM-DD') as day, count(*) as n from cash_outs where ${cashedOut} and paid_at > now() - interval '14 days' group by 1`,
   )
   const daily = Array.from({ length: DAYS }, (_, i) => {
     const d = new Date(Date.now() - (DAYS - 1 - i) * 86_400_000).toISOString().slice(0, 10)
@@ -94,6 +106,7 @@ async function compute(): Promise<Numbers> {
       date: d,
       people: Number(newPeople.find((r) => r.day === d)?.n ?? 0),
       payments: Number(paid.find((r) => r.day === d)?.n ?? 0),
+      cash_outs: Number(cashed.find((r) => r.day === d)?.n ?? 0),
     }
   })
   const sources = await db
@@ -113,6 +126,9 @@ async function compute(): Promise<Numbers> {
     volume: formatAmount(BigInt(volume)),
     links,
     links_claimed: claimed,
+    cash_outs: cashOuts,
+    cash_out_volume: formatAmount(BigInt(cashOutDollars)),
+    cash_out_naira: (kobo / 100).toFixed(2),
     daily,
     sources: sources
       .map((s) => ({ ref: s.ref, visits: Number(s.visits), wallets: Number(s.wallets) }))
