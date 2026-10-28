@@ -374,7 +374,7 @@ export default function CashOutScreen() {
           step === 'amount'
             ? 'Cash out to naira'
             : step === 'account'
-              ? 'Who gets it?'
+              ? 'Cash out to'
               : step === 'review'
                 ? 'Check and send'
                 : undefined
@@ -521,7 +521,7 @@ export default function CashOutScreen() {
                   autoFocus={!recents.length && !account}
                   placeholder="10 digits"
                   placeholderTextColor={colors.muted}
-                  accessibilityLabel="Their account number"
+                  accessibilityLabel="Account number"
                   style={styles.accountInput}
                 />
                 {account.length < 10 ? (
@@ -539,7 +539,7 @@ export default function CashOutScreen() {
             ) : (
               <View style={{ gap: 8 }}>
                 <Txt weight="semi" size={13} color={colors.muted}>
-                  {named ? 'Their bank' : 'Pick their bank'}
+                  Pick bank
                 </Txt>
                 {banks === null ? (
                   <ActivityIndicator color={colors.ink} style={{ padding: 18 }} />
@@ -636,7 +636,7 @@ export default function CashOutScreen() {
           </ScrollView>
           <View style={styles.bottom}>
             <PillButton
-              label={busy ? 'Locking the rate…' : named ? 'Continue' : 'Pick their bank'}
+              label={busy ? 'Locking the rate…' : named ? 'Continue' : 'Pick a bank'}
               loading={busy}
               disabled={!named || busy || named.number !== account}
               onPress={() => void review()}
@@ -989,7 +989,7 @@ function BankSheet({
       <View style={styles.grip} />
       <View style={styles.sheetHead}>
         <Txt weight="bold" size={22} style={{ letterSpacing: -0.5 }}>
-          Choose their bank
+          Choose a bank
         </Txt>
         <RoundButton icon="close" label="Close" onPress={onClose} />
       </View>

@@ -94,6 +94,34 @@ export function NairaCashOut() {
 
   useEffect(() => setRecents(readRecents()), [])
 
+  // Development only, for films and screenshots: ?capture=<JSON> opens a step with its data. Next
+  // drops this from production builds (NODE_ENV is inlined).
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') return
+    const raw = new URLSearchParams(window.location.search).get('capture')
+    if (!raw) return
+    try {
+      const c = JSON.parse(raw) as {
+        step: Step
+        amount?: string
+        account?: string
+        bank?: Bank
+        name?: string
+        cashOut?: CashOutToPay
+        took?: number
+      }
+      if (c.amount) setAmount(c.amount)
+      if (c.account) setAccount(c.account)
+      if (c.bank) setBank(c.bank)
+      if (c.bank && c.name) setCheck({ code: c.bank.code, state: 'named', name: c.name })
+      if (c.cashOut) setCashOut(c.cashOut)
+      if (c.took) setTook(c.took)
+      setStep(c.step)
+    } catch {
+      // Not a capture link: start at the beginning.
+    }
+  }, [])
+
   useEffect(() => {
     if (!enabled) return
     void json<{ data: Bank[] }>('/api/naira/naira/banks')
@@ -345,7 +373,7 @@ export function NairaCashOut() {
   if (step === 'recipient')
     return (
       <div className="w-screen">
-        <Head title="Who gets it?" onBack={() => setStep('amount')} />
+        <Head title="Cash out to" onBack={() => setStep('amount')} />
         <div className="cx">
           <p className="cx-sub">
             ${amount} → {estimate?.naira ?? '…'}
@@ -402,7 +430,7 @@ export function NairaCashOut() {
             <p className="cx-hint">Type all 10 digits and Kova suggests the bank.</p>
           ) : (
             <>
-              <span className="cx-label">Their bank</span>
+              <span className="cx-label">Pick bank</span>
               <div className="cx-tiles">
                 {suggestions.map((s) => (
                   <BankTile
@@ -450,7 +478,7 @@ export function NairaCashOut() {
             onClick={() => void quote()}
           >
             <span className="pill-label">
-              {busy ? 'Getting your quote…' : named ? 'Continue' : 'Pick their bank'}
+              {busy ? 'Getting your quote…' : named ? 'Continue' : 'Pick a bank'}
             </span>
             <span className="pill-cap">
               <Icon name="arrow" size={18} />
@@ -658,12 +686,12 @@ function BankSheet({
   const matches = q ? all.filter((b) => b.name.toLowerCase().includes(q)) : all
 
   return (
-    <div className="cx-sheet-wrap" role="dialog" aria-modal="true" aria-label="Choose their bank">
+    <div className="cx-sheet-wrap" role="dialog" aria-modal="true" aria-label="Choose a bank">
       <button type="button" className="cx-sheet-shade" aria-label="Close" onClick={onClose} />
       <div className="cx-sheet">
         <span className="cx-grip" aria-hidden="true" />
         <div className="cx-sheet-head">
-          <strong>Choose their bank</strong>
+          <strong>Choose a bank</strong>
           <button type="button" className="round" aria-label="Close" onClick={onClose}>
             <Icon name="close" size={16} />
           </button>
