@@ -23,7 +23,7 @@ export const revalidate = 60
 export const metadata: Metadata = {
   title: { absolute: 'Kova, live' },
   description:
-    'How many people use Kova on Monad, what they’ve paid, the dollars they’ve sent by link and what they’ve cashed out to naira: counted on each network, updated every minute. Totals only.',
+    'How many people use Kova on Monad, the money they’ve moved and what they’ve cashed out to naira: counted on each network, money read off the chain, updated every minute. Totals only.',
 }
 
 const NETWORKS: Network[] = ['mainnet', 'testnet']
@@ -63,6 +63,7 @@ function lastDays(): Day[] {
     people: 0,
     payments: 0,
     cash_outs: 0,
+    moved: 0,
   }))
 }
 
@@ -95,8 +96,8 @@ export default async function StatsPage() {
           <p className="gr-eyebrow">On Monad, mainnet and testnet</p>
           <h1 className="gr-title">Kova, live</h1>
           <p className="gr-lead">
-            Everyone using Kova, what they’ve paid, the dollars they’ve sent by link and what
-            they’ve cashed out to naira. Counted straight from Kova on each network.
+            Everyone using Kova, the money they’ve moved and what they’ve cashed out to naira. Money
+            is mainnet’s, read off the chain; testnet’s is test dollars and says so.
           </p>
         </section>
 
@@ -126,6 +127,7 @@ export default async function StatsPage() {
               <span className="gr-chip-week">Numbers will appear here</span>
             )}
           </p>
+          <NewPeople days={known ? all.daily : lastDays()} known={known} />
           <ul className="gr-split" aria-label="By network">
             {NETWORKS.map((n) => {
               const s = nets[n]
@@ -151,21 +153,27 @@ export default async function StatsPage() {
         </div>
 
         <section className="gr-cards" aria-label="What people do with Kova">
+          {/* Money leads with mainnet's: testnet's is test dollars, given on the line below. */}
           <Stat
             icon="tap"
             tone="coral"
-            label="Payments"
-            value={known ? whole(all.payments) : null}
-            split={split(nets, (s) => whole(s.payments))}
+            label="Transactions"
+            value={mainnet ? whole(mainnet.moved) : null}
+            extra="Sends, payments, deposits"
+            split={split(nets, (s) => whole(s.moved), {
+              mainnet: 'on mainnet',
+              testnet: 'on testnet',
+            })}
           />
           <Stat
             icon="bolt"
             tone="teal"
             label="Money moved"
-            value={known ? dollars(all.volume) : null}
-            split={split(nets, (s) => dollars(Number(s.volume)), {
-              testnet: 'test dollars',
+            value={mainnet ? dollars(Number(mainnet.moved_volume)) : null}
+            extra="In and out of wallets"
+            split={split(nets, (s) => dollars(Number(s.moved_volume)), {
               mainnet: 'on mainnet',
+              testnet: 'test dollars',
             })}
           />
           <Stat
@@ -209,18 +217,11 @@ export default async function StatsPage() {
 
         <section className="gr-charts" aria-label="The last 14 days">
           <Bars
-            title="New people"
-            unit={['new person', 'new people']}
-            days={known ? all.daily : lastDays()}
-            pick="people"
-            known={known}
-          />
-          <Bars
-            title="Payments"
-            unit={['payment', 'payments']}
-            days={known ? all.daily : lastDays()}
-            pick="payments"
-            known={known}
+            title="Transactions on mainnet"
+            unit={['transaction', 'transactions']}
+            days={mainnet ? mainnet.daily : lastDays()}
+            pick="moved"
+            known={Boolean(mainnet)}
           />
           <Bars
             title="Cash-outs to naira"
@@ -350,6 +351,44 @@ function Rolling({ value }: { value: string }) {
   )
 }
 
+/**
+ * New people over the last 14 days, drawn small on the people card itself: the card's own story,
+ * where it had only empty teal before. Today's bar is the solid one.
+ */
+function NewPeople({ days, known }: { days: Day[]; known: boolean }) {
+  const values = days.map((d) => d.people)
+  const max = Math.max(0, ...values)
+  const total = values.reduce((sum, v) => sum + v, 0)
+  return (
+    <div className="gr-people-days">
+      <p className="gr-people-days-head">
+        <span>New people, last 14 days</span>
+        <strong>{known ? whole(total) : '—'}</strong>
+      </p>
+      <ol className="gr-people-bars" aria-label="New people each day, the last 14 days">
+        {days.map((d, i) => {
+          const today = i === days.length - 1
+          const height = max > 0 && d.people > 0 ? Math.max((d.people / max) * 100, 8) : 0
+          return (
+            <li
+              key={d.date}
+              aria-label={`${today ? 'Today' : dayName(d.date, 'long')}: ${whole(d.people)}`}
+            >
+              <span
+                className={height > 0 ? 'gr-people-bar' : 'gr-people-bar-none'}
+                data-today={today ? 'true' : undefined}
+                style={
+                  height > 0 ? { height: `${height}%`, animationDelay: `${i * 35}ms` } : undefined
+                }
+              />
+            </li>
+          )
+        })}
+      </ol>
+    </div>
+  )
+}
+
 interface SplitRow {
   net: Network
   value: string | null
@@ -427,7 +466,7 @@ function Bars({
   title: string
   unit: [string, string]
   days: Day[]
-  pick: 'people' | 'payments' | 'cash_outs'
+  pick: 'people' | 'payments' | 'cash_outs' | 'moved'
   known: boolean
 }) {
   const values = days.map((d) => d[pick])

@@ -3,6 +3,7 @@ import { formatAmount } from '@kova/monad'
 import { type SQL, sql } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
+import { feePayerAddress, settlementToken } from '../chain.js'
 import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
@@ -16,6 +17,10 @@ import { demoAddresses } from '../services/demo.js'
  * A person is a wallet that did something only Kova wallets do: made its passkey vault, published a
  * note key, took test dollars, paid a Kova charge, made or claimed a link, or owns a shop. Each network
  * has its own database, so this API's numbers are this network's.
+ *
+ * Money moved is read off the chain (the watcher's index of every dollar transfer): each transfer
+ * into or out of a person's wallet, so sends, payments, cash-outs, deposits and top-ups all count,
+ * each once. Kova's demo wallets and its treasury (testnet's free test dollars) are left out.
  */
 
 /** The daily series' length; the SQL below says the same 14 days. */
@@ -28,13 +33,16 @@ interface Numbers {
   shops: number
   payments: number
   volume: string
+  /** Dollar transfers into or out of people's wallets, and the dollars they moved. */
+  moved: number
+  moved_volume: string
   links: number
   links_claimed: number
   /** Cash-outs to naira that reached the bank: how many, the dollars they took, the naira they paid. */
   cash_outs: number
   cash_out_volume: string
   cash_out_naira: string
-  daily: { date: string; people: number; payments: number; cash_outs: number }[]
+  daily: { date: string; people: number; payments: number; cash_outs: number; moved: number }[]
   sources: { ref: string; visits: number; wallets: number }[]
   updated_at: string
 }
@@ -75,22 +83,48 @@ async function compute(): Promise<Numbers> {
       : sql`true`
   const people = sql`select address, min(at) as first from (${seen}) s where address like '0x%' and ${notOwn(sql`address`)} group by address`
   const paidByOthers = sql`status = 'paid' and ${notOwn(sql`lower(payer_address)`)}`
+  // Every dollar transfer that touched a person's wallet, with the demo wallets and the treasury
+  // (which hands out testnet's free test dollars) on neither side.
+  const kova = [...own, ...(feePayerAddress ? [feePayerAddress.toLowerCase()] : [])]
+  const notKova = (column: SQL) =>
+    kova.length
+      ? sql`${column} not in (${sql.join(
+          kova.map((a) => sql`${a}`),
+          sql`, `,
+        )})`
+      : sql`true`
+  const wallets = sql`select address from (${people}) w`
+  const moves = sql`select amount, created_at from transfers where token_address = ${settlementToken.address.toLowerCase()} and (from_address in (${wallets}) or to_address in (${wallets})) and ${notKova(sql`from_address`)} and ${notKova(sql`to_address`)}`
   const cashedOut = sql`status = 'paid' and ${notOwn(sql`lower(wallet_address)`)}`
-  const [total, recent, shops, payments, volume, links, claimed, cashOuts, cashOutDollars, kobo] =
-    await Promise.all([
-      count(sql`select count(*) from (${people}) p`),
-      count(sql`select count(*) from (${people}) p where first > now() - interval '7 days'`),
-      count(
-        sql`select count(*) from merchants where status = 'active' and ${notOwn(sql`coalesce(lower(owner_address), '')`)} and ${notOwn(sql`lower(settlement_address)`)}`,
-      ),
-      count(sql`select count(*) from payments where ${paidByOthers}`),
-      count(sql`select coalesce(sum(amount), 0) from payments where ${paidByOthers}`),
-      count(sql`select count(*) from payment_links`),
-      count(sql`select count(*) from payment_links where status = 'claimed'`),
-      count(sql`select count(*) from cash_outs where ${cashedOut}`),
-      count(sql`select coalesce(sum(amount), 0) from cash_outs where ${cashedOut}`),
-      count(sql`select coalesce(sum(naira), 0) from cash_outs where ${cashedOut}`),
-    ])
+  const [
+    total,
+    recent,
+    shops,
+    payments,
+    volume,
+    links,
+    claimed,
+    cashOuts,
+    cashOutDollars,
+    kobo,
+    moved,
+    movedDollars,
+  ] = await Promise.all([
+    count(sql`select count(*) from (${people}) p`),
+    count(sql`select count(*) from (${people}) p where first > now() - interval '7 days'`),
+    count(
+      sql`select count(*) from merchants where status = 'active' and ${notOwn(sql`coalesce(lower(owner_address), '')`)} and ${notOwn(sql`lower(settlement_address)`)}`,
+    ),
+    count(sql`select count(*) from payments where ${paidByOthers}`),
+    count(sql`select coalesce(sum(amount), 0) from payments where ${paidByOthers}`),
+    count(sql`select count(*) from payment_links`),
+    count(sql`select count(*) from payment_links where status = 'claimed'`),
+    count(sql`select count(*) from cash_outs where ${cashedOut}`),
+    count(sql`select coalesce(sum(amount), 0) from cash_outs where ${cashedOut}`),
+    count(sql`select coalesce(sum(naira), 0) from cash_outs where ${cashedOut}`),
+    count(sql`select count(*) from (${moves}) m`),
+    count(sql`select coalesce(sum(amount), 0) from (${moves}) m`),
+  ])
   const newPeople = await rows<{ day: string; n: string }>(
     sql`select to_char(date_trunc('day', first), 'YYYY-MM-DD') as day, count(*) as n from (${people}) p where first > now() - interval '14 days' group by 1`,
   )
@@ -100,6 +134,9 @@ async function compute(): Promise<Numbers> {
   const cashed = await rows<{ day: string; n: string }>(
     sql`select to_char(date_trunc('day', paid_at), 'YYYY-MM-DD') as day, count(*) as n from cash_outs where ${cashedOut} and paid_at > now() - interval '14 days' group by 1`,
   )
+  const movedDaily = await rows<{ day: string; n: string }>(
+    sql`select to_char(date_trunc('day', created_at), 'YYYY-MM-DD') as day, count(*) as n from (${moves}) m where created_at > now() - interval '14 days' group by 1`,
+  )
   const daily = Array.from({ length: DAYS }, (_, i) => {
     const d = new Date(Date.now() - (DAYS - 1 - i) * 86_400_000).toISOString().slice(0, 10)
     return {
@@ -107,6 +144,7 @@ async function compute(): Promise<Numbers> {
       people: Number(newPeople.find((r) => r.day === d)?.n ?? 0),
       payments: Number(paid.find((r) => r.day === d)?.n ?? 0),
       cash_outs: Number(cashed.find((r) => r.day === d)?.n ?? 0),
+      moved: Number(movedDaily.find((r) => r.day === d)?.n ?? 0),
     }
   })
   const sources = await db
@@ -124,6 +162,8 @@ async function compute(): Promise<Numbers> {
     shops,
     payments,
     volume: formatAmount(BigInt(volume)),
+    moved,
+    moved_volume: formatAmount(BigInt(movedDollars)),
     links,
     links_claimed: claimed,
     cash_outs: cashOuts,

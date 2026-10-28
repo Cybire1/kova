@@ -74,6 +74,13 @@ export interface NetworkStats {
   payments: number
   /** Dollars paid through Kova on this network, e.g. "832.35"; on testnet, test dollars. */
   volume: string
+  /**
+   * Dollar transfers into or out of Kova wallets, read off the chain: sends, payments, deposits,
+   * top-ups and cash-outs, each once. Kova's demo account and its treasury are left out.
+   */
+  moved: number
+  /** The dollars they moved, e.g. "41.20"; on testnet, test dollars. */
+  moved_volume: string
   links: number
   links_claimed: number
   /** Cash-outs to naira that reached the bank; on testnet, Paystack's test mode moves no naira. */
@@ -87,12 +94,13 @@ export interface NetworkStats {
   updated_at: string
 }
 
-/** One UTC day: new people, payments and cash-outs. */
+/** One UTC day: new people, payments, cash-outs and transactions (money moved). */
 export interface Day {
   date: string
   people: number
   payments: number
   cash_outs: number
+  moved: number
 }
 
 const count = (value: unknown) =>
@@ -133,7 +141,15 @@ export function readStats(body: unknown): NetworkStats | null {
           /^\d{4}-\d{2}-\d{2}$/.test(day.date) &&
           p !== null &&
           n !== null
-          ? [{ date: day.date, people: p, payments: n, cash_outs: count(day?.cash_outs) ?? 0 }]
+          ? [
+              {
+                date: day.date,
+                people: p,
+                payments: n,
+                cash_outs: count(day?.cash_outs) ?? 0,
+                moved: count(day?.moved) ?? 0,
+              },
+            ]
           : []
       })
     : []
@@ -154,6 +170,9 @@ export function readStats(body: unknown): NetworkStats | null {
     shops,
     payments,
     volume: b.volume,
+    // An API from before money moved was counted says nothing: zero, until it's deployed.
+    moved: count(b.moved) ?? 0,
+    moved_volume: decimal(b.moved_volume),
     links,
     links_claimed,
     cash_outs: count(b.cash_outs) ?? 0,
@@ -186,11 +205,12 @@ export function together(parts: NetworkStats[]): Together {
   const days = new Map<string, Omit<Day, 'date'>>()
   for (const s of parts)
     for (const d of s.daily) {
-      const day = days.get(d.date) ?? { people: 0, payments: 0, cash_outs: 0 }
+      const day = days.get(d.date) ?? { people: 0, payments: 0, cash_outs: 0, moved: 0 }
       days.set(d.date, {
         people: day.people + d.people,
         payments: day.payments + d.payments,
         cash_outs: day.cash_outs + d.cash_outs,
+        moved: day.moved + d.moved,
       })
     }
   const refs = new Map<string, { visits: number; wallets: number }>()
