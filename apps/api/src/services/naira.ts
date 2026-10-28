@@ -243,6 +243,7 @@ export function serializeCashOut(row: CashOutRow) {
     naira_kobo: row.naira.toString(),
     rate: Number(row.rate).toFixed(2),
     fee: formatNaira(row.fee),
+    bank_code: row.bankCode,
     bank_name: row.bankName,
     account_name: row.accountName,
     account_last4: row.accountNumber.slice(-4),

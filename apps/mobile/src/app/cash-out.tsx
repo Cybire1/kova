@@ -1,60 +1,107 @@
+import { bankDisplayName, POPULAR_BANKS, suggestBanks } from '@kova/monad'
 import * as Haptics from 'expo-haptics'
+import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
+import * as SecureStore from 'expo-secure-store'
 import * as WebBrowser from 'expo-web-browser'
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ActivityIndicator,
+  FlatList,
   KeyboardAvoidingView,
+  Modal,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { type NairaBank, type NairaInfo, naira } from '@/lib/api'
 import type { CashOutToPay } from '@/lib/chain'
-import { chainName } from '@/lib/config'
 import { applyKey, formatUsd, groupTyped, type Key, toBase } from '@/lib/money'
 import { usePrivate } from '@/lib/private'
 import { useSessionCovers } from '@/lib/session'
 import { colors, fonts } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
-import { Kovi } from '@/ui/art'
+import { Coin, Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { Keypad } from '@/ui/Keypad'
+import { Bob, Burst, Ping, PopIn } from '@/ui/motion'
 import { spendLabel, TopUpLine, usePaymentRoute } from '@/ui/Private'
-import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
+import { Header, PillButton, RoundButton, Screen, Txt } from '@/ui/primitives'
 import { SlideToSend } from '@/ui/send/SlideToSend'
 
-type Step = 'amount' | 'account' | 'review' | 'done'
+type Step = 'amount' | 'account' | 'review' | 'sending' | 'done'
 
+/** Someone this phone cashed out to before. Kept on the phone only, never sent anywhere. */
+interface Recent {
+  name: string
+  bankCode: string
+  bankName: string
+  accountNumber: string
+  logo?: string | null
+}
+
+const RECENTS = 'kova.naira.recents.v1'
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const dollars = (base: bigint) => (Number(base) / 1e6).toFixed(2)
+const nairaText = (n: number) =>
+  `₦${n.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+/** Banks give names in capitals ("ADA OBI"): shown as people write them. */
+const titleCase = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/(^|[\s'-])([a-z])/g, (_, gap: string, c: string) => gap + c.toUpperCase())
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+const spaced = (n: string) =>
+  n.length === 10 ? `${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}` : n
 
 /**
  * Cashing out to naira (the API's services/naira.ts): dollars from this wallet to any Nigerian
- * bank account, through PAJ (Monad mainnet) or Paystack. How much (with what they'd get as you
- * type), which account (the bank says whose it is), the quote, slide. The wallet signs exactly the
- * quote's transfer (to Kova's cash-out contract, which swaps it to USDC and pays PAJ; or to Kova's
- * treasury for Paystack), Kova pays the gas, and the screen follows the bank until the naira is there,
- * or says the dollars came back. The web's twin is /wallet/cash-out/naira.
+ * bank account, through PAJ (Monad mainnet) or Paystack. How much, then who: the account number
+ * first, and Kova suggests the bank from it (phone-number banks for numbers that look like phone
+ * numbers, banks whose NUBAN check digit it fits), the bank names the account, the quote, slide.
+ * The wallet signs exactly the quote's transfer (to Kova's cash-out contract, which swaps it to USDC
+ * and pays PAJ; or to Kova's treasury for Paystack), Kova pays the gas, and the screen follows the
+ * money step by step until it's in their account. The web's twin is /wallet/cash-out/naira.
  */
 export default function CashOutScreen() {
   const { balance, profile, cashOutNaira } = useWallet()
+  const insets = useSafeAreaInsets()
+  const { width } = useWindowDimensions()
   const [info, setInfo] = useState<NairaInfo | null>(null)
   const [step, setStep] = useState<Step>('amount')
   const [typed, setTyped] = useState('')
   const [preview, setPreview] = useState<string | null>(null)
   const [banks, setBanks] = useState<NairaBank[] | null>(null)
-  const [search, setSearch] = useState('')
-  const [bank, setBank] = useState<NairaBank | null>(null)
+  const [recents, setRecents] = useState<Recent[]>([])
   const [account, setAccount] = useState('')
-  const [named, setNamed] = useState<{ number: string; name: string } | null>(null)
-  const [looking, setLooking] = useState(false)
+  const [bank, setBank] = useState<NairaBank | null>(null)
+  const [checking, setChecking] = useState<string | null>(null)
+  const [missed, setMissed] = useState<string[]>([])
+  const [named, setNamed] = useState<{ number: string; code: string; name: string } | null>(null)
+  const [sheet, setSheet] = useState(false)
+  const [search, setSearch] = useState('')
   const [quote, setQuote] = useState<CashOutToPay | null>(null)
+  const [save, setSave] = useState(true)
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
+  const [took, setTook] = useState<number | null>(null)
+  /** The latest name check: an older answer arriving late is ignored. */
+  const seq = useRef(0)
+  const live = useRef(true)
   const quick = useSessionCovers(quote ? BigInt(quote.pay.value) : 0n)
-  // Development only, for films and screenshots: ?amount=2&bank=001&account=0000000000&step=account|review
+  // Development only, for films and screenshots: ?amount=2&bank=100004&account=8031234567&step=account|review
   const dev = useLocalSearchParams<{
     amount?: string
     bank?: string
@@ -63,8 +110,29 @@ export default function CashOutScreen() {
   }>()
 
   useEffect(() => {
-    void naira.info().then(setInfo)
+    live.current = true
+    return () => {
+      live.current = false
+    }
   }, [])
+
+  useEffect(() => {
+    void naira.info().then(setInfo)
+    void SecureStore.getItemAsync(RECENTS)
+      .then((raw) => {
+        const list = raw ? (JSON.parse(raw) as Recent[]) : []
+        if (Array.isArray(list)) setRecents(list.slice(0, 5))
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!info?.enabled || banks) return
+    void naira
+      .banks()
+      .then(setBanks)
+      .catch(() => setBanks([]))
+  }, [info?.enabled, banks])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, from the dev link
   useEffect(() => {
@@ -73,12 +141,6 @@ export default function CashOutScreen() {
     if (dev.account) setAccount(dev.account)
     if (dev.step === 'account' || dev.step === 'review') setStep('account')
   }, [])
-
-  useEffect(() => {
-    if (!__DEV__ || !dev.bank || !banks || bank) return
-    const found = banks.find((b) => b.code === dev.bank)
-    if (found) setBank(found)
-  }, [banks, bank, dev.bank])
 
   const onKey = useCallback((key: Key) => setTyped((v) => applyKey(v, key, 2)), [])
   const amount = useMemo(() => {
@@ -94,6 +156,7 @@ export default function CashOutScreen() {
   const { route } = usePaymentRoute({ amount, balance, direct: false, paying: busy })
   const over = route.from === 'short'
   const tooSmall = amount > 0n && amount < 1_000_000n
+  const paj = info?.partner === 'paj'
 
   useEffect(() => {
     if (amount < 1_000_000n || !info?.enabled) return setPreview(null)
@@ -106,47 +169,92 @@ export default function CashOutScreen() {
     return () => clearTimeout(id)
   }, [amount, info?.enabled])
 
-  useEffect(() => {
-    if (step !== 'account' || banks) return
-    void naira
-      .banks()
-      .then(setBanks)
-      .catch((e: Error) => setProblem(e.message))
-  }, [banks, step])
+  const byCode = useMemo(() => new Map((banks ?? []).map((b) => [b.code, b])), [banks])
+  const shortName = useCallback(
+    (code: string | undefined, fallback: string) =>
+      bankDisplayName({ code: code ?? '', name: (code && byCode.get(code)?.name) || fallback }),
+    [byCode],
+  )
 
-  useEffect(() => {
+  /** The banks this number most likely belongs to; a bank picked from the full list joins them. */
+  const suggestions = useMemo((): { bank: NairaBank; fits: boolean }[] => {
+    if (!banks || account.length !== 10) return []
+    const list = suggestBanks(account, banks, 5).map((s) => ({
+      bank: s.bank,
+      fits: s.reason === 'fits',
+    }))
+    if (bank && !list.some((s) => s.bank.code === bank.code))
+      return [{ bank, fits: false }, ...list.slice(0, 4)]
+    return list
+  }, [account, banks, bank])
+
+  /** The bank names the account: a spinner on its row, then the name, or a quiet no. */
+  const check = useCallback(async (b: NairaBank, number: string) => {
+    const mine = ++seq.current
+    setBank(b)
     setNamed(null)
-    if (!bank || !/^\d{10}$/.test(account)) return
-    setLooking(true)
+    setChecking(b.code)
     setProblem(null)
-    void naira
-      .accountName(account, bank.code)
-      .then((name) => setNamed({ number: account, name }))
-      .catch((e: Error) => setProblem(e.message))
-      .finally(() => setLooking(false))
-  }, [account, bank])
+    void Haptics.selectionAsync()
+    try {
+      const name = await naira.accountName(number, b.code)
+      if (seq.current !== mine || !live.current) return
+      setNamed({ number, code: b.code, name })
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    } catch (error) {
+      if (seq.current !== mine || !live.current) return
+      const message = error instanceof Error ? error.message : 'The bank didn’t answer.'
+      if (/match|account number|check them/i.test(message))
+        setMissed((m) => (m.includes(b.code) ? m : [...m, b.code]))
+      else setProblem(message)
+    } finally {
+      if (seq.current === mine && live.current) setChecking(null)
+    }
+  }, [])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the dev link's one review
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once the banks arrive, from the dev link
   useEffect(() => {
-    if (__DEV__ && dev.step === 'review' && named && step === 'account' && !busy && !quote)
-      void review()
-  }, [named])
+    if (!__DEV__ || !dev.bank || !dev.account || !banks || bank) return
+    const found = banks.find((b) => b.code === dev.bank)
+    if (found && /^\d{10}$/.test(dev.account)) void check(found, dev.account)
+  }, [banks])
 
-  const shown = useMemo(() => {
-    if (!banks) return []
-    const q = search.trim().toLowerCase()
-    return (q ? banks.filter((b) => b.name.toLowerCase().includes(q)) : banks).slice(0, 30)
-  }, [banks, search])
+  const typeAccount = (text: string) => {
+    const next = text.replace(/\D/g, '').slice(0, 10)
+    if (next === account) return
+    seq.current++
+    setAccount(next)
+    setBank(null)
+    setNamed(null)
+    setChecking(null)
+    setMissed([])
+    setProblem(null)
+  }
+
+  const pickRecent = (r: Recent) => {
+    seq.current++
+    setAccount(r.accountNumber)
+    setMissed([])
+    const b = byCode.get(r.bankCode) ?? { name: r.bankName, code: r.bankCode, logo: r.logo }
+    void check(b, r.accountNumber)
+  }
+
+  const pickFromList = (b: NairaBank) => {
+    setSheet(false)
+    setSearch('')
+    if (/^\d{10}$/.test(account)) void check(b, account)
+    else setBank(b)
+  }
 
   const review = async () => {
-    if (!bank || !named || !profile) return
+    if (!named || !profile) return
     setBusy(true)
     setProblem(null)
     try {
       setQuote(
         await naira.cashOut(profile.address, {
           amount: dollars(amount),
-          bankCode: bank.code,
+          bankCode: named.code,
           accountNumber: named.number,
         }),
       )
@@ -158,34 +266,70 @@ export default function CashOutScreen() {
     }
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the dev link's one review
+  useEffect(() => {
+    if (__DEV__ && dev.step === 'review' && named && step === 'account' && !busy && !quote)
+      void review()
+  }, [named])
+
+  const remember = async (r: Recent) => {
+    const next = [
+      r,
+      ...recents.filter((x) => !(x.bankCode === r.bankCode && x.accountNumber === r.accountNumber)),
+    ].slice(0, 5)
+    setRecents(next)
+    await SecureStore.setItemAsync(RECENTS, JSON.stringify(next)).catch(() => {})
+  }
+
   const go = async () => {
     if (!quote) return
     setBusy(true)
     setProblem(null)
+    const started = Date.now()
     try {
       const pay = () => cashOutNaira(quote)
       let result: CashOutToPay = await privately.pay(route, BigInt(quote.pay.value), {
         fromBalance: pay,
         fromPrivate: pay,
       })
-      void Haptics.notificationAsync(
-        result.status === 'failed'
-          ? Haptics.NotificationFeedbackType.Warning
-          : Haptics.NotificationFeedbackType.Success,
-      )
+      if (!live.current) return
       setQuote(result)
-      setStep('done')
-      for (let i = 0; i < 20 && (result.status === 'paying' || result.status === 'received'); i++) {
+      if (result.status === 'failed') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+        setStep('done')
+        return
+      }
+      if (save && named)
+        void remember({
+          name: titleCase(named.name),
+          bankCode: named.code,
+          bankName: shortName(named.code, quote.bank_name),
+          accountNumber: named.number,
+          logo: byCode.get(named.code)?.logo ?? null,
+        })
+      setStep(result.status === 'paid' ? 'done' : 'sending')
+      // Follow the bank for up to three minutes; the money arrives either way.
+      for (let i = 0; i < 60 && (result.status === 'paying' || result.status === 'received'); i++) {
         await wait(3000)
+        if (!live.current) return
         result = await naira.cashOutStatus(quote.id)
+        if (!live.current) return
         setQuote(result)
+      }
+      if (result.status === 'paid') {
+        setTook(Math.max(1, Math.round((Date.now() - started) / 1000)))
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+        setStep('done')
+      } else if (result.status === 'failed') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
+        setStep('done')
       }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'It didn’t go through. Nothing moved.'
-      if (!/cancel/i.test(message)) setProblem(message)
+      if (live.current && !/cancel/i.test(message)) setProblem(message)
     } finally {
-      setBusy(false)
+      if (live.current) setBusy(false)
     }
   }
 
@@ -193,7 +337,7 @@ export default function CashOutScreen() {
     return (
       <Screen>
         <Header title="Cash out to naira" backIcon="close" />
-        <View style={styles.done}>
+        <View style={styles.center}>
           <Kovi pose="sleep" size={140} />
           <Txt weight="bold" size={22} style={{ textAlign: 'center' }}>
             Naira isn’t on here yet
@@ -205,13 +349,37 @@ export default function CashOutScreen() {
       </Screen>
     )
 
+  const rate = info?.cash_out_rate
+    ? `₦${Number(info.cash_out_rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : null
+  const toBank = quote ? shortName(quote.bank_code ?? named?.code, quote.bank_name) : ''
+  const toLogo = quote ? byCode.get(quote.bank_code ?? named?.code ?? '')?.logo : null
+  const toName = titleCase(quote?.account_name ?? named?.name ?? 'the account holder')
+  const toNumber =
+    named && quote && named.number.endsWith(quote.account_last4)
+      ? spaced(named.number)
+      : `••••${quote?.account_last4 ?? ''}`
+  const partnerHas = quote?.partner === 'paj' ? 'PAJ has it' : 'Kova has it'
+  const paid = quote?.status === 'paid'
+
   return (
     <Screen>
       <Header
-        title={step === 'done' ? undefined : 'Cash out to naira'}
-        backIcon={step === 'amount' || step === 'done' ? 'close' : 'back'}
+        title={
+          step === 'amount'
+            ? 'Cash out to naira'
+            : step === 'account'
+              ? 'Who gets it?'
+              : step === 'review'
+                ? 'Check and send'
+                : undefined
+        }
+        subtitle={
+          step === 'account' && amount > 0n ? `$${dollars(amount)} → ${preview ?? '…'}` : undefined
+        }
+        backIcon={step === 'account' || step === 'review' ? 'back' : 'close'}
         onBack={
-          busy
+          busy && step !== 'sending'
             ? null
             : step === 'account'
               ? () => setStep('amount')
@@ -220,22 +388,13 @@ export default function CashOutScreen() {
                 : () => router.back()
         }
       />
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-        {step === 'amount' ? (
-          <View style={styles.flow}>
-            <View style={styles.route}>
-              <View style={styles.naira}>
-                <Txt weight="bold" size={18} color={colors.white}>
-                  ₦
-                </Txt>
-              </View>
-              <Txt size={14} color={colors.muted} style={{ flex: 1 }}>
-                To any Nigerian bank, through {info?.partner === 'paj' ? 'PAJ' : 'Paystack'}
-                {info?.cash_out_rate
-                  ? `, at ₦${Number(info.cash_out_rate).toLocaleString('en-NG', { maximumFractionDigits: 2 })} per $1`
-                  : ''}
-              </Txt>
-            </View>
+
+      {step === 'amount' ? (
+        <View style={styles.flow}>
+          <View style={styles.amountBlock}>
+            <Txt weight="semi" size={15} color={colors.muted}>
+              You send
+            </Txt>
             <View style={styles.typed}>
               <Txt weight="semi" size={30} color={colors.muted} style={{ marginTop: 10 }}>
                 $
@@ -244,254 +403,758 @@ export default function CashOutScreen() {
                 {groupTyped(typed) || '0'}
               </Txt>
             </View>
-            <View style={styles.pills}>
-              {preview && !over ? (
-                <View style={[styles.pill, { backgroundColor: colors.tealSoft }]}>
-                  <Txt weight="semi" size={14}>
-                    They get ≈ {preview}
-                  </Txt>
-                </View>
-              ) : null}
-              {have !== null ? (
-                <View style={[styles.pill, over && { backgroundColor: colors.coralSoft }]}>
-                  <Txt weight="semi" size={14} color={over ? colors.danger : colors.onTint}>
-                    {over ? `You have ${formatUsd(have)}` : `${formatUsd(have)} available`}
-                  </Txt>
-                </View>
-              ) : null}
-            </View>
-            <View style={{ flex: 1 }} />
-            <Keypad onKey={onKey} />
-            <View style={{ marginTop: 14 }}>
-              <PillButton
-                label={
-                  over ? 'More than you have' : tooSmall ? 'At least $1' : 'Choose the account'
-                }
-                disabled={amount === 0n || over || tooSmall}
-                onPress={() => setStep('account')}
-              />
+            <View style={styles.getsPill}>
+              <Coin symbol="₦" size={26} />
+              <Txt weight="semi" size={15} color={colors.muted}>
+                They get
+              </Txt>
+              <Txt weight="bold" size={17}>
+                {preview && !over ? preview : '₦—'}
+              </Txt>
             </View>
           </View>
-        ) : null}
-
-        {step === 'account' ? (
-          <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-            <Txt weight="bold" size={22}>
-              Which account?
-            </Txt>
-            {bank ? (
-              <Pressable
-                onPress={() => setBank(null)}
-                style={styles.bankPick}
-                accessibilityLabel={`${bank.name}, change bank`}
-              >
-                <View style={styles.bankBadge}>
-                  <Icon name="web" size={17} color={colors.white} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Txt weight="bold" size={15}>
-                    {bank.name}
-                  </Txt>
-                  <Txt size={13} color={colors.muted}>
-                    Change bank
-                  </Txt>
-                </View>
-              </Pressable>
-            ) : (
-              <Field label="Bank">
-                <TextInput
-                  value={search}
-                  onChangeText={setSearch}
-                  placeholder="Search your bank"
-                  placeholderTextColor={colors.muted}
-                  style={styles.input}
-                />
-                <View style={styles.bankList}>
-                  {banks === null ? (
-                    <Txt color={colors.muted} style={{ padding: 12 }}>
-                      Loading banks…
-                    </Txt>
-                  ) : (
-                    shown.map((b, i) => (
-                      <Pressable
-                        key={`${b.code}-${b.name}`}
-                        onPress={() => setBank(b)}
-                        style={[styles.bankRow, i < shown.length - 1 && styles.rule]}
-                      >
-                        <Txt size={15}>{b.name}</Txt>
-                      </Pressable>
-                    ))
-                  )}
-                </View>
-              </Field>
-            )}
-            {bank ? (
-              <Field label="Account number">
-                <TextInput
-                  value={account}
-                  onChangeText={(t) => setAccount(t.replace(/\D/g, '').slice(0, 10))}
-                  keyboardType="number-pad"
-                  placeholder="10 digits"
-                  placeholderTextColor={colors.muted}
-                  style={styles.input}
-                />
-              </Field>
-            ) : null}
-            {looking ? <Txt color={colors.muted}>Asking the bank whose account it is…</Txt> : null}
-            {named ? (
-              <View style={styles.named}>
-                <Icon name="check" size={16} color={colors.tealDeep} />
-                <Txt weight="bold" size={15} color={colors.tealDeep}>
-                  {named.name}
+          <View style={styles.chips}>
+            {have !== null ? (
+              <View style={[styles.chip, over && { backgroundColor: colors.coralSoft }]}>
+                <Txt weight="bold" size={13} color={over ? colors.danger : colors.onTint}>
+                  {over ? `You have ${formatUsd(have)}` : `Available ${formatUsd(have)}`}
                 </Txt>
               </View>
             ) : null}
-            {problem ? <Txt color={colors.danger}>{problem}</Txt> : null}
+            {have !== null && have > 0n ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Cash out everything, ${formatUsd(have)}`}
+                onPress={() => {
+                  void Haptics.selectionAsync()
+                  setTyped(dollars(have))
+                }}
+                hitSlop={8}
+                style={({ pressed }) => [styles.maxChip, pressed && { opacity: 0.6 }]}
+              >
+                <Txt weight="bold" size={13}>
+                  Max
+                </Txt>
+              </Pressable>
+            ) : null}
+          </View>
+          {rate ? (
+            <Txt
+              weight="semi"
+              size={13}
+              color={colors.muted}
+              style={{ textAlign: 'center', marginTop: 14 }}
+            >
+              {rate} per $1 · {paj ? 'No fees' : 'A small bank fee'} · Lands in minutes
+            </Txt>
+          ) : null}
+          <View style={{ flex: 1 }} />
+          <Keypad onKey={onKey} />
+          <View style={{ marginTop: 14 }}>
             <PillButton
-              label={busy ? 'Locking the rate…' : 'Review'}
+              label={over ? 'More than you have' : tooSmall ? 'At least $1' : 'Continue'}
+              disabled={amount === 0n || over || tooSmall}
+              onPress={() => setStep('account')}
+            />
+          </View>
+        </View>
+      ) : null}
+
+      {step === 'account' ? (
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+            {recents.length ? (
+              <View style={{ gap: 8 }}>
+                <Txt weight="bold" size={13} color={colors.muted}>
+                  Recent
+                </Txt>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 10 }}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {recents.map((r, i) => (
+                    <Pressable
+                      key={`${r.bankCode}-${r.accountNumber}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${r.name}, ${r.bankName}, ending ${r.accountNumber.slice(-4)}`}
+                      onPress={() => pickRecent(r)}
+                      style={({ pressed }) => [styles.recent, pressed && { opacity: 0.7 }]}
+                    >
+                      <Person
+                        name={r.name}
+                        logo={byCode.get(r.bankCode)?.logo ?? r.logo}
+                        tone={i % 2 ? colors.teal : colors.coral}
+                        ring={colors.surface}
+                      />
+                      <View>
+                        <Txt weight="bold" size={14} numberOfLines={1}>
+                          {r.name}
+                        </Txt>
+                        <Txt weight="semi" size={12} color={colors.muted}>
+                          {shortName(r.bankCode, r.bankName)} ••{r.accountNumber.slice(-4)}
+                        </Txt>
+                      </View>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+
+            <View style={{ gap: 8 }}>
+              <Txt weight="bold" size={13} color={colors.muted}>
+                Account number
+              </Txt>
+              <View style={styles.accountBox}>
+                <TextInput
+                  value={account}
+                  onChangeText={typeAccount}
+                  keyboardType="number-pad"
+                  maxLength={10}
+                  autoFocus={!recents.length && !account}
+                  placeholder="10 digits"
+                  placeholderTextColor={colors.muted}
+                  accessibilityLabel="Their account number"
+                  style={styles.accountInput}
+                />
+                {account.length < 10 ? (
+                  <Txt weight="bold" size={13} color={colors.muted}>
+                    {account.length}/10
+                  </Txt>
+                ) : null}
+              </View>
+            </View>
+
+            {account.length < 10 ? (
+              <Txt weight="semi" size={14} color={colors.muted}>
+                Type all 10 digits and Kova suggests the bank.
+              </Txt>
+            ) : (
+              <View style={{ gap: 8 }}>
+                <View style={styles.listHead}>
+                  <Txt weight="bold" size={13} color={colors.muted}>
+                    Banks for this number
+                  </Txt>
+                  <Pressable accessibilityRole="button" onPress={() => setSheet(true)} hitSlop={10}>
+                    <Txt weight="bold" size={13} color={colors.tealDeep}>
+                      Another bank
+                    </Txt>
+                  </Pressable>
+                </View>
+                <View style={styles.card}>
+                  {banks === null ? (
+                    <ActivityIndicator color={colors.ink} style={{ padding: 18 }} />
+                  ) : (
+                    suggestions.map((s, i) => {
+                      const name = shortName(s.bank.code, s.bank.name)
+                      const confirmed = named?.code === s.bank.code
+                      const miss = missed.includes(s.bank.code)
+                      return (
+                        <Pressable
+                          key={s.bank.code}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${name}${s.fits ? ', the number fits' : ''}`}
+                          accessibilityState={{
+                            selected: confirmed,
+                            busy: checking === s.bank.code,
+                          }}
+                          onPress={() => void check(s.bank, account)}
+                          style={({ pressed }) => [
+                            styles.bankRow,
+                            i < suggestions.length - 1 && styles.rule,
+                            pressed && { backgroundColor: colors.sunken },
+                          ]}
+                        >
+                          <BankLogo uri={s.bank.logo} name={name} size={40} />
+                          <View style={{ flex: 1 }}>
+                            <Txt weight="bold" size={16}>
+                              {name}
+                            </Txt>
+                            {miss ? (
+                              <Txt weight="bold" size={12} color={colors.danger}>
+                                No account with this number here
+                              </Txt>
+                            ) : null}
+                          </View>
+                          {checking === s.bank.code ? (
+                            <ActivityIndicator color={colors.ink} />
+                          ) : confirmed ? (
+                            <View style={styles.tick}>
+                              <Icon name="check" size={14} color={colors.white} strokeWidth={3} />
+                            </View>
+                          ) : s.fits ? (
+                            <View style={styles.tag}>
+                              <Txt weight="bold" size={11} color={colors.onTint}>
+                                Number fits
+                              </Txt>
+                            </View>
+                          ) : null}
+                        </Pressable>
+                      )
+                    })
+                  )}
+                </View>
+              </View>
+            )}
+
+            {named && account === named.number ? (
+              <PopIn style={styles.confirmed}>
+                <View style={styles.confirmedTick}>
+                  <Icon name="check" size={18} color={colors.white} strokeWidth={3} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Txt weight="bold" size={16}>
+                    {named.name.toUpperCase()}
+                  </Txt>
+                  <Txt weight="bold" size={12} color={colors.onTint}>
+                    Name confirmed by {shortName(named.code, bank?.name ?? '')}
+                  </Txt>
+                </View>
+              </PopIn>
+            ) : null}
+            {problem ? <Txt color={colors.danger}>{problem}</Txt> : null}
+          </ScrollView>
+          <View style={styles.bottom}>
+            <PillButton
+              label={busy ? 'Locking the rate…' : named ? 'Continue' : 'Pick their bank'}
               loading={busy}
-              disabled={!named || busy}
+              disabled={!named || busy || named.number !== account}
               onPress={() => void review()}
             />
-          </ScrollView>
-        ) : null}
-
-        {step === 'review' && quote ? (
-          <View style={styles.flow}>
-            <Txt weight="bold" size={22}>
-              {busy ? 'Cashing out' : 'Check and cash out'}
-            </Txt>
-            <View style={{ gap: 4, marginTop: 10 }}>
-              <Txt weight="bold" size={40} style={{ textAlign: 'center' }}>
-                {quote.naira}
-              </Txt>
-              <Txt color={colors.muted} style={{ textAlign: 'center' }}>
-                to {quote.account_name}, {quote.bank_name} ••••{quote.account_last4}
-              </Txt>
-            </View>
-            <View style={styles.facts}>
-              <Fact
-                label="You send"
-                value={`$${quote.amount}`}
-                hint={`From your balance on ${chainName}`}
-              />
-              <Fact
-                label="Rate"
-                value={`₦${Number(quote.rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per dollar`}
-                hint={
-                  quote.partner === 'paj'
-                    ? 'PAJ’s rate, less 0.1% for the swap to USDC'
-                    : info?.rate_source === 'chainlink'
-                      ? 'Chainlink rate on Monad, less 1%'
-                      : 'Market rate, less 1%'
-                }
-              />
-              <Fact
-                label="Bank fee"
-                value={quote.fee}
-                hint={quote.partner === 'paj' ? 'PAJ’s fee is in the rate' : 'Taken from the naira'}
-              />
-              <Fact label="Network fee" value="$0.00, Kova covers it" />
-              <Fact
-                label="Arrives"
-                value="In minutes"
-                hint={
-                  quote.partner === 'paj'
-                    ? 'PAJ pays the bank once your dollars reach it'
-                    : 'If the bank can’t take it, your dollars come back'
-                }
-                last
-              />
-            </View>
-            {quote.test_mode ? (
-              <Txt size={13} color={colors.muted} style={{ marginTop: 10 }}>
-                Paystack test mode: no naira moves. The dollars are Monad testnet dollars.
-              </Txt>
-            ) : null}
-            <View style={{ marginTop: 10 }}>
-              <TopUpLine route={route} />
-            </View>
-            {privately.spending ? (
-              <Txt weight="medium" size={14} style={{ textAlign: 'center', marginTop: 10 }}>
-                {spendLabel(privately.spending)}
-              </Txt>
-            ) : null}
-            {problem ? <Txt color={colors.danger}>{problem}</Txt> : null}
-            <View style={{ flex: 1 }} />
-            <SlideToSend
-              label={problem ? 'Slide to try again' : `Slide to cash out $${quote.amount}`}
-              busy={busy}
-              onSend={() => void go()}
-            />
-            <Txt size={13} color={colors.muted} style={{ textAlign: 'center', marginTop: 8 }}>
-              {quick
-                ? 'Your wallet is open, so this one needs no Face ID.'
-                : 'Face ID approves it.'}
-            </Txt>
           </View>
-        ) : null}
+        </KeyboardAvoidingView>
+      ) : null}
 
-        {step === 'done' && quote ? (
-          <View style={styles.done}>
-            <Kovi
-              pose={quote.status === 'failed' ? 'oops' : quote.status === 'paid' ? 'cheer' : 'ride'}
-              size={150}
+      {step === 'review' && quote ? (
+        <ScrollView contentContainerStyle={styles.flowScroll}>
+          <View style={styles.hero}>
+            <View style={styles.heroWho}>
+              <Person name={toName} logo={toLogo} size={46} tone={colors.coral} ring={colors.ink} />
+              <View style={{ flex: 1 }}>
+                <Txt weight="bold" size={17} color={colors.white} numberOfLines={1}>
+                  {toName}
+                </Txt>
+                <Txt weight="semi" size={13} color={colors.onInk}>
+                  {toBank} · {toNumber}
+                </Txt>
+              </View>
+            </View>
+            <Txt weight="bold" size={13} color={colors.onInk} style={{ marginTop: 22 }}>
+              They get
+            </Txt>
+            <Txt weight="bold" size={44} exact color={colors.white} style={{ letterSpacing: -1.5 }}>
+              {quote.naira}
+            </Txt>
+            <View style={styles.heroCoin} pointerEvents="none">
+              <Coin symbol="₦" size={112} />
+            </View>
+          </View>
+
+          <View style={styles.facts}>
+            <Fact label="You send" value={`$${quote.amount}`} />
+            <Fact label="Rate" value={`${nairaText(Number(quote.rate))} per $1`} />
+            <Fact label="Fees" value={quote.partner === 'paj' ? 'None' : quote.fee} />
+            <Fact label="Arrives" value="In minutes" last />
+          </View>
+
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: save }}
+            onPress={() => {
+              void Haptics.selectionAsync()
+              setSave(!save)
+            }}
+            style={styles.saveRow}
+          >
+            <View style={[styles.box, save && { backgroundColor: colors.ink }]}>
+              {save ? <Icon name="check" size={15} color={colors.white} strokeWidth={3} /> : null}
+            </View>
+            <Txt weight="bold" size={15}>
+              Save {toName} for next time
+            </Txt>
+          </Pressable>
+
+          {quote.test_mode ? (
+            <Txt size={13} color={colors.muted}>
+              Paystack test mode: no naira moves. The dollars are Monad testnet dollars.
+            </Txt>
+          ) : null}
+          <TopUpLine route={route} />
+          {privately.spending ? (
+            <Txt weight="medium" size={14} style={{ textAlign: 'center' }}>
+              {spendLabel(privately.spending)}
+            </Txt>
+          ) : null}
+          {problem ? <Txt color={colors.danger}>{problem}</Txt> : null}
+
+          <View style={{ flex: 1 }} />
+          <Txt
+            weight="semi"
+            size={13}
+            color={colors.muted}
+            style={{ textAlign: 'center', lineHeight: 18 }}
+          >
+            {quote.partner === 'paj'
+              ? `PAJ, Kova’s naira partner, pays ${toBank} as soon as your dollars reach it on Monad.`
+              : `Paystack pays ${toBank} once your dollars reach Kova on Monad.`}
+          </Txt>
+          <SlideToSend
+            label={problem ? 'Slide to try again' : `Slide to send ${quote.naira}`}
+            busy={busy}
+            onSend={() => void go()}
+          />
+          <Txt size={13} color={colors.muted} style={{ textAlign: 'center' }}>
+            {quick ? 'Your wallet is open, so this one needs no Face ID.' : 'Face ID approves it.'}
+          </Txt>
+        </ScrollView>
+      ) : null}
+
+      {step === 'sending' && quote ? (
+        <ScrollView contentContainerStyle={styles.flowScroll}>
+          <View style={{ alignItems: 'center' }}>
+            <Bob distance={8} duration={1600}>
+              <Kovi pose="ride" size={160} />
+            </Bob>
+          </View>
+          <View style={{ alignItems: 'center', gap: 2 }}>
+            <Txt weight="bold" size={15} color={colors.muted}>
+              On its way to {toName}
+            </Txt>
+            <Txt weight="bold" size={42} exact style={{ letterSpacing: -1.4 }}>
+              {quote.naira}
+            </Txt>
+            <View style={styles.inline}>
+              <BankLogo uri={toLogo} name={toBank} size={22} />
+              <Txt weight="semi" size={14} color={colors.muted}>
+                {toBank} · {toNumber}
+              </Txt>
+            </View>
+          </View>
+          <Timeline
+            steps={[
+              {
+                title: 'Left your wallet',
+                detail: `$${quote.amount} on Monad`,
+                state: quote.tx_hash ? 'done' : 'active',
+              },
+              {
+                title: partnerHas,
+                detail:
+                  quote.partner === 'paj'
+                    ? 'Turned into USDC and paid to PAJ'
+                    : 'Received by Kova on Monad',
+                state: quote.tx_hash ? 'done' : 'pending',
+              },
+              {
+                title: `${toBank} is paying ${toName}`,
+                detail: 'Usually under a minute',
+                state: paid ? 'done' : quote.tx_hash ? 'active' : 'pending',
+              },
+              {
+                title: `In ${toName}’s account`,
+                detail: quote.naira,
+                state: paid ? 'done' : 'pending',
+              },
+            ]}
+          />
+          {problem ? <Txt color={colors.danger}>{problem}</Txt> : null}
+          <View style={{ flex: 1 }} />
+          <Txt
+            weight="semi"
+            size={13}
+            color={colors.muted}
+            style={{ textAlign: 'center', lineHeight: 18 }}
+          >
+            You can close this. Kova tells you the moment it lands.
+          </Txt>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.back()}
+            style={({ pressed }) => [styles.outline, pressed && { opacity: 0.7 }]}
+          >
+            <Txt weight="bold" size={16}>
+              Close
+            </Txt>
+          </Pressable>
+        </ScrollView>
+      ) : null}
+
+      {step === 'done' && quote && quote.status === 'failed' ? (
+        <View style={styles.center}>
+          <Kovi pose="oops" size={150} />
+          <Txt weight="bold" size={26} style={{ textAlign: 'center' }}>
+            Your dollars came back
+          </Txt>
+          <Txt color={colors.muted} style={{ textAlign: 'center' }}>
+            {quote.failure ?? 'The bank couldn’t take it. Your dollars came back to your wallet.'}
+          </Txt>
+          {quote.refund_tx_url ? (
+            <Pressable
+              onPress={() => void WebBrowser.openBrowserAsync(quote.refund_tx_url as string)}
+              accessibilityRole="link"
+            >
+              <Txt weight="semi" size={14} color={colors.tealDeep}>
+                See the refund on Monad
+              </Txt>
+            </Pressable>
+          ) : null}
+          <View style={{ alignSelf: 'stretch', marginTop: 8 }}>
+            <PillButton label="Done" icon="check" onPress={() => router.back()} />
+          </View>
+        </View>
+      ) : null}
+
+      {step === 'done' && quote && quote.status !== 'failed' ? (
+        <ScrollView contentContainerStyle={styles.flowScroll}>
+          <View style={styles.celebrate}>
+            <Burst
+              spots={[
+                { x: (width - 40) / 2 - 118, y: 34, size: 26, fill: colors.yellow, delay: 120 },
+                { x: (width - 40) / 2 + 116, y: 48, size: 30, fill: colors.coral, delay: 240 },
+                { x: (width - 40) / 2 - 96, y: 128, size: 20, fill: colors.white, delay: 360 },
+                { x: (width - 40) / 2 + 104, y: 136, size: 22, fill: colors.yellow, delay: 480 },
+              ]}
             />
-            <Txt weight="bold" size={26} style={{ textAlign: 'center' }}>
-              {quote.status === 'paid'
-                ? 'In their account'
-                : quote.status === 'failed'
-                  ? 'Your dollars came back'
-                  : 'On its way to the bank'}
+            <PopIn>
+              <View style={{ width: 150, height: 150 }}>
+                <Kovi pose="cheer" size={150} />
+                <PopIn delay={260} style={styles.doneBadge}>
+                  <Icon name="check" size={22} color={colors.white} strokeWidth={3} />
+                </PopIn>
+              </View>
+            </PopIn>
+          </View>
+          <View style={{ alignItems: 'center', gap: 6 }}>
+            <Txt weight="bold" size={48} exact style={{ letterSpacing: -1.8 }}>
+              {quote.naira}
             </Txt>
-            <Txt color={colors.muted} style={{ textAlign: 'center' }}>
-              {quote.status === 'failed'
-                ? (quote.failure ??
-                  'The bank couldn’t take it. Your dollars came back to your wallet.')
-                : `${quote.naira} to ${quote.account_name ?? 'the account'}, ${quote.bank_name} ••••${quote.account_last4}.`}
-            </Txt>
+            <View style={styles.inline}>
+              <Txt weight="bold" size={18}>
+                {paid ? `is in ${toName}’s` : `is on its way to ${toName}’s`}
+              </Txt>
+              <BankLogo uri={toLogo} name={toBank} size={26} />
+              <Txt weight="bold" size={18}>
+                {toBank} account
+              </Txt>
+            </View>
+            {took !== null ? (
+              <View style={styles.tookPill}>
+                <Txt weight="bold" size={13} color={colors.onTint}>
+                  Done in {took} {took === 1 ? 'second' : 'seconds'}
+                </Txt>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.receipt}>
+            <Fact
+              label="To"
+              value={`${toName} · ${toBank} ••••${quote.account_last4}`}
+              logo={toLogo}
+              bankName={toBank}
+            />
+            <Fact label="You sent" value={`$${quote.amount}`} />
+            <Fact label="Rate" value={`${nairaText(Number(quote.rate))} per $1`} last />
+            <View style={styles.dashed} />
+            <Fact label="Reference" value={quote.id.replace(/-/g, '').slice(0, 8).toUpperCase()} />
             {quote.tx_url ? (
               <Pressable
+                accessibilityRole="link"
                 onPress={() => void WebBrowser.openBrowserAsync(quote.tx_url as string)}
-                accessibilityRole="link"
+                style={styles.fact}
               >
-                <Txt weight="semi" size={14} color={colors.tealDeep}>
-                  See the transfer on Monad
+                <Txt size={14} color={colors.muted}>
+                  On Monad
+                </Txt>
+                <Txt weight="bold" size={14} color={colors.tealDeep} style={{ marginLeft: 'auto' }}>
+                  See the transaction
                 </Txt>
               </Pressable>
             ) : null}
-            {quote.refund_tx_url ? (
-              <Pressable
-                onPress={() => void WebBrowser.openBrowserAsync(quote.refund_tx_url as string)}
-                accessibilityRole="link"
-              >
-                <Txt weight="semi" size={14} color={colors.tealDeep}>
-                  See the refund on Monad
-                </Txt>
-              </Pressable>
-            ) : null}
-            {quote.test_mode ? (
-              <Txt size={13} color={colors.muted} style={{ textAlign: 'center' }}>
-                Paystack test mode: no naira moved.
-              </Txt>
-            ) : null}
-            <View style={{ alignSelf: 'stretch', marginTop: 8 }}>
-              <PillButton label="Done" icon="check" onPress={() => router.back()} />
-            </View>
           </View>
-        ) : null}
-      </KeyboardAvoidingView>
+
+          <View style={{ flex: 1 }} />
+          <View style={styles.doneActions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() =>
+                void Share.share({
+                  message: [
+                    `Kova cash-out: ${quote.naira} to ${toName}, ${toBank} ••••${quote.account_last4}`,
+                    `You sent $${quote.amount} at ${nairaText(Number(quote.rate))} per $1`,
+                    `Reference ${quote.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
+                    quote.tx_url ? `On Monad: ${quote.tx_url}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join('\n'),
+                }).catch(() => {})
+              }
+              style={({ pressed }) => [styles.outline, { flex: 1 }, pressed && { opacity: 0.7 }]}
+            >
+              <Icon name="share" size={18} />
+              <Txt weight="bold" size={16}>
+                Share receipt
+              </Txt>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.back()}
+              style={({ pressed }) => [styles.solid, { flex: 1 }, pressed && { opacity: 0.85 }]}
+            >
+              <Txt weight="bold" size={16} color={colors.white}>
+                Done
+              </Txt>
+            </Pressable>
+          </View>
+        </ScrollView>
+      ) : null}
+
+      <Modal
+        visible={sheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSheet(false)}
+      >
+        <Pressable
+          accessibilityLabel="Close"
+          style={styles.backdrop}
+          onPress={() => setSheet(false)}
+        />
+        <BankSheet
+          banks={banks ?? []}
+          search={search}
+          setSearch={setSearch}
+          onPick={pickFromList}
+          onClose={() => setSheet(false)}
+          bottom={Math.max(insets.bottom, 16)}
+        />
+      </Modal>
     </Screen>
   )
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+/** "Another bank": search, the banks most people send to, then every bank from A to Z. */
+function BankSheet({
+  banks,
+  search,
+  setSearch,
+  onPick,
+  onClose,
+  bottom,
+}: {
+  banks: NairaBank[]
+  search: string
+  setSearch: (s: string) => void
+  onPick: (b: NairaBank) => void
+  onClose: () => void
+  bottom: number
+}) {
+  const named = useMemo(
+    () =>
+      banks
+        .map((b) => ({ bank: b, name: bankDisplayName(b) }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [banks],
+  )
+  const q = search.trim().toLowerCase()
+  const matches = q
+    ? named.filter((n) => n.name.toLowerCase().includes(q) || n.bank.name.toLowerCase().includes(q))
+    : named
+  const popular = POPULAR_BANKS.slice(0, 8)
+    .map((code) => named.find((n) => n.bank.code === code))
+    .filter((n): n is { bank: NairaBank; name: string } => Boolean(n))
+
   return (
-    <View style={{ gap: 8 }}>
-      <Txt weight="bold" size={13} color={colors.muted}>
-        {label}
-      </Txt>
-      {children}
+    <View style={[styles.sheet, { paddingBottom: bottom }]}>
+      <View style={styles.grip} />
+      <View style={styles.sheetHead}>
+        <Txt weight="bold" size={22} style={{ letterSpacing: -0.5 }}>
+          Choose their bank
+        </Txt>
+        <RoundButton icon="close" label="Close" onPress={onClose} />
+      </View>
+      <View style={styles.searchBox}>
+        <Icon name="search" size={18} color={colors.muted} />
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder={
+            banks.length > 100
+              ? `Search ${Math.floor(banks.length / 100) * 100}+ banks`
+              : 'Search banks'
+          }
+          placeholderTextColor={colors.muted}
+          autoCorrect={false}
+          accessibilityLabel="Search banks"
+          style={styles.searchInput}
+        />
+      </View>
+      {q ? null : (
+        <View style={{ gap: 8, marginTop: 16 }}>
+          <Txt weight="bold" size={13} color={colors.muted}>
+            Most used
+          </Txt>
+          <View style={styles.grid}>
+            {popular.map((p) => (
+              <Pressable
+                key={p.bank.code}
+                accessibilityRole="button"
+                accessibilityLabel={p.name}
+                onPress={() => onPick(p.bank)}
+                style={({ pressed }) => [styles.gridCell, pressed && { opacity: 0.7 }]}
+              >
+                <BankLogo uri={p.bank.logo} name={p.name} size={40} />
+                <Txt weight="bold" size={12} numberOfLines={1}>
+                  {p.name}
+                </Txt>
+              </Pressable>
+            ))}
+          </View>
+          <Txt weight="bold" size={13} color={colors.muted} style={{ marginTop: 8 }}>
+            All banks, A to Z
+          </Txt>
+        </View>
+      )}
+      <View style={styles.sheetList}>
+        <FlatList
+          data={matches}
+          keyExtractor={(n) => n.bank.code}
+          keyboardShouldPersistTaps="handled"
+          initialNumToRender={14}
+          renderItem={({ item, index }) => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={item.name}
+              onPress={() => onPick(item.bank)}
+              style={({ pressed }) => [
+                styles.sheetRow,
+                index < matches.length - 1 && styles.rule,
+                pressed && { backgroundColor: colors.sunken },
+              ]}
+            >
+              <BankLogo uri={item.bank.logo} name={item.name} size={32} />
+              <Txt weight="semi" size={15} style={{ flex: 1 }} numberOfLines={1}>
+                {item.name}
+              </Txt>
+              <Icon name="arrow" size={16} color={colors.muted} />
+            </Pressable>
+          )}
+          ListEmptyComponent={
+            <Txt weight="semi" size={14} color={colors.muted} style={{ padding: 16 }}>
+              No bank by that name. Try its short name, like GTBank.
+            </Txt>
+          }
+        />
+      </View>
+    </View>
+  )
+}
+
+/** A bank's round logo on white, or its first letter when the list has no logo. */
+function BankLogo({ uri, name, size }: { uri?: string | null; name: string; size: number }) {
+  if (!uri)
+    return (
+      <View style={[styles.logoFallback, { width: size, height: size, borderRadius: size / 2 }]}>
+        <Txt weight="bold" size={size * 0.4} color={colors.white}>
+          {name.slice(0, 1)}
+        </Txt>
+      </View>
+    )
+  return (
+    <Image
+      source={{ uri }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: 'rgba(11,26,29,0.08)',
+      }}
+      contentFit="cover"
+      transition={120}
+      accessible={false}
+    />
+  )
+}
+
+/** The person's initials, with their bank's logo as a badge. */
+function Person({
+  name,
+  logo,
+  size = 38,
+  tone,
+  ring,
+}: {
+  name: string
+  logo?: string | null
+  size?: number
+  tone: string
+  ring: string
+}) {
+  const badge = Math.round(size * 0.52)
+  return (
+    <View style={{ width: size, height: size }}>
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: tone,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Txt weight="bold" size={size * 0.36} color={colors.white}>
+          {initials(name)}
+        </Txt>
+      </View>
+      <View
+        style={[
+          styles.badge,
+          { borderColor: ring, borderRadius: (badge + 4) / 2, right: -5, bottom: -5 },
+        ]}
+      >
+        <BankLogo uri={logo} name={name} size={badge} />
+      </View>
+    </View>
+  )
+}
+
+type StepState = 'done' | 'active' | 'pending'
+
+/** The money's path, one step at a time: done, happening now, or still to come. */
+function Timeline({ steps }: { steps: { title: string; detail: string; state: StepState }[] }) {
+  return (
+    <View style={styles.timeline} accessibilityLiveRegion="polite">
+      {steps.map((s, i) => (
+        <View key={s.title} style={{ flexDirection: 'row', gap: 14 }}>
+          <View style={{ alignItems: 'center', width: 26 }}>
+            {s.state === 'done' ? (
+              <View style={styles.stepDone}>
+                <Icon name="check" size={14} color={colors.white} strokeWidth={3} />
+              </View>
+            ) : s.state === 'active' ? (
+              <View style={styles.stepActive}>
+                <Ping size={26} />
+                <View style={styles.stepDot} />
+              </View>
+            ) : (
+              <View style={styles.stepPending} />
+            )}
+            {i < steps.length - 1 ? <View style={styles.stepLine} /> : null}
+          </View>
+          <View style={{ flex: 1, paddingBottom: 16 }}>
+            <Txt weight="bold" size={16} color={s.state === 'pending' ? colors.muted : colors.ink}>
+              {s.title}
+            </Txt>
+            <Txt weight="semi" size={13} color={colors.muted}>
+              {s.detail}
+            </Txt>
+          </View>
+        </View>
+      ))}
     </View>
   )
 }
@@ -499,28 +1162,26 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 function Fact({
   label,
   value,
-  hint,
   last,
+  logo,
+  bankName,
 }: {
   label: string
   value: string
-  hint?: string
   last?: boolean
+  logo?: string | null
+  bankName?: string
 }) {
   return (
     <View style={[styles.fact, !last && styles.rule]}>
       <Txt size={14} color={colors.muted}>
         {label}
       </Txt>
-      <View style={{ flex: 1, alignItems: 'flex-end' }}>
-        <Txt weight="bold" size={14} style={{ textAlign: 'right' }}>
+      <View style={styles.factValue}>
+        {bankName ? <BankLogo uri={logo} name={bankName} size={20} /> : null}
+        <Txt weight="bold" size={14} style={{ textAlign: 'right', flexShrink: 1 }}>
           {value}
         </Txt>
-        {hint ? (
-          <Txt size={12} color={colors.muted} style={{ textAlign: 'right' }}>
-            {hint}
-          </Txt>
-        ) : null}
       </View>
     </View>
   )
@@ -528,92 +1189,331 @@ function Fact({
 
 const styles = StyleSheet.create({
   flow: { flex: 1, paddingHorizontal: 20, paddingBottom: 12 },
-  form: { paddingHorizontal: 20, paddingBottom: 40, gap: 16 },
-  route: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
-  naira: {
-    width: 40,
-    height: 40,
+  flowScroll: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 16, gap: 14 },
+  form: { paddingHorizontal: 20, paddingBottom: 24, gap: 18 },
+  bottom: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingHorizontal: 28,
+  },
+  amountBlock: { alignItems: 'center', marginTop: 24, gap: 4 },
+  typed: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start' },
+  getsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    paddingVertical: 6,
+    paddingLeft: 6,
+    paddingRight: 14,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
+  chips: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: colors.sunken,
+  },
+  maxChip: {
+    minHeight: 32,
+    justifyContent: 'center',
+    paddingHorizontal: 13,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.ink,
+  },
+  recent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingLeft: 10,
+    paddingRight: 16,
     borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
+  accountBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 60,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+  },
+  accountInput: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 12,
+    fontFamily: fonts.bold,
+    fontSize: 24,
+    letterSpacing: 2,
+    color: colors.ink,
+  },
+  listHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  card: {
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  bankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 64,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  rule: { borderBottomWidth: 1, borderBottomColor: 'rgba(11,26,29,0.1)' },
+  tag: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: colors.sunken,
+  },
+  tick: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.tealSoft,
+  },
+  confirmedTick: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.positive,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hero: {
+    marginTop: 8,
+    overflow: 'hidden',
+    borderRadius: 28,
+    backgroundColor: colors.ink,
+    padding: 20,
+  },
+  heroWho: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  heroCoin: { position: 'absolute', right: -20, bottom: -24, transform: [{ rotate: '-12deg' }] },
+  facts: {
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+  },
+  fact: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  factValue: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 7,
+  },
+  saveRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44 },
+  box: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    flexWrap: 'wrap',
+  },
+  timeline: {
+    marginTop: 8,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingTop: 18,
+    paddingHorizontal: 18,
+    paddingBottom: 4,
+  },
+  stepDone: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.positive,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepActive: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.white },
+  stepPending: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#B9B7B2',
+    backgroundColor: colors.paper,
+  },
+  stepLine: { width: 2, flex: 1, minHeight: 22, backgroundColor: '#C9C7C2', marginVertical: 4 },
+  outline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    minHeight: 56,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: colors.ink,
+  },
+  solid: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 56,
+    borderRadius: 999,
+    backgroundColor: colors.ink,
+  },
+  celebrate: { height: 176, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  doneBadge: {
+    position: 'absolute',
+    right: 2,
+    bottom: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 3,
+    borderColor: colors.paper,
+    backgroundColor: colors.positive,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tookPill: {
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: colors.tealSoft,
+  },
+  receipt: {
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+  },
+  dashed: { borderTopWidth: 2, borderStyle: 'dashed', borderColor: '#C9C7C2', marginVertical: 2 },
+  doneActions: { flexDirection: 'row', gap: 10 },
+  logoFallback: {
     backgroundColor: colors.tealDeep,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  typed: {
+  badge: { position: 'absolute', borderWidth: 2, padding: 0 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(11,26,29,0.32)' },
+  sheet: {
+    height: '86%',
+    backgroundColor: colors.paper,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  grip: {
+    alignSelf: 'center',
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(11,26,29,0.16)',
+  },
+  sheetHead: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    marginTop: 28,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 14,
   },
-  pills: {
+  searchBox: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 10,
-  },
-  pill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: colors.sunken,
-  },
-  input: {
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 52,
+    marginTop: 14,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: 18,
     borderWidth: 2,
     borderColor: colors.ink,
-    borderRadius: 16,
     backgroundColor: colors.surface,
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    paddingVertical: 12,
     fontFamily: fonts.semi,
     fontSize: 16,
     color: colors.ink,
   },
-  bankList: {
-    maxHeight: 300,
-    borderWidth: 2,
-    borderColor: colors.ink,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
-    overflow: 'hidden',
-  },
-  bankRow: { paddingHorizontal: 14, paddingVertical: 12 },
-  rule: { borderBottomWidth: 1, borderBottomColor: colors.sunken },
-  bankPick: {
-    flexDirection: 'row',
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  gridCell: {
+    width: '23.2%',
     alignItems: 'center',
-    gap: 12,
-    padding: 12,
+    gap: 6,
+    paddingTop: 10,
+    paddingBottom: 8,
+    paddingHorizontal: 4,
     borderRadius: 18,
     borderWidth: 2,
     borderColor: colors.ink,
-    backgroundColor: colors.tealSoft,
+    backgroundColor: colors.surface,
   },
-  bankBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 2,
-    borderColor: colors.ink,
-    backgroundColor: colors.teal,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  named: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    padding: 12,
-    borderRadius: 14,
-    backgroundColor: colors.tealSoft,
-  },
-  facts: {
-    marginTop: 16,
+  sheetList: {
+    flex: 1,
+    marginTop: 8,
     borderRadius: 20,
     borderWidth: 2,
     borderColor: colors.ink,
     backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  sheetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 54,
     paddingHorizontal: 14,
   },
-  fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
-  done: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingHorizontal: 28 },
 })

@@ -8,7 +8,10 @@
  * because Monad's RPCs answer log queries only 100 blocks (about 30 seconds) at a time.
  */
 import {
+  CHAINLINK_MON_USD,
+  chainlinkFeedAbi,
   eip3009Abi,
+  priceFromRound,
   randomNonce,
   type SealedNote,
   tokenByAddress,
@@ -72,6 +75,18 @@ export async function getBalance(address: Address): Promise<bigint> {
 
 export async function getMonBalance(address: Address): Promise<bigint> {
   return publicClient.getBalance({ address })
+}
+
+/** Chainlink's MON / USD price on Monad (mainnet only; null when there's no fresh one). */
+export async function getMonUsd(): Promise<number | null> {
+  const feed = CHAINLINK_MON_USD[networkId]
+  if (!feed) return null
+  const round = await publicClient.readContract({
+    address: feed,
+    abi: chainlinkFeedAbi,
+    functionName: 'latestRoundData',
+  })
+  return priceFromRound(round)
 }
 
 /**
@@ -394,6 +409,8 @@ export interface CashOutToPay {
   rate: string
   fee: string
   bank_name: string
+  /** The bank's transfer (NIP) code, to find its logo in the banks list. */
+  bank_code?: string
   account_name?: string
   account_last4: string
   status: 'quoted' | 'received' | 'paying' | 'paid' | 'failed' | 'expired'

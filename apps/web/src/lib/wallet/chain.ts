@@ -1,8 +1,11 @@
 import {
+  CHAINLINK_MON_USD,
+  chainlinkFeedAbi,
   eip3009Abi,
   getNetwork,
   getToken,
   type NetworkId,
+  priceFromRound,
   randomNonce,
   type SealedNote,
   type TransferAuthorization,
@@ -59,6 +62,18 @@ function client(network: NetworkId) {
 
 export async function monBalanceOf(network: NetworkId, address: Address): Promise<bigint> {
   return client(network).getBalance({ address })
+}
+
+/** Chainlink's MON / USD price on Monad (mainnet only; null when there's no fresh one). */
+export async function monUsdPrice(network: NetworkId): Promise<number | null> {
+  const feed = CHAINLINK_MON_USD[network]
+  if (!feed) return null
+  const round = await client(network).readContract({
+    address: feed,
+    abi: chainlinkFeedAbi,
+    functionName: 'latestRoundData',
+  })
+  return priceFromRound(round)
 }
 
 /** The wallet's dollars (AUSD), in base units. */
@@ -233,6 +248,7 @@ export interface CashOutToPay {
   naira: string
   rate: string
   fee: string
+  bank_code?: string
   bank_name: string
   account_name?: string
   account_last4: string

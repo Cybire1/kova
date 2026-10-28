@@ -1,4 +1,4 @@
-import { NairaCashOut } from '@/components/wallet/naira'
+import { NairaCashOut } from '@/components/wallet/cash-out-naira'
 
 export default function NairaCashOutPage() {
   return <NairaCashOut />

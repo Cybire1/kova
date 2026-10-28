@@ -7697,3 +7697,928 @@ button.w-chip-private:disabled {
   line-height: 1.5;
   text-align: center;
 }
+
+/* ── Cash out to naira (components/wallet/cash-out-naira.tsx) ───────────────────────────── */
+
+.cx {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 1.5rem;
+}
+
+.cx-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 1.5rem;
+}
+
+.cx-amount-label,
+.cx-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* Inputs take their font from their parent here (app.css sets every input to font: inherit). */
+.cx-big {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.125rem;
+  font-size: 4.25rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-big span {
+  margin-top: 0.6rem;
+  font-size: 2rem;
+  color: var(--muted);
+}
+
+.cx-big input {
+  min-width: 1ch;
+  max-width: 68vw;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  letter-spacing: -0.05em;
+  outline: none;
+}
+
+.cx-get {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.9rem 0.4rem 0.4rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-get img {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.cx-get strong {
+  color: var(--ink);
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.cx-chips {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.cx-chip {
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sunken);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.cx-chip-bad {
+  background: var(--coral-soft);
+  color: #7a2b22;
+}
+
+.cx-chip-line {
+  border: 2px solid var(--ink);
+  background: transparent;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cx-rate,
+.cx-sub {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-sub {
+  text-align: left;
+}
+
+.cx-go {
+  margin-top: 0.75rem;
+}
+
+.cx-recents {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+.cx-recent {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cx-recent > span:last-child,
+.cx-bank-name,
+.cx-named > span:last-child,
+.cx-hero-who > span:last-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cx-recent strong {
+  font-size: 0.875rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cx-recent small {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.cx-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3.75rem;
+  padding: 0 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  letter-spacing: 0.12em;
+  outline: none;
+}
+
+.cx-field:focus-within {
+  outline: 3px solid var(--coral-soft);
+  outline-offset: 2px;
+}
+
+.cx-field span {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.cx-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.cx-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+}
+
+.cx-link {
+  border: 0;
+  background: none;
+  padding: 0.25rem 0;
+  color: var(--teal-deep);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cx-list,
+.cx-all {
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 1.375rem;
+  background: var(--surface);
+}
+
+.cx-bank,
+.cx-all-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.7rem 0.875rem;
+  border: 0;
+  border-bottom: 1px solid var(--hairline);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cx-bank:last-child,
+.cx-all-row:last-child {
+  border-bottom: 0;
+}
+
+.cx-bank[aria-pressed="true"] {
+  background: rgba(169, 201, 201, 0.35);
+}
+
+.cx-bank-name {
+  flex: 1;
+}
+
+.cx-bank-name strong {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.cx-bank-name small {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.cx-bank-name small.cx-bad {
+  color: var(--danger);
+}
+
+.cx-tag {
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: var(--sunken);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: #3c4a4d;
+  white-space: nowrap;
+}
+
+.cx-tick,
+.cx-named-tick {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+}
+
+.cx-logo {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--hairline);
+  object-fit: cover;
+}
+
+.cx-logo-none {
+  background: var(--teal);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.cx-avatar {
+  position: relative;
+  flex: none;
+}
+
+.cx-avatar-face {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--coral);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.cx-avatar-bank {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 45%;
+  height: 45%;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: #fff;
+}
+
+.cx-named {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.25rem;
+  background: var(--teal-soft);
+}
+
+.cx-named-tick {
+  width: 2.125rem;
+  height: 2.125rem;
+  background: var(--positive);
+}
+
+.cx-named strong {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.cx-named small {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #234a4c;
+}
+
+/* The bank sheet */
+
+.cx-sheet-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.cx-sheet-shade {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(11, 26, 29, 0.38);
+  cursor: pointer;
+}
+
+.cx-sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 30rem;
+  max-height: 88vh;
+  margin: 0 auto;
+  padding: 0.625rem 1.25rem 1.5rem;
+  border-radius: 2rem 2rem 0 0;
+  background: var(--paper);
+  animation: w-sheet-up 0.4s var(--spring);
+}
+
+.cx-grip {
+  align-self: center;
+  width: 2.5rem;
+  height: 0.3125rem;
+  border-radius: 3px;
+  background: rgba(11, 26, 29, 0.18);
+}
+
+.cx-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cx-sheet-head strong {
+  font-size: 1.375rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.cx-search {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 3.25rem;
+  padding: 0 0.875rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.125rem;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.cx-search {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.cx-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  outline: none;
+}
+
+.cx-search:focus-within {
+  outline: 3px solid var(--coral-soft);
+  outline-offset: 2px;
+}
+
+.cx-popular {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.cx-pop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.625rem 0.25rem 0.5rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.125rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cx-pop-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cx-all {
+  flex: 1;
+  min-height: 8rem;
+  overflow-y: auto;
+}
+
+.cx-all-name {
+  flex: 1;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+/* Check and send */
+
+.cx-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-top: 0.5rem;
+  padding: 1.25rem;
+  border-radius: 1.75rem;
+  background: var(--ink);
+  color: #fff;
+}
+
+.cx-hero-who {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.cx-hero-who strong {
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.cx-hero-who small {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--on-ink);
+}
+
+.cx-hero .cx-avatar-bank {
+  border-color: var(--ink);
+}
+
+.cx-hero-label {
+  margin-top: 1.375rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--on-ink);
+}
+
+.cx-hero-amount {
+  font-size: 2.75rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-hero-coin {
+  position: absolute;
+  right: -1.5rem;
+  top: -1.25rem;
+  width: 6rem;
+  height: 6rem;
+  transform: rotate(-12deg);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.cx-hero > :not(.cx-hero-coin) {
+  position: relative;
+  z-index: 1;
+}
+
+.cx-save {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cx-save input {
+  width: 1.375rem;
+  height: 1.375rem;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+.cx-fine {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+/* On its way, and done */
+
+.cx-moment {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  overflow: hidden;
+  padding-top: 1.5rem;
+  text-align: center;
+}
+
+.cx-ride {
+  animation: cx-ride 1.6s ease-in-out infinite;
+}
+
+@keyframes cx-ride {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(3deg);
+  }
+}
+
+.cx-moment-label {
+  margin: 0.5rem 0 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.cx-moment-amount {
+  font-size: 2.625rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-moment-title {
+  margin-top: 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.cx-moment-to {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.cx-steps {
+  width: 100%;
+  margin: 1.25rem 0 0.5rem;
+  padding: 1.125rem 1.125rem 0.375rem;
+  border: 2px solid var(--ink);
+  border-radius: 1.5rem;
+  background: var(--surface);
+  list-style: none;
+  text-align: left;
+}
+
+.cx-step {
+  display: flex;
+  gap: 0.875rem;
+}
+
+.cx-step > span:last-child {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 1rem;
+}
+
+.cx-step strong {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.cx-step small {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.cx-step[data-state="waiting"] strong {
+  color: #7b8486;
+}
+
+.cx-step-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.625rem;
+  height: 1.625rem;
+  border: 2px solid #b9b7b2;
+  border-radius: 50%;
+  background: var(--paper);
+  color: #fff;
+}
+
+.cx-step[data-state="done"] .cx-step-mark {
+  border-color: var(--positive);
+  background: var(--positive);
+}
+
+.cx-step[data-state="active"] .cx-step-mark {
+  border-color: var(--coral);
+  background: var(--coral);
+  box-shadow: 0 0 0 0 rgba(212, 101, 88, 0.6);
+  animation: cx-ping 1.4s ease-out infinite;
+}
+
+@keyframes cx-ping {
+  to {
+    box-shadow: 0 0 0 10px rgba(212, 101, 88, 0);
+  }
+}
+
+.cx-step-line {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  width: 2px;
+  height: 1.75rem;
+  margin-left: -1px;
+  background: #c9c7c2;
+}
+
+.cx-line-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 3.375rem;
+  margin-top: 0.5rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.cx-cheer {
+  position: relative;
+  animation: cx-pop 0.6s var(--spring) both;
+}
+
+.cx-cheer-tick {
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0.625rem;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 3px solid var(--paper);
+  border-radius: 50%;
+  background: var(--positive);
+  color: #fff;
+}
+
+@keyframes cx-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.cx-done-amount {
+  margin-top: 0.25rem;
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-done-where {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.cx-took {
+  margin-top: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: #1d4446;
+}
+
+.cx-receipt {
+  width: 100%;
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.cx-receipt-rule {
+  border-top: 2px dashed #c9c7c2;
+}
+
+.cx-done-actions {
+  display: flex;
+  gap: 0.625rem;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.cx-done-actions > * {
+  flex: 1;
+  margin-top: 0;
+}
+
+.cx-confetti {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 16rem;
+  pointer-events: none;
+}
+
+.cx-confetti i {
+  position: absolute;
+  top: 0;
+  width: 0.625rem;
+  height: 1rem;
+  border-radius: 3px;
+  background: var(--coral);
+  animation: cx-fall 2.8s ease-in both;
+}
+
+.cx-confetti i:nth-child(2n) {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.cx-confetti i:nth-child(3n) {
+  background: #e6b33e;
+}
+
+.cx-confetti i:nth-child(1) {
+  left: 10%;
+  animation-delay: 0.1s;
+}
+.cx-confetti i:nth-child(2) {
+  left: 24%;
+  animation-delay: 0.35s;
+}
+.cx-confetti i:nth-child(3) {
+  left: 38%;
+  animation-delay: 0.2s;
+}
+.cx-confetti i:nth-child(4) {
+  left: 52%;
+  animation-delay: 0.5s;
+}
+.cx-confetti i:nth-child(5) {
+  left: 64%;
+  animation-delay: 0.15s;
+}
+.cx-confetti i:nth-child(6) {
+  left: 76%;
+  animation-delay: 0.4s;
+}
+.cx-confetti i:nth-child(7) {
+  left: 86%;
+  animation-delay: 0.25s;
+}
+.cx-confetti i:nth-child(8) {
+  left: 94%;
+  animation-delay: 0.6s;
+}
+
+@keyframes cx-fall {
+  0% {
+    transform: translateY(-2.5rem) rotate(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(15rem) rotate(320deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cx-ride,
+  .cx-cheer,
+  .cx-step[data-state="active"] .cx-step-mark {
+    animation: none;
+  }
+  .cx-confetti {
+    display: none;
+  }
+}
+
+.w-chip-mon {
+  text-decoration: none;
+  color: inherit;
+}

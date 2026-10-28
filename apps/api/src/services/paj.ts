@@ -111,11 +111,15 @@ let banks: { list: Bank[]; at: number } | null = null
 /** Nigerian banks PAJ pays out to, by name, with the codes its orders take. Cached for a day. */
 export async function pajBanks(): Promise<Bank[]> {
   if (banks && Date.now() - banks.at < 86_400_000) return banks.list
-  const data = await call<{ name?: string; code?: string }[]>('/bank?country=NG')
+  const data = await call<{ name?: string; code?: string; logo?: string }[]>('/bank?country=NG')
   const list: Bank[] = []
   for (const bank of data)
     if (bank.name && bank.code && !list.some((b) => b.code === bank.code))
-      list.push({ name: bank.name.trim(), code: bank.code })
+      list.push({
+        name: bank.name.trim(),
+        code: bank.code,
+        logo: bank.logo?.startsWith('https://') ? bank.logo : null,
+      })
   list.sort((a, b) => a.name.localeCompare(b.name))
   banks = { list, at: Date.now() }
   return list

@@ -962,6 +962,8 @@ export interface NairaInfo {
 export interface NairaBank {
   name: string
   code: string
+  /** The bank's round logo (PAJ's list has one per bank). */
+  logo?: string | null
 }
 
 export interface NairaQuote {

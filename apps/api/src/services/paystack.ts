@@ -53,6 +53,8 @@ async function call<T>(
 export interface Bank {
   name: string
   code: string
+  /** The bank's logo (PAJ's list has one per bank). */
+  logo?: string | null
 }
 
 let banks: { list: Bank[]; at: number } | null = null

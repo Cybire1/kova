@@ -1,5 +1,6 @@
 'use client'
 
+import { formatMon, monInDollars } from '@kova/monad'
 import Link from 'next/link'
 import QRCode from 'qrcode'
 import { useEffect, useRef, useState } from 'react'
@@ -189,9 +190,14 @@ export function BalanceCard() {
     setHideBalance,
     privateBalance,
     privateUnchecked,
+    monBalance,
+    monUsd,
   } = useWallet()
-  // One balance: dollars sent to you privately count in it the moment they're found.
-  const total = actual === null ? null : actual + privateBalance
+  // One balance: dollars sent to you privately count in it the moment they're found, and MON
+  // counts at Chainlink's MON / USD price on Monad (from a cent's worth up).
+  const monValue = monBalance && monUsd ? monInDollars(monBalance, monUsd) : 0n
+  const hasMon = monValue >= 10_000n
+  const total = actual === null ? null : actual + privateBalance + (hasMon ? monValue : 0n)
   const balance = useCounted(total)
   const usd = balance === null ? null : formatUsd(balance)
   const [whole, cents] =
@@ -207,7 +213,7 @@ export function BalanceCard() {
       aria-label={
         hideBalance
           ? 'Balance hidden'
-          : `Available ${usd ?? 'loading'}${hasPrivate ? `, ${formatUsd(privateBalance)} of it private` : ''}`
+          : `${hasMon ? 'Total' : 'Available'} ${usd ?? 'loading'}${hasPrivate ? `, ${formatUsd(privateBalance)} of it private` : ''}${hasMon ? `, ${formatUsd(monValue)} of it in MON` : ''}`
       }
     >
       <svg
@@ -232,7 +238,8 @@ export function BalanceCard() {
           onClick={() => setHideBalance(!hideBalance)}
           aria-label={hideBalance ? 'Show balance' : 'Hide balance'}
         >
-          Available to spend <Icon name={hideBalance ? 'eyeOff' : 'eye'} size={16} />
+          {hasMon ? 'Total balance' : 'Available to spend'}{' '}
+          <Icon name={hideBalance ? 'eyeOff' : 'eye'} size={16} />
         </button>
         <Link href="/wallet/add" className="w-balance-add">
           <Icon name="plus" size={14} /> Add
@@ -270,6 +277,17 @@ export function BalanceCard() {
           <span className="w-chip">
             {hideBalance ? '≈ ••••' : `≈ ${formatLocal(baseToNumber(balance), currency, rates)}`}
           </span>
+        ) : null}
+        {hasMon && monBalance ? (
+          <Link
+            href="/wallet/convert-mon"
+            className="w-chip w-chip-mon"
+            aria-label={`${formatMon(monBalance)} MON, about ${formatUsd(monValue)} at Chainlink's price. Convert to dollars`}
+          >
+            {hideBalance
+              ? 'Includes MON ≈ ••••'
+              : `Includes ${formatMon(monBalance)} MON ≈ ${formatUsd(monValue)}`}
+          </Link>
         ) : null}
         {privateUnchecked ? <CheckPrivateChip /> : null}
       </div>

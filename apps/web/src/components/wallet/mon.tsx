@@ -9,6 +9,7 @@ import {
   type MonConversionPlan,
   maxMonConversion,
   monCardVisible,
+  monInDollars,
   type PendingMonConversion,
   prepareMonConversion,
   sendMonConversion,
@@ -23,7 +24,7 @@ import { ScreenHead } from './activity'
 import { useWallet } from './provider'
 
 export function MonWalletCard() {
-  const { monBalance, hideBalance, network } = useWallet()
+  const { monBalance, monUsd, hideBalance, network } = useWallet()
   const { pending, activity, reverted, ready, dismissedAt, dismissCard, completeCard } =
     useMonConversion()
   const completing = useRef(false)
@@ -51,7 +52,7 @@ export function MonWalletCard() {
               ? reverted
                 ? 'MON conversion didn’t go through'
                 : conversionStatus(activity)
-              : `${hideBalance ? '••••' : formatMon(monBalance!)} MON in your wallet`}
+              : `${hideBalance ? '••••' : formatMon(monBalance!)} MON in your wallet${!hideBalance && monUsd && monBalance ? `, ≈ ${formatUsd(monInDollars(monBalance, monUsd))}` : ''}`}
           </strong>
           <small>
             {pending ? 'View progress and details' : 'Convert to dollars to pay with Kova'}

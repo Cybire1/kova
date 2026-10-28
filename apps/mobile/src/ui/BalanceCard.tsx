@@ -27,8 +27,14 @@ export function BalanceCard({
   currency,
   takings,
   waiting,
+  mon = null,
   splitOpen = false,
 }: {
+  /**
+   * MON in the wallet and what it's worth at Chainlink's MON / USD price: counted in the total,
+   * shown as a chip that opens converting it.
+   */
+  mon?: { amount: bigint; value: bigint; label: string } | null
   /** Development only: start with the split shown, for screenshots (Home's dev link `split=1`). */
   splitOpen?: boolean
   /** The wallet's own balance on Monad. */
@@ -50,7 +56,9 @@ export function BalanceCard({
   waiting?: { out: bigint; in: bigint; onPress: () => void } | null
 }) {
   const { hideBalance, setHideBalance } = usePrefs()
-  const total = balance === null ? null : balance + privateAmount
+  // MON counts from a cent's worth up.
+  const hasMon = mon !== null && mon.value >= 10_000n
+  const total = balance === null ? null : balance + privateAmount + (hasMon ? mon.value : 0n)
   const shown = useCounted(total)
   const usd = shown === null ? null : formatUsd(shown)
   const [whole, cents] =
@@ -101,7 +109,7 @@ export function BalanceCard({
           style={styles.label}
         >
           <Txt weight="medium" size={15} color={onTeal}>
-            Available to spend
+            {hasMon ? 'Total balance' : 'Available to spend'}
           </Txt>
           <Icon name={hideBalance ? 'eyeOff' : 'eye'} size={18} color={onTeal} />
         </Pressable>
@@ -200,6 +208,20 @@ export function BalanceCard({
       ) : null}
 
       <View style={styles.chips}>
+        {hasMon && mon ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${mon.label} MON, about ${formatUsd(mon.value)} at Chainlink's price. Convert to dollars`}
+            onPress={() => router.push('/convert-mon')}
+            style={({ pressed }) => [styles.chip, pressed && { opacity: 0.8 }]}
+          >
+            <Txt weight="semi" size={13} color={colors.white}>
+              {hideBalance
+                ? 'Includes MON ≈ ••••'
+                : `Includes ${mon.label} MON ≈ ${formatUsd(mon.value)}`}
+            </Txt>
+          </Pressable>
+        ) : null}
         {total !== null && currency !== 'USD' ? (
           <View style={styles.chip}>
             <Txt weight="medium" size={13} color={colors.white}>

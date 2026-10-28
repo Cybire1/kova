@@ -41,6 +41,7 @@ import {
   type IndexedTransfer,
   type Moved,
   monBalanceOf,
+  monUsdPrice,
   payCashOut,
   payCharge,
   sendMoney,
@@ -240,6 +241,8 @@ interface WalletValue {
   profile: Profile | null
   balance: bigint | null
   monBalance: bigint | null
+  /** Chainlink's MON / USD price (mainnet), or null: MON counts in the total at it. */
+  monUsd: number | null
   activity: Entry[]
   activityReady: boolean
   privateScanReady: boolean
@@ -409,6 +412,8 @@ export function WalletProvider({
   const [profile, setProfile] = useState<Profile | null>(null)
   const [balance, setBalance] = useState<bigint | null>(null)
   const [monHeld, setMonHeld] = useState<{ address: string; value: bigint } | null>(null)
+  /** Chainlink's MON / USD price, so MON counts in the total balance. */
+  const [monUsd, setMonUsd] = useState<number | null>(null)
   const [transfers, setTransfers] = useState<IndexedTransfer[]>([])
   const [activityWallet, setActivityWallet] = useState<string | null>(null)
   const [scannedWallet, setScannedWallet] = useState<string | null>(null)
@@ -571,12 +576,14 @@ export function WalletProvider({
 
   const refreshBalance = useCallback(async () => {
     if (!profile) return
-    const [next, mon] = await Promise.all([
+    const [next, mon, price] = await Promise.all([
       balanceOf(network, profile.address).catch(() => null),
       monBalanceOf(network, profile.address).catch(() => null),
+      monUsdPrice(network).catch(() => null),
     ])
     if (next !== null) setBalance(next)
     if (mon !== null) setMonHeld({ address: profile.address, value: mon })
+    setMonUsd(price)
   }, [network, profile])
 
   /** New history since the last look, a page at a time until it's caught up. */
@@ -1865,6 +1872,7 @@ export function WalletProvider({
       profile,
       balance,
       monBalance: monHeld && monHeld.address === profile?.address ? monHeld.value : null,
+      monUsd,
       activity,
       activityReady: activityWallet === profile?.address,
       privateScanReady: scannedWallet === profile?.address,
@@ -1923,6 +1931,7 @@ export function WalletProvider({
       profile,
       balance,
       monHeld,
+      monUsd,
       activity,
       activityWallet,
       scannedWallet,

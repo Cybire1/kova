@@ -1,3 +1,4 @@
+import { formatMon, monInDollars } from '@kova/monad'
 import { router, useLocalSearchParams } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useCallback, useEffect, useState } from 'react'
@@ -12,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
 import { getSummary, naira } from '@/lib/api'
+import { getMonUsd } from '@/lib/chain'
 import { isTestnet, webUrl } from '@/lib/config'
 import { useOffline } from '@/lib/offline'
 import { usePrefs } from '@/lib/prefs'
@@ -43,6 +45,22 @@ import { StocksCard } from '@/ui/Stocks'
  */
 export default function Home() {
   const { profile, balance, monBalance, activity, contacts, refresh } = useWallet()
+  // MON counts in the total at Chainlink's MON / USD price on Monad, read again with the balance.
+  const [monUsd, setMonUsd] = useState<number | null>(null)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a fresh price whenever the balance moves
+  useEffect(() => {
+    void getMonUsd()
+      .then(setMonUsd)
+      .catch(() => setMonUsd(null))
+  }, [balance, monBalance])
+  const mon =
+    monBalance && monUsd
+      ? {
+          amount: monBalance,
+          value: monInDollars(monBalance, monUsd),
+          label: formatMon(monBalance),
+        }
+      : null
   // Development only: `split=1` opens Home with the balance's split shown, for screenshots.
   const { split } = useLocalSearchParams<{ split?: string }>()
   const insets = useSafeAreaInsets()
@@ -126,6 +144,7 @@ export default function Home() {
             : null
         }
         privateAmount={privately.keysHere ? privately.waiting : 0n}
+        mon={mon}
         splitOpen={__DEV__ && split === '1'}
         onPrivate={() => router.push('/private')}
         waiting={
@@ -139,7 +158,7 @@ export default function Home() {
         }
       />
 
-      <MonWalletCard />
+      <MonWalletCard usd={mon?.value ?? null} />
 
       <View style={styles.hero}>
         <Pressable

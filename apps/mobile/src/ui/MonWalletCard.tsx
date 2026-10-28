@@ -4,13 +4,15 @@ import { useEffect, useRef } from 'react'
 import { Pressable, View } from 'react-native'
 import { isTestnet } from '@/lib/config'
 import { useMonConversion } from '@/lib/mon'
+import { formatUsd } from '@/lib/money'
 import { usePrefs } from '@/lib/prefs'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon } from './Icon'
 import { Sticker, Txt } from './primitives'
 
-export function MonWalletCard() {
+/** `usd`: what the MON is worth at Chainlink's MON / USD price, when there is one. */
+export function MonWalletCard({ usd = null }: { usd?: bigint | null }) {
   const { monBalance } = useWallet()
   const { hideBalance } = usePrefs()
   const { pending, activity, reverted, ready, dismissedAt, dismissCard, completeCard } =
@@ -60,7 +62,7 @@ export function MonWalletCard() {
               ? reverted
                 ? 'MON conversion didn’t go through'
                 : conversionStatus(activity)
-              : `${hideBalance ? '••••' : formatMon(monBalance!)} MON in your wallet`}
+              : `${hideBalance ? '••••' : formatMon(monBalance!)} MON in your wallet${!hideBalance && usd ? `, ≈ ${formatUsd(usd)}` : ''}`}
           </Txt>
           <Txt size={12} color={colors.onTint} style={{ marginTop: 4 }}>
             {pending ? 'View progress and details' : 'Convert to dollars to pay with Kova'}
