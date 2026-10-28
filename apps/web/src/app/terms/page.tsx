@@ -43,7 +43,7 @@ const SHORT: { icon: IconName; title: string; body: string }[] = [
 const TERMS: { what: string; body: string }[] = [
   {
     what: 'Who we are',
-    body: `Kova is made by CyberQuill. These terms are between you and CyberQuill when you use Kova’s app, website or API. Using Kova means you accept them.`,
+    body: `Kova is made by Quilllabs. These terms are between you and Quilllabs when you use Kova’s app, website or API. Using Kova means you accept them.`,
   },
   {
     what: 'Who can use Kova',
