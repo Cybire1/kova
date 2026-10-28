@@ -3514,6 +3514,11 @@ button.w-add-chain {
   cursor: pointer;
 }
 
+/* The action under a list of ways (Add money's "Show my address") keeps the list's rhythm. */
+.w-add-chain + .pill {
+  margin-top: 1rem;
+}
+
 /* Paid for a stall order: where it is at the counter, and the stamp it earned. */
 .w-moment-order {
   display: grid;
