@@ -49,7 +49,7 @@ import {
   transferStatus,
 } from './paystack.js'
 import { rateBook } from './rates.js'
-import { buildSwap, swapRoute } from './swap.js'
+import { buildSwap, swapPrice, swapRoute } from './swap.js'
 
 /**
  * Naira, in and out. Through PAJ where it's set up (Monad mainnet), else through Paystack.
@@ -596,8 +596,9 @@ async function createPajCashOut(
   const bank = (await pajBanks()).find((b) => b.code === input.bankCode)
   if (!bank) throw new KovaError('invalid_request', 'Pick your bank from the list.')
   const usdc = tokenFor('USDC').address
-  const route = await swapRoute(settlementToken.address, usdc, input.amount)
-  const pay = (route.amountOut * (10_000n - PAJ_MARGIN_BPS)) / 10_000n
+  const price = await swapPrice(settlementToken.address, usdc)
+  const out = BigInt(Math.floor(Number(input.amount) * price))
+  const pay = (out * (10_000n - PAJ_MARGIN_BPS)) / 10_000n
   const order = await openOfframp({
     bankCode: bank.code,
     accountNumber: input.accountNumber,
@@ -667,21 +668,23 @@ async function payPajCashOut(
   if (authorization.validBefore > BigInt(Math.floor(row.expiresAt.getTime() / 1000)) + 60n)
     throw new KovaError('invalid_request', 'The approval can’t outlast the quote.')
 
-  // Swap only what PAJ's USDC needs, and a sliver over: the rest stays AUSD and goes home.
+  // Swap only what PAJ's USDC needs, and a sliver over: the rest stays AUSD and goes home. One route
+  // at the kept price; the whole amount only if that falls short.
   const pay = row.payUnits
   const usdc = tokenFor('USDC').address
-  const whole = await swapRoute(settlementToken.address, usdc, row.amount)
-  if (whole.amountOut < pay)
+  const price = await swapPrice(settlementToken.address, usdc)
+  const enough = BigInt(Math.ceil((Number(pay) / price) * 1.0003)) + 1n
+  let route =
+    enough < row.amount
+      ? await swapRoute(settlementToken.address, usdc, enough).catch(() => null)
+      : null
+  if (!route || route.amountOut < pay)
+    route = await swapRoute(settlementToken.address, usdc, row.amount)
+  if (route.amountOut < pay)
     throw new KovaError(
       'conflict',
       'The dollar swap moved since your quote, so nothing moved. Start again for a fresh quote.',
     )
-  let route = whole
-  const enough = (pay * row.amount * 10_003n) / (whole.amountOut * 10_000n) + 1n
-  if (enough < row.amount) {
-    const part = await swapRoute(settlementToken.address, usdc, enough).catch(() => null)
-    if (part && part.amountOut >= pay) route = part
-  }
   const swap = await buildSwap(route, contract, 30)
 
   const signature = parseSignature(signed.signature)
@@ -763,6 +766,11 @@ export async function pajOrderEvent(orderId: string): Promise<void> {
 /** Cash-outs the bank hasn't confirmed yet: ask Paystack how each went. Old unused quotes expire. */
 export async function checkPayingCashOuts(): Promise<void> {
   if (!nairaReady()) return
+  if (nairaPartner() === 'paj') {
+    void pajRates().catch(() => {})
+    void pajBanks().catch(() => {})
+    void swapPrice(settlementToken.address, tokenFor('USDC').address).catch(() => {})
+  }
   const paying = await db.query.cashOuts.findMany({
     where: eq(schema.cashOuts.status, 'paying'),
     limit: 20,

@@ -123,6 +123,8 @@ if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js
   warmStocks()
   setInterval(warmStocks, 5 * 60_000)
   // Naira: follow bank transfers Paystack hasn't confirmed yet, and send dollars a top-up still owes.
+  // The first run also warms PAJ's rate, its banks and the swap price, so nobody waits on them.
+  void checkPayingCashOuts().catch((error) => console.error('[naira] cash-outs', error))
   setInterval(() => {
     void checkPayingCashOuts().catch((error) => console.error('[naira] cash-outs', error))
     void retryTopUps().catch((error) => console.error('[naira] top-ups', error))

@@ -126,10 +126,9 @@ export async function pajBanks(): Promise<Bank[]> {
 }
 
 let rates: { onRamp: number; offRamp: number; at: number } | null = null
+let readingRates: Promise<{ onRamp: number; offRamp: number }> | null = null
 
-/** Naira per dollar each way, PAJ's fee included. Re-read every minute: a rate is never locked. */
-export async function pajRates(): Promise<{ onRamp: number; offRamp: number }> {
-  if (rates && Date.now() - rates.at < 60_000) return rates
+async function readRates() {
   const data = await call<{ onRampRate: { rate: number }; offRampRate: { rate: number } }>(
     '/rate?currency=NGN',
   )
@@ -139,6 +138,24 @@ export async function pajRates(): Promise<{ onRamp: number; offRamp: number }> {
     throw new KovaError('internal', 'Kova can’t read the naira rate right now. Try again soon.')
   rates = { onRamp, offRamp, at: Date.now() }
   return rates
+}
+
+/**
+ * Naira per dollar each way, PAJ's fee included. PAJ takes a couple of seconds to answer, so the
+ * last rate is served at once and re-read behind the scenes once it's a minute old (never more
+ * than ten); a rate is never locked anyway, the deposit settles at PAJ's rate when it lands.
+ */
+export async function pajRates(): Promise<{ onRamp: number; offRamp: number }> {
+  const age = rates ? Date.now() - rates.at : Number.POSITIVE_INFINITY
+  if (age > 60_000 && !readingRates)
+    readingRates = readRates().finally(() => {
+      readingRates = null
+    })
+  if (rates && age < 10 * 60_000) {
+    readingRates?.catch(() => {})
+    return rates
+  }
+  return readingRates ?? readRates()
 }
 
 const whole = (units: bigint) => Number(formatUnits(units, 6))

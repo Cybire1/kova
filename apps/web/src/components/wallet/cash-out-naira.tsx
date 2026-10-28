@@ -142,52 +142,46 @@ export function NairaCashOut() {
   const named = check?.state === 'named' ? check : null
   const logoOf = (code: string | undefined) => banks.find((b) => b.code === code)?.logo ?? null
 
-  const checkName = useCallback(async (picked: Bank, number: string) => {
-    setBank(picked)
-    setCheck({ code: picked.code, state: 'checking' })
-    setProblem(null)
-    try {
-      const r = await json<{ account_name: string }>('/api/naira/naira/account', {
-        method: 'POST',
-        body: JSON.stringify({ account_number: number, bank_code: picked.code }),
-      })
-      setCheck({ code: picked.code, state: 'named', name: r.account_name })
-    } catch (e) {
-      setCheck({
-        code: picked.code,
-        state: 'missed',
-        why: /match|account/i.test(e instanceof Error ? e.message : '')
-          ? 'No account with this number here'
-          : e instanceof Error
-            ? e.message
-            : 'The bank didn’t answer. Try again.',
-      })
-    }
-  }, [])
+  // Picking a bank makes the quote itself: PAJ confirms the account with the bank as it opens it,
+  // so the name and the naira come back in one answer and Continue has nothing left to wait for.
+  const checkName = useCallback(
+    async (picked: Bank, number: string) => {
+      if (!profile) return
+      setBank(picked)
+      setCheck({ code: picked.code, state: 'checking' })
+      setCashOut(null)
+      setProblem(null)
+      try {
+        const quoted = await json<CashOutToPay>(`/api/naira/wallets/${profile.address}/cash-outs`, {
+          method: 'POST',
+          body: JSON.stringify({ amount, bank_code: picked.code, account_number: number }),
+        })
+        setCashOut(quoted)
+        setCheck({ code: picked.code, state: 'named', name: quoted.account_name ?? '' })
+      } catch (e) {
+        const said = e instanceof Error ? e.message : ''
+        // Only the bank saying no is "no account"; anything else is said as it is.
+        if (/match an account|account number/i.test(said))
+          setCheck({ code: picked.code, state: 'missed', why: 'No account with this number here' })
+        else {
+          setCheck(null)
+          setProblem(said || 'The bank didn’t answer. Try again.')
+        }
+      }
+    },
+    [profile, amount],
+  )
 
   const typeAccount = (value: string) => {
     setAccount(value.replace(/\D/g, '').slice(0, 10))
     setBank(null)
     setCheck(null)
+    setCashOut(null)
   }
 
-  const quote = async () => {
-    if (!profile || !bank || !named) return
-    setBusy(true)
-    setProblem(null)
-    try {
-      setCashOut(
-        await json<CashOutToPay>(`/api/naira/wallets/${profile.address}/cash-outs`, {
-          method: 'POST',
-          body: JSON.stringify({ amount, bank_code: bank.code, account_number: account }),
-        }),
-      )
-      setStep('review')
-    } catch (e) {
-      setProblem(e instanceof Error ? e.message : 'Kova couldn’t get a quote. Try again.')
-    } finally {
-      setBusy(false)
-    }
+  /** The quote came with the name: on to check and send. */
+  const quote = () => {
+    if (named && cashOut) setStep('review')
   }
 
   const send = async () => {
@@ -474,12 +468,10 @@ export function NairaCashOut() {
             type="button"
             className="pill pill-block cx-go"
             data-tone="ink"
-            disabled={!named || busy}
-            onClick={() => void quote()}
+            disabled={!named || !cashOut}
+            onClick={quote}
           >
-            <span className="pill-label">
-              {busy ? 'Getting your quote…' : named ? 'Continue' : 'Pick a bank'}
-            </span>
+            <span className="pill-label">{named ? 'Continue' : 'Pick a bank'}</span>
             <span className="pill-cap">
               <Icon name="arrow" size={18} />
             </span>
@@ -515,7 +507,11 @@ export function NairaCashOut() {
               aria-label="Dollars to cash out"
               onChange={(e) => {
                 const next = e.target.value.replace(/[^\d.]/g, '')
-                if (next === '' || DOLLARS.test(next)) setAmount(next)
+                if (next === '' || DOLLARS.test(next)) {
+                  setAmount(next)
+                  setCheck(null)
+                  setCashOut(null)
+                }
               }}
             />
           </label>

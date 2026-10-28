@@ -153,6 +153,12 @@ export default function CashOutScreen() {
       return 0n
     }
   }, [typed])
+  // A new amount needs a new quote.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the amount changes, by design
+  useEffect(() => {
+    setNamed(null)
+    setQuote(null)
+  }, [amount])
   // One balance: private dollars count in what you have, and just enough moves in first when it's short.
   const privately = usePrivate()
   const have = balance === null ? null : balance + (privately.keysHere ? privately.waiting : 0n)
@@ -191,29 +197,43 @@ export default function CashOutScreen() {
     return list
   }, [account, banks, bank])
 
-  /** The bank names the account: a spinner on its row, then the name, or a quiet no. */
-  const check = useCallback(async (b: NairaBank, number: string) => {
-    const mine = ++seq.current
-    setBank(b)
-    setNamed(null)
-    setChecking(b.code)
-    setProblem(null)
-    void Haptics.selectionAsync()
-    try {
-      const name = await naira.accountName(number, b.code)
-      if (seq.current !== mine || !live.current) return
-      setNamed({ number, code: b.code, name })
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-    } catch (error) {
-      if (seq.current !== mine || !live.current) return
-      const message = error instanceof Error ? error.message : 'The bank didn’t answer.'
-      if (/match|account number|check them/i.test(message))
-        setMissed((m) => (m.includes(b.code) ? m : [...m, b.code]))
-      else setProblem(message)
-    } finally {
-      if (seq.current === mine && live.current) setChecking(null)
-    }
-  }, [])
+  /**
+   * Picking a bank makes the quote: PAJ confirms the account with the bank as it opens it, so the
+   * name and the naira arrive together and Continue waits on nothing. A spinner on its tile
+   * meanwhile, then the name, or a quiet no.
+   */
+  const check = useCallback(
+    async (b: NairaBank, number: string) => {
+      if (!profile) return
+      const mine = ++seq.current
+      setBank(b)
+      setNamed(null)
+      setQuote(null)
+      setChecking(b.code)
+      setProblem(null)
+      void Haptics.selectionAsync()
+      try {
+        const quoted = await naira.cashOut(profile.address, {
+          amount: dollars(amount),
+          bankCode: b.code,
+          accountNumber: number,
+        })
+        if (seq.current !== mine || !live.current) return
+        setQuote(quoted)
+        setNamed({ number, code: b.code, name: quoted.account_name ?? '' })
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      } catch (error) {
+        if (seq.current !== mine || !live.current) return
+        const message = error instanceof Error ? error.message : 'The bank didn’t answer.'
+        if (/match an account|account number/i.test(message))
+          setMissed((m) => (m.includes(b.code) ? m : [...m, b.code]))
+        else setProblem(message)
+      } finally {
+        if (seq.current === mine && live.current) setChecking(null)
+      }
+    },
+    [amount, profile],
+  )
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: once the banks arrive, from the dev link
   useEffect(() => {
@@ -229,6 +249,7 @@ export default function CashOutScreen() {
     setAccount(next)
     setBank(null)
     setNamed(null)
+    setQuote(null)
     setChecking(null)
     setMissed([])
     setProblem(null)
@@ -253,6 +274,11 @@ export default function CashOutScreen() {
 
   const review = async () => {
     if (!named || !profile) return
+    // The quote came with the name.
+    if (quote) {
+      setStep('review')
+      return
+    }
     setBusy(true)
     setProblem(null)
     try {
@@ -636,7 +662,7 @@ export default function CashOutScreen() {
           </ScrollView>
           <View style={styles.bottom}>
             <PillButton
-              label={busy ? 'Locking the rate…' : named ? 'Continue' : 'Pick a bank'}
+              label={named ? 'Continue' : 'Pick a bank'}
               loading={busy}
               disabled={!named || busy || named.number !== account}
               onPress={() => void review()}

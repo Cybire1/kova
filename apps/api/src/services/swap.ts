@@ -80,3 +80,33 @@ export async function buildSwap(
     throw new KovaError('internal', 'The dollar swap came back in a shape Kova doesn’t use.')
   return { data: built.data, amountOut: BigInt(built.amountOut) }
 }
+
+const prices = new Map<string, { price: number; at: number }>()
+const reading = new Map<string, Promise<number>>()
+
+/**
+ * What one `tokenIn` buys in `tokenOut` now, from a $100 route: served from memory and re-read
+ * behind the scenes once it's a minute old, so quoting a cash-out waits on no swap. The payment
+ * itself builds a real route and the contract checks what arrives.
+ */
+export async function swapPrice(tokenIn: Address, tokenOut: Address): Promise<number> {
+  const key = `${tokenIn}:${tokenOut}`.toLowerCase()
+  const known = prices.get(key)
+  const age = known ? Date.now() - known.at : Number.POSITIVE_INFINITY
+  if (age > 60_000 && !reading.has(key))
+    reading.set(
+      key,
+      swapRoute(tokenIn, tokenOut, 100_000_000n)
+        .then((r) => {
+          const price = Number(r.amountOut) / 100_000_000
+          prices.set(key, { price, at: Date.now() })
+          return price
+        })
+        .finally(() => reading.delete(key)),
+    )
+  if (known && age < 10 * 60_000) {
+    reading.get(key)?.catch(() => {})
+    return known.price
+  }
+  return reading.get(key) as Promise<number>
+}

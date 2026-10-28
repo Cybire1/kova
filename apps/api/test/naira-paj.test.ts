@@ -101,6 +101,7 @@ vi.mock('../src/services/swap.js', () => ({
     routes.push(amountIn)
     return { amountIn, amountOut: (amountIn * 9998n) / 10_000n, summary: { amountIn } }
   }),
+  swapPrice: vi.fn(async () => 0.9998),
   buildSwap: vi.fn(async (route: { amountIn: bigint; amountOut: bigint }) => ({
     data: `0x5a7e${route.amountIn.toString(16).padStart(64, '0')}`,
     amountOut: route.amountOut,
@@ -210,9 +211,9 @@ describe('cashing out through PAJ', () => {
     expect(auth.value).toBe(10_000_000n)
     expect(payout.payTo).toBe(getAddress(PAJ_ADDRESS))
     expect(payout.pay).toBe(row.payUnits)
-    // The whole amount is quoted first, then only what PAJ's USDC needs (plus 3 bps) is swapped.
-    const enough = routes[1] as bigint
-    expect(routes[0]).toBe(10_000_000n)
+    // One route, for only what PAJ's USDC needs (plus 3 bps) at the kept price.
+    expect(routes).toHaveLength(1)
+    const enough = routes[0] as bigint
     expect(enough).toBeLessThan(10_000_000n)
     expect((enough * 9998n) / 10_000n).toBeGreaterThanOrEqual(row.payUnits as bigint)
 
