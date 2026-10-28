@@ -29,9 +29,6 @@ export interface NairaInfo {
   top_up_rate?: string
 }
 
-const partnerName = (partner: NairaPartner | null | undefined) =>
-  partner === 'paj' ? 'PAJ' : 'Paystack'
-
 interface Quote {
   naira: string
   rate: string
@@ -178,7 +175,7 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
       setProblem(
         e instanceof Error
           ? e.message
-          : `${partnerName(info?.partner)} didn’t open. Nothing was charged.`,
+          : `${info?.partner === 'paj' ? 'The bank transfer' : 'Paystack'} didn’t open. Nothing was charged.`,
       )
     }
   }
@@ -260,7 +257,9 @@ export function NairaTopUp({ reference }: { reference: string | null }) {
                 : 'Opening Paystack…'
               : quote
                 ? `Pay ${quote.naira}`
-                : `Pay with ${partnerName(info?.partner)}`}
+                : info?.partner === 'paj'
+                  ? 'Pay by bank transfer'
+                  : 'Pay with Paystack'}
           </span>
           <span className="pill-cap">
             <Icon name="arrow" size={18} />
@@ -494,8 +493,7 @@ export function NairaTransfer({ reference }: { reference: string }) {
           {received ? 'Naira received. Your dollars are on the way…' : 'Waiting for your transfer…'}
         </p>
         <p className="w-fine w-center">
-          Send exactly this amount, once. PAJ, Kova’s naira partner, receives it and sends the
-          dollars to your wallet on Monad.
+          Send exactly this amount, once. When it lands, the dollars come to your wallet on Monad.
         </p>
         {problem ? <p className="form-error">{problem}</p> : null}
         <a href={back} className="pill pill-block" data-tone="ink">

@@ -277,8 +277,8 @@ export function NairaCashOut() {
           />
           <StepRow
             state={cashOut.tx_hash ? 'done' : 'waiting'}
-            title="PAJ has it"
-            detail="Turned into USDC and paid to PAJ"
+            title="Ready for the bank"
+            detail="Turned into USDC for the transfer"
           />
           <StepRow
             state={cashOut.tx_hash ? 'active' : 'waiting'}
@@ -344,8 +344,8 @@ export function NairaCashOut() {
             Save {titleCase(who)} for next time
           </label>
           <p className="cx-fine">
-            PAJ, Kova’s naira partner, pays {bankName} as soon as your dollars reach it on Monad.
-            The quote holds for 15 minutes.
+            {bankName} is paid as soon as your dollars arrive on Monad. The quote holds for 15
+            minutes.
           </p>
           {problem ? <p className="form-error">{problem}</p> : null}
           <button

@@ -218,7 +218,7 @@ const cashOutRef = (row: Pick<CashOutRow, 'id'>): Hex =>
  */
 function pajCashOutNonce(row: CashOutRow): Hex {
   if (!row.partnerAddress || row.payUnits === null)
-    throw new KovaError('internal', 'This cash-out has no PAJ order.')
+    throw new KovaError('internal', 'This cash-out has no payout order.')
   return keccak256(
     encodeAbiParameters(
       [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes32' }],
@@ -607,7 +607,7 @@ async function createPajCashOut(
     webhookUrl: pajWebhookUrl(),
   })
   if (!isAddress(order.address))
-    throw new KovaError('internal', 'PAJ didn’t give an address to pay. Try again.')
+    throw new KovaError('internal', 'The payout didn’t open. Try again.')
   const naira = BigInt(Math.floor(order.fiatAmount * 100))
   if (naira <= 0n) throw new KovaError('invalid_request', 'That’s too little to send to a bank.')
   const [row] = await db
@@ -742,7 +742,7 @@ export async function refreshPajCashOut(row: CashOutRow): Promise<CashOutRow> {
     console.error('[naira] PAJ couldn’t pay a cash-out: take it up with PAJ', row.id, order.id)
     return updateCashOut(row, {
       status: 'failed',
-      failure: 'PAJ couldn’t pay the bank. Kova is getting your dollars back from PAJ.',
+      failure: 'The bank payout didn’t go through. Kova is getting your dollars back.',
     })
   }
   return row
@@ -1000,7 +1000,7 @@ async function startPajTopUp(
     webhookUrl: pajWebhookUrl(),
   })
   if (!order.accountNumber)
-    throw new KovaError('internal', 'PAJ didn’t give an account to pay. Try again.')
+    throw new KovaError('internal', 'The bank transfer didn’t open. Try again.')
   const naira = BigInt(Math.round(order.fiatAmount * 100))
   const [row] = await db
     .insert(schema.nairaTopUps)
@@ -1069,7 +1069,7 @@ async function refreshPajTopUp(row: TopUpRow): Promise<TopUpRow> {
     console.error('[naira] PAJ couldn’t complete a top-up: take it up with PAJ', row.id, order.id)
     return updateTopUp(row, {
       status: 'failed',
-      failure: 'PAJ couldn’t complete this payment. Kova is following it up with PAJ.',
+      failure: 'This payment didn’t complete. Kova is following it up.',
     })
   }
   // A read counts as a check, so the background job moves on to others.

@@ -390,7 +390,7 @@ export default function CashOutScreen() {
     named && quote && named.number.endsWith(quote.account_last4)
       ? spaced(named.number)
       : `••••${quote?.account_last4 ?? ''}`
-  const partnerHas = quote?.partner === 'paj' ? 'PAJ has it' : 'Kova has it'
+  const partnerHas = quote?.partner === 'paj' ? 'Ready for the bank' : 'Kova has it'
   const paid = quote?.status === 'paid'
 
   return (
@@ -741,7 +741,7 @@ export default function CashOutScreen() {
             style={{ textAlign: 'center', lineHeight: 18 }}
           >
             {quote.partner === 'paj'
-              ? `PAJ, Kova’s naira partner, pays ${toBank} as soon as your dollars reach it on Monad.`
+              ? `${toBank} is paid as soon as your dollars arrive on Monad.`
               : `Paystack pays ${toBank} once your dollars reach Kova on Monad.`}
           </Txt>
           <SlideToSend
@@ -787,7 +787,7 @@ export default function CashOutScreen() {
                 title: partnerHas,
                 detail:
                   quote.partner === 'paj'
-                    ? 'Turned into USDC and paid to PAJ'
+                    ? 'Turned into USDC for the transfer'
                     : 'Received by Kova on Monad',
                 state: quote.tx_hash ? 'done' : 'pending',
               },

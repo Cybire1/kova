@@ -69,7 +69,7 @@ async function call<T>(path: string, init: { method?: 'GET' | 'POST'; body?: unk
       signal: AbortSignal.timeout(30_000),
     })
   } catch {
-    throw new KovaError('internal', 'PAJ didn’t answer. Try again in a moment.')
+    throw new KovaError('internal', 'The naira service didn’t answer. Try again in a moment.')
   }
   const text = await res.text()
   let body: unknown = null
@@ -97,11 +97,14 @@ function explain(error: unknown): never {
         'invalid_request',
         'That account number and bank don’t match an account. Check them.',
       )
-    throw new KovaError('invalid_request', `PAJ couldn’t take that: ${error.message}`)
+    throw new KovaError('invalid_request', `That didn’t go through: ${error.message}`)
   }
   if (error instanceof PajError) {
     console.error('[paj] refused', error.status, error.message)
-    throw new KovaError('internal', 'PAJ couldn’t take that right now. Try again in a moment.')
+    throw new KovaError(
+      'internal',
+      'The naira service couldn’t take that right now. Try again in a moment.',
+    )
   }
   throw error
 }

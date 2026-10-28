@@ -747,7 +747,9 @@ function NairaRow() {
             Cash out to naira
           </Txt>
           <Txt size={13} color={colors.muted}>
-            To any Nigerian bank, with {partner === 'paj' ? 'PAJ' : 'Paystack'}
+            {partner === 'paj'
+              ? 'To any Nigerian bank, in seconds'
+              : 'To any Nigerian bank, with Paystack'}
           </Txt>
         </View>
         <Icon name="arrow" size={20} />

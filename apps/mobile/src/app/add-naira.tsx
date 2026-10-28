@@ -124,7 +124,7 @@ export default function AddNaira() {
       setProblem(
         error instanceof Error
           ? error.message
-          : `${paj ? 'PAJ' : 'Paystack'} didn’t open. Nothing was charged.`,
+          : `${paj ? 'The bank transfer' : 'Paystack'} didn’t open. Nothing was charged.`,
       )
       setStep('pay')
     } finally {
@@ -254,7 +254,7 @@ export default function AddNaira() {
                 value={`₦${Number(quote.rate).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} per dollar`}
                 hint={
                   paj
-                    ? 'PAJ’s rate, its fee included'
+                    ? 'Fee included'
                     : quote.rate_source === 'chainlink'
                       ? 'Chainlink rate on Monad, plus 1%'
                       : 'Market rate, plus 1%'
@@ -268,7 +268,7 @@ export default function AddNaira() {
               <Fact
                 label="Arrives"
                 value={paj ? 'When your transfer lands' : 'In seconds, on Monad'}
-                hint={paj ? 'PAJ sends the dollars to this wallet on Monad' : undefined}
+                hint={paj ? 'The dollars come to this wallet on Monad' : undefined}
                 last
               />
             </View>
@@ -336,8 +336,7 @@ export default function AddNaira() {
             </View>
             <Txt size={13} color={colors.onTint}>
               Send exactly this amount, once, from any Nigerian bank app. This account is for this
-              payment only. PAJ, Kova’s naira partner, sends the dollars to this wallet when it
-              lands.
+              payment only. The dollars come to this wallet when it lands.
             </Txt>
             <View style={styles.wait} accessibilityLiveRegion="polite">
               <View style={styles.dot}>
