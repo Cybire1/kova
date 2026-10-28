@@ -140,10 +140,7 @@ export function TerminalsManager({ initial }: { initial: Terminal[] }) {
         <div>
           <Icon name="shield" size={20} />
           <h3>Money never stops there</h3>
-          <p>
-            Payments settle to your shop on Monad, never to the phone. The phone only shows the
-            code.
-          </p>
+          <p>Payments go to your shop, never to the phone. The phone only shows the code.</p>
         </div>
       </section>
 

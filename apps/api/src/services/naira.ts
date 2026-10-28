@@ -428,7 +428,7 @@ async function sendDollars(to: Address, amount: bigint): Promise<Hex> {
     encodeFunctionData({ abi: eip3009Abi, functionName: 'transfer', args: [to, amount] }),
   )
   if (receipt.status !== 'success')
-    throw new KovaError('chain_error', 'Monad refused the transfer.')
+    throw new KovaError('chain_error', 'The transfer didn’t go through.')
   return receipt.transactionHash
 }
 
@@ -720,7 +720,7 @@ async function payPajCashOut(
     throw error
   }
   if (receipt.status !== 'success')
-    throw new KovaError('chain_error', 'Monad refused the cash-out. Nothing moved.')
+    throw new KovaError('chain_error', 'The cash-out didn’t go through. Nothing moved.')
   const [paying] = await db
     .update(schema.cashOuts)
     .set({ status: 'paying', txHash: receipt.transactionHash, updatedAt: new Date() })

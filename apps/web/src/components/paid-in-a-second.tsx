@@ -55,8 +55,8 @@ export function PaidInASecond() {
           </div>
           <h3>They tap or scan</h3>
           <p>
-            With Kova Pay it’s one tap and Face ID. Any Monad wallet can scan the code and pay, and
-            Kova covers the network fee.
+            With Kova Pay it’s one tap and Face ID. Other wallets can scan the code and pay too, and
+            Kova covers the fee.
           </p>
         </li>
         <li className="lp-stop">

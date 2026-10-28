@@ -335,7 +335,7 @@ export function ClaimLink({
       }
     >
       <div className="lk-local">
-        <span className="lk-local-amount">{local ? `about ${local}` : 'US dollars, on Monad'}</span>
+        <span className="lk-local-amount">{local ? `about ${local}` : 'US dollars'}</span>
         <label className="lk-cur">
           <span className="sr-only">Show the amount in</span>
           <span className="lk-cur-code" aria-hidden="true">
@@ -423,7 +423,7 @@ export function ClaimLink({
                     target="_blank"
                     rel="noreferrer"
                   >
-                    See it on Monad <Icon name="external" size={14} />
+                    See proof <Icon name="external" size={14} />
                   </a>
                 ) : null}
               </>
@@ -752,7 +752,7 @@ function Done({
       </p>
       <span className="w-sheet-time">
         <Icon name="bolt" size={14} />
-        Arrived in {seconds} s on Monad
+        Arrived in {seconds} s
       </span>
       {stage.claimed.claim_explorer_url ? (
         <a
@@ -761,7 +761,7 @@ function Done({
           target="_blank"
           rel="noreferrer"
         >
-          See it on Monad’s explorer <Icon name="external" size={14} />
+          See proof <Icon name="external" size={14} />
         </a>
       ) : null}
 

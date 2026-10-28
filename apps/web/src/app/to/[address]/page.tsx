@@ -86,8 +86,8 @@ export default async function PayPersonPage(props: Props) {
           </a>
         </div>
         <p className="w-fine">
-          Pays from your Kova wallet, in dollars on Monad. {firstName} gets it in about a second,
-          and Kova covers the fee. New to Kova? Your wallet takes a passkey and a moment.
+          Pays from your Kova wallet, in dollars. {firstName} gets it in about a second, and Kova
+          covers the fee. New to Kova? Your wallet takes a passkey and a moment.
         </p>
       </div>
     </main>

@@ -80,7 +80,7 @@ const bodyOf = async <T extends z.ZodTypeAny>(
 }
 
 function wallet(value: string): Address {
-  if (!isAddress(value)) throw new KovaError('invalid_request', 'Not a Monad address.')
+  if (!isAddress(value)) throw new KovaError('invalid_request', 'That isn’t a wallet address.')
   return getAddress(value)
 }
 

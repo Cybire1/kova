@@ -636,8 +636,8 @@ function AskedToPay({ stall, placed }: { stall: PublicStall; placed: Placed }) {
       <Art name="kovi-ride" size={104} />
       <h2>Send it to whoever’s paying</h2>
       <p className="sheet-lead">
-        They can pay from anywhere, with Kova Pay or any Monad wallet. The link stays open for 24
-        hours, and this page updates when it’s paid.
+        They can pay from anywhere, with Kova Pay or a wallet they already have. The link stays open
+        for 24 hours, and this page updates when it’s paid.
       </p>
       <div className="field-value">
         <code>{link}</code>

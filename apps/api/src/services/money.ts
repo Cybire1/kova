@@ -684,7 +684,7 @@ export async function saveIn(
   })
   const receipt = await sendFromRelayer(helper, data, { maxGas: 400_000n })
   if (receipt.status !== 'success')
-    throw new KovaError('chain_error', 'Monad refused the move into savings.')
+    throw new KovaError('chain_error', 'The move into savings didn’t go through.')
   await db
     .insert(schema.savingsMoves)
     .values({
@@ -724,7 +724,7 @@ export async function saveOut(
   })
   const receipt = await sendFromRelayer(helper, data, { maxGas: 400_000n })
   if (receipt.status !== 'success')
-    throw new KovaError('chain_error', 'Monad refused the move out of savings.')
+    throw new KovaError('chain_error', 'The move out of savings didn’t go through.')
   await db
     .insert(schema.savingsMoves)
     .values({

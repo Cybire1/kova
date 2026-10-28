@@ -49,7 +49,7 @@ const short = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)
 /** Kova's own words for a failed move, or plain ones when they're about gas. */
 function plain(error: string) {
   if (/insufficient|exceeds the balance|gas|funds/i.test(error))
-    return 'Kova couldn’t pay the network fee just now. Your dollars are safe where they are; try again in a little while.'
+    return 'Kova couldn’t cover the fee just now. Your dollars are safe where they are; try again in a little while.'
   return error.length < 160
     ? error
     : 'Kova couldn’t move them just now. Nothing was lost; try again.'
@@ -236,8 +236,8 @@ export function PrivateTakingsPanel({
       if (!moves.length)
         throw new Error(
           signed.empty.length === 1
-            ? 'That address is empty on Monad, so there’s nothing to move.'
-            : 'These addresses are empty on Monad, so there’s nothing to move.',
+            ? 'That address is empty, so there’s nothing to move.'
+            : 'These addresses are empty, so there’s nothing to move.',
         )
       let amount = 0n
       let count = 0
@@ -340,7 +340,7 @@ export function PrivateTakingsPanel({
                       <>
                         {' '}
                         <a href={moved.explorer} target="_blank" rel="noreferrer">
-                          See it on Monad
+                          See proof
                         </a>
                       </>
                     ) : null}
@@ -413,7 +413,7 @@ export function PrivateTakingsPanel({
                 <p>
                   Right now sales land at{' '}
                   <span className="pt-nowrap">{short(shop.settlement)}</span>, and anyone can look
-                  that address up on Monad and add up your day.{' '}
+                  that address up and add up your day.{' '}
                   <a
                     href={addressUrl(shop.network, shop.settlement)}
                     target="_blank"
@@ -694,7 +694,7 @@ function SaleRow({
               : state === 'moved'
                 ? 'Moved'
                 : state === 'empty'
-                  ? 'Empty on Monad'
+                  ? 'Empty'
                   : 'Waiting'}
           </span>
         )}

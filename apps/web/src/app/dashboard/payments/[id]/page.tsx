@@ -48,7 +48,7 @@ export default async function PaymentPage(props: { params: Promise<{ id: string 
   const steps: { label: string; at?: string; state: 'done' | 'now' | 'off' }[] = [
     { label: 'Charge started', at: p.created_at, state: 'done' },
     p.status === 'paid'
-      ? { label: 'Paid and settled on Monad', at: p.paid_at ?? undefined, state: 'done' }
+      ? { label: 'Paid and settled', at: p.paid_at ?? undefined, state: 'done' }
       : open
         ? { label: 'Waiting for the customer', state: 'now' }
         : {
@@ -115,9 +115,7 @@ export default async function PaymentPage(props: { params: Promise<{ id: string 
               </div>
               <div>
                 <dt>Settles in</dt>
-                <dd>
-                  {p.currency} on Monad {p.network === 'testnet' ? 'testnet' : ''}
-                </dd>
+                <dd>{p.network === 'testnet' ? 'Test dollars' : 'US dollars'}</dd>
               </div>
               <div>
                 <dt>Paid to</dt>
@@ -171,7 +169,7 @@ export default async function PaymentPage(props: { params: Promise<{ id: string 
               {/* biome-ignore lint/security/noDangerouslySetInnerHtml: locally generated SVG */}
               <div className="qr qr-big" dangerouslySetInnerHTML={{ __html: qr }} />
               <p className="code-meta">
-                Scan with Kova Pay or any Monad wallet. Code expires {clock(p.expires_at)}.
+                Scan with Kova Pay or your own wallet. Code expires {clock(p.expires_at)}.
               </p>
               <CopyField label="Pay link" value={payLink} />
               <div className="payqr-cancel">

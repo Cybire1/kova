@@ -183,7 +183,7 @@ function serializeTransfer(
 }
 
 const faucetBody = z.object({
-  address: z.string().refine((v) => isAddress(v), 'Not a Monad address'),
+  address: z.string().refine((v) => isAddress(v), 'That isn’t a wallet address'),
 })
 
 const noteKeyBody = z.object({
@@ -193,7 +193,7 @@ const noteKeyBody = z.object({
 
 function walletAddress(c: { req: { param: (name: string) => string } }): Address {
   const address = c.req.param('address')
-  if (!isAddress(address)) throw new KovaError('invalid_request', 'Not a Monad address.')
+  if (!isAddress(address)) throw new KovaError('invalid_request', 'That isn’t a wallet address.')
   return getAddress(address)
 }
 
@@ -355,7 +355,7 @@ export const walletRoutes = new Hono()
   })
   .get('/wallets/:address/transfers', async (c) => {
     const address = c.req.param('address')
-    if (!isAddress(address)) throw new KovaError('invalid_request', 'Not a Monad address.')
+    if (!isAddress(address)) throw new KovaError('invalid_request', 'That isn’t a wallet address.')
     const afterText = c.req.query('after_block') ?? '0'
     if (!/^\d{1,20}$/.test(afterText))
       throw new KovaError('invalid_request', 'after_block must be a block number.')

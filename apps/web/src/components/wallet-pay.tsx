@@ -336,8 +336,10 @@ export function WalletPay({
     <section className="manual wallet-pay" aria-live="polite">
       <h2>Or pay here, without the app</h2>
       <p>
-        {privyAppId ? 'Use your email or Google, or any Monad wallet.' : 'Use any Monad wallet.'}{' '}
-        Kova covers the network fee, so you only need {checkout.token_symbol ?? 'AUSD'}.
+        {privyAppId
+          ? 'Use your email or Google, or a wallet you already have.'
+          : 'Use a wallet you already have.'}{' '}
+        Kova covers the fee, so you only need dollars.
       </p>
       {privyAppId && privy !== 'off' ? (
         <PrivyWallet
@@ -355,7 +357,7 @@ export function WalletPay({
             {stage.step === 'connect'
               ? `Open ${stage.wallet} and connect`
               : stage.step === 'network'
-                ? `Switching ${stage.wallet} to Monad`
+                ? `Getting ${stage.wallet} ready`
                 : stage.step === 'sign'
                   ? `Approve ${usd(checkout.amount)} to ${checkout.merchant_name} in ${stage.wallet}`
                   : 'Paying…'}
@@ -394,8 +396,8 @@ export function WalletPay({
       ) : stage.name === 'short' ? (
         <div className="wallet-short">
           <p>
-            This wallet has {usd(Number(stage.balance) / 1e6)} {checkout.token_symbol ?? 'AUSD'} on
-            Monad, and this costs {usd(checkout.amount)}.
+            This wallet has {usd(Number(stage.balance) / 1e6)} in {checkout.token_symbol ?? 'AUSD'},
+            and this costs {usd(checkout.amount)}.
           </p>
           {testnet && stage.balance + TEST_DOLLARS_A_DAY >= BigInt(checkout.amount_base) ? (
             <button

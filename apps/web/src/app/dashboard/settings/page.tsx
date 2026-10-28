@@ -57,18 +57,16 @@ export default async function SettingsPage() {
             <div>
               <dt>Mode</dt>
               <dd>
-                {merchant.livemode
-                  ? 'Live: dollars on Monad mainnet'
-                  : 'Test: test dollars, nothing real moves'}
+                {merchant.livemode ? 'Live: US dollars' : 'Test: test dollars, nothing real moves'}
               </dd>
             </div>
             <div>
               <dt>Settles in</dt>
-              <dd>AUSD, final in about a second</dd>
+              <dd>US dollars, final in about a second</dd>
             </div>
             <div>
               <dt>Fees</dt>
-              <dd>Kova pays the network fee on every payment</dd>
+              <dd>Kova covers the fee on every payment</dd>
             </div>
             <div>
               <dt>Shop ID</dt>

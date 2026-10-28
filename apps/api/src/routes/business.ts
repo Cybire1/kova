@@ -119,7 +119,7 @@ async function confirmTransfer(merchant: Merchant, hash: Hash, to: Address, amou
       'Monad doesn’t have that transaction yet. Try again in a moment.',
     )
   if (receipt.status !== 'success')
-    throw new KovaError('invalid_request', 'That transaction failed on Monad, so nothing was paid.')
+    throw new KovaError('invalid_request', 'That payment failed, so nothing was paid.')
   const from = payers(merchant)
   const moved = parseEventLogs({
     abi: transferAbi,

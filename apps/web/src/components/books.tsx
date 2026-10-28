@@ -308,7 +308,7 @@ export function Books({ network }: { network: NetworkId }) {
             </span>
             <strong>Every sale has its own address</strong>
             <p>
-              Each customer paid an address made for that one sale. On Monad they look like
+              Each customer paid an address made for that one sale. To anyone else, they look like
               strangers: nothing ties them to {name ?? 'the shop'}, or to each other.
             </p>
           </li>

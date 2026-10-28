@@ -118,7 +118,7 @@ export const cardRoutes = new Hono()
   .get('/wallets/:address/cards', async (c) => {
     requireCards()
     const holder = c.req.param('address')
-    if (!isAddress(holder)) throw new KovaError('invalid_request', 'Not a Monad address.')
+    if (!isAddress(holder)) throw new KovaError('invalid_request', 'That isn’t a wallet address.')
     const wallet = getAddress(holder)
     const [rows, nonce, permit] = await Promise.all([
       cardsOf(wallet),

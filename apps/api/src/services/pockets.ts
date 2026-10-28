@@ -667,7 +667,7 @@ async function expireUnminedSpend(pocket: Pocket, row: Spend): Promise<Spend | n
     .update(schema.ussdSpends)
     .set({
       status: 'failed',
-      failure: 'The payment was not confirmed on Monad and has expired. No money moved.',
+      failure: 'The payment wasn’t confirmed in time and has expired. No money moved.',
       updatedAt: new Date(),
     })
     .where(

@@ -63,7 +63,7 @@ function serializeKey(k: typeof schema.apiKeys.$inferSelect, current?: string) {
 const address = z
   .string()
   .trim()
-  .refine((v) => isAddress(v), 'Not a Monad address')
+  .refine((v) => isAddress(v), 'That isn’t a wallet address')
   .transform((v) => getAddress(v))
 
 const signedMessage = z.object({

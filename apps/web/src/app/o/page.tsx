@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 const title = 'A Kova payment'
 const description =
-  'A payment signed on a phone with no signal. Open it to check it, and settle it on Monad in about a second.'
+  'A payment signed on a phone with no signal. Open it to check it, and settle it in about a second.'
 
 /** The preview a chat app shows: never the payment itself, which lives after the # and never reaches here. */
 export const metadata: Metadata = {

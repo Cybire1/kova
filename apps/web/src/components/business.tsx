@@ -185,8 +185,8 @@ export function BusinessHome({ summary, team }: { summary: Business; team: Team 
             their own private-receiving key.
           </li>
           <li>
-            <strong>On Monad, the business pays addresses nobody can tie to your people.</strong>{' '}
-            Salaries aren’t public.
+            <strong>The business pays addresses nobody can tie to your people.</strong> Salaries
+            aren’t public.
           </li>
           <li>
             <strong>They find it with their own keys,</strong> with a sealed note that says it’s
@@ -370,7 +370,7 @@ export function PayrollPanel({
     <>
       <PageHead
         title="Payroll"
-        sub="Everyone paid with one Face ID, privately: Monad never shows who you pay."
+        sub="Everyone paid with one Face ID, privately: who you pay is never public."
       >
         <Link href="/dashboard/business" className="mini">
           Business
@@ -506,7 +506,7 @@ export function PayrollPanel({
                 ? 'Checking who can be paid privately…'
                 : people.some((p) => reachFor(p) === 'none')
                   ? 'People who can’t receive privately yet open Kova once to turn it on.'
-                  : 'One Face ID approves everyone. Kova pays the gas.'}
+                  : 'One Face ID approves everyone. Kova covers the fees.'}
             </p>
             <button
               type="button"
@@ -559,7 +559,7 @@ export function PayrollPanel({
                           rel="noreferrer"
                           className="biz-link"
                         >
-                          Monadscan
+                          See proof
                         </a>
                       ) : null}
                     </li>
@@ -598,7 +598,7 @@ export function PayrollPanel({
             )}
           </section>
           <section className="card biz-how biz-how-small">
-            <h2>What’s public on Monad</h2>
+            <h2>What’s public</h2>
             <p>
               The business paying addresses made for one payment each. Not your people, not who got
               what. Each person finds their pay with their own keys.
@@ -652,7 +652,7 @@ export function RunReceipt({ run, business }: { run: PayrollRun; business: strin
                 <span className="biz-line-amount">{usd(p.amount)}</span>
                 {p.explorer_url ? (
                   <a href={p.explorer_url} target="_blank" rel="noreferrer" className="biz-link">
-                    Monadscan
+                    See proof
                   </a>
                 ) : null}
               </li>
@@ -663,8 +663,8 @@ export function RunReceipt({ run, business }: { run: PayrollRun; business: strin
           <section className="card biz-how biz-how-small">
             <h2>Only you see the names</h2>
             <p>
-              On Monad, {business} pays the one-time addresses on the left. Who they belong to is in
-              this book, and in each person’s own wallet, nowhere else.
+              Anyone can see {business} pay the one-time addresses on the left. Who they belong to
+              is in this book, and in each person’s own wallet, nowhere else.
             </p>
           </section>
         </aside>
@@ -884,13 +884,11 @@ export function SuppliersPanel({
                             <>
                               {s.name.split(' ')[0]} gets about <strong>{local}</strong>
                               <small>
-                                {live?.source === 'chainlink'
-                                  ? 'Chainlink rate on Monad'
-                                  : 'Reference rate'}
+                                {live?.source === 'chainlink' ? 'Chainlink rate' : 'Reference rate'}
                               </small>
                             </>
                           ) : (
-                            <>To {short(s.wallet_address)}, in dollars on Monad</>
+                            <>To {short(s.wallet_address)}, in dollars</>
                           )}
                         </p>
                         <input
@@ -924,7 +922,7 @@ export function SuppliersPanel({
                               rel="noreferrer"
                               className="biz-link"
                             >
-                              Monadscan
+                              See proof
                             </a>
                           </p>
                         ) : null}
@@ -972,7 +970,9 @@ export function SuppliersPanel({
                 ))}
               </ul>
             ) : (
-              <p className="biz-empty">Every payment to a supplier lands here, checked on Monad.</p>
+              <p className="biz-empty">
+                Every payment to a supplier lands here once it’s confirmed.
+              </p>
             )}
           </section>
         </aside>
@@ -989,7 +989,7 @@ export function TeamPanel({ team }: { team: Team | null }) {
     <>
       <PageHead
         title="Team"
-        sub="Everyone who can spend the business’s dollars, each within a limit Monad enforces."
+        sub="Everyone who can spend the business’s dollars, each within a limit they can’t go over."
       >
         <Link href="/dashboard/business" className="mini">
           Business

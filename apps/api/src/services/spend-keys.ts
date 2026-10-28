@@ -774,7 +774,7 @@ async function judge(
   }
   const chain = await onChainCard(getAddress(row.keyAddress))
   if (!isAddressEqual(chain.holder, row.ownerAddress as Address))
-    return { kind: 'deny', reason: 'This key isn’t linked on Monad any more.' }
+    return { kind: 'deny', reason: 'This key isn’t linked any more.' }
   if (chain.frozen) return { kind: 'deny', reason: 'This key is frozen by its owner.' }
   if (chain.left < amount) {
     const dayLeft = chain.dailyLimit > chain.spentToday ? chain.dailyLimit - chain.spentToday : 0n

@@ -679,7 +679,7 @@ export async function sendCard(contract: Address, data: Hex): Promise<Transactio
     throw error
   }
   if (receipt.status !== 'success')
-    throw new KovaError('chain_error', 'Monad refused this. No money moved.', {
+    throw new KovaError('chain_error', 'That didn’t go through. No money moved.', {
       tx_hash: receipt.transactionHash,
     })
   return receipt

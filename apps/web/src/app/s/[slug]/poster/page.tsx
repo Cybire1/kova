@@ -123,7 +123,7 @@ export default async function PosterPage(props: {
             </span>
           </div>
           <p className="poster-small">
-            No app needed. Pay in dollars with Kova Pay or any Monad wallet. No card fees.
+            No app needed. Pay in dollars with Kova Pay or your own wallet. No card fees.
           </p>
           <div className="poster-foot">
             <Art name="kovi-wave" size={104} />

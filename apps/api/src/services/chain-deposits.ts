@@ -100,7 +100,7 @@ async function relay(path: string, init?: RequestInit): Promise<unknown> {
 
 function enabled(tracking = false) {
   if (config.KOVA_NETWORK !== 'mainnet')
-    throw new KovaError('conflict', 'These deposits use real funds on Monad mainnet.', {
+    throw new KovaError('conflict', 'Deposits from other chains only run on mainnet.', {
       mainnet_only: true,
     })
   if (!tracking && config.KOVA_CHAIN_DEPOSITS !== '1')
@@ -160,7 +160,7 @@ export async function chainDepositSources(): Promise<ChainDepositSources> {
   const tracking = config.KOVA_NETWORK === 'mainnet' && Boolean(config.RELAY_API_KEY)
   const off =
     config.KOVA_NETWORK !== 'mainnet'
-      ? 'These deposits use real funds on Monad mainnet.'
+      ? 'Deposits from other chains only run on mainnet.'
       : config.KOVA_CHAIN_DEPOSITS !== '1'
         ? 'Deposits are temporarily paused.'
         : !config.RELAY_API_KEY

@@ -56,7 +56,7 @@ export default async function MorePage() {
           <h1>{shop.name}</h1>
           <p>
             {shop.livemode
-              ? 'Taking payments on Monad'
+              ? 'Taking payments'
               : 'On Monad’s test network: test dollars, real speed'}
           </p>
         </div>

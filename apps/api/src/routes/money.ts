@@ -40,7 +40,7 @@ import {
 
 function walletAddress(c: { req: { param: (name: string) => string } }): Address {
   const address = c.req.param('address')
-  if (!isAddress(address)) throw new KovaError('invalid_request', 'Not a Monad address.')
+  if (!isAddress(address)) throw new KovaError('invalid_request', 'That isn’t a wallet address.')
   return getAddress(address)
 }
 

@@ -110,7 +110,7 @@ async function submit(
     throw error
   }
   if (receipt.status !== 'success')
-    throw new KovaError('chain_error', 'Monad refused the payment. No money moved.', {
+    throw new KovaError('chain_error', 'The payment didn’t go through. No money moved.', {
       tx_hash: receipt.transactionHash,
     })
   return { receipt, ms: performance.now() - started }
@@ -152,7 +152,7 @@ export async function sendFromRelayer(
   }
   if (gas > (options.maxGas ?? config.KOVA_MAX_RELAY_GAS)) {
     resetNonce()
-    throw new KovaError('policy_declined', 'This payment would cost more gas than Kova relays.')
+    throw new KovaError('policy_declined', 'This payment would cost more in fees than Kova covers.')
   }
 
   // Monad charges for the gas limit, not the gas used, so ask for the estimate plus a sliver.

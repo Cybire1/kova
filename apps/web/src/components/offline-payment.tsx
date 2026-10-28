@@ -234,7 +234,7 @@ function Live({
             {settled ? (
               <span className="of-slip-tag of-slip-tag-settled">
                 <Icon name="check" size={13} />
-                Settled on Monad
+                Settled
               </span>
             ) : (
               <span className="of-slip-tag">
@@ -258,10 +258,10 @@ function Live({
             <p className="of-slip-foot">
               <Icon name="pen" size={14} />
               {settled
-                ? 'Signed on their phone with no signal · settled on Monad'
+                ? 'Signed on their phone with no signal · settled'
                 : ranOut
                   ? 'Signed on their phone · ran out before anyone handed it in'
-                  : 'Signed on their phone · settles on Monad as soon as anyone hands it in'}
+                  : 'Signed on their phone · settles as soon as anyone hands it in'}
             </p>
             {ranOut ? (
               <span className="lk-env-stamp" aria-hidden="true">
@@ -367,11 +367,7 @@ function Live({
               onClick={() => void settle()}
             >
               <span className="pill-label">
-                {settling
-                  ? 'Settling on Monad…'
-                  : problem?.kind === 'short'
-                    ? 'Try again'
-                    : 'Settle it now'}
+                {settling ? 'Settling…' : problem?.kind === 'short' ? 'Try again' : 'Settle it now'}
               </span>
               <span className="pill-cap">
                 {settling ? (
@@ -383,8 +379,8 @@ function Live({
             </button>
             {slow ? (
               <p className="lk-fine of-slow" role="status">
-                Monad is slow to answer. Hang on: a payment can only ever settle once, so waiting is
-                safe.
+                This is taking longer than usual. Hang on: a payment can only ever settle once, so
+                waiting is safe.
               </p>
             ) : (
               <p className="lk-fine">
@@ -450,7 +446,7 @@ function Details({
         <dt>Amount</dt>
         <dd>
           <strong>{formatUsd(value)}</strong>
-          <small>{test ? 'Test dollars (AUSD)' : 'US dollars (AUSD)'}</small>
+          <small>{test ? 'Test dollars (AUSD)' : 'US dollars'}</small>
         </dd>
       </div>
       <div>
@@ -503,13 +499,12 @@ function SettledPanel({
       {now ? (
         <span className="w-sheet-time">
           <Icon name="bolt" size={14} />
-          Settled in {((settled.ms ?? 0) / 1000).toFixed((settled.ms ?? 0) < 10_000 ? 1 : 0)} s on
-          Monad
+          Settled in {((settled.ms ?? 0) / 1000).toFixed((settled.ms ?? 0) < 10_000 ? 1 : 0)} s
         </span>
       ) : null}
       {settled.explorer ? (
         <a href={settled.explorer} className="lk-explorer" target="_blank" rel="noreferrer">
-          See it on Monadscan <Icon name="external" size={14} />
+          See proof <Icon name="external" size={14} />
         </a>
       ) : (
         <span className="of-indexing">

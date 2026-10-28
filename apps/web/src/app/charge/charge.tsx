@@ -149,7 +149,7 @@ export function Charge() {
             <h1>Paid</h1>
             <p>
               {usd(intent.amount)}
-              {intent.reference ? ` for ${intent.reference}` : ''}, settled on Monad
+              {intent.reference ? ` for ${intent.reference}` : ''}, settled
             </p>
             <div className="paid-actions">
               <Pill icon="tap" onClick={reset}>
@@ -173,7 +173,7 @@ export function Charge() {
             <div className="await-card">
               <p className="await-amount">{usd(intent.amount)}</p>
               <p className="await-label">
-                {intent.reference ?? 'Scan with Kova Pay or any Monad wallet'}
+                {intent.reference ?? 'Scan with Kova Pay or your own wallet'}
               </p>
               {qr ? (
                 <div
@@ -239,7 +239,7 @@ export function Charge() {
           >
             {typedDollars(amount)}
           </p>
-          <p className="amount-sub">Customer pays {usd(amount || '0')} in AUSD</p>
+          <p className="amount-sub">Customer pays {usd(amount || '0')}</p>
           <input
             className="amount-ref"
             value={reference}
