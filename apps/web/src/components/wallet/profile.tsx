@@ -16,6 +16,7 @@ import { SESSION_LIMIT, TAP_LIMIT, useSessionState } from '@/lib/wallet/session'
 import { ScreenHead } from './activity'
 import { PrivateReceiving } from './private'
 import { short, useWallet } from './provider'
+import { Appearance } from './theme'
 import { CopyButton, QR } from './ui'
 
 /** "$50", for limits that are always whole dollars. */
@@ -168,6 +169,8 @@ export function Profile() {
           Change
         </label>
       </section>
+
+      <Appearance />
 
       <section className="w-keys">
         <div className="w-keys-head">

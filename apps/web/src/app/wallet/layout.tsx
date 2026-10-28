@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { type ShopToday, WalletProvider } from '@/components/wallet/provider'
 import { WalletShell } from '@/components/wallet/shell'
+import { WalletTheme } from '@/components/wallet/theme'
 import { kovaPublic, type Merchant, type Summary } from '@/lib/api'
 import { network } from '@/lib/network'
 import { getSession } from '@/lib/session'
@@ -33,6 +34,7 @@ export default async function WalletLayout({ children }: { children: React.React
   ])
   return (
     <WalletProvider network={network} shop={shop} initialRates={rates}>
+      <WalletTheme />
       <WalletShell>{children}</WalletShell>
     </WalletProvider>
   )

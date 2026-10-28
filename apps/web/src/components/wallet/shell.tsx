@@ -169,7 +169,7 @@ function Dock({ path }: { path: string }) {
  */
 function Opening() {
   return (
-    <div className="w-loading" aria-busy="true" aria-label="Opening your wallet">
+    <div className="w-loading" role="status" aria-busy="true" aria-label="Opening your wallet">
       <span className="w-skel w-skel-hello" />
       <span className="w-skel w-skel-card" />
       <span className="w-skel-row">

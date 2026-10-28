@@ -2253,6 +2253,37 @@ button.w-person {
   cursor: pointer;
 }
 
+/* Appearance (theme.tsx): System, Light or Dark. */
+.w-appearance {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.875rem 0.875rem 0.875rem 1.125rem;
+  border: 2px solid var(--line);
+  border-radius: 1.375rem;
+  background: var(--surface);
+}
+
+.w-appearance-head {
+  display: grid;
+  line-height: 1.35;
+}
+
+.w-appearance-head strong {
+  font-size: 1.0625rem;
+  font-weight: 750;
+}
+
+.w-appearance-head small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.w-appearance .w-filters {
+  margin: 0;
+  background: var(--sunken);
+}
+
 .w-keys {
   display: grid;
   gap: 0.625rem;
@@ -9310,6 +9341,119 @@ button.w-chip-private:disabled {
 :root[data-theme="dark"] .w-slide-knob {
   background: var(--ink);
   color: var(--dark);
+}
+
+/* A chosen filter or choice stands a step up from its track. */
+:root[data-theme="dark"] .w-filter-on {
+  background: #343434;
+  color: var(--ink);
+}
+
+/* Private things are cream in the light; in the dark, a warm near-black, the action kept light. */
+:root[data-theme="dark"]
+:is(
+  .w-notes-locked,
+  .w-private,
+  .w-sheet-pill-private,
+  .w-private-switch-on,
+  .w-receiving[data-on],
+  .w-payfrom-private[data-on],
+  .w-moment-private
+) {
+  background: #251f16;
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .w-notes-locked-icon {
+  background: #3b3324;
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .w-notes-locked-btn {
+  background: var(--ink);
+  color: var(--dark);
+}
+
+/* Dashed means "a new one": quiet in the dark, never a white line. */
+:root[data-theme="dark"] :is(.w-person-new, .w-linkrow, .w-flow-chip) {
+  border-color: rgba(233, 229, 221, 0.22);
+}
+
+:root[data-theme="dark"] .w-linkrow:hover {
+  background: var(--sunken);
+}
+
+:root[data-theme="dark"] .w-namecard-input {
+  border-bottom-color: rgba(233, 229, 221, 0.25);
+}
+
+:root[data-theme="dark"] .cx-receipt-rule {
+  border-top-color: rgba(233, 229, 221, 0.16);
+}
+
+:root[data-theme="dark"] .m-tile-icon {
+  border-color: color-mix(in srgb, currentColor 35%, transparent);
+}
+
+:root[data-theme="dark"] .w-dock-face {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+:root[data-theme="dark"] .cx-hero .cx-avatar-bank {
+  border-color: var(--surface);
+}
+
+/* Fields, notes and chips drawn white in the light sit on the dark's own greys: fields a step
+   lighter than the card they're on. */
+:root[data-theme="dark"]
+:is(
+  .w-crypto-body .w-address,
+  .w-keyform input,
+  .w-keyform select,
+  .w-allowance .mini,
+  .lk-name input
+) {
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"]
+  :is(
+    .lk-local-amount,
+    .lk-env-note,
+    .lk-paste-row,
+    .lk-made-link,
+    .w-ussd-test,
+    .w-ussd-notice,
+    .w-ussd-review
+  ) {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .lk-local-amount {
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .lk-env-from .w-face {
+  box-shadow: 0 0 0 1.5px var(--hairline);
+}
+
+:root[data-theme="dark"] .w-approval {
+  background: var(--coral-soft);
+}
+
+:root[data-theme="dark"] .w-keyrow-icon-coral {
+  background: var(--coral-soft);
+  color: var(--coral);
+}
+
+:root[data-theme="dark"] .w-keyform-token {
+  background: rgba(95, 165, 169, 0.16);
+}
+
+:root[data-theme="dark"] .key:hover {
+  background: var(--sunken);
 }
 
 /* Chrome on an iPhone: while the steps are open, an arrow points at its Share icon, top right. */

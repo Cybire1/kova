@@ -425,3 +425,12 @@
   color: var(--ink);
   font-weight: 650;
 }
+
+/* In the dark the slip is drawn as it is in the light: its chips keep their ink edges. */
+:root[data-theme="dark"] :is(.of-slip-to strong, .of-slip-to code) {
+  box-shadow: 0 0 0 2px var(--dark);
+}
+
+:root[data-theme="dark"] .of-slip-tag-settled {
+  border-color: var(--dark);
+}
