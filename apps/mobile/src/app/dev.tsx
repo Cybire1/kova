@@ -52,6 +52,7 @@ import { viewFrom } from '@/lib/takings-core'
 import { forgetTakingsKeys } from '@/lib/takings-store'
 import { useTerminal } from '@/lib/terminal'
 import { colors } from '@/lib/theme'
+import { previewTokenArrival, previewTokens } from '@/lib/tokens'
 import { useWallet } from '@/lib/wallet'
 import { Txt } from '@/ui/primitives'
 import { booksMessage } from '@/ui/Takings'
@@ -77,6 +78,8 @@ import { booksMessage } from '@/ui/Takings'
  * the wallet) on the screen it opens (`to=/private`, say). `/send/<address>?amount=…&private=1&autosend=1`
  * films the sheet; where a payment comes from is the privacy router's to decide.
  * `stash=<name>` keeps this dev wallet whole and signs it out; `unstash=<name>` puts it back for the next launch.
+ * Other tokens: `tokens=USDT0:5,WETH:0.0042` shows made-up holdings and `tokenarrival=USDT0:5` a
+ * made-up arrival, to look at their screens.
  * Offline payments: `offline=1` makes the app act as if it had no signal (it lasts across launches) and
  * `offline=0` brings it back online, which settles whatever is waiting (`offline=clear` forgets this
  * phone's offline payments, for a clean film). With `offline=1`,
@@ -234,6 +237,9 @@ export default function Dev() {
     books?: string
     private?: string
     movein?: string
+    /** Made-up other tokens, `USDT0:5,WETH:0.0042`, and a made-up arrival, `USDT0:5`. */
+    tokens?: string
+    tokenarrival?: string
     /**
      * `biz=seed` fills this shop's business book: four people (three can be paid privately) and two
      * suppliers. `biz=pay&amount=0.05` pays everyone who can be paid privately that much, through the
@@ -355,6 +361,10 @@ export default function Dev() {
             `[dev] ${params.offline === '1' ? 'offline on purpose' : 'back online'}: ${o.items.length} offline payments, ${o.waiting.length} waiting`,
           )
         }
+        if (params.tokens)
+          previewTokens(
+            Object.fromEntries(params.tokens.split(',').map((pair) => pair.split(':', 2))),
+          )
         if (params.fund) {
           setStep('funding')
           await wallet.addMoney().catch(() => {})
@@ -660,6 +670,10 @@ export default function Dev() {
           return router.replace({ pathname: '/receipt/[id]', params: { id: entry.id } })
         }
         router.replace((params.to as never) || '/')
+        if (params.tokenarrival) {
+          const [symbol = '', amount = '1'] = params.tokenarrival.split(':')
+          setTimeout(() => previewTokenArrival(symbol, amount), 800)
+        }
         // A screen to open over that one, e.g. `then=/send` for the send sheet over Home;
         // `then=receipt` opens the newest receipt.
         if (params.then)

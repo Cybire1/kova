@@ -4,6 +4,7 @@ import {
   custom,
   getAddress,
   type Hash,
+  type Hex,
   hexToBytes,
   isAddressEqual,
   keccak256,
@@ -16,6 +17,8 @@ import { getNetwork, type NetworkId } from './networks.js'
 
 type NativeTransfer = { to: Address; value: bigint; gas: bigint; gasPrice: bigint }
 const nativeSenders = new WeakMap<object, (transaction: NativeTransfer) => Promise<Hash>>()
+type TokenCall = { to: Address; data: Hex; gas: bigint; gasPrice: bigint }
+const tokenSenders = new WeakMap<object, (call: TokenCall) => Promise<Hash>>()
 
 /** Explicit MON conversions use a native transfer; ordinary payments keep their gasless path. */
 export function providerNativeTransfer(
@@ -23,6 +26,14 @@ export function providerNativeTransfer(
   transaction: NativeTransfer,
 ): Promise<Hash> | null {
   return nativeSenders.get(account)?.(transaction) ?? null
+}
+
+/**
+ * Explicit token conversions (wallet-tokens.ts) send one token transfer the person approved,
+ * paying the network fee in MON; ordinary payments keep their gasless path.
+ */
+export function providerTokenCall(account: LocalAccount, call: TokenCall): Promise<Hash> | null {
+  return tokenSenders.get(account)?.(call) ?? null
 }
 
 /** A user-owned embedded wallet. Kova never receives its private key. */
@@ -77,17 +88,24 @@ export function providerSigningSession(
       throw new Error('Kova submits your signed payments and pays the gas.')
     },
   })
-  nativeSenders.set(account, async (transaction) => {
+  const ready = async (what: string) => {
     check()
-    if (chain.chainId !== 143) throw new Error('MON conversion requires Monad mainnet.')
+    if (chain.chainId !== 143) throw new Error(`${what} requires Monad mainnet.`)
     const accounts = await client.getAddresses()
     if (!accounts.some((address) => isAddressEqual(address, expected)))
       throw new Error('Google opened a different wallet. Sign in with the original Google account.')
     if ((await client.getChainId()) !== 143) await client.switchChain({ id: 143 })
     check()
+  }
+  nativeSenders.set(account, async (transaction) => {
+    await ready('MON conversion')
     // The returned hash is kept even if the session ends while broadcasting: the transfer may
     // already be on-chain and must remain trackable rather than looking safe to retry.
     return client.sendTransaction(transaction)
+  })
+  tokenSenders.set(account, async (call) => {
+    await ready('Turning tokens into dollars')
+    return client.sendTransaction({ ...call, value: 0n })
   })
   return {
     session: {

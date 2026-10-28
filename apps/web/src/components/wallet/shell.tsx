@@ -9,6 +9,7 @@ import { FlowContext, isFlow } from './flow'
 import { PhoneWelcome } from './phone-welcome'
 import { PrivateArrivalMoment } from './private'
 import { useWallet } from './provider'
+import { TokenWatch } from './tokens'
 import { Avatar } from './ui'
 import { Welcome } from './welcome'
 
@@ -96,6 +97,8 @@ export function WalletShell({ children }: { children: React.ReactNode }) {
       {status === 'ready' ? <ArrivalNotice /> : null}
       {/* A private payment found while the wallet is open gets its own moment, over any screen. */}
       {status === 'ready' ? <PrivateArrivalMoment /> : null}
+      {/* Other tokens arriving (USDT0, WETH…) get their moment too, with a way to make them dollars. */}
+      {status === 'ready' ? <TokenWatch /> : null}
     </div>
   )
 }

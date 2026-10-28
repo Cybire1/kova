@@ -47,7 +47,8 @@ export interface PendingMonConversion {
   hash?: Hash
 }
 
-class ConversionNotSent extends Error {}
+/** Thrown before anything is broadcast: the conversion is safe to start again. */
+export class ConversionNotSent extends Error {}
 export function conversionWasNotSent(error: unknown): boolean {
   let cause = error
   for (let depth = 0; depth < 8 && cause && typeof cause === 'object'; depth++) {

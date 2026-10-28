@@ -12,6 +12,7 @@ import { MoneyRow } from './money'
 import { useNaira } from './naira'
 import { isUnnamed, useWallet } from './provider'
 import { StocksCard } from './stocks'
+import { OtherTokensCard } from './tokens'
 import { ActionTile, Avatar, BalanceCard, EntryRow } from './ui'
 
 /**
@@ -47,6 +48,7 @@ export function Home() {
 
       <BalanceCard />
       <MonWalletCard />
+      <OtherTokensCard />
 
       <div className="w-hero">
         <Link href="/wallet/pay" className="w-pay" aria-label="Pay. Scan a code or pay a link">

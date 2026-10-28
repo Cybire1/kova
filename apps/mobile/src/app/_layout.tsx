@@ -5,7 +5,7 @@ import {
   Manrope_700Bold,
   useFonts,
 } from '@expo-google-fonts/manrope'
-import { router, Stack, useRootNavigationState } from 'expo-router'
+import { router, Stack, usePathname, useRootNavigationState } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import { StatusBar } from 'expo-status-bar'
 import * as SystemUI from 'expo-system-ui'
@@ -22,6 +22,7 @@ import { StallProvider } from '@/lib/stall'
 import { TakingsProvider } from '@/lib/takings'
 import { TerminalProvider } from '@/lib/terminal'
 import { colors, palette } from '@/lib/theme'
+import { takeTokenArrival, useTokenWatch, useWalletTokens } from '@/lib/tokens'
 import { TravelProvider } from '@/lib/travel'
 import { useWallet, WalletProvider } from '@/lib/wallet'
 import { OrderWatcher } from '@/lib/watch'
@@ -104,6 +105,29 @@ function ArrivalWatcher() {
   return null
 }
 
+/**
+ * Other tokens arriving (USDT0, WETH…) get their moment too: a sheet with a way to make them
+ * dollars, one at a time, never over another arrival.
+ */
+function TokenArrivalWatcher() {
+  useTokenWatch()
+  const { arrivals } = useWalletTokens()
+  const { status } = useWallet()
+  const { mode } = usePrefs()
+  const path = usePathname()
+  useEffect(() => {
+    if (arrivals.length === 0 || status !== 'ready' || mode === 'terminal') return
+    if (path === '/token-arrived' || path === '/received') return
+    const next = takeTokenArrival()
+    if (next)
+      router.push({
+        pathname: '/token-arrived',
+        params: { token: next.token.address, amount: next.amount.toString() },
+      })
+  }, [arrivals, status, mode, path])
+  return null
+}
+
 /** Send is one sheet over Home, sized to each step, so the balance stays in view behind it. */
 const sendSheet = {
   presentation: 'formSheet',
@@ -145,6 +169,7 @@ export default function RootLayout() {
                           <Ground />
                           <AfterReload />
                           <ArrivalWatcher />
+                          <TokenArrivalWatcher />
                           <OrderWatcher />
                           <DevLaunch />
                           <Stack
@@ -215,6 +240,13 @@ export default function RootLayout() {
                               options={{ animation: 'slide_from_bottom' }}
                             />
                             <Stack.Screen name="send/index" options={sendSheet} />
+                            <Stack.Screen
+                              name="token-arrived"
+                              options={{
+                                ...sendSheet,
+                                contentStyle: { backgroundColor: colors.surface },
+                              }}
+                            />
                             <Stack.Screen name="send/[to]" options={sendSheet} />
                             <Stack.Screen name="send/link" options={sendSheet} />
                             <Stack.Screen

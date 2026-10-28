@@ -1,0 +1,220 @@
+/*
+ * Other tokens: what a wallet holds on Monad besides its dollars, on Home, on its own screen and
+ * in its arrival. The wallet's paper, outlines and pills; the coins are drawn, so they keep their
+ * colours in the dark, like the painted ones.
+ */
+
+.w-tok-coin {
+  --size: 40px;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--size);
+  height: var(--size);
+  border: 2px solid var(--dark);
+  border-radius: 50%;
+  background: #dedcd8;
+  color: var(--dark);
+  font-size: calc(var(--size) * 0.44);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.w-tok-coin[data-worth="dollar"] {
+  background: #8fb9bb;
+}
+
+.w-tok-coin[data-worth="mon"] {
+  background: #ebb3aa;
+}
+
+/* Home */
+.w-tok-card {
+  margin-top: 12px;
+  border: 2px solid var(--line);
+  border-radius: 22px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.w-tok-card ul,
+.w-tok-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.w-tok-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.w-tok-card-head > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.w-tok-card-head strong,
+.w-tok-card-head small {
+  display: block;
+}
+
+.w-tok-card-head strong {
+  font-size: 15px;
+}
+
+.w-tok-card-head small {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.w-tok-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 16px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.w-tok-card li + li {
+  border-top: 1px solid var(--hairline);
+}
+
+.w-tok-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.w-tok-text strong,
+.w-tok-text small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.w-tok-text strong {
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.w-tok-text small {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Ink, and cream in the dark, so the way to dollars stands out on a card in either. */
+.w-tok-chip,
+.w-tok-go {
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.w-tok-chip {
+  padding: 8px 12px;
+}
+
+.w-tok-more {
+  display: block;
+  padding: 12px 16px;
+  border-top: 1px solid var(--hairline);
+  color: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* The Other tokens screen */
+.w-tok-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.w-tok-list {
+  display: grid;
+  gap: 12px;
+}
+
+.w-tok-item {
+  border: 2px solid var(--line);
+  border-radius: 22px;
+  background: var(--surface);
+}
+
+.w-tok-item .w-tok-row {
+  padding: 14px 16px;
+}
+
+.w-tok-go {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.w-tok-go:hover {
+  opacity: 0.88;
+}
+
+.w-tok-dust {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.w-tok-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 16px 8px 8px;
+  text-align: center;
+}
+
+.w-tok-empty p {
+  margin: 0;
+  max-width: 30ch;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.w-tok-holding {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.w-tok-screen .w-mon-holding > small {
+  color: var(--muted);
+}
+
+/* The arrival: the dollar arrival's card, with the token's own coins. */
+.w-tok-arrival .w-arrival-coin {
+  line-height: 0;
+}
+
+/* Keep: the quiet second way, a link drawn on a button. */
+.w-tok-arrival > button.textlink {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}

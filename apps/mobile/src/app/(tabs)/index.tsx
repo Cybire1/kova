@@ -35,6 +35,7 @@ import { KeyIcon, KeysOnHome } from '@/ui/Keys'
 import { MoneyTiles } from '@/ui/Money'
 import { MonWalletCard } from '@/ui/MonWalletCard'
 import { OfflinePill, OfflineRow } from '@/ui/Offline'
+import { OtherTokensCard } from '@/ui/OtherTokens'
 import { RoundButton, Txt } from '@/ui/primitives'
 import { dollars } from '@/ui/StallParts'
 import { StocksCard } from '@/ui/Stocks'
@@ -168,6 +169,7 @@ export default function Home() {
       />
 
       <MonWalletCard usd={mon?.value ?? null} />
+      <OtherTokensCard usdPerMon={monUsd} />
 
       <View style={styles.hero}>
         <Pressable
