@@ -98,7 +98,16 @@ export function InstallPrompt() {
   )
 }
 
-/** An iPhone can't be asked from a page, so it gets the three taps, in Safari's own words. */
+/** Where Share is in each iPhone browser (all of them can add to the Home Screen since iOS 16.4). */
+function whereShareIs() {
+  const ua = navigator.userAgent
+  if (/CriOS/.test(ua)) return 'The share icon in Chrome’s address bar, at the top right'
+  if (/EdgiOS/.test(ua)) return 'In Edge’s menu, at the bottom'
+  if (/FxiOS/.test(ua)) return 'In Firefox’s menu, under •••'
+  return 'In Safari’s bar, or under ••• on newer iPhones'
+}
+
+/** An iPhone can't be asked from a page, so it gets the three taps, in its browser's own words. */
 function IosSteps({ onClose }: { onClose: () => void }) {
   const [closing, setClosing] = useState(false)
   const close = () => {
@@ -134,7 +143,7 @@ function IosSteps({ onClose }: { onClose: () => void }) {
               <span className="w-install-glyph" aria-hidden="true">
                 <Icon name="share" size={16} />
               </span>
-              <small>In Safari’s bar, or under ••• on newer iPhones</small>
+              <small>{whereShareIs()}</small>
             </span>
           </li>
           <li>
