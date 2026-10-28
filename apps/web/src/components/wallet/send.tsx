@@ -852,8 +852,8 @@ export function Fact({
   )
 }
 
-const KNOB = 50
-const PAD = 5
+const KNOB = 44
+const PAD = 4
 
 /**
  * Slide to send: the one deliberate gesture between a review and money leaving. The track fills
@@ -894,7 +894,12 @@ export function SlideToSend({
       ref={track}
       className={`w-slide${disabled ? ' w-slide-off' : ''}${busy ? ' w-slide-busy' : ''}${dragging ? ' w-slide-drag' : ''}`}
     >
-      <span className="w-slide-fill" style={{ width: x + KNOB + PAD }} />
+      {/* Coral grows behind the knob as it moves, a pad wider so it rings it evenly; at rest it
+          fades away rather than sitting as a rim. */}
+      <span
+        className="w-slide-fill"
+        style={{ width: x + KNOB + PAD * 2, opacity: x > 0 || busy ? 1 : 0 }}
+      />
       <span
         className="w-slide-words"
         style={{ opacity: busy ? 0 : Math.max(0, 1 - x / (max() * 0.5 || 1)) }}

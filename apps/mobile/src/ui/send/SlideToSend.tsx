@@ -19,8 +19,8 @@ import { colors } from '@/lib/theme'
 import { Icon } from '../Icon'
 import { Txt } from '../primitives'
 
-const HEIGHT = 68
-const KNOB = 56
+const HEIGHT = 60
+const KNOB = 50
 const PAD = (HEIGHT - KNOB) / 2
 /** How far along the track counts as a decision. */
 const COMMIT = 0.86
@@ -88,7 +88,12 @@ export function SlideToSend({
     })
 
   const knob = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }))
-  const fill = useAnimatedStyle(() => ({ width: x.value + KNOB + PAD }))
+  // Coral grows behind the knob as it moves, a pad wider so it rings it evenly; at rest it fades
+  // away rather than sitting as a rim.
+  const fill = useAnimatedStyle(() => ({
+    width: x.value + KNOB + PAD * 2,
+    opacity: interpolate(x.value, [0, 12], [0, 1], 'clamp'),
+  }))
   const words = useAnimatedStyle(() => ({
     opacity: interpolate(x.value, [0, (max || 1) * 0.5], [1, 0], 'clamp'),
   }))

@@ -3013,8 +3013,8 @@ button.w-person {
 
 .w-slide {
   position: relative;
-  height: 60px;
-  border-radius: 30px;
+  height: 52px;
+  border-radius: 26px;
   background: var(--fill);
   overflow: hidden;
   user-select: none;
@@ -3032,9 +3032,11 @@ button.w-person {
 .w-slide-fill {
   position: absolute;
   inset: 0 auto 0 0;
-  border-radius: 30px;
+  border-radius: 26px;
   background: var(--coral);
-  transition: width 0.45s var(--spring);
+  transition:
+    width 0.45s var(--spring),
+    opacity 0.3s ease;
 }
 
 .w-slide-words {
@@ -3043,16 +3045,16 @@ button.w-person {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-left: 50px;
+  padding-left: 44px;
   color: #fff;
   font-size: 0.9375rem;
-  font-weight: 700;
+  font-weight: 650;
   white-space: nowrap;
   pointer-events: none;
 }
 
 .w-slide-busy .w-slide-words {
-  padding: 0 50px 0 0;
+  padding: 0 44px 0 0;
 }
 
 .w-slide-chevrons {
@@ -3082,17 +3084,18 @@ button.w-person {
 
 .w-slide-knob {
   position: absolute;
-  top: 5px;
-  left: 5px;
+  top: 4px;
+  left: 4px;
   display: grid;
   place-items: center;
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: var(--surface);
   color: var(--ink);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
   cursor: grab;
   transition: transform 0.45s var(--spring);
 }
@@ -9296,4 +9299,10 @@ button.w-chip-private:disabled {
   --awning-coral: #5c2b25;
   --awning-paper: #242424;
   --awning-line: transparent;
+}
+
+/* In the dark the knob stays light, so it reads as the thing to slide. */
+:root[data-theme="dark"] .w-slide-knob {
+  background: var(--ink);
+  color: var(--dark);
 }
