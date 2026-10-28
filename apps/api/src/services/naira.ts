@@ -24,7 +24,13 @@ import { feePayerAddress, network, publicClient, settlementToken, tokenFor } fro
 import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
-import { RefusedEstimate, relayAuthorization, relayReady, sendFromRelayer } from '../relay.js'
+import {
+  OverFeeCap,
+  RefusedEstimate,
+  relayAuthorization,
+  relayReady,
+  sendFromRelayer,
+} from '../relay.js'
 import {
   openOfframp,
   openOnramp,
@@ -49,7 +55,7 @@ import {
   transferStatus,
 } from './paystack.js'
 import { rateBook } from './rates.js'
-import { buildSwap, swapPrice, swapRoute } from './swap.js'
+import { buildSwap, routeSources, type SwapRoute, swapPrice, swapRoute } from './swap.js'
 
 /**
  * Naira, in and out. Through PAJ where it's set up (Monad mainnet), else through Paystack.
@@ -641,6 +647,12 @@ async function createPajCashOut(
  * relayer carries it out. The contract swaps just enough AUSD for PAJ's USDC (plus a sliver),
  * pays PAJ's address, and sends everything else back, all in one transaction or not at all.
  */
+/**
+ * The most gas Kova pays for one cash-out: the signed transfer, the dollar swap and two payouts.
+ * The swap's pool decides most of it. At 102 gwei, 5M gas is 0.51 MON, about a cent.
+ */
+const CASH_OUT_MAX_GAS = 5_000_000n
+
 async function payPajCashOut(
   row: CashOutRow,
   signed: { token: Address; authorization: TransferAuthorization; signature: Hex },
@@ -674,50 +686,74 @@ async function payPajCashOut(
   const usdc = tokenFor('USDC').address
   const price = await swapPrice(settlementToken.address, usdc)
   const enough = BigInt(Math.ceil((Number(pay) / price) * 1.0003)) + 1n
-  let route =
-    enough < row.amount
-      ? await swapRoute(settlementToken.address, usdc, enough).catch(() => null)
-      : null
-  if (!route || route.amountOut < pay)
-    route = await swapRoute(settlementToken.address, usdc, row.amount)
-  if (route.amountOut < pay)
-    throw new KovaError(
-      'conflict',
-      'The dollar swap moved since your quote, so nothing moved. Start again for a fresh quote.',
-    )
-  const swap = await buildSwap(route, contract, 30)
+  const routeFor = async (exclude: string[]): Promise<SwapRoute> => {
+    let route =
+      enough < row.amount
+        ? await swapRoute(settlementToken.address, usdc, enough, exclude).catch(() => null)
+        : null
+    if (!route || route.amountOut < pay)
+      route = await swapRoute(settlementToken.address, usdc, row.amount, exclude)
+    if (route.amountOut < pay)
+      throw new KovaError(
+        'conflict',
+        'The dollar swap moved since your quote, so nothing moved. Start again for a fresh quote.',
+      )
+    return route
+  }
 
   const signature = parseSignature(signed.signature)
-  const data = encodeFunctionData({
-    abi: cashOutAbi,
-    functionName: 'cashOut',
-    args: [
-      {
-        owner: getAddress(authorization.from),
-        value: authorization.value,
-        validAfter: authorization.validAfter,
-        validBefore: authorization.validBefore,
-        v: Number(signature.v ?? BigInt(signature.yParity + 27)),
-        r: signature.r,
-        s: signature.s,
-      },
-      { payTo: getAddress(row.partnerAddress), pay, ref: cashOutRef(row) },
-      swap.data,
-    ],
-  })
-  let receipt: Awaited<ReturnType<typeof sendFromRelayer>>
-  try {
-    receipt = await sendFromRelayer(contract, data, { maxGas: 3_000_000n })
-  } catch (error) {
-    if (error instanceof RefusedEstimate) {
-      const why = error.cause instanceof Error ? error.cause.message : String(error.cause)
-      console.warn('[naira] cash-out refused before sending', row.id, why.slice(0, 300))
-      throw new KovaError(
-        'chain_error',
-        'The swap didn’t go through, so nothing moved. Try again in a moment.',
-      )
+  const cashOutCall = (swap: Hex) =>
+    encodeFunctionData({
+      abi: cashOutAbi,
+      functionName: 'cashOut',
+      args: [
+        {
+          owner: getAddress(authorization.from),
+          value: authorization.value,
+          validAfter: authorization.validAfter,
+          validBefore: authorization.validBefore,
+          v: Number(signature.v ?? BigInt(signature.yParity + 27)),
+          r: signature.r,
+          s: signature.s,
+        },
+        { payTo: getAddress(row.partnerAddress as Address), pay, ref: cashOutRef(row) },
+        swap,
+      ],
+    })
+  // KyberSwap picks the pool that pays most, not the one that costs least gas on Monad, where reading
+  // contract storage costs several times what it does elsewhere. A pool too costly to carry out is
+  // left out and the next best tried, up to twice: the dollars paid differ by cents on $1,000.
+  let receipt: Awaited<ReturnType<typeof sendFromRelayer>> | null = null
+  const skipped: string[] = []
+  for (let attempt = 0; !receipt; attempt++) {
+    const route = await routeFor(skipped)
+    const swap = await buildSwap(route, contract, 30)
+    try {
+      receipt = await sendFromRelayer(contract, cashOutCall(swap.data), {
+        maxGas: CASH_OUT_MAX_GAS,
+      })
+    } catch (error) {
+      if (error instanceof RefusedEstimate) {
+        const why = error.cause instanceof Error ? error.cause.message : String(error.cause)
+        console.warn('[naira] cash-out refused before sending', row.id, why.slice(0, 300))
+        throw new KovaError(
+          'chain_error',
+          'The swap didn’t go through, so nothing moved. Try again in a moment.',
+        )
+      }
+      const costly = routeSources(route).filter((source) => !skipped.includes(source))
+      if (error instanceof OverFeeCap && attempt < 2 && costly.length > 0) {
+        console.warn('[naira] cash-out route over the gas cap, trying without', costly.join(','))
+        skipped.push(...costly)
+        continue
+      }
+      if (error instanceof OverFeeCap)
+        throw new KovaError(
+          'chain_error',
+          'The dollar swap costs too much to carry out right now, so nothing moved. Try again in a few minutes.',
+        )
+      throw error
     }
-    throw error
   }
   if (receipt.status !== 'success')
     throw new KovaError('chain_error', 'The cash-out didn’t go through. Nothing moved.')

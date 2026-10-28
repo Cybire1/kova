@@ -97,27 +97,42 @@ vi.mock('../src/services/paj.js', () => {
 /** KyberSwap: AUSD buys USDC at 0.9998, whatever the size. */
 const routes: bigint[] = []
 vi.mock('../src/services/swap.js', () => ({
-  swapRoute: vi.fn(async (_in: string, _out: string, amountIn: bigint) => {
+  swapRoute: vi.fn(async (_in: string, _out: string, amountIn: bigint, exclude: string[] = []) => {
     routes.push(amountIn)
-    return { amountIn, amountOut: (amountIn * 9998n) / 10_000n, summary: { amountIn } }
+    excluded.push([...exclude])
+    // The best-paying pool first; left out, the next one.
+    const pool = exclude.includes('balancer-v3-stable') ? 'curve-stable-ng' : 'balancer-v3-stable'
+    return { amountIn, amountOut: (amountIn * 9998n) / 10_000n, summary: { amountIn, pool } }
   }),
+  routeSources: (route: { summary: { pool: string } }) => [route.summary.pool],
   swapPrice: vi.fn(async () => 0.9998),
-  buildSwap: vi.fn(async (route: { amountIn: bigint; amountOut: bigint }) => ({
-    data: `0x5a7e${route.amountIn.toString(16).padStart(64, '0')}`,
-    amountOut: route.amountOut,
-  })),
+  buildSwap: vi.fn(
+    async (route: { amountIn: bigint; amountOut: bigint; summary: { pool: string } }) => ({
+      data: `0x5a7e${route.amountIn.toString(16).padStart(64, '0')}${route.summary.pool === 'balancer-v3-stable' ? 'ba1a' : 'c0de'}`,
+      amountOut: route.amountOut,
+    }),
+  ),
 }))
 
 const sent: { to: string; data: Hex }[] = []
-vi.mock('../src/relay.js', () => ({
-  RefusedEstimate: class RefusedEstimate extends Error {},
-  relayReady: () => true,
-  relayAuthorization: vi.fn(),
-  sendFromRelayer: vi.fn(async (to: string, data: Hex) => {
-    sent.push({ to, data })
-    return { status: 'success', transactionHash: `0x${hex(32)}` }
-  }),
-}))
+const excluded: string[][] = []
+/** When on, a swap built through Balancer's pool (its route's marker in the call) is over the gas cap. */
+const costlyPool = { on: false, marker: '' }
+vi.mock('../src/relay.js', () => {
+  class OverFeeCap extends Error {}
+  return {
+    RefusedEstimate: class RefusedEstimate extends Error {},
+    OverFeeCap,
+    relayReady: () => true,
+    relayAuthorization: vi.fn(),
+    sendFromRelayer: vi.fn(async (to: string, data: Hex) => {
+      // A swap through a pool too costly in gas is refused before anything is sent.
+      if (costlyPool.on && data.includes(costlyPool.marker)) throw new OverFeeCap()
+      sent.push({ to, data })
+      return { status: 'success', transactionHash: `0x${hex(32)}` }
+    }),
+  }
+})
 
 vi.mock('../src/chain.js', async (original) => {
   const real = (await original()) as Record<string, unknown>
@@ -139,6 +154,8 @@ beforeAll(async () => {
 beforeEach(() => {
   sent.length = 0
   routes.length = 0
+  excluded.length = 0
+  costlyPool.on = false
 })
 
 async function quoted(owner = privateKeyToAccount(generatePrivateKey())) {
@@ -220,6 +237,30 @@ describe('cashing out through PAJ', () => {
     // Asking again does nothing more.
     await naira.payCashOut(paid, await signed(owner, cashOut.pay))
     expect(sent).toHaveLength(1)
+  })
+
+  it('carries out a cash-out through the next pool when the best one costs too much gas', async () => {
+    const { owner, row, cashOut } = await quoted()
+    excluded.length = 0
+    costlyPool.on = true
+    costlyPool.marker = 'ba1a'
+    const paid = await naira.payCashOut(row, await signed(owner, cashOut.pay))
+    expect(paid.status).toBe('paying')
+    // Balancer's pool was over the cap, so nothing went; the same signature then went through Curve.
+    expect(excluded[0]).toEqual([])
+    expect(excluded.at(-1)).toEqual(['balancer-v3-stable'])
+    expect(sent).toHaveLength(1)
+    expect(sent[0]?.data.includes('c0de')).toBe(true)
+  })
+
+  it('says plainly when every pool costs too much gas, and nothing moves', async () => {
+    const { owner, row, cashOut } = await quoted()
+    costlyPool.on = true
+    costlyPool.marker = '5a7e'
+    await expect(naira.payCashOut(row, await signed(owner, cashOut.pay))).rejects.toThrow(
+      /costs too much to carry out right now/,
+    )
+    expect(sent).toHaveLength(0)
   })
 
   it('takes no signature but the one for this cash-out', async () => {

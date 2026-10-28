@@ -123,6 +123,16 @@ export class RefusedEstimate extends Error {
   }
 }
 
+/** The estimate came back over the call's gas cap: nothing was sent. A cheaper route may fit. */
+export class OverFeeCap extends KovaError {
+  constructor(
+    readonly gas: bigint,
+    readonly cap: bigint,
+  ) {
+    super('policy_declined', 'This payment would cost more in fees than Kova covers.')
+  }
+}
+
 /**
  * Sends one call from the relayer, the only path that spends its MON, so its nonce has one owner.
  * One round-trip to check (estimate, with fees and nonce alongside), a local signature, then one
@@ -150,9 +160,11 @@ export async function sendFromRelayer(
     resetNonce()
     throw new RefusedEstimate(error)
   }
-  if (gas > (options.maxGas ?? config.KOVA_MAX_RELAY_GAS)) {
+  const cap = options.maxGas ?? config.KOVA_MAX_RELAY_GAS
+  if (gas > cap) {
     resetNonce()
-    throw new KovaError('policy_declined', 'This payment would cost more in fees than Kova covers.')
+    console.warn('[relay] over the gas cap, not sent', { to, gas: String(gas), cap: String(cap) })
+    throw new OverFeeCap(gas, cap)
   }
 
   // Monad charges for the gas limit, not the gas used, so ask for the estimate plus a sliver.

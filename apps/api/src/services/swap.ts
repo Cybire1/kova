@@ -45,13 +45,23 @@ export async function swapRoute(
   tokenIn: Address,
   tokenOut: Address,
   amountIn: bigint,
+  /** Pools to leave out (KyberSwap's source names), for a route that costs less gas on Monad. */
+  exclude: string[] = [],
 ): Promise<SwapRoute> {
+  const skip = exclude.length > 0 ? `&excludedSources=${encodeURIComponent(exclude.join(','))}` : ''
   const data = await kyber<{ routeSummary: { amountOut: string }; routerAddress: string }>(
-    `/routes?tokenIn=${tokenIn}&tokenOut=${tokenOut}&amountIn=${amountIn}`,
+    `/routes?tokenIn=${tokenIn}&tokenOut=${tokenOut}&amountIn=${amountIn}${skip}`,
   )
   if (!isAddressEqual(getAddress(data.routerAddress), KYBER_ROUTER))
     throw new KovaError('internal', 'The dollar swap moved to a router Kova doesn’t use.')
   return { amountIn, amountOut: BigInt(data.routeSummary.amountOut), summary: data.routeSummary }
+}
+
+/** The pools a route swaps through, by KyberSwap's source names. */
+export function routeSources(route: SwapRoute): string[] {
+  const paths = (route.summary as { route?: Array<Array<{ exchange?: unknown }>> } | null)?.route
+  const names = (paths ?? []).flat().map((hop) => hop.exchange)
+  return [...new Set(names.filter((n): n is string => typeof n === 'string' && n.length > 0))]
 }
 
 /**
