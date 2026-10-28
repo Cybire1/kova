@@ -411,12 +411,12 @@ export function Receipt({ id }: { id: string }) {
                   )
                 ) : entry.movedIn ? (
                   <a href={entry.movedIn.explorer} target="_blank" rel="noreferrer">
-                    Made public
+                    Moved to main wallet
                   </a>
                 ) : entry.used ? (
                   'Spent privately'
                 ) : (
-                  'Made public'
+                  'Moved to main wallet'
                 )}
               </dd>
             </div>

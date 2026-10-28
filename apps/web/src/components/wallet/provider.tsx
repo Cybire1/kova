@@ -1755,7 +1755,8 @@ export function WalletProvider({
         amount: f.amount,
         name: f.from ? (nameFor(f.from) ?? f.name ?? short(getAddress(f.from))) : (f.name ?? ''),
         detail:
-          f.note ?? (waiting ? 'Private' : f.used && !moved ? 'Spent privately' : 'Made public'),
+          f.note ??
+          (waiting ? 'Private' : f.used && !moved ? 'Spent privately' : 'Moved to main wallet'),
         ...(f.note ? { private: 'both' as const } : {}),
         ...(f.from ? { address: getAddress(f.from) } : {}),
         ...(f.proven === 'claimed' ? { unconfirmed: true } : {}),

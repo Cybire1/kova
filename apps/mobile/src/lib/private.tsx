@@ -78,9 +78,9 @@ export interface PayWays<T> {
  * can't tell whose they are), opens each one's sealed memo itself, and puts each in your activity as
  * it arrives. They count in your balance like any dollars, and there is nothing to move: the privacy
  * router picks where each payment comes from, paying straight from those addresses when it can, and
- * moving just enough into the balance first only when nothing else covers it. Making them public is
- * still there, on the Private dollars screen. Shared by Home, the Private screen, receipts, and the pay
- * and send flows.
+ * moving just enough into the balance first only when nothing else covers it. Moving them to the
+ * main wallet is a button on the Private dollars screen. Shared by Home, the Private screen, receipts,
+ * and the pay and send flows.
  */
 interface PrivateDollars {
   /** This phone holds this wallet's private-receiving keys, so it can find and move private payments. */

@@ -20,7 +20,7 @@ import { EntryRow } from './ui'
  * Private dollars, on the wallet's screens. They count in the balance and pay like any dollars:
  * the privacy router (@kova/monad) picks where each payment comes from, so these pieces only
  * explain it, offer a choice under Details to anyone who wants one, and make the moment a private
- * payment arrives. Making them public lives on the Private dollars screen, under its ⋯.
+ * payment arrives. Moving them to the main wallet is on the Private dollars screen, under the card.
  */
 
 /** What paying with private dollars is doing now, in a few plain words. */
@@ -327,9 +327,9 @@ export function CheckPrivate() {
 // --- The Private dollars screen ------------------------------------------------------------------
 
 /**
- * Private dollars: the part of your balance only you can tell is yours. Nothing to manage here:
- * how much is private and who it's from, how it works a tap away, every private payment, and
- * whether people can send to you privately. Making them public lives under the ⋯.
+ * Private dollars: the part of your balance only you can tell is yours. How much is private and
+ * who it's from, a plain button to move them to the main wallet (with what that gives away, once),
+ * how it works a tap away, every private payment, and whether people can send to you privately.
  */
 export function PrivateDollars() {
   const { activity, privateBalance, privateOpen, privateUnchecked, moveIn, movingIn, hideBalance } =
@@ -408,10 +408,10 @@ export function PrivateDollars() {
           >
             <Icon name="receive" size={18} />
             <span>
-              <strong>Make these public</strong>
+              <strong>Move to main wallet</strong>
               <small>
                 {privateBalance > 0n
-                  ? `Move ${shown(privateBalance)} into your wallet, in the open`
+                  ? `${shown(privateBalance)} out of private, into your main wallet`
                   : 'Nothing private to move right now'}
               </small>
             </span>
@@ -423,12 +423,11 @@ export function PrivateDollars() {
         {moved?.count && !privateBalance ? (
           <>
             <span className="w-privcard-tag w-privcard-tag-done">
-              <Icon name="check" size={13} /> Made public
+              <Icon name="check" size={13} /> Moved to main wallet
             </span>
             <strong className="w-privcard-amount">{formatUsd(moved.amount)}</strong>
             <p>
-              moved into your wallet in {(moved.ms / 1000).toFixed(1)} s. Still in your balance; the
-              move is public.{' '}
+              is in your main wallet, moved in {(moved.ms / 1000).toFixed(1)} s. The move is public.{' '}
               {moved.explorer ? (
                 <a href={moved.explorer} target="_blank" rel="noreferrer">
                   See proof
@@ -462,8 +461,8 @@ export function PrivateDollars() {
               <span className="w-privcard-making">
                 <span className="spinner w-spinner-light" aria-hidden="true" />
                 {movingIn.total > 1
-                  ? `Making them public, ${Math.min(movingIn.done + 1, movingIn.total)} of ${movingIn.total}…`
-                  : 'Making it public…'}
+                  ? `Moving them to your main wallet, ${Math.min(movingIn.done + 1, movingIn.total)} of ${movingIn.total}…`
+                  : 'Moving it to your main wallet…'}
               </span>
             ) : null}
           </>
@@ -471,12 +470,32 @@ export function PrivateDollars() {
         {problem ? <p className="w-privcard-problem">{problem}</p> : null}
       </section>
 
+      {/* The way out of private, where people look for it: under the amount, with its one catch. */}
+      {privateBalance > 0n && !movingIn && !confirming ? (
+        <div className="w-privmove">
+          <button
+            type="button"
+            className="pill pill-block"
+            data-tone="ink"
+            onClick={() => setConfirming(true)}
+          >
+            <span className="pill-label">Move to main wallet</span>
+            <span className="pill-cap">
+              <Icon name="receive" size={18} />
+            </span>
+          </button>
+          <p className="w-fine">
+            You don’t need to, to spend them: Kova pays and sends from private dollars privately.
+          </p>
+        </div>
+      ) : null}
+
       {confirming ? (
-        <div className="w-confirm" role="alertdialog" aria-label="Make them public">
-          <strong>Make {shown(privateBalance)} public?</strong>
+        <div className="w-confirm" role="alertdialog" aria-label="Move to main wallet">
+          <strong>Move {shown(privateBalance)} to your main wallet?</strong>
           <p>
-            Each private payment moves into your wallet, and every move is public, so anyone can see
-            these dollars reached you. They stay in your balance either way. Kova covers the fee.
+            Once they’re in your main wallet, anyone can see these dollars reached you. They’re
+            yours either way, and Kova covers the fee.
           </p>
           <button
             type="button"
@@ -484,7 +503,7 @@ export function PrivateDollars() {
             data-tone="ink"
             onClick={() => void makePublic()}
           >
-            <span className="pill-label">Make {shown(privateBalance)} public</span>
+            <span className="pill-label">Move {shown(privateBalance)}</span>
             <span className="pill-cap">
               <Icon name="receive" size={18} />
             </span>

@@ -144,7 +144,7 @@ export default function Receipt() {
                         ? `${formatUsd(BigInt(receipt.held))} left, private`
                         : 'Private, in your balance'
                       : receipt.movedTx
-                        ? 'Made public'
+                        ? 'Moved to main wallet'
                         : 'Spent privately'
                   }
                 />

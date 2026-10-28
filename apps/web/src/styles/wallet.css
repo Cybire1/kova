@@ -6238,7 +6238,19 @@ button.w-chip-private:disabled {
   font-weight: 650;
 }
 
-/* Make them public? Said plainly, once, before anything moves. */
+/* The way out of private, right under the amount, and the one line that says you rarely need it. */
+.w-privmove {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  text-align: center;
+}
+
+.w-privmove .w-fine {
+  margin: 0;
+}
+
+/* Move to the main wallet? Said plainly, once, before anything moves. */
 .w-confirm {
   display: grid;
   gap: 0.625rem;

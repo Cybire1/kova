@@ -31,9 +31,9 @@ function dayOf(at: number) {
 
 /**
  * Private dollars: the part of your balance only you can tell is yours. Nothing to manage here:
- * what's private and who it's from at the top, how it works a tap away, every private payment
- * below, and whether people can send to you privately at the bottom. Making them public lives
- * under the ⋯, for anyone who wants it.
+ * what's private and who it's from at the top, a plain button to move them to the main wallet (with
+ * what that gives away, said once), how it works a tap away, every private payment below, and
+ * whether people can send to you privately at the bottom.
  */
 export default function PrivateDollars() {
   const p = usePrivate()
@@ -95,6 +95,24 @@ export default function PrivateDollars() {
             <Rise>
               <PrivateCard plain />
             </Rise>
+
+            {/* The way out of private, where people look for it: right under the amount. */}
+            {canMakePublic ? (
+              <View style={{ marginTop: 14, gap: 8 }}>
+                <PillButton
+                  label="Move to main wallet"
+                  icon="receive"
+                  onPress={() => {
+                    void Haptics.selectionAsync()
+                    setConfirming(true)
+                  }}
+                />
+                <Txt size={13} color={colors.muted} style={{ textAlign: 'center', lineHeight: 18 }}>
+                  You don’t need to, to spend them: Kova pays and sends from private dollars
+                  privately.
+                </Txt>
+              </View>
+            ) : null}
 
             <Pressable
               accessibilityRole="button"
@@ -182,10 +200,10 @@ export default function PrivateDollars() {
         />
         <MenuRow
           icon="receive"
-          label="Make these public"
+          label="Move to main wallet"
           detail={
             canMakePublic
-              ? `Move ${formatUsd(p.waiting)} into your wallet, in the open`
+              ? `${formatUsd(p.waiting)} out of private, into your main wallet`
               : 'Nothing private to move right now'
           }
           disabled={!canMakePublic}
@@ -198,15 +216,15 @@ export default function PrivateDollars() {
 
       <Sheet visible={confirming} onClose={() => setConfirming(false)}>
         <Txt weight="bold" size={24} style={{ letterSpacing: -0.6, marginTop: 8 }}>
-          Make {formatUsd(p.waiting)} public?
+          Move {formatUsd(p.waiting)} to your main wallet?
         </Txt>
         <Txt size={15} color={colors.onTint} style={{ marginTop: 8, lineHeight: 22 }}>
-          Each private payment moves into your wallet, and every move is public, so anyone can see
-          these dollars reached you. They stay in your balance either way. Kova covers the fee.
+          Once they’re in your main wallet, anyone can see these dollars reached you. They’re yours
+          either way, and Kova covers the fee.
         </Txt>
         <View style={{ marginTop: 18, gap: 12 }}>
           <PillButton
-            label={`Make ${formatUsd(p.waiting)} public`}
+            label={`Move ${formatUsd(p.waiting)}`}
             icon="receive"
             onPress={() => {
               setConfirming(false)

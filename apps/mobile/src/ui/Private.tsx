@@ -27,7 +27,7 @@ import { AddressChip, freshMove } from './Takings'
  * who wants one. The card is ink, like private takings: what's in it is yours alone.
  */
 
-/** Making them public, step by step (from the Private dollars screen's ⋯). */
+/** Moving them to the main wallet, step by step (from the button under the card). */
 const progressLabel = (p: MoveProgress) =>
   p.step === 'unlocking'
     ? 'Opening your keys…'
@@ -36,8 +36,8 @@ const progressLabel = (p: MoveProgress) =>
       : p.step === 'signing'
         ? `Signing ${p.done} of ${p.total}…`
         : p.total > 1
-          ? `Making them public, ${Math.min(p.done + 1, p.total)} of ${p.total}…`
-          : 'Making it public…'
+          ? `Moving them to your main wallet, ${Math.min(p.done + 1, p.total)} of ${p.total}…`
+          : 'Moving it to your main wallet…'
 
 const waitingOf = (receipts: PrivateReceipt[]) => receipts.filter((r) => BigInt(r.held) > 0n)
 
@@ -283,7 +283,8 @@ export function Announced({ url, at, onInk }: { url: string | null; at: number; 
 /**
  * The private dollars at a glance: how much of your balance is private, and who it's from. Nothing
  * to do here: they pay like any dollars. It tells every state in place: keys not on this phone yet,
- * nothing yet, being made public (from the screen's ⋯), and made public, with the move on Monadscan.
+ * nothing yet, moving to the main wallet (the button under the card), and moved, with the move on
+ * Monadscan.
  */
 export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: boolean }) {
   const p = usePrivate()
@@ -325,7 +326,7 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
           <PopIn style={[styles.movedTag, lead]}>
             <Icon name="check" size={13} color={colors.ink} strokeWidth={2.6} />
             <Txt weight="semi" size={12}>
-              {moved.count ? 'Made public' : 'Nothing to move'}
+              {moved.count ? 'Moved to main wallet' : 'Nothing to move'}
             </Txt>
           </PopIn>
           {moved.count ? (
@@ -335,18 +336,18 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
                 size={44}
                 color={colors.white}
                 style={styles.amount}
-                accessibilityLabel={`Made ${formatUsd(moved.amount)} public in ${(moved.ms / 1000).toFixed(1)} seconds`}
+                accessibilityLabel={`Moved ${formatUsd(moved.amount)} to your main wallet in ${(moved.ms / 1000).toFixed(1)} seconds`}
               >
                 {formatUsd(moved.amount)}
               </Txt>
               <Txt size={15} color={colors.onInk} style={{ lineHeight: 21 }}>
-                moved into your wallet in {(moved.ms / 1000).toFixed(1)} s. Still in your balance;
-                the move is public.
+                is in your main wallet, moved in {(moved.ms / 1000).toFixed(1)} s. The move is
+                public.
               </Txt>
             </>
           ) : (
             <Txt size={15} color={colors.onInk} style={{ marginTop: 10, lineHeight: 21 }}>
-              They had already moved: everything private was public already.
+              They had already moved: nothing private was left to move.
             </Txt>
           )}
           {moved.failed ? (
@@ -450,8 +451,8 @@ export function PrivateCard({ onOpen, plain }: { onOpen?: () => void; plain?: bo
             </View>
           ) : moved?.count ? (
             <Txt weight="medium" size={13} color={colors.tealLight} style={{ marginTop: 12 }}>
-              Made {formatUsd(moved.amount)} public in {(moved.ms / 1000).toFixed(1)} s.{' '}
-              {moved.failed ? `${moved.failed} didn’t move: ${moved.reason}` : ''}
+              Moved {formatUsd(moved.amount)} to your main wallet in {(moved.ms / 1000).toFixed(1)}{' '}
+              s. {moved.failed ? `${moved.failed} didn’t move: ${moved.reason}` : ''}
             </Txt>
           ) : moved?.failed ? (
             <View style={styles.problem}>
@@ -509,7 +510,7 @@ export function PrivateRow({ receipt, last }: { receipt: PrivateReceipt; last?: 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${formatUsd(BigInt(receipt.amount))} from ${name}, privately. ${waiting ? 'Private, in your balance' : receipt.movedTx ? 'Made public' : 'Spent privately'}`}
+      accessibilityLabel={`${formatUsd(BigInt(receipt.amount))} from ${name}, privately. ${waiting ? 'Private, in your balance' : receipt.movedTx ? 'Moved to main wallet' : 'Spent privately'}`}
       onPress={() =>
         entry
           ? router.push({ pathname: '/receipt/[id]', params: { id: entry.id } })
@@ -538,7 +539,7 @@ export function PrivateRow({ receipt, last }: { receipt: PrivateReceipt; last?: 
               ? `${formatUsd(BigInt(receipt.held))} left`
               : 'Private'
             : receipt.movedTx
-              ? 'Made public'
+              ? 'Moved'
               : 'Spent'}
         </Txt>
       </View>
