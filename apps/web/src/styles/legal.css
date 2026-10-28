@@ -186,6 +186,21 @@
   line-height: 1.6;
 }
 
+/* A short list in the prose (what isn't allowed): the same voice as the paragraphs. */
+.pv-prose ul {
+  max-width: 42rem;
+  margin: 1rem 0;
+  padding-left: 1.25rem;
+  color: #2a3a3d;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.pv-prose li + li {
+  margin-top: 0.4rem;
+}
+
 /* --- Contact ------------------------------------------------------------------------------------- */
 
 .pv-contact {
@@ -247,7 +262,8 @@
   }
 
   .pv-row dd,
-  .pv-prose p {
+  .pv-prose p,
+  .pv-prose ul {
     font-size: 1rem;
   }
 

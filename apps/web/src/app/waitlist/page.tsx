@@ -173,6 +173,7 @@ export default async function IphonePage({
           <Link href="/try?ref=iphone">Try Kova in a minute</Link>
           <Link href="/stats">Kova, live</Link>
           <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
         </nav>
       </footer>
     </div>

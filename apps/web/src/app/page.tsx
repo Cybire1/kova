@@ -278,6 +278,7 @@ export default async function Landing() {
           <Link href="/signin">Shop sign-in with email or a key</Link>
           <a href="#developers">Developers</a>
           <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
         </nav>
       </footer>
     </div>

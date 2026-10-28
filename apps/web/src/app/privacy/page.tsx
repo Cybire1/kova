@@ -284,6 +284,7 @@ export default function PrivacyPage() {
         <p>Tap. Paid. Anywhere. Built on Monad.</p>
         <nav aria-label="Footer">
           <Link href="/">Kova</Link>
+          <Link href="/terms">Terms</Link>
           <Link href="/try?ref=privacy">Try Kova in a minute</Link>
           <Link href="/waitlist">Kova for iOS</Link>
           <Link href="/stats">Kova, live</Link>
