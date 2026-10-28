@@ -88,9 +88,12 @@ export async function moonPayTopUp(
   if (config.KOVA_NETWORK !== 'mainnet' || !publishable || !secret) return off
   if (config.KOVA_CHAIN_DEPOSITS !== '1' || !config.RELAY_API_KEY) return off
   const fiat = FIAT.has(currency) ? currency : 'USD'
+  // MoonPay's sandbox has no USDC on Base, so test keys buy its test USDC (Ethereum) instead:
+  // nothing real moves, and the checkout, the signing and the IP check are what get tried.
+  const sandbox = publishable.startsWith('pk_test_')
   const params = new URLSearchParams({
     apiKey: publishable,
-    currencyCode: 'usdc_base',
+    currencyCode: sandbox ? 'usdc' : 'usdc_base',
     walletAddress: await depositAddress(wallet),
     baseCurrencyCode: fiat.toLowerCase(),
     theme: 'light',
@@ -103,7 +106,7 @@ export async function moonPayTopUp(
   const ip = options.clientIp ? canonicalIp(options.clientIp) : null
   if (ip) params.set('allowedIpAddress', sign(secret, ip))
   const query = `?${params.toString()}`
-  const widget = publishable.startsWith('pk_test_') ? WIDGET.sandbox : WIDGET.live
+  const widget = sandbox ? WIDGET.sandbox : WIDGET.live
   return {
     live: true,
     provider: 'MoonPay',

@@ -128,7 +128,10 @@ describe('MoonPay top-ups', () => {
     config.MOONPAY_PUBLISHABLE_KEY = 'pk_test_kova'
     config.MOONPAY_SECRET_KEY = 'sk_test_kova'
     const top = await moonPayTopUp(wallet, 'USD')
-    expect(new URL(top.url ?? '').origin).toBe('https://buy-sandbox.moonpay.com')
+    const url = new URL(top.url ?? '')
+    expect(url.origin).toBe('https://buy-sandbox.moonpay.com')
+    // The sandbox has no USDC on Base; its test USDC is on Ethereum.
+    expect(url.searchParams.get('currencyCode')).toBe('usdc')
   })
   it('stays closed off mainnet, without keys, or with deposits switched off', async () => {
     const fetch = relay()
