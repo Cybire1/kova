@@ -394,6 +394,49 @@
   color: var(--positive);
 }
 
+/* What the vault paid lately, as a year's worth, and that it changes. */
+.m-rate {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0.25rem 0 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.m-rate small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* A partner's vault that hasn't been audited: said once, plainly, above the buttons. */
+.m-risk {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  padding: 0.75rem 0.875rem;
+  border-radius: 1rem;
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.m-risk svg {
+  flex: none;
+  margin-top: 0.1rem;
+}
+
+/* The vault's cap, or what it can pay out now, when either is less than you'd move. */
+.m-limit {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
 .m-toggle {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -485,4 +528,9 @@
   right: 0.85rem;
   font-size: 0.75rem;
   font-weight: 800;
+}
+
+/* Only one way (taking savings out): it fills the toggle. */
+.m-toggle:has(> :only-child) {
+  grid-template-columns: 1fr;
 }

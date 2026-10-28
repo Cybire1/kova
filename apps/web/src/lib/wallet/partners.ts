@@ -66,6 +66,16 @@ export interface Savings {
   balance: string
   deposited: string
   earned: string
+  /** What savings can take from this wallet right now (the vault's cap), or null when it doesn't say. */
+  room?: string | null
+  /** What can come out right now: all of it, unless the vault is holding some back for a while. */
+  withdrawable?: string | null
+  /** What the vault paid over about the last week, a year's worth: 0.036 is 3.6%. */
+  rate?: { yearly: number; days: number } | null
+  /** Whether this wallet can put money in: savings can open to a few wallets first. */
+  can_save?: boolean
+  /** A partner's vault that hasn't been audited yet: the screen says so plainly. */
+  beta?: boolean
   moves: Array<{ kind: 'in' | 'out'; amount: string; tx_hash: string; at: string }>
 }
 

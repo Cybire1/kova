@@ -120,6 +120,28 @@ const schema = z.object({
   /** Savings: an ERC-4626 vault for the settlement dollar, and the KovaSaver in front of it. */
   KOVA_SAVINGS_VAULT: z.string().optional(),
   KOVA_SAVER: z.string().optional(),
+  /**
+   * Who can put money into savings: wallet addresses, comma-separated, while a vault is tried out,
+   * or `everyone`. Unset, it's everyone on testnet and nobody on mainnet, so pointing mainnet at a
+   * vault never opens it to all by itself. Anyone already holding savings can always take them out.
+   */
+  KOVA_SAVINGS_WALLETS: z
+    .string()
+    .optional()
+    .refine(
+      (v) =>
+        !v?.trim() ||
+        v.trim() === 'everyone' ||
+        v.split(',').every((a) => /^0x[0-9a-fA-F]{40}$/.test(a.trim())),
+      'KOVA_SAVINGS_WALLETS: `everyone`, or wallet addresses separated by commas',
+    ),
+  /**
+   * The ERC-4626 whose share price is the savings vault's, to read its recent rate from when the
+   * vault itself is newer than a week (setsAUSD's shares are setsUSDC's). Defaults to the vault.
+   */
+  KOVA_SAVINGS_RATE_VAULT: z.string().optional(),
+  /** `1` once the savings vault has been audited: until then the app says it's in beta. */
+  KOVA_SAVINGS_AUDITED: z.string().optional(),
   JEV_MODEL: z.string().optional(),
   /**
    * USSD pockets: pay from any phone by dialling a code. The master key seals each pocket's own

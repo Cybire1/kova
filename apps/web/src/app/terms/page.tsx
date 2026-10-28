@@ -78,6 +78,10 @@ const TERMS: { what: string; body: string }[] = [
     body: 'If you sell with Kova, you’re responsible for what you sell, your prices, refunds and your taxes. Payments reach your wallet directly.',
   },
   {
+    what: 'Savings',
+    body: 'Where Savings is open to you, it moves the dollars you choose into a partner’s vault, held in your name, and back when you ask. What it earns changes and isn’t a promise. A vault can lose money or pause withdrawals for a while, and the Savings screen says when a vault is new or hasn’t been audited. Moving in and out takes one signature, and Kova covers the fee.',
+  },
+  {
     what: 'Stocks',
     body: 'Kova can show prices of tokenized stocks and any you already hold. Buying them isn’t available yet. Nothing in Kova is investment, tax or legal advice.',
   },

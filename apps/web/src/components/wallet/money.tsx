@@ -504,7 +504,29 @@ export function DollarCardScreen() {
 export function SavingsScreen() {
   const { profile, network, signingAccount, refresh, balance } = useWallet()
   const { data, setData, problem, reload } = useMoney<Savings>(getSavings)
-  const [mode, setMode] = useState<'in' | 'out'>('in')
+  const [picked, setMode] = useState<'in' | 'out'>('in')
+  // A wallet savings hasn't opened to yet, already holding some, can only take them out.
+  const canSave = data?.can_save !== false
+  const mode = canSave ? picked : 'out'
+  /** What the vault's cap leaves for this wallet, and what can come out right now. */
+  const room = data?.room == null ? null : BigInt(data.room)
+  const outNow = data?.withdrawable == null ? null : BigInt(data.withdrawable)
+  const total = data ? BigInt(data.balance) : 0n
+  const limit =
+    mode === 'in'
+      ? room === null
+        ? null
+        : room === 0n
+          ? 'Savings is full right now. Try again later.'
+          : room < (balance ?? 0n)
+            ? `Savings can take ${formatUsd(room)} more right now.`
+            : null
+      : outNow === null || outNow >= total
+        ? null
+        : outNow === 0n
+          ? 'Savings can’t pay out right now. Your savings are still yours: try again in a little while.'
+          : `You can move ${formatUsd(outNow)} out right now.`
+  const shut = (mode === 'in' && room === 0n) || (mode === 'out' && outNow === 0n)
   const [amount, setAmount] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -537,11 +559,29 @@ export function SavingsScreen() {
             <strong>+{formatUsd(BigInt(data.earned))}</strong>{' '}
             {data.test ? 'test interest' : 'earned'} on {formatUsd(BigInt(data.deposited))} put in
           </p>
+          {data.rate && data.rate.yearly > 0 && !data.test ? (
+            <p className="m-rate">
+              About {(data.rate.yearly * 100).toFixed(1)}% a year lately
+              <small>
+                What it paid over the last {data.rate.days} days. It changes, and isn’t a promise.
+              </small>
+            </p>
+          ) : null}
           {data.test ? (
             <Sandbox what="Test savings on Monad testnet: the interest is test dollars Kova adds, not a real yield." />
           ) : null}
+          {data.beta ? (
+            <p className="m-risk">
+              <Icon name="info" size={16} />
+              <span>
+                Your savings sit in {data.vault?.name ?? 'a partner’s vault'}, a partner’s vault, in
+                your name. It’s new and hasn’t been audited, and it can pause withdrawals for a
+                while. Only save what you could do without.
+              </span>
+            </p>
+          ) : null}
           <div className="m-toggle" role="tablist">
-            {(['in', 'out'] as const).map((m) => (
+            {(canSave ? (['in', 'out'] as const) : (['out'] as const)).map((m) => (
               <button
                 key={m}
                 type="button"
@@ -569,13 +609,14 @@ export function SavingsScreen() {
               />
             </span>
           </label>
+          {limit ? <p className="m-limit">{limit}</p> : null}
           {error ? <p className="form-error">{error}</p> : null}
           {done ? <p className="m-listed">{done}</p> : null}
           <button
             type="button"
             className="pill pill-block"
             data-tone={mode === 'in' ? 'coral' : 'ink'}
-            disabled={busy || !profile || !(Number(amount) > 0)}
+            disabled={busy || shut || !profile || !(Number(amount) > 0)}
             onClick={async () => {
               setBusy(true)
               setError(null)
@@ -585,11 +626,14 @@ export function SavingsScreen() {
                 const account = await signingAccount(value)
                 if (mode === 'in') {
                   if (value > (balance ?? 0n)) throw new Error('That’s more than your balance.')
+                  if (room !== null && value > room)
+                    throw new Error(`Savings can take ${formatUsd(room)} more right now.`)
                   await saveIn(network, account, data, value)
                   setDone(`${formatUsd(value)} is in savings.`)
                 } else {
-                  const total = BigInt(data.balance)
                   if (value > total) throw new Error('That’s more than you have in savings.')
+                  if (outNow !== null && value > outNow)
+                    throw new Error(`You can move ${formatUsd(outNow)} out right now.`)
                   const shares = (BigInt(data.vault?.shares ?? '0') * value) / (total || 1n)
                   await saveOut(
                     account,

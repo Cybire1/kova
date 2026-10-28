@@ -142,6 +142,24 @@ export const kovaSaverAbi = [
     ],
     outputs: [{ name: 'assets', type: 'uint256' }],
   },
+  {
+    type: 'event',
+    name: 'Saved',
+    inputs: [
+      { name: 'owner', type: 'address', indexed: true },
+      { name: 'assets', type: 'uint256', indexed: false },
+      { name: 'shares', type: 'uint256', indexed: false },
+    ],
+  },
+  {
+    type: 'event',
+    name: 'Withdrawn',
+    inputs: [
+      { name: 'owner', type: 'address', indexed: true },
+      { name: 'shares', type: 'uint256', indexed: false },
+      { name: 'assets', type: 'uint256', indexed: false },
+    ],
+  },
 ] as const
 
 /** The parts of an ERC-4626 vault (with EIP-2612 permit on its shares) that savings reads. */
@@ -193,6 +211,22 @@ export const erc4626Abi = [
     name: 'totalAssets',
     stateMutability: 'view',
     inputs: [],
+    outputs: [{ type: 'uint256' }],
+  },
+  // A vault with a cap says how much more it takes, and one that keeps some in cash how much can
+  // leave right now.
+  {
+    type: 'function',
+    name: 'maxDeposit',
+    stateMutability: 'view',
+    inputs: [{ name: 'receiver', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'maxRedeem',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
     outputs: [{ type: 'uint256' }],
   },
 ] as const

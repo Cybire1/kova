@@ -6,6 +6,7 @@ import { formatUsd } from '@/lib/money'
 import { getSavings, type Savings, saveIn, saveOut } from '@/lib/partners'
 import { colors, fonts, inkAt } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import { Icon } from '@/ui/Icon'
 import { NotYet, problemOf, SandboxNote, useMoney } from '@/ui/Money'
 import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
 
@@ -17,11 +18,33 @@ import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
 export default function SavingsScreen() {
   const { profile, signTypedData, balance, refresh } = useWallet()
   const { data, setData, problem, reload } = useMoney<Savings>(getSavings)
-  const [mode, setMode] = useState<'in' | 'out'>('in')
+  const [picked, setMode] = useState<'in' | 'out'>('in')
   const [amount, setAmount] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<string | null>(null)
+  // A wallet savings hasn't opened to yet, already holding some, can only take them out.
+  const canSave = data?.can_save !== false
+  const mode = canSave ? picked : 'out'
+  /** What the vault's cap leaves for this wallet, and what can come out right now. */
+  const room = data?.room == null ? null : BigInt(data.room)
+  const outNow = data?.withdrawable == null ? null : BigInt(data.withdrawable)
+  const held = data ? BigInt(data.balance) : 0n
+  const limit =
+    mode === 'in'
+      ? room === null
+        ? null
+        : room === 0n
+          ? 'Savings is full right now. Try again later.'
+          : room < (balance ?? 0n)
+            ? `Savings can take ${formatUsd(room)} more right now.`
+            : null
+      : outNow === null || outNow >= held
+        ? null
+        : outNow === 0n
+          ? 'Savings can’t pay out right now. Your savings are still yours: try again in a little while.'
+          : `You can move ${formatUsd(outNow)} out right now.`
+  const shut = (mode === 'in' && room === 0n) || (mode === 'out' && outNow === 0n)
 
   const move = async () => {
     if (!profile || !data) return
@@ -32,11 +55,15 @@ export default function SavingsScreen() {
       const value = parseAmount(amount)
       if (mode === 'in') {
         if (value > (balance ?? 0n)) throw new Error('That’s more than your balance.')
+        if (room !== null && value > room)
+          throw new Error(`Savings can take ${formatUsd(room)} more right now.`)
         await saveIn(profile.address, signTypedData, data, value)
         setDone(`${formatUsd(value)} is in savings.`)
       } else {
         const total = BigInt(data.balance)
         if (value > total) throw new Error('That’s more than you have in savings.')
+        if (outNow !== null && value > outNow)
+          throw new Error(`You can move ${formatUsd(outNow)} out right now.`)
         const allShares = BigInt(data.vault?.shares ?? '0')
         const shares = value === total ? allShares : (allShares * value) / (total || 1n)
         await saveOut(profile.address, signTypedData, data, shares)
@@ -88,11 +115,31 @@ export default function SavingsScreen() {
               </Txt>{' '}
               {data.test ? 'test interest' : 'earned'} on {formatUsd(BigInt(data.deposited))} put in
             </Txt>
+            {data.rate && data.rate.yearly > 0 && !data.test ? (
+              <View style={styles.rate}>
+                <Txt weight="bold" size={15} style={{ textAlign: 'center' }}>
+                  About {(data.rate.yearly * 100).toFixed(1)}% a year lately
+                </Txt>
+                <Txt size={13} color={colors.muted} style={{ textAlign: 'center' }}>
+                  What it paid over the last {data.rate.days} days. It changes, and isn’t a promise.
+                </Txt>
+              </View>
+            ) : null}
             {data.test ? (
               <SandboxNote text="Testnet: the interest is test dollars Kova adds" />
             ) : null}
+            {data.beta ? (
+              <View style={styles.risk}>
+                <Icon name="info" size={16} color={colors.ink} />
+                <Txt size={13} style={{ flex: 1, lineHeight: 19 }}>
+                  Your savings sit in {data.vault?.name ?? 'a partner’s vault'}, a partner’s vault,
+                  in your name. It’s new and hasn’t been audited, and it can pause withdrawals for a
+                  while. Only save what you could do without.
+                </Txt>
+              </View>
+            ) : null}
             <View style={styles.toggle}>
-              {(['in', 'out'] as const).map((m) => (
+              {(canSave ? (['in', 'out'] as const) : (['out'] as const)).map((m) => (
                 <Pressable
                   key={m}
                   accessibilityRole="tab"
@@ -128,6 +175,11 @@ export default function SavingsScreen() {
                 style={styles.moneyInput}
               />
             </View>
+            {limit ? (
+              <Txt size={14} color={colors.muted} style={{ marginTop: 10, textAlign: 'center' }}>
+                {limit}
+              </Txt>
+            ) : null}
             {error ? (
               <Txt weight="medium" size={14} color={colors.danger} style={{ marginTop: 10 }}>
                 {error}
@@ -145,7 +197,7 @@ export default function SavingsScreen() {
                 }
                 icon={mode === 'in' ? 'down' : 'up'}
                 loading={busy}
-                disabled={!(Number(amount) > 0)}
+                disabled={shut || !(Number(amount) > 0)}
                 onPress={() => void move()}
               />
             </View>
@@ -181,6 +233,16 @@ export default function SavingsScreen() {
 const styles = StyleSheet.create({
   body: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 32 },
   eyebrow: { letterSpacing: 1.4, textAlign: 'center', marginTop: 12 },
+  rate: { marginTop: 10, gap: 2 },
+  risk: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: colors.sunken,
+  },
   big: { letterSpacing: -2, textAlign: 'center', marginTop: 4 },
   toggle: {
     flexDirection: 'row',

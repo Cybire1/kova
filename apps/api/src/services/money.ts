@@ -15,6 +15,7 @@ import {
   type Hex,
   isAddress,
   isAddressEqual,
+  parseEventLogs,
   parseSignature,
   recoverMessageAddress,
 } from 'viem'
@@ -563,6 +564,14 @@ function timingSafeEqualText(a: string, b: string): boolean {
 
 // --- Savings (an ERC-4626 vault, behind KovaSaver) ---------------------------------------------
 
+/**
+ * The most gas Kova pays to move savings in or out. A vault that lends across several markets and
+ * swaps on the way costs more than a plain one: setsAUSD measured about 1.24M in and 1.79M out on
+ * Monad. The relayer asks for the estimate, so this only caps it, with room so a withdrawal never
+ * gets stuck behind the cap. At 102 gwei, 3M gas is 0.31 MON.
+ */
+const SAVINGS_MAX_GAS = 3_000_000n
+
 export function savingsVault(): Address | null {
   return config.KOVA_SAVINGS_VAULT && isAddress(config.KOVA_SAVINGS_VAULT)
     ? getAddress(config.KOVA_SAVINGS_VAULT)
@@ -575,23 +584,97 @@ export function saver(): Address | null {
 
 export const savingsLive = () => Boolean(savingsVault() && saver())
 
+/**
+ * Whether this wallet can put money into savings (KOVA_SAVINGS_WALLETS): everyone, or the wallets a
+ * vault is tried out with first. Unset, it's nobody on mainnet. Taking savings out is never closed.
+ */
+export function savingsOpenTo(wallet: Address, on: typeof net = net): boolean {
+  const only = config.KOVA_SAVINGS_WALLETS?.trim()
+  if (!only) return on === 'testnet'
+  if (only === 'everyone') return true
+  return only.split(',').some((a) => a.trim().toLowerCase() === wallet.toLowerCase())
+}
+
+/** Monad makes about 2.5 blocks a second. */
+const BLOCKS_A_SECOND = 2.5
+const WEEK = 7 * 86_400
+
+export interface SavingsRate {
+  /** A year's worth of what the vault paid lately: 0.036 is 3.6%. */
+  yearly: number
+  /** Over how many days. */
+  days: number
+}
+let rateRead: { vault: Address; at: number; rate: SavingsRate | null } | null = null
+
+/**
+ * What the vault actually paid over about the last week, as a yearly rate: its share price now
+ * against a week ago, read off Monad. Kept for an hour. Null when it can't be read, or the vault is
+ * newer than a day.
+ */
+export async function savingsRate(vault: Address): Promise<SavingsRate | null> {
+  const rated =
+    config.KOVA_SAVINGS_RATE_VAULT && isAddress(config.KOVA_SAVINGS_RATE_VAULT)
+      ? getAddress(config.KOVA_SAVINGS_RATE_VAULT)
+      : vault
+  if (rateRead && rateRead.vault === rated && Date.now() - rateRead.at < 3_600_000)
+    return rateRead.rate
+  let rate: SavingsRate | null = null
+  try {
+    const latest = await publicClient.getBlock()
+    const back = BigInt(Math.round(WEEK * BLOCKS_A_SECOND))
+    const then = await publicClient.getBlock({
+      blockNumber: latest.number > back ? latest.number - back : 1n,
+    })
+    // The price of a million of the smallest shares: whole numbers, precise to well under 0.01%.
+    const price = (blockNumber: bigint) =>
+      publicClient.readContract({
+        address: rated,
+        abi: erc4626Abi,
+        functionName: 'convertToAssets',
+        args: [10n ** 18n],
+        blockNumber,
+      })
+    const [now, before] = await Promise.all([price(latest.number), price(then.number)])
+    const seconds = Number(latest.timestamp - then.timestamp)
+    if (before > 0n && seconds >= 86_400) {
+      const yearly = (Number(now) / Number(before)) ** ((365 * 86_400) / seconds) - 1
+      if (Number.isFinite(yearly))
+        rate = { yearly: Math.round(yearly * 10_000) / 10_000, days: Math.round(seconds / 86_400) }
+    }
+  } catch {
+    // Too new to have a week behind it, or the RPC stumbled: no rate rather than a made-up one.
+  }
+  rateRead = { vault: rated, at: Date.now(), rate }
+  return rate
+}
+
+const dollars = (amount: bigint) =>
+  (Number(amount) / 1e6).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+
 /** What the wallet has in savings, what it put in, and what it has earned on top. */
 export async function savingsFor(wallet: Address) {
   const vault = savingsVault()
   const helper = saver()
-  if (!vault || !helper)
-    return {
-      object: 'savings' as const,
-      live: false,
-      test: net === 'testnet',
-      requested: await hasRequested(wallet, 'savings'),
-      vault: null,
-      saver: null,
-      balance: '0',
-      deposited: '0',
-      earned: '0',
-      moves: [],
-    }
+  const closed = async () => ({
+    object: 'savings' as const,
+    live: false,
+    test: net === 'testnet',
+    requested: await hasRequested(wallet, 'savings'),
+    vault: null,
+    saver: null,
+    balance: '0',
+    deposited: '0',
+    earned: '0',
+    room: null,
+    withdrawable: null,
+    rate: null,
+    can_save: false,
+    beta: false,
+    moves: [],
+  })
+  if (!vault || !helper) return closed()
+  const canSave = savingsOpenTo(wallet)
   const [name, shares, nonce] = await Promise.all([
     publicClient
       .readContract({ address: vault, abi: erc4626Abi, functionName: 'name' })
@@ -606,15 +689,45 @@ export async function savingsFor(wallet: Address) {
       .readContract({ address: vault, abi: erc4626Abi, functionName: 'nonces', args: [wallet] })
       .catch(() => 0n),
   ])
-  const balance =
-    shares === 0n
-      ? 0n
-      : await publicClient.readContract({
+  // Savings opens to a few wallets first; a wallet already holding savings can always take them out.
+  if (!canSave && shares === 0n) return closed()
+  const worth = (some: bigint) =>
+    some === 0n
+      ? Promise.resolve(0n)
+      : publicClient.readContract({
           address: vault,
           abi: erc4626Abi,
           functionName: 'convertToAssets',
-          args: [shares],
+          args: [some],
         })
+  const [balance, room, redeemable, rate] = await Promise.all([
+    worth(shares),
+    // A vault with a cap says how much more it takes; one that doesn't say has no cap to show.
+    canSave
+      ? publicClient
+          .readContract({
+            address: vault,
+            abi: erc4626Abi,
+            functionName: 'maxDeposit',
+            args: [wallet],
+          })
+          .catch(() => null)
+      : Promise.resolve(0n),
+    shares === 0n
+      ? Promise.resolve(0n)
+      : publicClient
+          .readContract({
+            address: vault,
+            abi: erc4626Abi,
+            functionName: 'maxRedeem',
+            args: [wallet],
+          })
+          .catch(() => null),
+    savingsRate(vault),
+  ])
+  // What can come out right now: all of it, unless the vault is keeping some back for a while.
+  const withdrawable =
+    redeemable === null ? null : redeemable >= shares ? balance : await worth(redeemable)
   const moves = await db
     .select()
     .from(schema.savingsMoves)
@@ -648,6 +761,12 @@ export async function savingsFor(wallet: Address) {
     balance: balance.toString(),
     deposited: (deposited > 0n ? deposited : 0n).toString(),
     earned: earned.toString(),
+    room: room === null ? null : room.toString(),
+    withdrawable: withdrawable === null ? null : withdrawable.toString(),
+    rate,
+    can_save: canSave,
+    // A partner's vault on mainnet is new money's home: the app says plainly until it's audited.
+    beta: net === 'mainnet' && config.KOVA_SAVINGS_AUDITED !== '1',
     moves: moves.map((m) => ({
       kind: m.kind,
       amount: m.assets.toString(),
@@ -667,6 +786,19 @@ export async function saveIn(
   if (!vault || !helper)
     throw new KovaError('conflict', 'Savings aren’t switched on for this server yet.')
   if (signed.value <= 0n) throw new KovaError('invalid_request', 'Save more than $0.00.')
+  if (!savingsOpenTo(wallet))
+    throw new KovaError('policy_declined', 'Savings isn’t open to this wallet yet.')
+  // Said before the relayer spends anything: a vault at its cap would refuse the deposit.
+  const room = await publicClient
+    .readContract({ address: vault, abi: erc4626Abi, functionName: 'maxDeposit', args: [wallet] })
+    .catch(() => null)
+  if (room !== null && room < signed.value)
+    throw new KovaError(
+      'policy_declined',
+      room === 0n
+        ? 'Savings is full right now. Try again later.'
+        : `Savings can take ${dollars(room)} more right now.`,
+    )
   const { v, r, s, yParity } = parseSignature(signed.signature)
   const data = encodeFunctionData({
     abi: kovaSaverAbi,
@@ -682,7 +814,7 @@ export async function saveIn(
       s,
     ],
   })
-  const receipt = await sendFromRelayer(helper, data, { maxGas: 400_000n })
+  const receipt = await sendFromRelayer(helper, data, { maxGas: SAVINGS_MAX_GAS })
   if (receipt.status !== 'success')
     throw new KovaError('chain_error', 'The move into savings didn’t go through.')
   await db
@@ -710,21 +842,50 @@ export async function saveOut(
   if (!vault || !helper)
     throw new KovaError('conflict', 'Savings aren’t switched on for this server yet.')
   if (signed.shares <= 0n) throw new KovaError('invalid_request', 'Move out more than $0.00.')
-  const assets = await publicClient.readContract({
-    address: vault,
-    abi: erc4626Abi,
-    functionName: 'convertToAssets',
-    args: [signed.shares],
-  })
+  const [assets, redeemable] = await Promise.all([
+    publicClient.readContract({
+      address: vault,
+      abi: erc4626Abi,
+      functionName: 'convertToAssets',
+      args: [signed.shares],
+    }),
+    publicClient
+      .readContract({ address: vault, abi: erc4626Abi, functionName: 'maxRedeem', args: [wallet] })
+      .catch(() => null),
+  ])
+  // A vault that keeps some in cash, or waits on a market, can pay out less than all for a while.
+  if (redeemable !== null && redeemable < signed.shares) {
+    const now =
+      redeemable === 0n
+        ? 0n
+        : await publicClient.readContract({
+            address: vault,
+            abi: erc4626Abi,
+            functionName: 'convertToAssets',
+            args: [redeemable],
+          })
+    throw new KovaError(
+      'policy_declined',
+      now === 0n
+        ? 'Savings can’t pay out right now. Your savings are still yours: try again in a little while.'
+        : `You can move ${dollars(now)} out right now.`,
+    )
+  }
   const { v, r, s, yParity } = parseSignature(signed.signature)
   const data = encodeFunctionData({
     abi: kovaSaverAbi,
     functionName: 'withdraw',
     args: [wallet, signed.shares, signed.deadline, Number(v ?? BigInt(yParity + 27)), r, s],
   })
-  const receipt = await sendFromRelayer(helper, data, { maxGas: 400_000n })
+  const receipt = await sendFromRelayer(helper, data, { maxGas: SAVINGS_MAX_GAS })
   if (receipt.status !== 'success')
     throw new KovaError('chain_error', 'The move out of savings didn’t go through.')
+  // What actually came back, as KovaSaver logged it: a vault that swaps on the way out pays a hair
+  // under what its shares were worth.
+  const paid =
+    parseEventLogs({ abi: kovaSaverAbi, eventName: 'Withdrawn', logs: receipt.logs }).find((l) =>
+      isAddressEqual(l.address, helper),
+    )?.args.assets ?? assets
   await db
     .insert(schema.savingsMoves)
     .values({
@@ -733,9 +894,9 @@ export async function saveOut(
       network: net,
       vault: vault.toLowerCase(),
       kind: 'out',
-      assets,
+      assets: paid,
       txHash: receipt.transactionHash,
     })
     .onConflictDoNothing()
-  return { tx_hash: receipt.transactionHash, amount: assets.toString() }
+  return { tx_hash: receipt.transactionHash, amount: paid.toString() }
 }
