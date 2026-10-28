@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Pressable,
@@ -65,6 +66,8 @@ const initials = (name: string) =>
     .toUpperCase()
 const spaced = (n: string) =>
   n.length === 10 ? `${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}` : n
+/** An account number as it's read out, grouped as it's typed: 803 123 4567. */
+const grouped = (n: string) => [n.slice(0, 3), n.slice(3, 6), n.slice(6)].filter(Boolean).join(' ')
 
 /**
  * Cashing out to naira (the API's services/naira.ts): dollars from this wallet to any Nigerian
@@ -229,6 +232,8 @@ export default function CashOutScreen() {
     setChecking(null)
     setMissed([])
     setProblem(null)
+    // The number is complete: put the keyboard away so the banks for it are in view.
+    if (next.length === 10) Keyboard.dismiss()
   }
 
   const pickRecent = (r: Recent) => {
@@ -392,23 +397,23 @@ export default function CashOutScreen() {
       {step === 'amount' ? (
         <View style={styles.flow}>
           <View style={styles.amountBlock}>
-            <Txt weight="semi" size={15} color={colors.muted}>
+            <Txt weight="semi" size={13} color={colors.muted}>
               You send
             </Txt>
             <View style={styles.typed}>
-              <Txt weight="semi" size={30} color={colors.muted} style={{ marginTop: 10 }}>
+              <Txt weight="semi" size={24} color={colors.muted} style={{ marginTop: 8 }}>
                 $
               </Txt>
-              <Txt weight="bold" size={64} exact>
+              <Txt weight="bold" size={52} exact style={{ letterSpacing: -1.5 }}>
                 {groupTyped(typed) || '0'}
               </Txt>
             </View>
             <View style={styles.getsPill}>
-              <Coin symbol="₦" size={26} />
-              <Txt weight="semi" size={15} color={colors.muted}>
+              <Coin symbol="₦" size={22} />
+              <Txt weight="medium" size={14} color={colors.muted}>
                 They get
               </Txt>
-              <Txt weight="bold" size={17}>
+              <Txt weight="bold" size={15}>
                 {preview && !over ? preview : '₦—'}
               </Txt>
             </View>
@@ -445,11 +450,11 @@ export default function CashOutScreen() {
               color={colors.muted}
               style={{ textAlign: 'center', marginTop: 14 }}
             >
-              {rate} per $1 · {paj ? 'No fees' : 'A small bank fee'} · Lands in minutes
+              {rate} per $1 · {paj ? 'No fees' : 'A small bank fee'} · Lands in seconds
             </Txt>
           ) : null}
           <View style={{ flex: 1 }} />
-          <Keypad onKey={onKey} />
+          <Keypad onKey={onKey} size={56} />
           <View style={{ marginTop: 14 }}>
             <PillButton
               label={over ? 'More than you have' : tooSmall ? 'At least $1' : 'Continue'}
@@ -465,13 +470,13 @@ export default function CashOutScreen() {
           <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
             {recents.length ? (
               <View style={{ gap: 8 }}>
-                <Txt weight="bold" size={13} color={colors.muted}>
+                <Txt weight="semi" size={13} color={colors.muted}>
                   Recent
                 </Txt>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 10 }}
+                  contentContainerStyle={{ gap: 8 }}
                   keyboardShouldPersistTaps="handled"
                 >
                   {recents.map((r, i) => (
@@ -485,14 +490,15 @@ export default function CashOutScreen() {
                       <Person
                         name={r.name}
                         logo={byCode.get(r.bankCode)?.logo ?? r.logo}
+                        size={28}
                         tone={i % 2 ? colors.teal : colors.coral}
                         ring={colors.surface}
                       />
                       <View>
-                        <Txt weight="bold" size={14} numberOfLines={1}>
+                        <Txt weight="semi" size={13} numberOfLines={1}>
                           {r.name}
                         </Txt>
-                        <Txt weight="semi" size={12} color={colors.muted}>
+                        <Txt size={11} color={colors.muted}>
                           {shortName(r.bankCode, r.bankName)} ••{r.accountNumber.slice(-4)}
                         </Txt>
                       </View>
@@ -503,15 +509,15 @@ export default function CashOutScreen() {
             ) : null}
 
             <View style={{ gap: 8 }}>
-              <Txt weight="bold" size={13} color={colors.muted}>
+              <Txt weight="semi" size={13} color={colors.muted}>
                 Account number
               </Txt>
               <View style={styles.accountBox}>
                 <TextInput
-                  value={account}
+                  value={grouped(account)}
                   onChangeText={typeAccount}
                   keyboardType="number-pad"
-                  maxLength={10}
+                  maxLength={12}
                   autoFocus={!recents.length && !account}
                   placeholder="10 digits"
                   placeholderTextColor={colors.muted}
@@ -519,7 +525,7 @@ export default function CashOutScreen() {
                   style={styles.accountInput}
                 />
                 {account.length < 10 ? (
-                  <Txt weight="bold" size={13} color={colors.muted}>
+                  <Txt weight="semi" size={12} color={colors.muted}>
                     {account.length}/10
                   </Txt>
                 ) : null}
@@ -527,93 +533,106 @@ export default function CashOutScreen() {
             </View>
 
             {account.length < 10 ? (
-              <Txt weight="semi" size={14} color={colors.muted}>
+              <Txt size={13} color={colors.muted}>
                 Type all 10 digits and Kova suggests the bank.
               </Txt>
             ) : (
               <View style={{ gap: 8 }}>
-                <View style={styles.listHead}>
-                  <Txt weight="bold" size={13} color={colors.muted}>
-                    Banks for this number
-                  </Txt>
-                  <Pressable accessibilityRole="button" onPress={() => setSheet(true)} hitSlop={10}>
-                    <Txt weight="bold" size={13} color={colors.tealDeep}>
-                      Another bank
-                    </Txt>
-                  </Pressable>
-                </View>
-                <View style={styles.card}>
-                  {banks === null ? (
-                    <ActivityIndicator color={colors.ink} style={{ padding: 18 }} />
-                  ) : (
-                    suggestions.map((s, i) => {
+                <Txt weight="semi" size={13} color={colors.muted}>
+                  {named ? 'Their bank' : 'Pick their bank'}
+                </Txt>
+                {banks === null ? (
+                  <ActivityIndicator color={colors.ink} style={{ padding: 18 }} />
+                ) : (
+                  <View style={styles.tiles}>
+                    {suggestions.map((s) => {
                       const name = shortName(s.bank.code, s.bank.name)
                       const confirmed = named?.code === s.bank.code
                       const miss = missed.includes(s.bank.code)
+                      const asking = checking === s.bank.code
                       return (
                         <Pressable
                           key={s.bank.code}
                           accessibilityRole="button"
-                          accessibilityLabel={`${name}${s.fits ? ', the number fits' : ''}`}
-                          accessibilityState={{
-                            selected: confirmed,
-                            busy: checking === s.bank.code,
-                          }}
+                          accessibilityLabel={`${name}${s.fits ? ', the number fits' : ''}${miss ? ', no account with this number' : ''}`}
+                          accessibilityState={{ selected: confirmed, busy: asking }}
                           onPress={() => void check(s.bank, account)}
                           style={({ pressed }) => [
-                            styles.bankRow,
-                            i < suggestions.length - 1 && styles.rule,
-                            pressed && { backgroundColor: colors.sunken },
+                            styles.tile,
+                            confirmed && styles.tileOn,
+                            miss && { opacity: 0.55 },
+                            pressed && { opacity: 0.7 },
                           ]}
                         >
-                          <BankLogo uri={s.bank.logo} name={name} size={40} />
-                          <View style={{ flex: 1 }}>
-                            <Txt weight="bold" size={16}>
-                              {name}
-                            </Txt>
-                            {miss ? (
-                              <Txt weight="bold" size={12} color={colors.danger}>
-                                No account with this number here
-                              </Txt>
+                          <View>
+                            <BankLogo uri={s.bank.logo} name={name} size={36} />
+                            {asking ? (
+                              <View style={styles.tileBusy}>
+                                <ActivityIndicator size="small" color={colors.ink} />
+                              </View>
+                            ) : null}
+                            {confirmed ? (
+                              <View style={styles.tileTick}>
+                                <Icon
+                                  name="check"
+                                  size={10}
+                                  color={colors.white}
+                                  strokeWidth={3.4}
+                                />
+                              </View>
                             ) : null}
                           </View>
-                          {checking === s.bank.code ? (
-                            <ActivityIndicator color={colors.ink} />
-                          ) : confirmed ? (
-                            <View style={styles.tick}>
-                              <Icon name="check" size={14} color={colors.white} strokeWidth={3} />
-                            </View>
+                          <Txt weight="bold" size={12} numberOfLines={1}>
+                            {name}
+                          </Txt>
+                          {miss ? (
+                            <Txt weight="semi" size={11} color={colors.danger}>
+                              No account
+                            </Txt>
                           ) : s.fits ? (
-                            <View style={styles.tag}>
-                              <Txt weight="bold" size={11} color={colors.onTint}>
-                                Number fits
-                              </Txt>
-                            </View>
+                            <Txt weight="semi" size={11} color={colors.muted}>
+                              Fits
+                            </Txt>
                           ) : null}
                         </Pressable>
                       )
-                    })
-                  )}
-                </View>
+                    })}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Other bank: search every bank"
+                      onPress={() => setSheet(true)}
+                      style={({ pressed }) => [styles.tile, pressed && { opacity: 0.7 }]}
+                    >
+                      <View style={styles.otherIcon}>
+                        <Icon name="search" size={16} />
+                      </View>
+                      <Txt weight="bold" size={12}>
+                        Other bank
+                      </Txt>
+                    </Pressable>
+                  </View>
+                )}
               </View>
             )}
 
             {named && account === named.number ? (
               <PopIn style={styles.confirmed}>
                 <View style={styles.confirmedTick}>
-                  <Icon name="check" size={18} color={colors.white} strokeWidth={3} />
+                  <Icon name="check" size={13} color={colors.white} strokeWidth={3} />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Txt weight="bold" size={16}>
-                    {named.name.toUpperCase()}
-                  </Txt>
-                  <Txt weight="bold" size={12} color={colors.onTint}>
-                    Name confirmed by {shortName(named.code, bank?.name ?? '')}
-                  </Txt>
-                </View>
+                <Txt weight="bold" size={15} numberOfLines={1} style={{ flexShrink: 1 }}>
+                  {named.name.toUpperCase()}
+                </Txt>
+                <Txt weight="semi" size={12} color={colors.onTint} numberOfLines={1}>
+                  confirmed by {shortName(named.code, bank?.name ?? '')}
+                </Txt>
               </PopIn>
             ) : null}
-            {problem ? <Txt color={colors.danger}>{problem}</Txt> : null}
+            {problem ? (
+              <Txt size={14} color={colors.danger}>
+                {problem}
+              </Txt>
+            ) : null}
           </ScrollView>
           <View style={styles.bottom}>
             <PillButton
@@ -632,22 +651,22 @@ export default function CashOutScreen() {
             <View style={styles.heroWho}>
               <Person name={toName} logo={toLogo} size={46} tone={colors.coral} ring={colors.ink} />
               <View style={{ flex: 1 }}>
-                <Txt weight="bold" size={17} color={colors.white} numberOfLines={1}>
+                <Txt weight="semi" size={16} color={colors.white} numberOfLines={1}>
                   {toName}
                 </Txt>
-                <Txt weight="semi" size={13} color={colors.onInk}>
+                <Txt size={13} color={colors.onInk}>
                   {toBank} · {toNumber}
                 </Txt>
               </View>
             </View>
-            <Txt weight="bold" size={13} color={colors.onInk} style={{ marginTop: 22 }}>
+            <Txt weight="semi" size={13} color={colors.onInk} style={{ marginTop: 18 }}>
               They get
             </Txt>
-            <Txt weight="bold" size={44} exact color={colors.white} style={{ letterSpacing: -1.5 }}>
+            <Txt weight="bold" size={40} exact color={colors.white} style={{ letterSpacing: -1.2 }}>
               {quote.naira}
             </Txt>
             <View style={styles.heroCoin} pointerEvents="none">
-              <Coin symbol="₦" size={112} />
+              <Coin symbol="₦" size={96} />
             </View>
           </View>
 
@@ -655,7 +674,7 @@ export default function CashOutScreen() {
             <Fact label="You send" value={`$${quote.amount}`} />
             <Fact label="Rate" value={`${nairaText(Number(quote.rate))} per $1`} />
             <Fact label="Fees" value={quote.partner === 'paj' ? 'None' : quote.fee} />
-            <Fact label="Arrives" value="In minutes" last />
+            <Fact label="Arrives" value="In seconds" last />
           </View>
 
           <Pressable
@@ -714,14 +733,14 @@ export default function CashOutScreen() {
         <ScrollView contentContainerStyle={styles.flowScroll}>
           <View style={{ alignItems: 'center' }}>
             <Bob distance={8} duration={1600}>
-              <Kovi pose="ride" size={160} />
+              <Kovi pose="ride" size={140} />
             </Bob>
           </View>
           <View style={{ alignItems: 'center', gap: 2 }}>
-            <Txt weight="bold" size={15} color={colors.muted}>
+            <Txt weight="semi" size={14} color={colors.muted}>
               On its way to {toName}
             </Txt>
-            <Txt weight="bold" size={42} exact style={{ letterSpacing: -1.4 }}>
+            <Txt weight="bold" size={36} exact style={{ letterSpacing: -1.2 }}>
               {quote.naira}
             </Txt>
             <View style={styles.inline}>
@@ -748,7 +767,7 @@ export default function CashOutScreen() {
               },
               {
                 title: `${toBank} is paying ${toName}`,
-                detail: 'Usually under a minute',
+                detail: 'Usually a few seconds',
                 state: paid ? 'done' : quote.tx_hash ? 'active' : 'pending',
               },
               {
@@ -826,15 +845,15 @@ export default function CashOutScreen() {
             </PopIn>
           </View>
           <View style={{ alignItems: 'center', gap: 6 }}>
-            <Txt weight="bold" size={48} exact style={{ letterSpacing: -1.8 }}>
+            <Txt weight="bold" size={44} exact style={{ letterSpacing: -1.5 }}>
               {quote.naira}
             </Txt>
             <View style={styles.inline}>
-              <Txt weight="bold" size={18}>
+              <Txt weight="semi" size={16}>
                 {paid ? `is in ${toName}’s` : `is on its way to ${toName}’s`}
               </Txt>
-              <BankLogo uri={toLogo} name={toBank} size={26} />
-              <Txt weight="bold" size={18}>
+              <BankLogo uri={toLogo} name={toBank} size={22} />
+              <Txt weight="semi" size={16}>
                 {toBank} account
               </Txt>
             </View>
@@ -1190,7 +1209,7 @@ function Fact({
 const styles = StyleSheet.create({
   flow: { flex: 1, paddingHorizontal: 20, paddingBottom: 12 },
   flowScroll: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 16, gap: 14 },
-  form: { paddingHorizontal: 20, paddingBottom: 24, gap: 18 },
+  form: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 20, gap: 14 },
   bottom: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
   center: {
     flex: 1,
@@ -1199,16 +1218,16 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 28,
   },
-  amountBlock: { alignItems: 'center', marginTop: 24, gap: 4 },
+  amountBlock: { alignItems: 'center', marginTop: 16, gap: 2 },
   typed: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start' },
   getsPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
     marginTop: 10,
-    paddingVertical: 6,
-    paddingLeft: 6,
-    paddingRight: 14,
+    paddingVertical: 5,
+    paddingLeft: 5,
+    paddingRight: 12,
     borderRadius: 999,
     borderWidth: 2,
     borderColor: colors.ink,
@@ -1238,21 +1257,22 @@ const styles = StyleSheet.create({
   recent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
-    paddingLeft: 10,
-    paddingRight: 16,
-    borderRadius: 20,
+    gap: 8,
+    paddingVertical: 6,
+    paddingLeft: 6,
+    paddingRight: 12,
+    borderRadius: 999,
     borderWidth: 2,
     borderColor: colors.ink,
     backgroundColor: colors.surface,
   },
+  // The same field as Send's: a 50 pt pill with a 2 pt ink edge.
   accountBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 60,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    height: 52,
+    paddingHorizontal: 18,
+    borderRadius: 26,
     borderWidth: 2,
     borderColor: colors.ink,
     backgroundColor: colors.surface,
@@ -1260,57 +1280,72 @@ const styles = StyleSheet.create({
   accountInput: {
     flex: 1,
     minWidth: 0,
-    paddingVertical: 12,
+    height: '100%',
     fontFamily: fonts.bold,
-    fontSize: 24,
-    letterSpacing: 2,
+    fontSize: 20,
+    letterSpacing: 1.5,
     color: colors.ink,
   },
-  listHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  card: {
-    borderRadius: 22,
+  rule: { borderBottomWidth: 1, borderBottomColor: 'rgba(11,26,29,0.1)' },
+  // Three across: five banks for the number and "Other bank", all in view under the field.
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tile: {
+    width: '31.8%',
+    minHeight: 88,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: 18,
     borderWidth: 2,
     borderColor: colors.ink,
     backgroundColor: colors.surface,
-    overflow: 'hidden',
   },
-  bankRow: {
-    flexDirection: 'row',
+  tileOn: { backgroundColor: colors.tealSoft },
+  tileBusy: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.72)',
     alignItems: 'center',
-    gap: 12,
-    minHeight: 64,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    justifyContent: 'center',
   },
-  rule: { borderBottomWidth: 1, borderBottomColor: 'rgba(11,26,29,0.1)' },
-  tag: {
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 999,
+  tileTick: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: colors.tealSoft,
+    backgroundColor: colors.positive,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  otherIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.sunken,
-  },
-  tick: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
   confirmed: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    borderRadius: 20,
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: colors.ink,
     backgroundColor: colors.tealSoft,
   },
   confirmedTick: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: colors.positive,
     alignItems: 'center',
     justifyContent: 'center',

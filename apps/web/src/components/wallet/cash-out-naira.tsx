@@ -1,12 +1,6 @@
 'use client'
 
-import {
-  type BankSuggestion,
-  bankDisplayName,
-  POPULAR_BANKS,
-  parseAmount,
-  suggestBanks,
-} from '@kova/monad'
+import { bankDisplayName, POPULAR_BANKS, parseAmount, suggestBanks } from '@kova/monad'
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Art, Icon } from '@/components/brand'
@@ -75,6 +69,8 @@ const initials = (s: string) =>
     .map((w) => w[0]?.toUpperCase() ?? '')
     .join('')
 const spaced = (n: string) => `${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}`
+const grouped = (n: string) =>
+  [n.slice(0, 3), n.slice(3, 6), n.slice(6, 10)].filter(Boolean).join(' ')
 
 export function NairaCashOut() {
   const { profile, balance, cashOutNaira } = useWallet()
@@ -241,7 +237,7 @@ export function NairaCashOut() {
   if (step === 'sending' && cashOut)
     return (
       <div className="w-screen cx-moment">
-        <Art name="kovi-ride" size={170} className="cx-ride" />
+        <Art name="kovi-ride" size={136} className="cx-ride" />
         <p className="cx-moment-label">On its way to {titleCase(who)}</p>
         <strong className="cx-moment-amount">{cashOut.naira}</strong>
         <span className="cx-moment-to">
@@ -262,7 +258,7 @@ export function NairaCashOut() {
           <StepRow
             state={cashOut.tx_hash ? 'active' : 'waiting'}
             title={`${bankName} is paying ${titleCase(who)}`}
-            detail="Usually within minutes"
+            detail="Usually a few seconds"
           />
           <StepRow
             state="waiting"
@@ -315,7 +311,7 @@ export function NairaCashOut() {
             </div>
             <div className="w-review-row">
               <dt>Arrives</dt>
-              <dd>In minutes</dd>
+              <dd>In seconds</dd>
             </div>
           </dl>
           <label className="cx-save">
@@ -372,7 +368,7 @@ export function NairaCashOut() {
                       )
                     }}
                   >
-                    <Avatar name={r.name} logo={r.logo} size={38} />
+                    <Avatar name={r.name} logo={r.logo} size={30} />
                     <span>
                       <strong>{titleCase(r.name)}</strong>
                       <small>
@@ -393,8 +389,12 @@ export function NairaCashOut() {
               inputMode="numeric"
               autoComplete="off"
               placeholder="10 digits"
-              value={account}
-              onChange={(e) => typeAccount(e.target.value)}
+              value={grouped(account)}
+              onChange={(e) => {
+                typeAccount(e.target.value)
+                // The tenth digit closes the keyboard, so the banks below are in view.
+                if (e.target.value.replace(/\D/g, '').length >= 10) e.target.blur()
+              }}
             />
             <span>{account.length < 10 ? `${account.length}/10` : ''}</span>
           </div>
@@ -402,51 +402,42 @@ export function NairaCashOut() {
             <p className="cx-hint">Type all 10 digits and Kova suggests the bank.</p>
           ) : (
             <>
-              <div className="cx-row-head">
-                <span className="cx-label">{named ? 'Their bank' : 'Banks for this number'}</span>
-                <button
-                  type="button"
-                  className="cx-link"
-                  onClick={() => (named ? setCheck(null) : setSheet(true))}
-                >
-                  {named ? 'Change' : 'Another bank'}
-                </button>
-              </div>
-              <div className="cx-list">
-                {(named && bank
-                  ? suggestions.filter((s) => s.bank.code === bank.code)
-                  : suggestions
-                ).map((s) => (
-                  <BankRow
+              <span className="cx-label">Their bank</span>
+              <div className="cx-tiles">
+                {suggestions.map((s) => (
+                  <BankTile
                     key={s.bank.code}
                     bank={s.bank}
-                    reason={s.reason}
+                    fits={s.reason === 'fits'}
                     check={check?.code === s.bank.code ? check : null}
                     onPick={() => void checkName(s.bank, account)}
                   />
                 ))}
-                {bank && (named || check) && !suggestions.some((s) => s.bank.code === bank.code) ? (
-                  <BankRow
+                {bank && check && !suggestions.some((s) => s.bank.code === bank.code) ? (
+                  <BankTile
                     bank={bank}
-                    check={check?.code === bank.code ? check : null}
+                    check={check.code === bank.code ? check : null}
                     onPick={() => void checkName(bank, account)}
                   />
-                ) : null}
+                ) : (
+                  <button type="button" className="cx-tile" onClick={() => setSheet(true)}>
+                    <span className="cx-tile-logo cx-tile-other">
+                      <Icon name="search" size={18} />
+                    </span>
+                    <span className="cx-tile-name">Other bank</span>
+                  </button>
+                )}
               </div>
             </>
           )}
           {named ? (
-            <div
-              className="cx-named"
-              role="status"
-              ref={(el) => el?.scrollIntoView({ block: 'center', behavior: 'smooth' })}
-            >
+            <div className="cx-named" role="status">
               <span className="cx-named-tick">
-                <Icon name="check" size={16} />
+                <Icon name="check" size={14} />
               </span>
               <span>
                 <strong>{named.name}</strong>
-                <small>Name confirmed by {bankName}</small>
+                <small>confirmed by {bankName}</small>
               </span>
             </div>
           ) : null}
@@ -526,7 +517,7 @@ export function NairaCashOut() {
         </div>
         <p className="cx-rate">
           {info?.cash_out_rate ? `${nairaText(Number(info.cash_out_rate))} per $1 · ` : ''}No fees ·
-          Lands in minutes
+          Lands in seconds
         </p>
         <button
           type="button"
@@ -587,14 +578,15 @@ function Avatar({ name, logo, size }: { name: string; logo?: string | null; size
   )
 }
 
-function BankRow({
+/** A bank to pick: its logo and name; while the bank answers, a spinner; then a tick or "No account". */
+function BankTile({
   bank,
-  reason,
+  fits,
   check,
   onPick,
 }: {
   bank: Bank
-  reason?: BankSuggestion['reason']
+  fits?: boolean
   check: Check | null
   onPick: () => void
 }) {
@@ -602,25 +594,33 @@ function BankRow({
   return (
     <button
       type="button"
-      className="cx-bank"
+      className="cx-tile"
+      data-state={check?.state ?? 'idle'}
       aria-pressed={check?.state === 'named'}
+      aria-label={
+        check?.state === 'missed'
+          ? `${name}: no account with this number`
+          : `${name}${fits ? ', number fits' : ''}`
+      }
       disabled={check?.state === 'checking'}
       onClick={onPick}
     >
-      <BankLogo logo={bank.logo} name={name} size={40} />
-      <span className="cx-bank-name">
-        <strong>{name}</strong>
-        {check?.state === 'missed' ? <small className="cx-bad">{check.why}</small> : null}
-        {check?.state === 'checking' ? <small>Asking {name}…</small> : null}
+      <span className="cx-tile-logo">
+        <BankLogo logo={bank.logo} name={name} size={36} />
+        {check?.state === 'checking' ? (
+          <span className="spinner cx-tile-spin" aria-hidden="true" />
+        ) : null}
+        {check?.state === 'named' ? (
+          <span className="cx-tile-tick" aria-hidden="true">
+            <Icon name="check" size={11} />
+          </span>
+        ) : null}
       </span>
-      {check?.state === 'checking' ? (
-        <span className="spinner" aria-hidden="true" />
-      ) : check?.state === 'named' ? (
-        <span className="cx-tick" aria-hidden="true">
-          <Icon name="check" size={14} />
-        </span>
-      ) : reason === 'fits' ? (
-        <span className="cx-tag">Number fits</span>
+      <span className="cx-tile-name">{name}</span>
+      {check?.state === 'missed' ? (
+        <small className="cx-tile-note cx-bad">No account</small>
+      ) : fits ? (
+        <small className="cx-tile-note">Fits</small>
       ) : null}
     </button>
   )
@@ -757,7 +757,7 @@ function Done({
   if (cashOut.status === 'failed')
     return (
       <div className="w-screen cx-moment">
-        <Art name="kovi-oops" size={170} className="cx-ride" />
+        <Art name="kovi-oops" size={136} className="cx-ride" />
         <strong className="cx-moment-title">It didn’t go through</strong>
         <p className="cx-fine">{cashOut.failure ?? 'Nothing moved. Try again.'}</p>
         <Link href="/wallet" className="pill pill-block" data-tone="ink">
@@ -803,7 +803,7 @@ function Done({
         <i />
       </span>
       <span className="cx-cheer">
-        <Art name="kovi-cheer" size={150} />
+        <Art name="kovi-cheer" size={124} />
         <span className="cx-cheer-tick" aria-hidden="true">
           <Icon name="check" size={22} />
         </span>

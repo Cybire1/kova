@@ -16,8 +16,8 @@ import { Welcome } from './welcome'
  * Home opens shop mode, and shop mode's "Wallet" brings you back. The dock is the app's, Pay in
  * the middle.
  *
- * On a phone the brand bar shows on Home and the welcome only: every other screen starts with its
- * own title, as in the app. Send is a sheet over Home, so the dock steps aside while it's open.
+ * The brand bar stays on every screen, phone and desktop, above each screen's own title. Send is a
+ * sheet over Home, so the dock steps aside while it's open.
  */
 export function WalletShell({ children }: { children: React.ReactNode }) {
   const { status, tickPrivate } = useWallet()
