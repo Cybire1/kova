@@ -83,7 +83,7 @@ const TERMS: { what: string; body: string }[] = [
   },
   {
     what: 'Stocks',
-    body: 'Kova can show prices of tokenized stocks and any you already hold. Buying them isn’t available yet. Nothing in Kova is investment, tax or legal advice.',
+    body: 'Where it’s allowed, Kova lets you swap your dollars for xStocks, tokens issued by Backed that track a company’s share price, and back. They aren’t shares, their price can fall, and they aren’t for beginners. They aren’t available to US citizens, residents or taxpayers, or in the UK, Canada, Australia, the EU and EEA, Switzerland or sanctioned countries, and you confirm that before your first swap. Kova doesn’t issue, sell or recommend them, and nothing in Kova is investment, tax or legal advice.',
   },
   {
     what: 'Test dollars and betas',
