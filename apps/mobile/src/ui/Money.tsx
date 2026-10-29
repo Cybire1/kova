@@ -214,13 +214,17 @@ export function MoneyTiles() {
         ]}
       >
         <View style={tiles.icon}>
-          <Icon name="up" size={16} />
+          <Icon name="bolt" size={16} />
         </View>
         <Txt weight="semi" size={12} color={colors.onTint}>
           Savings
         </Txt>
         <Txt weight="bold" size={15} numberOfLines={2}>
-          {savings?.live && saved > 0n ? formatUsd(saved) : 'Earn on spare dollars'}
+          {savings?.live && saved > 0n
+            ? formatUsd(saved)
+            : savings?.live && savings.rate && savings.rate.yearly > 0 && !savings.test
+              ? `Earn ${(savings.rate.yearly * 100).toFixed(1)}% a year`
+              : 'Earn on spare dollars'}
         </Txt>
       </Pressable>
       <Pressable

@@ -817,10 +817,16 @@ export function MoneyRow() {
     <div className="m-row">
       <Link href="/wallet/savings" className="m-tile" data-tone="teal">
         <span className="m-tile-icon">
-          <Icon name="up" size={16} />
+          <Icon name="bolt" size={16} />
         </span>
         <small>Savings</small>
-        <strong>{savings?.live && saved > 0n ? formatUsd(saved) : 'Earn on spare dollars'}</strong>
+        <strong>
+          {savings?.live && saved > 0n
+            ? formatUsd(saved)
+            : savings?.live && savings.rate && savings.rate.yearly > 0 && !savings.test
+              ? `Earn ${(savings.rate.yearly * 100).toFixed(1)}% a year`
+              : 'Earn on spare dollars'}
+        </strong>
         {savings?.live && BigInt(savings.earned) > 0n ? (
           <span className="m-tile-note">+{formatUsd(BigInt(savings.earned))}</span>
         ) : null}

@@ -103,13 +103,14 @@ export function Home() {
         </span>
       </Link>
 
+      {/* Savings and the dollar card, right under cash-out, where people look for their money. */}
+      <MoneyRow />
+
       <KeysOnHome />
 
       <ShopCard />
 
       <StocksCard />
-
-      <MoneyRow />
       <Link href="/wallet/keys" className="w-add-chain">
         <span>
           <strong>Keys</strong>
