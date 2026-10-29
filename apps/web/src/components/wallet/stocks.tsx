@@ -397,7 +397,12 @@ export function StockDetail({ symbol }: { symbol: string }) {
         </span>
       </div>
 
-      {access?.live ? (
+      {access?.live && stock.tradable === false ? (
+        <p className="w-fine w-st-untradable">
+          {stock.name} can’t be bought on Monad yet: no market there carries it. Its price is shown
+          here for reference.
+        </p>
+      ) : access?.live ? (
         <div className="tr-actions">
           <button
             type="button"

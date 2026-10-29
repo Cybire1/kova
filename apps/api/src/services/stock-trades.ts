@@ -94,6 +94,23 @@ async function latestAttestation(wallet: Address) {
   return row
 }
 
+const tradableSeen = new Map<string, { at: number; yes: boolean }>()
+
+/**
+ * Whether a stock can be bought on Monad now: a $10 route from dollars into it exists. xStocks lists
+ * more stocks than Monad's markets carry, and a Buy that can only fail shouldn't show. Kept 10 min.
+ */
+export async function stockTradable(stock: Address): Promise<boolean> {
+  const key = stock.toLowerCase()
+  const seen = tradableSeen.get(key)
+  if (seen && Date.now() - seen.at < 600_000) return seen.yes
+  const yes = await swapRoute(getAddress(settlementToken.address), getAddress(stock), 10_000_000n)
+    .then((r) => r.amountOut > 0n)
+    .catch(() => false)
+  tradableSeen.set(key, { at: Date.now(), yes })
+  return yes
+}
+
 /** GET /wallets/:address/stocks/access */
 export async function stockAccess(wallet: Address, ip: string) {
   const attestation = stockAttestation(wallet)
@@ -245,7 +262,12 @@ export async function quote(
   }
 
   const [tokenIn, tokenOut] = input.side === 'buy' ? [dollar, stock] : [stock, dollar]
-  const route = await swapRoute(tokenIn, tokenOut, input.amount)
+  const route = await swapRoute(tokenIn, tokenOut, input.amount).catch(() => {
+    throw new KovaError(
+      'conflict',
+      `${listing.name} can’t be bought or sold on Monad right now: there’s no market for it yet.`,
+    )
+  })
   if (route.amountOut <= 0n)
     throw new KovaError('conflict', `There’s no market for ${listing.symbol} right now.`)
   const id = uuidv7()

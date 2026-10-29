@@ -48,6 +48,8 @@ export interface StockQuote {
   price: number | null
   period: MarketPeriod
   halted: boolean
+  /** Whether Monad's markets carry it now, so it can be bought (GET /v1/stocks/:symbol only). */
+  tradable?: boolean
 }
 
 /** What a wallet owns of one stock (GET /v1/wallets/:address/stocks). */

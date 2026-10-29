@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
 import { clientIp, limit } from '../limits.js'
+import { stockTradable } from '../services/stock-trades.js'
 import {
   findStock,
   holdingsOf,
@@ -52,8 +53,12 @@ export const stockRoutes = new Hono()
       throw unreachable()
     })
     if (!listing) throw new KovaError('not_found', 'Kova doesn’t have that stock.')
+    const [quote, tradable] = await Promise.all([
+      stockQuote(listing),
+      stockTradable(listing.address),
+    ])
     c.header('cache-control', 'public, max-age=30')
-    return c.json({ object: 'stock', source: 'xstocks', ...(await stockQuote(listing)) })
+    return c.json({ object: 'stock', source: 'xstocks', ...quote, tradable })
   })
   .get('/stocks/:symbol/chart', async (c) => {
     const range = c.req.query('range') ?? '1W'

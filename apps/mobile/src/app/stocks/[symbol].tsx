@@ -290,7 +290,12 @@ export default function StockScreen() {
       </ScrollView>
 
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: insets.bottom + 12 }}>
-        {access?.live ? (
+        {access?.live && stock.tradable === false ? (
+          <Txt size={14} color={colors.muted} style={{ textAlign: 'center', lineHeight: 20 }}>
+            {stock.name} can’t be bought on Monad yet: no market there carries it. Its price is
+            shown here for reference.
+          </Txt>
+        ) : access?.live ? (
           <View style={styles.trade}>
             <View style={{ flex: 1 }}>
               <PillButton
