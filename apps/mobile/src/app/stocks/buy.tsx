@@ -1,25 +1,88 @@
 import { type StockQuote, shareOfDollars } from '@kova/monad'
 import * as Haptics from 'expo-haptics'
-import { useLocalSearchParams } from 'expo-router'
+import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { formatUsd } from '@/lib/money'
-import { askStockAlert, getStock, getStockAlerts } from '@/lib/stocks'
+import { askStockAlert, getStock, getStockAlerts, useStockHoldings } from '@/lib/stocks'
+import { getStockAccess, keptAccess, type StockAccess, type TradeSide } from '@/lib/stocks-trade'
 import { colors, pair } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { Icon } from '@/ui/Icon'
 import { Txt } from '@/ui/primitives'
 import { StockLogo } from '@/ui/Stocks'
+import { TradeFlow } from '@/ui/StockTrade'
 
 const AMOUNTS = [1, 2, 5, 10]
+
+/**
+ * Buy and Sell: where Kova's API says stock tokens are live, the flow in ui/StockTrade.tsx (where
+ * you are, the one-time confirmation, the amount, the live quote, Face ID). Until then, and if Kova
+ * can't say, the Coming soon sheet below.
+ */
+export default function BuyStock() {
+  const { symbol, side } = useLocalSearchParams<{ symbol: string; side?: string }>()
+  const { profile } = useWallet()
+  const { holdings } = useStockHoldings()
+  const [access, setAccess] = useState<StockAccess | null>(() =>
+    profile ? (keptAccess.get(profile.address) ?? null) : null,
+  )
+  const [failed, setFailed] = useState(false)
+  const [stock, setStock] = useState<StockQuote | null>(null)
+
+  useEffect(() => {
+    if (!profile) return
+    let live = true
+    getStockAccess(profile.address)
+      .then((a) => {
+        keptAccess.set(profile.address, a)
+        if (live) setAccess(a)
+      })
+      .catch(() => live && setFailed(true))
+    return () => {
+      live = false
+    }
+  }, [profile])
+
+  useEffect(() => {
+    void getStock(symbol)
+      .then(setStock)
+      .catch(() => setFailed(true))
+  }, [symbol])
+
+  if (!profile || failed || access?.live === false) return <ComingSoon />
+  if (!access || !stock)
+    return (
+      <View style={[styles.sheet, { minHeight: 300, justifyContent: 'center' }]}>
+        <ActivityIndicator color={colors.ink} />
+      </View>
+    )
+  const trade: TradeSide = side === 'sell' ? 'sell' : 'buy'
+  return (
+    <>
+      {/* The flow sits on paper, its cards on surface; Coming soon keeps the surface sheet. */}
+      <Stack.Screen options={{ contentStyle: { backgroundColor: colors.paper } }} />
+      <TradeFlow
+        stock={stock}
+        side={trade}
+        held={holdings?.data.find((h) => h.symbol === stock.symbol)}
+        access={access}
+        onAccess={(a) => {
+          keptAccess.set(profile.address, a)
+          setAccess(a)
+        }}
+      />
+    </>
+  )
+}
 
 /**
  * Buying a stock, as it will work: a few dollars from what you can spend, a slice of a share,
  * on Monad in about a second. It isn't open yet (xStocks are issued only through approved
  * partners), so the button is shown off, and "Tell me" keeps your place for the day it opens.
  */
-export default function BuyStock() {
+function ComingSoon() {
   const { symbol } = useLocalSearchParams<{ symbol: string }>()
   const insets = useSafeAreaInsets()
   const { profile, balance } = useWallet()

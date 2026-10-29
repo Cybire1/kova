@@ -13,8 +13,10 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'reac
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { usePrefs } from '@/lib/prefs'
 import { getStock, getStockChart, stockUsd, useStockHoldings } from '@/lib/stocks'
+import { getStockAccess, keptAccess, type StockAccess } from '@/lib/stocks-trade'
 import { colors } from '@/lib/theme'
-import { RoundButton, Txt } from '@/ui/primitives'
+import { useWallet } from '@/lib/wallet'
+import { PillButton, RoundButton, Txt } from '@/ui/primitives'
 import { MarketPill, PriceChart, ShareRing, StockLogo } from '@/ui/Stocks'
 
 const RANGE_WORDS: Record<ChartRange, string> = {
@@ -24,7 +26,7 @@ const RANGE_WORDS: Record<ChartRange, string> = {
   '1Y': 'this year',
 }
 
-/** One stock: its live price, its chart, what you own of it, and Buy, which opens with a partner. */
+/** One stock: its live price, its chart, what you own of it, and Buy and Sell where they are open. */
 export default function StockScreen() {
   // Development only: `buy=1` opens the Buy sheet over it, for screenshots.
   const { symbol, buy } = useLocalSearchParams<{ symbol: string; buy?: string }>()
@@ -38,6 +40,28 @@ export default function StockScreen() {
   const [chartFailed, setChartFailed] = useState(false)
   const [scrub, setScrub] = useState<[number, number] | null>(null)
   const held = holdings?.data.find((h) => h.symbol === stock?.symbol)
+  const { profile } = useWallet()
+  const wallet = profile?.address
+  const [access, setAccess] = useState<StockAccess | null>(() =>
+    wallet ? (keptAccess.get(wallet) ?? null) : null,
+  )
+  const [accessFailed, setAccessFailed] = useState(false)
+  // Back from the Buy sheet, a fresh read: a one-time confirmation there changes it.
+  useFocusEffect(
+    useCallback(() => {
+      if (!wallet) return
+      let live = true
+      getStockAccess(wallet)
+        .then((a) => {
+          keptAccess.set(wallet, a)
+          if (live) setAccess(a)
+        })
+        .catch(() => live && setAccessFailed(true))
+      return () => {
+        live = false
+      }
+    }, [wallet]),
+  )
 
   useFocusEffect(
     useCallback(() => {
@@ -266,21 +290,58 @@ export default function StockScreen() {
       </ScrollView>
 
       <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: insets.bottom + 12 }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Buy ${stock.name}. Coming soon`}
-          onPress={() => router.push({ pathname: '/stocks/buy', params: { symbol: stock.symbol } })}
-          style={({ pressed }) => [styles.buy, pressed && { transform: [{ scale: 0.98 }] }]}
-        >
-          <Txt weight="bold" size={17} color={colors.white}>
-            Buy {stock.name}
-          </Txt>
-          <View style={styles.soon}>
-            <Txt weight="bold" size={11}>
-              Coming soon
-            </Txt>
+        {access?.live ? (
+          <View style={styles.trade}>
+            <View style={{ flex: 1 }}>
+              <PillButton
+                label={held ? 'Buy' : `Buy ${stock.name}`}
+                icon="plus"
+                tone="coral"
+                onPress={() =>
+                  router.push({
+                    pathname: '/stocks/buy',
+                    params: { symbol: stock.symbol, side: 'buy' },
+                  })
+                }
+              />
+            </View>
+            {held ? (
+              <View style={{ flex: 1 }}>
+                <PillButton
+                  label="Sell"
+                  icon="minus"
+                  tone="white"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/stocks/buy',
+                      params: { symbol: stock.symbol, side: 'sell' },
+                    })
+                  }
+                />
+              </View>
+            ) : null}
           </View>
-        </Pressable>
+        ) : wallet && !access && !accessFailed ? (
+          <View style={styles.tradeGhost} />
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Buy ${stock.name}. Coming soon`}
+            onPress={() =>
+              router.push({ pathname: '/stocks/buy', params: { symbol: stock.symbol } })
+            }
+            style={({ pressed }) => [styles.buy, pressed && { transform: [{ scale: 0.98 }] }]}
+          >
+            <Txt weight="bold" size={17} color={colors.white}>
+              Buy {stock.name}
+            </Txt>
+            <View style={styles.soon}>
+              <Txt weight="bold" size={11}>
+                Coming soon
+              </Txt>
+            </View>
+          </Pressable>
+        )}
       </View>
     </View>
   )
@@ -342,6 +403,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   facts: { flexDirection: 'row', gap: 10 },
+  trade: { flexDirection: 'row', gap: 10 },
+  tradeGhost: { height: 58, borderRadius: 29, backgroundColor: colors.surface },
   fact: { flex: 1, backgroundColor: colors.surface, borderRadius: 18, padding: 12, gap: 2 },
   buy: {
     height: 58,

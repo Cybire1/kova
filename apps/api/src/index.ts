@@ -26,6 +26,7 @@ import { reportRoutes } from './routes/reports.js'
 import { spendKeyRoutes } from './routes/spend-keys.js'
 import { stallRoutes } from './routes/stalls.js'
 import { statsRoutes } from './routes/stats.js'
+import { stockTradeRoutes } from './routes/stock-trades.js'
 import { stockRoutes } from './routes/stocks.js'
 import { takingsRoutes } from './routes/takings.js'
 import { terminalRoutes } from './routes/terminals.js'
@@ -81,6 +82,7 @@ app.route('/v1', cardRoutes)
 app.route('/v1', spendKeyRoutes)
 app.route('/v1', demoRoutes)
 app.route('/v1', rateRoutes)
+app.route('/v1', stockTradeRoutes)
 app.route('/v1', stockRoutes)
 app.route('/v1', webhookRoutes)
 app.route('/v1', reportRoutes)

@@ -22,13 +22,16 @@ import {
   useStockChart,
   useStockList,
 } from '@/lib/wallet/stocks'
+import { type TradeSide, useStockAccess } from '@/lib/wallet/stocks-trade'
 import { ScreenHead } from './activity'
 import { useWallet } from './provider'
+import { TradeSheet } from './stock-trade'
 
 /**
  * Stocks: xStocks on Monad, each token backed 1:1 by a share. Kova shows live prices and what you
- * own, and counts none of it in your dollars: stocks aren't money you can spend. Buying waits for a
- * partner, so it says "coming soon" and offers to tell you the day it opens.
+ * own, and counts none of it in your dollars: stocks aren't money you can spend. Buying and selling
+ * open where Kova's API says they're live (components/wallet/stock-trade.tsx); until then Buy says
+ * "coming soon" and offers to tell you the day it opens.
  */
 
 const TONES = ['coral', 'teal'] as const
@@ -309,6 +312,8 @@ export function StockDetail({ symbol }: { symbol: string }) {
   const { holdings } = useHoldings(profile?.address)
   const [range, setRange] = useState<ChartRange>('1W')
   const [buying, setBuying] = useState(false)
+  const { access, failed: accessFailed, setAccess } = useStockAccess(profile?.address)
+  const [trading, setTrading] = useState<TradeSide | null>(null)
 
   if (!stock)
     return (
@@ -392,12 +397,53 @@ export function StockDetail({ symbol }: { symbol: string }) {
         </span>
       </div>
 
-      <button type="button" className="w-st-buy" onClick={() => setBuying(true)}>
-        Buy {stock.name}
-        <span className="w-st-sticker">Coming soon</span>
-      </button>
+      {access?.live ? (
+        <div className="tr-actions">
+          <button
+            type="button"
+            className="pill pill-block"
+            data-tone="coral"
+            onClick={() => setTrading('buy')}
+          >
+            <span className="pill-label">{held ? 'Buy' : `Buy ${stock.name}`}</span>
+            <span className="pill-cap">
+              <Icon name="plus" size={18} />
+            </span>
+          </button>
+          {held ? (
+            <button
+              type="button"
+              className="pill pill-block"
+              data-tone="light"
+              onClick={() => setTrading('sell')}
+            >
+              <span className="pill-label">Sell</span>
+              <span className="pill-cap">
+                <Icon name="minus" size={18} />
+              </span>
+            </button>
+          ) : null}
+        </div>
+      ) : profile && !access && !accessFailed ? (
+        <span className="tr-actions-ghost" aria-hidden="true" />
+      ) : (
+        <button type="button" className="w-st-buy" onClick={() => setBuying(true)}>
+          Buy {stock.name}
+          <span className="w-st-sticker">Coming soon</span>
+        </button>
+      )}
 
       {buying ? <BuySheet stock={stock} onClose={() => setBuying(false)} /> : null}
+      {trading && access ? (
+        <TradeSheet
+          stock={stock}
+          side={trading}
+          held={held}
+          access={access}
+          onAccess={setAccess}
+          onClose={() => setTrading(null)}
+        />
+      ) : null}
     </div>
   )
 }

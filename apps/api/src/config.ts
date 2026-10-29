@@ -100,6 +100,15 @@ const schema = z.object({
     .string()
     .regex(/^0x[0-9a-fA-F]{40}$/)
     .optional(),
+  /**
+   * Buying and selling xStocks (docs/stocks-trading.md): `1` switches it on, with KovaStocks at
+   * KOVA_STOCKS_CONTRACT (Monad mainnet, where the stocks are). Off, its routes answer live: false.
+   */
+  KOVA_STOCKS_TRADING: z.enum(['0', '1']).default('0'),
+  KOVA_STOCKS_CONTRACT: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{40}$/)
+    .optional(),
   /** This API's public address, for partners' webhooks. Railway's own domain when unset. */
   KOVA_API_PUBLIC_URL: z.string().url().optional(),
   /**

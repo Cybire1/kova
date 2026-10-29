@@ -1567,3 +1567,76 @@ export const stockAlerts = pgTable(
   },
   (t) => [uniqueIndex('stock_alerts_wallet_symbol_idx').on(t.wallet, t.symbol)],
 )
+
+/** A uint256 on Monad (an 18-decimal stock amount can pass bigint's ~9.2e18), kept exact. */
+const uint256 = customType<{ data: bigint; driverData: string }>({
+  dataType: () => 'numeric(78, 0)',
+  toDriver: (value) => value.toString(),
+  fromDriver: (value) => BigInt(value),
+})
+
+/**
+ * A wallet's self-certification before buying stock tokens (docs/stocks-trading.md): the exact
+ * text it signed with personal_sign, and the country its IP was in. A new one is asked for when the
+ * country changes; the latest one counts.
+ */
+export const stockAttestations = pgTable(
+  'stock_attestations',
+  {
+    id: id(),
+    /** Checksummed. */
+    wallet: text('wallet').notNull(),
+    /** ISO code, from the IP when it was signed. */
+    country: text('country').notNull(),
+    message: text('message').notNull(),
+    signature: text('signature').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('stock_attestations_wallet_idx').on(t.wallet, t.createdAt)],
+)
+
+/**
+ * Buying and selling stock tokens through KovaStocks: each quote, kept so the trade it becomes is
+ * exactly the one quoted, and what came of it.
+ */
+export const stockTrades = pgTable(
+  'stock_trades',
+  {
+    id: id(),
+    network: network('network').notNull(),
+    /** Checksummed. */
+    wallet: text('wallet').notNull(),
+    /** buy or sell. */
+    side: text('side').notNull(),
+    /** The xStock: TSLAx. */
+    symbol: text('symbol').notNull(),
+    /** Its token on Monad. */
+    stock: address('stock').notNull(),
+    /** Dollars in for a buy (6 decimals), shares in for a sale (18), base units. */
+    amountIn: uint256('amount_in').notNull(),
+    /** What the quote said comes out. */
+    amountOut: uint256('amount_out').notNull(),
+    /** The least the trade may get: 99% of the quote. The wallet's signature commits to it. */
+    minOut: uint256('min_out').notNull(),
+    /** Dollars a share, as quoted. */
+    price: text('price').notNull(),
+    /** KovaStocks' reference for it, bytes32. */
+    ref: text('ref').notNull(),
+    /** Where the wallet was when it quoted (ISO code). */
+    country: text('country').notNull(),
+    /** quoted | sending | done | failed */
+    status: text('status').notNull().default('quoted'),
+    txHash: text('tx_hash'),
+    /** What actually came out, from KovaStocks' event. */
+    filled: uint256('filled'),
+    failure: text('failure'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('stock_trades_wallet_idx').on(t.wallet, t.createdAt),
+    uniqueIndex('stock_trades_ref_idx').on(t.ref),
+    uniqueIndex('stock_trades_tx_idx').on(t.txHash),
+  ],
+)
