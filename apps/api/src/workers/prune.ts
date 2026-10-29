@@ -10,7 +10,8 @@ import { cardContract } from '../services/cards.js'
  * and on 29 Oct 2026 it filled the 5 GB disk. Every transfer that touches Kova stays: a wallet
  * that published its note key (every Kova wallet does as it opens), a shop, a card, a pocket, a
  * link, a private payment, a cash-out, Kova's relayer or contracts. A transfer between two
- * strangers stays for KOVA_TRANSFER_DAYS (30), long enough for any wallet to catch up, then goes.
+ * strangers stays for KOVA_TRANSFER_DAYS (7), long enough for any wallet to catch up, then goes:
+ * at about 280,000 a day on mainnet (Oct 2026), a week is about 1.4 GB.
  *
  * Off until KOVA_PRUNE_TRANSFERS=1: `pnpm --filter @kova/api prune:transfers` says first how many
  * rows it would remove.
