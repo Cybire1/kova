@@ -142,6 +142,12 @@ const schema = z.object({
   KOVA_SAVINGS_RATE_VAULT: z.string().optional(),
   /** `1` once the savings vault has been audited: until then the app says it's in beta. */
   KOVA_SAVINGS_AUDITED: z.string().optional(),
+  /**
+   * `1` to remove, once a day, indexed transfers between two strangers (neither side Kova's or a
+   * Kova customer's) older than KOVA_TRANSFER_DAYS. See workers/prune.ts.
+   */
+  KOVA_PRUNE_TRANSFERS: z.string().optional(),
+  KOVA_TRANSFER_DAYS: z.coerce.number().int().min(1).default(30),
   JEV_MODEL: z.string().optional(),
   /**
    * USSD pockets: pay from any phone by dialling a code. The master key seals each pocket's own

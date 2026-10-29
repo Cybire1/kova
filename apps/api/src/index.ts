@@ -43,6 +43,7 @@ import { popularStocks } from './services/stocks.js'
 import { expireTrips } from './services/travel.js'
 import { redactCallbackLog } from './services/ussd-callback.js'
 import { startAnnouncer } from './workers/announcer.js'
+import { startPruner } from './workers/prune.js'
 import { startWatcher } from './workers/watcher.js'
 import { startWebhookWorker } from './workers/webhooks.js'
 
@@ -92,6 +93,8 @@ if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js
   startWebhookWorker()
   // Private payments are announced on Monad itself (ERC-5564), not only in Kova's feed.
   startAnnouncer()
+  // Old transfers between strangers leave the index, so it never fills the disk again.
+  startPruner()
   const recoverUssd = () =>
     void reconcilePendingPockets().catch(() =>
       console.error('[ussd] Receipt recovery failed; will retry.'),

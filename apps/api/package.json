@@ -22,7 +22,8 @@
     "check:keys": "tsx src/scripts/keys-check.ts",
     "check:naira": "tsx --env-file-if-exists=.env src/scripts/naira-check.ts",
     "check:offline": "tsx src/scripts/offline-check.ts",
-    "check:savings": "tsx src/scripts/savings-check.ts"
+    "check:savings": "tsx src/scripts/savings-check.ts",
+    "prune:transfers": "tsx src/scripts/prune-transfers.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
