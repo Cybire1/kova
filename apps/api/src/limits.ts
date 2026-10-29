@@ -30,5 +30,11 @@ export function clientIp(c: { req: { header: (name: string) => string | undefine
     const given = Buffer.from(secret)
     if (given.length === proxySecret.length && timingSafeEqual(given, proxySecret)) return vouched
   }
-  return c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local'
+  // Railway's edge sets X-Real-IP to the connecting address and overwrites any copy a caller sends;
+  // the first X-Forwarded-For entry is only a fallback (off Railway, in development).
+  return (
+    c.req.header('x-real-ip')?.trim() ||
+    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
+    'local'
+  )
 }

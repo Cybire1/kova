@@ -97,11 +97,12 @@ async function latestAttestation(wallet: Address) {
 /** GET /wallets/:address/stocks/access */
 export async function stockAccess(wallet: Address, ip: string) {
   const attestation = stockAttestation(wallet)
+  // The country is said even while trading is off, so the location check can be tested live.
   if (!tradingLive())
     return {
       object: 'stock_access' as const,
       live: false,
-      country: null,
+      country: countryOf(ip),
       allowed: false,
       reason: TRADING_OFF,
       attested: false,
