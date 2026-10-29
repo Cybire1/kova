@@ -595,8 +595,8 @@ export function savingsOpenTo(wallet: Address, on: typeof net = net): boolean {
   return only.split(',').some((a) => a.trim().toLowerCase() === wallet.toLowerCase())
 }
 
-/** Monad makes about 2.5 blocks a second. */
-const BLOCKS_A_SECOND = 2.5
+/** Monad makes a block about every 0.31 s, about 3.2 a second. */
+const BLOCKS_A_SECOND = 3.2
 const WEEK = 7 * 86_400
 
 export interface SavingsRate {
