@@ -2,10 +2,12 @@ import { parseAmount } from '@kova/monad'
 import * as Haptics from 'expo-haptics'
 import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native'
+import Svg, { Circle } from 'react-native-svg'
 import { formatUsd } from '@/lib/money'
 import { getSavings, type Savings, saveIn, saveOut } from '@/lib/partners'
 import { colors, fonts, inkAt } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import { Kovi } from '@/ui/art'
 import { Icon } from '@/ui/Icon'
 import { NotYet, problemOf, SandboxNote, useMoney } from '@/ui/Money'
 import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
@@ -45,6 +47,10 @@ export default function SavingsScreen() {
           ? 'Savings can’t pay out right now. Your savings are still yours: try again in a little while.'
           : `You can move ${formatUsd(outNow)} out right now.`
   const shut = (mode === 'in' && room === 0n) || (mode === 'out' && outNow === 0n)
+  /** The most this move can be: your balance or the vault's room in; what can leave now out. */
+  const cap = (a: bigint, b: bigint | null) => (b !== null && b < a ? b : a)
+  const most = mode === 'in' ? cap(balance ?? 0n, room) : cap(held, outNow)
+  const asTyped = (v: bigint) => (Number(v) / 1e6).toFixed(2)
 
   const move = async () => {
     if (!profile || !data) return
@@ -102,126 +108,241 @@ export default function SavingsScreen() {
             onRequested={() => setData({ ...data, requested: true })}
           />
         ) : (
-          <View style={{ flex: 1 }}>
-            <Txt weight="bold" size={12} color={colors.tealDeep} style={styles.eyebrow}>
-              {(data.vault?.name ?? 'Savings').toUpperCase()}
-            </Txt>
-            <Txt weight="bold" size={46} style={styles.big}>
-              {formatUsd(BigInt(data.balance))}
-            </Txt>
-            <Txt size={15} color={colors.muted} style={{ textAlign: 'center' }}>
-              <Txt weight="semi" size={15} color={colors.positive}>
-                +{formatUsd(BigInt(data.earned))}
-              </Txt>{' '}
-              {data.test ? 'test interest' : 'earned'} on {formatUsd(BigInt(data.deposited))} put in
-            </Txt>
-            {data.rate && data.rate.yearly > 0 && !data.test ? (
-              <View style={styles.rate}>
-                <Txt weight="bold" size={15} style={{ textAlign: 'center' }}>
-                  About {(data.rate.yearly * 100).toFixed(1)}% a year lately
-                </Txt>
-                <Txt size={13} color={colors.muted} style={{ textAlign: 'center' }}>
-                  What it paid over the last {data.rate.days} days. It changes, and isn’t a promise.
-                </Txt>
+          <View style={{ gap: 14, paddingTop: 8 }}>
+            <View
+              style={styles.card}
+              accessibilityLabel={`${formatUsd(held)} in savings, ${formatUsd(BigInt(data.earned))} earned`}
+            >
+              <Svg
+                width={220}
+                height={220}
+                viewBox="-110 -110 220 220"
+                style={styles.rings}
+                pointerEvents="none"
+              >
+                {[104, 78, 52, 26].map((r) => (
+                  <Circle key={r} r={r} fill="none" stroke={colors.tealDeep} strokeWidth={2} />
+                ))}
+              </Svg>
+              <View style={styles.kovi} pointerEvents="none">
+                <Kovi pose="sleep" size={104} />
               </View>
+              <Txt size={14} weight="semi" color={onTeal}>
+                In savings
+              </Txt>
+              <Txt weight="bold" size={46} color={colors.white} style={styles.big}>
+                {formatUsd(held).slice(0, formatUsd(held).lastIndexOf('.'))}
+                <Txt weight="bold" size={24} color={colors.white}>
+                  {formatUsd(held).slice(formatUsd(held).lastIndexOf('.'))}
+                </Txt>
+              </Txt>
+              <Txt size={15} color={onTeal}>
+                <Txt weight="bold" size={15} color={colors.white}>
+                  +{formatUsd(BigInt(data.earned))}
+                </Txt>{' '}
+                {data.test ? 'test interest' : 'earned'} on {formatUsd(BigInt(data.deposited))}
+              </Txt>
+              {data.rate && data.rate.yearly > 0 && !data.test ? (
+                <View style={styles.rateChip}>
+                  <Icon name="bolt" size={14} color={colors.ink} />
+                  <Txt weight="bold" size={13}>
+                    About {(data.rate.yearly * 100).toFixed(1)}% a year lately
+                  </Txt>
+                </View>
+              ) : null}
+            </View>
+            {data.rate && data.rate.yearly > 0 && !data.test ? (
+              <Txt size={13} color={colors.muted} style={{ textAlign: 'center' }}>
+                What it paid over the last {data.rate.days} days. It changes, and isn’t a promise.
+              </Txt>
             ) : null}
             {data.test ? (
               <SandboxNote text="Testnet: the interest is test dollars Kova adds" />
             ) : null}
-            {data.beta ? (
-              <View style={styles.risk}>
-                <Icon name="info" size={16} color={colors.ink} />
-                <Txt size={13} style={{ flex: 1, lineHeight: 19 }}>
-                  Your savings sit in {data.vault?.name ?? 'a partner’s vault'}, a partner’s vault,
-                  in your name. It’s new and hasn’t been audited, and it can pause withdrawals for a
-                  while. Only save what you could do without.
-                </Txt>
+
+            <View style={styles.actions}>
+              {canSave ? (
+                <View style={[{ flex: 1 }, mode !== 'in' && styles.dim]}>
+                  <PillButton
+                    label="Save"
+                    icon="down"
+                    tone="coral"
+                    onPress={() => {
+                      setMode('in')
+                      setAmount('')
+                      setError(null)
+                    }}
+                  />
+                </View>
+              ) : null}
+              <View style={[{ flex: 1 }, mode !== 'out' && styles.dim]}>
+                <PillButton
+                  label="Withdraw"
+                  icon="up"
+                  tone="white"
+                  disabled={held === 0n}
+                  onPress={() => {
+                    setMode('out')
+                    setAmount('')
+                    setError(null)
+                  }}
+                />
               </View>
-            ) : null}
-            <View style={styles.toggle}>
-              {(canSave ? (['in', 'out'] as const) : (['out'] as const)).map((m) => (
-                <Pressable
-                  key={m}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: mode === m }}
-                  onPress={() => setMode(m)}
-                  style={[styles.toggleItem, mode === m && styles.toggleOn]}
-                >
-                  <Txt weight="semi" size={15} color={mode === m ? colors.onChosen : colors.ink}>
-                    {m === 'in' ? 'Move in' : 'Move out'}
+            </View>
+
+            <View style={styles.move}>
+              <Txt weight="semi" size={13} color={colors.muted}>
+                {mode === 'in'
+                  ? `Save from your balance · ${formatUsd(balance ?? 0n)}`
+                  : `Withdraw to your balance · ${formatUsd(held)} saved`}
+              </Txt>
+              <View style={styles.money}>
+                <Txt weight="bold" size={36}>
+                  $
+                </Txt>
+                <TextInput
+                  value={amount}
+                  editable={!shut}
+                  onChangeText={(t) => setAmount(t.replace(/[^0-9.]/g, ''))}
+                  placeholder="0.00"
+                  placeholderTextColor={colors.muted}
+                  keyboardType="decimal-pad"
+                  accessibilityLabel={mode === 'in' ? 'Amount to save' : 'Amount to withdraw'}
+                  style={styles.moneyInput}
+                />
+              </View>
+              {shut ? null : (
+                <View style={styles.quick}>
+                  {(mode === 'in' ? [10_000_000n, 50_000_000n] : [])
+                    .filter((v) => v < most)
+                    .map((v) => (
+                      <Pressable
+                        key={String(v)}
+                        accessibilityRole="button"
+                        onPress={() => setAmount(asTyped(v))}
+                        style={styles.quickItem}
+                      >
+                        <Txt weight="bold" size={13}>
+                          {formatUsd(v)}
+                        </Txt>
+                      </Pressable>
+                    ))}
+                  {most > 0n ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => setAmount(asTyped(most))}
+                      style={styles.quickItem}
+                    >
+                      <Txt weight="bold" size={13}>
+                        All {formatUsd(most)}
+                      </Txt>
+                    </Pressable>
+                  ) : null}
+                </View>
+              )}
+              {limit ? (
+                <View style={styles.limit}>
+                  <Txt size={13} style={{ lineHeight: 18 }}>
+                    {limit}
                   </Txt>
-                </Pressable>
-              ))}
-            </View>
-            <Txt
-              weight="semi"
-              size={13}
-              color={colors.muted}
-              style={{ marginTop: 16, marginLeft: 4 }}
-            >
-              {mode === 'in'
-                ? `From your balance (${formatUsd(balance ?? 0n)})`
-                : `From savings (${formatUsd(BigInt(data.balance))})`}
-            </Txt>
-            <View style={styles.money}>
-              <Txt weight="bold" size={30}>
-                $
-              </Txt>
-              <TextInput
-                value={amount}
-                onChangeText={(t) => setAmount(t.replace(/[^0-9.]/g, ''))}
-                placeholder="0.00"
-                keyboardType="decimal-pad"
-                style={styles.moneyInput}
-              />
-            </View>
-            {limit ? (
-              <Txt size={14} color={colors.muted} style={{ marginTop: 10, textAlign: 'center' }}>
-                {limit}
-              </Txt>
-            ) : null}
-            {error ? (
-              <Txt weight="medium" size={14} color={colors.danger} style={{ marginTop: 10 }}>
-                {error}
-              </Txt>
-            ) : null}
-            {done ? (
-              <Txt weight="semi" size={14} color={colors.positive} style={{ marginTop: 10 }}>
-                {done}
-              </Txt>
-            ) : null}
-            <View style={{ marginTop: 18 }}>
+                </View>
+              ) : null}
+              {error ? (
+                <Txt weight="medium" size={14} color={colors.danger}>
+                  {error}
+                </Txt>
+              ) : null}
+              {done ? (
+                <Txt weight="semi" size={14} color={colors.positive}>
+                  {done}
+                </Txt>
+              ) : null}
               <PillButton
                 label={
-                  busy ? 'Moving…' : mode === 'in' ? 'Move into savings' : 'Move to my balance'
+                  busy
+                    ? 'Moving…'
+                    : `${mode === 'in' ? 'Save' : 'Withdraw'}${Number(amount) > 0 ? ` $${Number(amount).toFixed(2)}` : ''}`
                 }
-                icon={mode === 'in' ? 'down' : 'up'}
+                icon="face"
+                tone={mode === 'in' ? 'coral' : 'ink'}
                 loading={busy}
                 disabled={shut || !(Number(amount) > 0)}
                 onPress={() => void move()}
               />
+              <Txt size={12} color={colors.muted} style={{ textAlign: 'center' }}>
+                One Face ID tap. Kova covers the fee.
+              </Txt>
             </View>
+
+            <Txt weight="bold" size={20} style={{ marginTop: 10 }}>
+              Where it sits
+            </Txt>
+            <View style={styles.path}>
+              {(
+                [
+                  ['user', 'Your wallet', 'Signs every move', colors.fill],
+                  ['lock', data.vault?.name ?? 'Savings vault', 'Held in your name', colors.teal],
+                  ['web', 'Lending markets', 'Where it earns', colors.coral],
+                ] as const
+              ).map(([icon, title, sub, fill]) => (
+                <View key={title} style={styles.node}>
+                  <View style={[styles.nodeDot, { backgroundColor: fill }]}>
+                    <Icon name={icon} size={17} color={colors.white} />
+                  </View>
+                  <Txt weight="bold" size={13} style={{ textAlign: 'center' }}>
+                    {title}
+                  </Txt>
+                  <Txt size={11} color={colors.muted} style={{ textAlign: 'center' }}>
+                    {sub}
+                  </Txt>
+                </View>
+              ))}
+            </View>
+            {data.beta ? (
+              <View style={styles.risk}>
+                <Icon name="info" size={16} color={colors.ink} />
+                <Txt size={13} style={{ flex: 1, lineHeight: 19 }}>
+                  New, and not audited yet. Withdrawals can pause for a while if a market it lends
+                  to stops reporting. Only save what you could do without.
+                </Txt>
+              </View>
+            ) : null}
+
             {data.moves.length ? (
-              <View style={styles.list}>
-                {data.moves.map((m, i) => (
-                  <View key={m.tx_hash} style={[styles.row, i > 0 && styles.rule]}>
-                    <View style={{ flex: 1 }}>
-                      <Txt weight="semi" size={15}>
-                        {m.kind === 'in' ? 'Into savings' : 'Back to balance'}
-                      </Txt>
-                      <Txt size={13} color={colors.muted}>
-                        {new Date(m.at).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
+              <>
+                <Txt weight="bold" size={20} style={{ marginTop: 10 }}>
+                  Moves
+                </Txt>
+                <View style={styles.list}>
+                  {data.moves.map((m, i) => (
+                    <View key={m.tx_hash} style={[styles.row, i > 0 && styles.rule]}>
+                      <View
+                        style={[
+                          styles.moveIcon,
+                          { backgroundColor: m.kind === 'in' ? colors.coralSoft : colors.tealSoft },
+                        ]}
+                      >
+                        <Icon name={m.kind === 'in' ? 'down' : 'up'} size={16} color={colors.ink} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Txt weight="semi" size={15}>
+                          {m.kind === 'in' ? 'Saved' : 'Withdrew'}
+                        </Txt>
+                        <Txt size={13} color={colors.muted}>
+                          {new Date(m.at).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                        </Txt>
+                      </View>
+                      <Txt weight="bold" size={15}>
+                        {m.kind === 'in' ? '+' : '−'}
+                        {formatUsd(BigInt(m.amount))}
                       </Txt>
                     </View>
-                    <Txt weight="semi" size={15}>
-                      {formatUsd(BigInt(m.amount))}
-                    </Txt>
-                  </View>
-                ))}
-              </View>
+                  ))}
+                </View>
+              </>
             ) : null}
           </View>
         )}
@@ -230,58 +351,92 @@ export default function SavingsScreen() {
   )
 }
 
+/** Text on the teal card, as on Home's balance card. */
+const onTeal = '#DCEBEA'
+
 const styles = StyleSheet.create({
   body: { flexGrow: 1, paddingHorizontal: 20, paddingBottom: 32 },
-  eyebrow: { letterSpacing: 1.4, textAlign: 'center', marginTop: 12 },
-  rate: { marginTop: 10, gap: 2 },
+  card: {
+    minHeight: 180,
+    borderRadius: 30,
+    backgroundColor: colors.teal,
+    borderWidth: 2,
+    borderColor: colors.line,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 18,
+    overflow: 'hidden',
+    gap: 2,
+  },
+  rings: { position: 'absolute', right: -70, top: -70, opacity: 0.55 },
+  kovi: { position: 'absolute', right: -6, bottom: -14 },
+  big: { letterSpacing: -2 },
+  rateChip: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.surface,
+  },
+  actions: { flexDirection: 'row', gap: 10 },
+  dim: { opacity: 0.6 },
+  move: {
+    gap: 12,
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  money: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  moneyInput: { flex: 1, fontFamily: fonts.bold, fontSize: 36, color: colors.ink },
+  quick: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  quickItem: {
+    paddingHorizontal: 14,
+    height: 34,
+    borderRadius: 17,
+    justifyContent: 'center',
+    backgroundColor: colors.sunken,
+  },
+  limit: { padding: 12, borderRadius: 14, backgroundColor: colors.sunken },
+  path: { flexDirection: 'row', gap: 8 },
+  node: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+  },
+  nodeDot: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
   risk: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    marginTop: 14,
     padding: 12,
     borderRadius: 16,
     backgroundColor: colors.sunken,
   },
-  big: { letterSpacing: -2, textAlign: 'center', marginTop: 4 },
-  toggle: {
-    flexDirection: 'row',
-    marginTop: 22,
-    padding: 4,
-    borderWidth: 2,
-    borderColor: colors.line,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-  },
-  toggleItem: {
-    flex: 1,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-  },
-  toggleOn: { backgroundColor: colors.chosen },
-  money: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 6,
-    paddingHorizontal: 16,
-    height: 64,
-    borderWidth: 2,
-    borderColor: colors.line,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-  },
-  moneyInput: { flex: 1, fontFamily: fonts.bold, fontSize: 30, color: colors.ink },
-  list: {
-    marginTop: 22,
-    paddingHorizontal: 16,
-    borderWidth: 2,
-    borderColor: colors.line,
-    borderRadius: 22,
-    backgroundColor: colors.surface,
-  },
+  list: { paddingHorizontal: 16, borderRadius: 22, backgroundColor: colors.surface },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   rule: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: inkAt(0.18) },
+  moveIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })

@@ -534,3 +534,283 @@
 .m-toggle:has(> :only-child) {
   grid-template-columns: 1fr;
 }
+
+/* Savings, live: Home's teal card in its own words, then the two moves, then where it sits. */
+.sv {
+  display: grid;
+  gap: 1rem;
+  padding-bottom: 2rem;
+}
+
+.sv-card {
+  position: relative;
+  display: grid;
+  gap: 0.2rem;
+  min-height: 11rem;
+  padding: 1rem 1.125rem 1.125rem;
+  border: 2px solid var(--line);
+  border-radius: 1.5rem;
+  background: var(--teal);
+  color: #fff;
+  overflow: hidden;
+}
+
+.sv-kovi {
+  position: absolute;
+  right: -0.5rem;
+  bottom: -0.75rem;
+  pointer-events: none;
+}
+
+.sv-label {
+  position: relative;
+  margin: 0;
+  color: var(--on-teal, rgba(255, 255, 255, 0.82));
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.sv-amount {
+  position: relative;
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.sv-amount small {
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  opacity: 0.85;
+}
+
+.sv-earned {
+  position: relative;
+  margin: 0;
+  font-size: 0.9375rem;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.sv-earned strong {
+  color: #fff;
+}
+
+.sv-rate {
+  position: relative;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.8125rem;
+  font-weight: 750;
+}
+
+.sv-fine {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.sv-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+.sv-actions .pill[aria-pressed="false"] {
+  opacity: 0.72;
+}
+
+.sv-move {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 1.25rem;
+  background: var(--surface);
+  border: 2px solid var(--line);
+}
+
+.sv-move-label {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.sv-money {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.sv-money input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.sv-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sv-quick button {
+  padding: 0.45rem 0.85rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sunken);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.sv-quick button:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
+}
+
+.sv-where {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sv-path {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sv-path li {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  padding: 0.875rem 0.5rem;
+  border-radius: 1rem;
+  background: var(--surface);
+  text-align: center;
+  min-width: 0;
+}
+
+.sv-path li + li::before {
+  content: "";
+  position: absolute;
+  left: -0.5rem;
+  top: 1.9rem;
+  width: 0.5rem;
+  height: 2px;
+  background: var(--line);
+}
+
+.sv-path strong {
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.sv-path small {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.sv-node {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.25rem;
+  border-radius: 50%;
+  background: var(--fill);
+  color: #fff;
+}
+
+.sv-node-vault {
+  background: var(--teal);
+}
+
+.sv-node-earn {
+  background: var(--coral);
+  color: #0b1a1d;
+}
+
+.sv-moves {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: 1.25rem;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.sv-moves li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.sv-moves li + li {
+  border-top: 1px solid var(--sunken);
+}
+
+.sv-move-icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--coral-soft);
+  color: var(--ink);
+}
+
+.sv-move-icon[data-kind="out"] {
+  background: var(--teal-soft);
+}
+
+.sv-move-what {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.sv-move-what small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.sv-move-amount {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A limit on this move reads as a note, not a button. */
+.sv-move .m-limit {
+  padding: 0.6rem 0.8rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--sunken);
+  color: var(--ink);
+  text-align: left;
+}

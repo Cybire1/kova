@@ -531,6 +531,41 @@ export function SavingsScreen() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<string | null>(null)
+  /** The most this move can be: your balance or the vault's room in; what can leave now out. */
+  const cap = (a: bigint, b: bigint | null) => (b !== null && b < a ? b : a)
+  const most = mode === 'in' ? cap(balance ?? 0n, room) : cap(total, outNow)
+  const asTyped = (v: bigint) => (Number(v) / 1e6).toFixed(2)
+
+  const move = async () => {
+    if (!data) return
+    setBusy(true)
+    setError(null)
+    setDone(null)
+    try {
+      const value = toBase(amount)
+      const account = await signingAccount(value)
+      if (mode === 'in') {
+        if (value > (balance ?? 0n)) throw new Error('That’s more than your balance.')
+        if (room !== null && value > room)
+          throw new Error(`Savings can take ${formatUsd(room)} more right now.`)
+        await saveIn(network, account, data, value)
+        setDone(`${formatUsd(value)} is in savings.`)
+      } else {
+        if (value > total) throw new Error('That’s more than you have in savings.')
+        if (outNow !== null && value > outNow)
+          throw new Error(`You can move ${formatUsd(outNow)} out right now.`)
+        const all = BigInt(data.vault?.shares ?? '0')
+        await saveOut(account, data, value === total ? all : (all * value) / (total || 1n))
+        setDone(`${formatUsd(value)} is back in your balance.`)
+      }
+      setAmount('')
+      await Promise.all([reload(), refresh()])
+    } catch (e) {
+      setError(problemOf(e))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <div className="w-screen">
@@ -552,120 +587,192 @@ export function SavingsScreen() {
           onRequested={() => setData({ ...data, requested: true })}
         />
       ) : (
-        <div className="m-intro">
-          <p className="m-eyebrow">{data.vault?.name ?? 'Savings'}</p>
-          <p className="m-big">{formatUsd(BigInt(data.balance))}</p>
-          <p className="m-earned">
-            <strong>+{formatUsd(BigInt(data.earned))}</strong>{' '}
-            {data.test ? 'test interest' : 'earned'} on {formatUsd(BigInt(data.deposited))} put in
-          </p>
+        <div className="sv">
+          <section
+            className="sv-card"
+            aria-label={`${formatUsd(total)} in savings, ${formatUsd(BigInt(data.earned))} earned`}
+          >
+            <svg
+              className="w-balance-rings"
+              width="220"
+              height="220"
+              viewBox="-110 -110 220 220"
+              aria-hidden="true"
+            >
+              {[104, 78, 52, 26].map((r) => (
+                <circle key={r} r={r} fill="none" stroke="var(--teal-deep)" strokeWidth="2" />
+              ))}
+            </svg>
+            <Art name="kovi-sleep" size={112} className="sv-kovi" />
+            <p className="sv-label">In savings</p>
+            <p className="sv-amount">
+              {formatUsd(total).slice(0, formatUsd(total).lastIndexOf('.'))}
+              <small>{formatUsd(total).slice(formatUsd(total).lastIndexOf('.'))}</small>
+            </p>
+            <p className="sv-earned">
+              <strong>+{formatUsd(BigInt(data.earned))}</strong>{' '}
+              {data.test ? 'test interest' : 'earned'} on {formatUsd(BigInt(data.deposited))}
+            </p>
+            {data.rate && data.rate.yearly > 0 && !data.test ? (
+              <p className="sv-rate">
+                <Icon name="bolt" size={14} /> About {(data.rate.yearly * 100).toFixed(1)}% a year
+                lately
+              </p>
+            ) : null}
+          </section>
           {data.rate && data.rate.yearly > 0 && !data.test ? (
-            <p className="m-rate">
-              About {(data.rate.yearly * 100).toFixed(1)}% a year lately
-              <small>
-                What it paid over the last {data.rate.days} days. It changes, and isn’t a promise.
-              </small>
+            <p className="sv-fine">
+              What it paid over the last {data.rate.days} days. It changes, and isn’t a promise.
             </p>
           ) : null}
           {data.test ? (
             <Sandbox what="Test savings on Monad testnet: the interest is test dollars Kova adds, not a real yield." />
           ) : null}
-          {data.beta ? (
-            <p className="m-risk">
-              <Icon name="info" size={16} />
-              <span>
-                Your savings sit in {data.vault?.name ?? 'a partner’s vault'}, a partner’s vault, in
-                your name. It’s new and hasn’t been audited, and it can pause withdrawals for a
-                while. Only save what you could do without.
-              </span>
-            </p>
-          ) : null}
-          <div className="m-toggle" role="tablist">
-            {(canSave ? (['in', 'out'] as const) : (['out'] as const)).map((m) => (
+
+          <div className="sv-actions">
+            {canSave ? (
               <button
-                key={m}
                 type="button"
-                role="tab"
-                aria-selected={mode === m}
-                onClick={() => setMode(m)}
+                className="pill pill-block"
+                data-tone="coral"
+                aria-pressed={mode === 'in'}
+                onClick={() => {
+                  setMode('in')
+                  setAmount('')
+                  setError(null)
+                }}
               >
-                {m === 'in' ? 'Move in' : 'Move out'}
+                <span className="pill-label">Save</span>
+                <span className="pill-cap">
+                  <Icon name="down" size={18} />
+                </span>
               </button>
-            ))}
+            ) : null}
+            <button
+              type="button"
+              className="pill pill-block"
+              data-tone="light"
+              aria-pressed={mode === 'out'}
+              disabled={total === 0n}
+              onClick={() => {
+                setMode('out')
+                setAmount('')
+                setError(null)
+              }}
+            >
+              <span className="pill-label">Withdraw</span>
+              <span className="pill-cap">
+                <Icon name="up" size={18} />
+              </span>
+            </button>
           </div>
-          <label className="m-field m-field-money">
-            <span>
+
+          <div className="sv-move" data-mode={mode}>
+            <label className="sv-move-label" htmlFor="sv-amount">
               {mode === 'in'
-                ? `From your balance (${formatUsd(balance ?? 0n)})`
-                : `From savings (${formatUsd(BigInt(data.balance))})`}
-            </span>
-            <span className="m-money-input">
-              <span>$</span>
+                ? `Save from your balance · ${formatUsd(balance ?? 0n)}`
+                : `Withdraw to your balance · ${formatUsd(total)} saved`}
+            </label>
+            <span className="sv-money">
+              <span aria-hidden="true">$</span>
               <input
+                id="sv-amount"
                 inputMode="decimal"
                 placeholder="0.00"
                 value={amount}
+                disabled={shut}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
               />
             </span>
-          </label>
-          {limit ? <p className="m-limit">{limit}</p> : null}
-          {error ? <p className="form-error">{error}</p> : null}
-          {done ? <p className="m-listed">{done}</p> : null}
-          <button
-            type="button"
-            className="pill pill-block"
-            data-tone={mode === 'in' ? 'coral' : 'ink'}
-            disabled={busy || shut || !profile || !(Number(amount) > 0)}
-            onClick={async () => {
-              setBusy(true)
-              setError(null)
-              setDone(null)
-              try {
-                const value = toBase(amount)
-                const account = await signingAccount(value)
-                if (mode === 'in') {
-                  if (value > (balance ?? 0n)) throw new Error('That’s more than your balance.')
-                  if (room !== null && value > room)
-                    throw new Error(`Savings can take ${formatUsd(room)} more right now.`)
-                  await saveIn(network, account, data, value)
-                  setDone(`${formatUsd(value)} is in savings.`)
-                } else {
-                  if (value > total) throw new Error('That’s more than you have in savings.')
-                  if (outNow !== null && value > outNow)
-                    throw new Error(`You can move ${formatUsd(outNow)} out right now.`)
-                  const shares = (BigInt(data.vault?.shares ?? '0') * value) / (total || 1n)
-                  await saveOut(
-                    account,
-                    data,
-                    value === total ? BigInt(data.vault?.shares ?? '0') : shares,
-                  )
-                  setDone(`${formatUsd(value)} is back in your balance.`)
-                }
-                setAmount('')
-                await Promise.all([reload(), refresh()])
-              } catch (e) {
-                setError(problemOf(e))
-              } finally {
-                setBusy(false)
-              }
-            }}
-          >
-            <span className="pill-label">
-              {busy ? 'Moving…' : mode === 'in' ? 'Move into savings' : 'Move to my balance'}
-            </span>
-            <span className="pill-cap">
-              <Icon name={mode === 'in' ? 'down' : 'up'} size={18} />
-            </span>
-          </button>
+            {shut ? null : (
+              <div className="sv-quick">
+                {(mode === 'in' ? [10_000_000n, 50_000_000n] : [])
+                  .filter((v) => v < most)
+                  .map((v) => (
+                    <button key={String(v)} type="button" onClick={() => setAmount(asTyped(v))}>
+                      {formatUsd(v)}
+                    </button>
+                  ))}
+                {most > 0n ? (
+                  <button type="button" onClick={() => setAmount(asTyped(most))}>
+                    All {formatUsd(most)}
+                  </button>
+                ) : null}
+              </div>
+            )}
+            {limit ? <p className="m-limit">{limit}</p> : null}
+            {error ? <p className="form-error">{error}</p> : null}
+            {done ? <p className="m-listed">{done}</p> : null}
+            <button
+              type="button"
+              className="pill pill-block"
+              data-tone={mode === 'in' ? 'coral' : 'ink'}
+              disabled={busy || shut || !profile || !(Number(amount) > 0)}
+              onClick={() => void move()}
+            >
+              <span className="pill-label">
+                {busy
+                  ? 'Moving…'
+                  : `${mode === 'in' ? 'Save' : 'Withdraw'}${Number(amount) > 0 ? ` $${Number(amount).toFixed(2)}` : ''}`}
+              </span>
+              <span className="pill-cap">
+                <Icon name="face" size={18} />
+              </span>
+            </button>
+            <p className="sv-fine">One passkey tap. Kova covers the fee.</p>
+          </div>
+
+          <section className="sv-where" aria-labelledby="sv-where-title">
+            <h2 className="w-section" id="sv-where-title">
+              Where it sits
+            </h2>
+            <ol className="sv-path">
+              <li>
+                <span className="sv-node">
+                  <Icon name="user" size={18} />
+                </span>
+                <strong>Your wallet</strong>
+                <small>Signs every move</small>
+              </li>
+              <li>
+                <span className="sv-node sv-node-vault">
+                  <Icon name="lock" size={18} />
+                </span>
+                <strong>{data.vault?.name ?? 'Savings vault'}</strong>
+                <small>Held in your name</small>
+              </li>
+              <li>
+                <span className="sv-node sv-node-earn">
+                  <Icon name="globe" size={18} />
+                </span>
+                <strong>Lending markets</strong>
+                <small>Where it earns</small>
+              </li>
+            </ol>
+            {data.beta ? (
+              <p className="m-risk">
+                <Icon name="info" size={16} />
+                <span>
+                  New, and not audited yet. Withdrawals can pause for a while if a market it lends
+                  to stops reporting. Only save what you could do without.
+                </span>
+              </p>
+            ) : null}
+          </section>
+
           {data.moves.length > 0 ? (
-            <>
-              <h2 className="w-section">Moves</h2>
-              <ul className="m-list">
+            <section aria-labelledby="sv-moves-title">
+              <h2 className="w-section" id="sv-moves-title">
+                Moves
+              </h2>
+              <ul className="sv-moves">
                 {data.moves.map((m) => (
                   <li key={m.tx_hash}>
-                    <span>
-                      <strong>{m.kind === 'in' ? 'Into savings' : 'Back to balance'}</strong>
+                    <span className="sv-move-icon" data-kind={m.kind}>
+                      <Icon name={m.kind === 'in' ? 'down' : 'up'} size={16} />
+                    </span>
+                    <span className="sv-move-what">
+                      <strong>{m.kind === 'in' ? 'Saved' : 'Withdrew'}</strong>
                       <small>
                         {new Date(m.at).toLocaleDateString('en-GB', {
                           day: 'numeric',
@@ -673,11 +780,14 @@ export function SavingsScreen() {
                         })}
                       </small>
                     </span>
-                    <span className="m-amount">{formatUsd(BigInt(m.amount))}</span>
+                    <span className="sv-move-amount">
+                      {m.kind === 'in' ? '+' : '−'}
+                      {formatUsd(BigInt(m.amount))}
+                    </span>
                   </li>
                 ))}
               </ul>
-            </>
+            </section>
           ) : null}
         </div>
       )}

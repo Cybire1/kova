@@ -56,12 +56,12 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Savings in a partner’s vault', () => {
-  it('says what it paid lately, that it changes, and plainly that the vault is new and unaudited', async () => {
+  it('says what it paid lately, that it changes, where it sits, and plainly that the vault is new and unaudited', async () => {
     render(<SavingsScreen />)
     expect(await screen.findByText(/About 3\.3% a year lately/)).toBeTruthy()
     expect(screen.getByText(/It changes, and isn’t a promise/)).toBeTruthy()
-    const risk = screen.getByText(/hasn’t been audited/)
-    expect(risk.textContent).toContain('Setsuna AUSD Savings')
+    expect(screen.getByText('Setsuna AUSD Savings')).toBeTruthy()
+    const risk = screen.getByText(/not audited yet/)
     expect(risk.textContent).toContain('Only save what you could do without')
   })
 
@@ -73,15 +73,15 @@ describe('Savings in a partner’s vault', () => {
     state.savings = savings({ room: '0' })
     render(<SavingsScreen />)
     expect(await screen.findByText(/Savings is full right now/)).toBeTruthy()
-    const button = screen.getByRole('button', { name: /Move into savings/ }) as HTMLButtonElement
-    expect(button.disabled).toBe(true)
+    const input = screen.getByLabelText(/Save from your balance/) as HTMLInputElement
+    expect(input.disabled).toBe(true)
   })
 
   it('offers only taking out to a wallet savings hasn’t opened to yet', async () => {
     state.savings = savings({ can_save: false, room: '0' })
     render(<SavingsScreen />)
-    expect(await screen.findByRole('tab', { name: 'Move out' })).toBeTruthy()
-    expect(screen.queryByRole('tab', { name: 'Move in' })).toBeNull()
+    expect(await screen.findByLabelText(/Withdraw to your balance/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^Save/ })).toBeNull()
     expect(screen.queryByText(/Savings is full/)).toBeNull()
   })
 
