@@ -300,7 +300,7 @@ export function StocksCard() {
     return (
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Stocks. Tesla, Nvidia, Apple and more, live prices"
+        accessibilityLabel="Stocks. Tesla, Nvidia, the S&P 500 and the Nasdaq 100, live prices"
         onPress={open}
         style={({ pressed }) => [styles.card, pressed && { transform: [{ scale: 0.98 }] }]}
       >
@@ -322,7 +322,7 @@ export function StocksCard() {
             adjustsFontSizeToFit
             minimumFontScale={0.85}
           >
-            Tesla, Nvidia, Apple and more, live
+            Tesla, Nvidia, the S&P 500 and more, live
           </Txt>
         </View>
         <Icon name="arrow" size={18} />

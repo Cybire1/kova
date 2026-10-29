@@ -20,9 +20,10 @@ async function get<T>(path: string, init?: RequestInit): Promise<T> {
   return body
 }
 
+/** The stocks Kova lists: only the ones Monad's markets carry now, so every one can be bought. */
 export const getStocks = (q = '') =>
-  get<{ data: StockQuote[] }>(`/v1/stocks${q ? `?q=${encodeURIComponent(q)}` : ''}`).then(
-    (r) => r.data,
+  get<{ data: StockQuote[] }>(`/v1/stocks${q ? `?q=${encodeURIComponent(q)}` : ''}`).then((r) =>
+    r.data.filter((s) => s.tradable !== false),
   )
 
 export const getStock = (symbol: string) =>

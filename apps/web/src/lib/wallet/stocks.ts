@@ -74,7 +74,9 @@ export function useStockList(query: string) {
     `/api/stocks${asked ? `?q=${encodeURIComponent(asked)}` : ''}`,
     asked ? 0 : 60_000,
   )
-  return { stocks: value?.data ?? null, failed, searching: asked !== query.trim() }
+  // Only stocks Monad's markets carry now, so every one listed can be bought.
+  const stocks = value?.data ? value.data.filter((s) => s.tradable !== false) : null
+  return { stocks, failed, searching: asked !== query.trim() }
 }
 
 export function useStock(symbol: string) {

@@ -115,7 +115,7 @@ export default function Stocks() {
         <TextInput
           value={q}
           onChangeText={setQ}
-          placeholder="Search Tesla, Apple, S&P 500…"
+          placeholder="Search Tesla, Nvidia, S&P 500…"
           placeholderTextColor={colors.muted}
           autoCorrect={false}
           autoCapitalize="none"

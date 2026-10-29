@@ -117,7 +117,7 @@ export function StocksCard() {
         </span>
         <span className="w-st-invite-text">
           <strong>Stocks</strong>
-          <small>Tesla, Nvidia, Apple… live prices</small>
+          <small>Tesla, Nvidia, the S&amp;P 500… live prices</small>
         </span>
         <span className="w-shopcard-go">
           <Icon name="arrow" size={18} />
@@ -209,7 +209,7 @@ export function Stocks() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search Tesla, Apple, S&P 500…"
+          placeholder="Search Tesla, Nvidia, S&P 500…"
           autoComplete="off"
           spellCheck={false}
         />

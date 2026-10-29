@@ -42,9 +42,13 @@ const alertBody = z.object({ symbol: z.string().trim().min(1).max(20) })
 export const stockRoutes = new Hono()
   .get('/stocks', async (c) => {
     const q = c.req.query('q')?.slice(0, 40) ?? ''
-    const data = await (q ? searchStocks(q) : popularStocks()).catch(() => {
+    const listed = await (q ? searchStocks(q) : popularStocks()).catch(() => {
       throw unreachable()
     })
+    // Which of them Monad's markets carry, so the app lists only stocks that can be bought.
+    const data = await Promise.all(
+      listed.map(async (s) => ({ ...s, tradable: await stockTradable(s.address) })),
+    )
     c.header('cache-control', 'public, max-age=30')
     return c.json({ object: 'list', source: 'xstocks', data })
   })
