@@ -132,7 +132,8 @@
             "buildArchs": ["arm64-v8a", "armeabi-v7a"]
           }
         }
-      ]
+      ],
+      "./plugins/android-signing.js"
     ],
     "experiments": {
       "typedRoutes": true
