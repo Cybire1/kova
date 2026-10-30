@@ -67,7 +67,10 @@ export async function createIntent(input: CreateIntentInput): Promise<PaymentInt
         network: input.merchant.network,
         // The merchant's settlement address, or with private takings, this sale's own address.
         // The memo does the attribution either way.
-        payTo: sale ? sale.stealthAddress : input.merchant.settlementAddress,
+        // With splits (and no private takings), the shop's splitter, which shares the sale out.
+        payTo: sale
+          ? sale.stealthAddress
+          : (input.merchant.splitterAddress ?? input.merchant.settlementAddress),
         memo: encodeMemo({ kind: 'payment', id }),
         reference: input.reference ?? null,
         metadata: input.metadata ?? null,

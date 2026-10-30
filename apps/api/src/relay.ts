@@ -1,5 +1,6 @@
 import {
   eip3009Abi,
+  kovaSplitterAbi,
   type Token,
   type TransferAuthorization,
   transferAuthorizationTypedData,
@@ -17,6 +18,7 @@ import { sendRawTransactionSync } from 'viem/actions'
 import { feePayerAccount, network, publicClient, walletClient } from './chain.js'
 import { config } from './config.js'
 import { KovaError } from './errors.js'
+import { splitterAt } from './services/splitters.js'
 
 /**
  * Kova's relayer on Monad.
@@ -95,15 +97,22 @@ async function submit(
     throw new KovaError('invalid_request', 'The approval was not signed by the wallet paying.')
 
   const args = transferWithAuthorizationArgs(authorization, signature)
-  const data = encodeFunctionData({
-    abi: eip3009Abi,
-    functionName: 'transferWithAuthorization',
-    args,
-  })
+  // A shop with splits is paid at its splitter: the same signed transfer goes through it, so the
+  // sale is shared out in the same transaction (packages/monad programs.ts).
+  const splitter = await splitterAt(authorization.to)
+  const [from, , value, validAfter, validBefore, nonce, v, r, s] = args
+  const target = splitter ?? token.address
+  const data = splitter
+    ? encodeFunctionData({
+        abi: kovaSplitterAbi,
+        functionName: 'collect',
+        args: [from, value, validAfter, validBefore, nonce, v, r, s],
+      })
+    : encodeFunctionData({ abi: eip3009Abi, functionName: 'transferWithAuthorization', args })
 
   let receipt: TransactionReceipt
   try {
-    receipt = await sendFromRelayer(token.address, data, { beforeBroadcast })
+    receipt = await sendFromRelayer(target, data, { beforeBroadcast })
   } catch (error) {
     if (error instanceof RefusedEstimate)
       throw await explainRefusal(token, authorization, error.cause)

@@ -26,6 +26,9 @@ const kovaAddresses = (fixed: string[]) => sql`
     )}]::text[]) as a
     union all select settlement_address from merchants
     union all select owner_address from merchants
+    union all select splitter_address from merchants
+    union all select payer from repeat_plans
+    union all select payee from repeat_plans
     union all select payer_address from payments
     union all select address from note_keys
     union all select address from wallet_stealth_keys
@@ -63,6 +66,8 @@ function fixedAddresses(): string[] {
     config.KOVA_CASH_OUT,
     config.KOVA_SAVER,
     config.KOVA_SAVINGS_VAULT,
+    config.KOVA_SPLITS,
+    config.KOVA_REPEAT,
   ].flatMap((a) =>
     typeof a === 'string' && /^0x[0-9a-fA-F]{40}$/.test(a) ? [a.toLowerCase()] : [],
   )

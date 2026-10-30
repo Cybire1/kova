@@ -74,6 +74,13 @@ export const merchants = pgTable(
      * money doesn't get to run the shop because of it.
      */
     ownerAddress: address('owner_address'),
+    /**
+     * Splits: the shop's KovaSplitter (lowercase), when it has shares. Charges are then paid there
+     * and shared out in the same transaction; null means they're paid to the settlement address.
+     */
+    splitterAddress: address('splitter_address'),
+    /** The names the shop gave its shares, by address (lowercase): Monad only knows the addresses. */
+    splitNames: jsonb('split_names').$type<Record<string, string>>(),
     country: text('country').notNull().default('NG'),
     category: text('category'),
     status: text('status').notNull().default('active'), // active | suspended
@@ -1638,5 +1645,45 @@ export const stockTrades = pgTable(
     index('stock_trades_wallet_idx').on(t.wallet, t.createdAt),
     uniqueIndex('stock_trades_ref_idx').on(t.ref),
     uniqueIndex('stock_trades_tx_idx').on(t.txHash),
+  ],
+)
+
+/**
+ * Repeat payments, mirrored from KovaRepeat on Monad (the contract is the truth; this lets the
+ * keeper find what's due and the app list a wallet's plans).
+ */
+export const repeatPlans = pgTable(
+  'repeat_plans',
+  {
+    id: id(),
+    network: network('network').notNull(),
+    /** The contract's plan id. */
+    planId: bigint('plan_id', { mode: 'bigint' }).notNull(),
+    /** Checksummed. */
+    payer: text('payer').notNull(),
+    payee: text('payee').notNull(),
+    /** What the payer calls it ("Rent", "Tolu's wage"), as they typed it. */
+    label: text('label'),
+    amount: amount('amount').notNull(),
+    /** Seconds between payments. */
+    every: integer('every').notNull(),
+    times: integer('times').notNull(),
+    /** Payments still to make, and when the next is due, as the contract last said. */
+    left: integer('left').notNull(),
+    nextAt: timestamp('next_at', { withTimezone: true }).notNull(),
+    /** active | stopped | finished */
+    status: text('status').notNull().default('active'),
+    /** Why the last collection didn't go (the wallet was short), until one does. */
+    lastProblem: text('last_problem'),
+    lastPaidAt: timestamp('last_paid_at', { withTimezone: true }),
+    startTx: text('start_tx').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('repeat_plans_plan_idx').on(t.network, t.planId),
+    index('repeat_plans_payer_idx').on(t.payer),
+    index('repeat_plans_payee_idx').on(t.payee),
+    index('repeat_plans_due_idx').on(t.status, t.nextAt),
   ],
 )

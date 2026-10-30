@@ -130,6 +130,12 @@ const schema = z.object({
   KOVA_SAVINGS_VAULT: z.string().optional(),
   KOVA_SAVER: z.string().optional(),
   /**
+   * Programmable payments (apps/card/contracts): KovaSplits makes each shop's splitter, so its
+   * sales are shared out as they land; KovaRepeat holds repeat payments. Unset, both are off.
+   */
+  KOVA_SPLITS: z.string().optional(),
+  KOVA_REPEAT: z.string().optional(),
+  /**
    * Who can put money into savings: wallet addresses, comma-separated, while a vault is tried out,
    * or `everyone`. Unset, it's everyone on testnet and nobody on mainnet, so pointing mainnet at a
    * vault never opens it to all by itself. Anyone already holding savings can always take them out.

@@ -21,6 +21,7 @@ import { moneyRoutes } from './routes/money.js'
 import { nairaRoutes } from './routes/naira.js'
 import { orderRoutes } from './routes/orders.js'
 import { phoneRoutes } from './routes/phone.js'
+import { programRoutes } from './routes/programs.js'
 import { rateRoutes } from './routes/rates.js'
 import { reportRoutes } from './routes/reports.js'
 import { spendKeyRoutes } from './routes/spend-keys.js'
@@ -39,6 +40,7 @@ import { expireStaleIntents } from './services/intents.js'
 import { checkPayingCashOuts, retryTopUps } from './services/naira.js'
 import { recoverPhonePayments } from './services/phone-payments.js'
 import { reconcilePendingPockets } from './services/pockets.js'
+import { collectDueRepeats, releaseSplitters } from './services/programs.js'
 import { rateBook } from './services/rates.js'
 import { popularStocks } from './services/stocks.js'
 import { expireTrips } from './services/travel.js'
@@ -80,6 +82,7 @@ app.route('/v1', ussdRoutes)
 app.route('/v1', phoneRoutes)
 app.route('/v1', cardRoutes)
 app.route('/v1', spendKeyRoutes)
+app.route('/v1', programRoutes)
 app.route('/v1', demoRoutes)
 app.route('/v1', rateRoutes)
 app.route('/v1', stockTradeRoutes)
@@ -116,6 +119,14 @@ if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js
   }
   expire()
   setInterval(expire, 30_000)
+  // Programmable payments: share out what reached a splitter another way, and collect the repeat
+  // payments that are due (each as the contract on Monad decides).
+  const programs = () => {
+    void releaseSplitters().catch((error) => console.error('[splits]', error))
+    void collectDueRepeats().catch((error) => console.error('[repeat]', error))
+  }
+  programs()
+  setInterval(programs, 30_000)
   // Rates change every 15 minutes at most; keep Kova Travel's copy fresh without waiting for a request.
   void rateBook()
   setInterval(() => void rateBook(), 5 * 60_000)
