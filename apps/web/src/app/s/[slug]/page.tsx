@@ -17,12 +17,23 @@ export async function generateMetadata(props: {
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const stall = await load((await props.params).slug)
-  return stall
-    ? {
-        title: { absolute: `${stall.name} · order and pay with Kova` },
-        description: stall.tagline ?? `Order from ${stall.name} and pay in dollars with Kova.`,
-      }
-    : { title: 'Stall' }
+  if (!stall) return { title: 'Stall' }
+  // A shared shop link previews as the shop (its name, line and cover photo), not as Kova.
+  const title = `${stall.name} · order and pay with Kova`
+  const description = stall.tagline ?? `Order from ${stall.name} and pay in dollars with Kova.`
+  const images = stall.cover_url ? [{ url: stall.cover_url, alt: stall.name }] : undefined
+  return {
+    title: { absolute: title },
+    description,
+    openGraph: {
+      title,
+      description,
+      siteName: 'Kova',
+      type: 'website',
+      ...(images ? { images } : {}),
+    },
+    twitter: { card: 'summary_large_image', title, description, ...(images ? { images } : {}) },
+  }
 }
 
 export default async function StallPage(props: {
