@@ -190,6 +190,8 @@ build, with free test dollars, for the phone-payment demo.
 | AUSD (Agora), the dollar every payment moves | [`0x00000000eFE3…9012a`](https://monadscan.com/address/0x00000000eFE302BEAA2b3e6e1b18d08D69a9012a) |
 | Kova's relayer, which pays everyone's gas | [`0x67d18542…7fa967`](https://monadscan.com/address/0x67d185427d896aaf1d8781E094f1Bad16f7fa967) |
 | KovaCard, the contract behind every spending key | [`0x9bee9F2D…Ef325E`](https://monadscan.com/address/0x9bee9F2D59d9675F2723B274e1276F5931Ef325E) |
+| KovaSplits, which shares out each shop's sales as they land (every shop gets its own splitter) | [`0x5a5A8f84…1E6b3a`](https://monadscan.com/address/0x5a5A8f84F1058b4eb9f650201Af2bb20b11E6b3a) |
+| KovaRepeat, repeat payments: collected only when due, stopped by the payer at any time | [`0x97C8720b…9f4370`](https://monadscan.com/address/0x97C8720b11db819934bFd8cF0D9E6C4baC9f4370) |
 | ERC-5564 announcer and ERC-6538 registry | [`0x55649E01…5564`](https://monadscan.com/address/0x55649E01B5Df198D18D95b5cc5051630cfD45564), [`0x6538E6bf…6538`](https://monadscan.com/address/0x6538E6bf4B0eBd30A8Ea093027Ac2422ce5d6538) |
 | Gas-free $1.00 transfers through Kova's relayer | [`0x98b3d548…`](https://monadscan.com/tx/0x98b3d548bd1e6c726b1687718de8e08ed7fc1895f90b8004416cdbc4deef7ba4), [`0x370e22dd…`](https://monadscan.com/tx/0x370e22dd3791638643ecaa10a610874cea9093222757bbe1e5b6da9ad3104930), [`0xd7e2300f…`](https://monadscan.com/tx/0xd7e2300fc3a2fa639fa922871466a4abe39f7a345425c5ecf342896f790fe528) |
 
