@@ -42,7 +42,41 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/brand/icon-foreground.png",
         "backgroundColor": "#E7E5E0"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "mykova.app",
+              "pathPrefix": "/pay/"
+            },
+            {
+              "scheme": "https",
+              "host": "mykova.app",
+              "pathPrefix": "/s/"
+            },
+            {
+              "scheme": "https",
+              "host": "mykova.app",
+              "pathPrefix": "/to/"
+            },
+            {
+              "scheme": "https",
+              "host": "mykova.app",
+              "path": "/o"
+            },
+            {
+              "scheme": "https",
+              "host": "mykova.app",
+              "pathPrefix": "/a/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "plugins": [
       [
@@ -88,6 +122,14 @@
           "dark": {
             "image": "./assets/brand/splash-mark-dark.png",
             "backgroundColor": "#000000"
+          }
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "buildArchs": ["arm64-v8a", "armeabi-v7a"]
           }
         }
       ]

@@ -42,6 +42,13 @@
       "ios": {
         "simulator": true
       }
+    },
+    "android-apk": {
+      "extends": "production",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
