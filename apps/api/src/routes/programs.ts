@@ -10,6 +10,7 @@ import {
   prepareSplits,
   prepareStopRepeat,
   type RepeatInput,
+  repeatContract,
   saveSplits,
   shopSplits,
   startRepeat,
@@ -24,7 +25,7 @@ import {
  *   POST /splits/prepare         { shares } → what to sign
  *   POST /splits                 { shares, deadline, signature } → saved on Monad
  * A wallet's repeat payments (public, like keys: the signatures are the proof):
- *   GET  /wallets/:address/repeats                       paying and getting
+ *   GET  /wallets/:address/repeats                       paying and getting, and whether it's on
  *   POST /wallets/:address/repeats/prepare               the plan → what to sign
  *   POST /wallets/:address/repeats                       the plan, its signature and permit → started
  *   POST /wallets/:address/repeats/:id/stop/prepare      → what to sign
@@ -111,7 +112,12 @@ export const programRoutes = new Hono()
   })
 
   .get('/wallets/:address/repeats', async (c) =>
-    c.json({ object: 'list', data: await listRepeats(wallet(c.req.param('address'))) }),
+    c.json({
+      object: 'list',
+      // Whether new plans can start here (off until KovaRepeat is configured).
+      live: Boolean(repeatContract()),
+      data: await listRepeats(wallet(c.req.param('address'))),
+    }),
   )
   .post('/wallets/:address/repeats/prepare', async (c) => {
     const body = await bodyOf(c, plan)
@@ -123,7 +129,11 @@ export const programRoutes = new Hono()
       plan.extend({
         deadline: z.string().regex(/^\d+$/),
         signature: hex,
-        permit: z.object({ deadline: z.string().regex(/^\d+$/), signature: hex }),
+        permit: z.object({
+          value: z.string().regex(/^\d+$/),
+          deadline: z.string().regex(/^\d+$/),
+          signature: hex,
+        }),
       }),
     )
     return c.json(
@@ -132,7 +142,11 @@ export const programRoutes = new Hono()
         toPlan(body),
         body.deadline,
         body.signature as `0x${string}`,
-        { deadline: body.permit.deadline, signature: body.permit.signature as `0x${string}` },
+        {
+          value: body.permit.value,
+          deadline: body.permit.deadline,
+          signature: body.permit.signature as `0x${string}`,
+        },
       ),
       201,
     )

@@ -307,7 +307,7 @@ const tokenNoncesAbi = [
 export async function prepareRepeat(payer: Address, input: RepeatInput) {
   const contract = needRepeat()
   checkPlan(payer, input)
-  const [nonce, permitNonce] = await Promise.all([
+  const [nonce, permitNonce, allowed] = await Promise.all([
     publicClient.readContract({
       address: contract,
       abi: kovaRepeatAbi,
@@ -320,6 +320,12 @@ export async function prepareRepeat(payer: Address, input: RepeatInput) {
       functionName: 'nonces',
       args: [payer],
     }),
+    publicClient.readContract({
+      address: settlementToken.address,
+      abi: erc20Abi,
+      functionName: 'allowance',
+      args: [payer, contract],
+    }),
   ])
   return {
     contract,
@@ -327,7 +333,9 @@ export async function prepareRepeat(payer: Address, input: RepeatInput) {
     token: settlementToken.address,
     nonce: nonce.toString(),
     permit_nonce: permitNonce.toString(),
-    permit_value: (input.amount * BigInt(input.times)).toString(),
+    // One allowance covers all of a wallet's plans: this one's most, on top of what the others
+    // can still take. The contract only ever draws what each plan says.
+    permit_value: (allowed + input.amount * BigInt(input.times)).toString(),
     deadline: String(Math.floor(Date.now() / 1000) + SIGN_FOR),
   }
 }
@@ -338,7 +346,7 @@ export async function startRepeat(
   input: RepeatInput,
   deadline: string,
   signature: Hex,
-  permit: { deadline: string; signature: Hex },
+  permit: { value: string; deadline: string; signature: Hex },
 ) {
   const contract = needRepeat()
   checkPlan(payer, input)
@@ -364,6 +372,9 @@ export async function startRepeat(
   if (!signer || !isAddressEqual(signer, payer))
     throw new KovaError('invalid_request', 'The plan was not signed by the wallet paying.')
   const cap = input.amount * BigInt(input.times)
+  const permitValue = BigInt(permit.value)
+  if (permitValue < cap)
+    throw new KovaError('invalid_request', 'The approval doesn’t cover the plan. Try again.')
   let receipt: Awaited<ReturnType<typeof sendFromRelayer>>
   try {
     receipt = await sendFromRelayer(
@@ -380,7 +391,7 @@ export async function startRepeat(
           input.times,
           BigInt(deadline),
           signature,
-          splitPermit(cap, BigInt(permit.deadline), permit.signature),
+          splitPermit(permitValue, BigInt(permit.deadline), permit.signature),
         ],
       }),
       { maxGas: REPEAT_MAX_GAS },

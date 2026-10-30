@@ -42,6 +42,7 @@ const chain = vi.hoisted(() => ({
     stopped: boolean
   },
   due: false,
+  allowance: 0n,
   nextId: BigInt(Date.now()),
   sent: [] as { to: string; data: Hex }[],
 }))
@@ -62,6 +63,7 @@ vi.mock('../src/chain.js', async (original) => {
         if (functionName === 'planOf') return chain.plan
         if (functionName === 'due') return chain.due
         if (functionName === 'balanceOf') return 0n
+        if (functionName === 'allowance') return chain.allowance
         throw new Error(`unexpected read ${functionName}`)
       },
     },
@@ -148,6 +150,7 @@ beforeEach(() => {
   chain.rules = { to: [], bps: [] }
   chain.plan = null
   chain.due = false
+  chain.allowance = 0n
   chain.sent.length = 0
 })
 
@@ -273,6 +276,7 @@ describe('repeat payments', () => {
     )
     expect(prepared.permit_value).toBe('200000000')
     return programs.startRepeat(payer.address, input, prepared.deadline, signature, {
+      value: prepared.permit_value,
       deadline: prepared.deadline,
       signature: `0x${'11'.repeat(32)}${'22'.repeat(32)}1b`,
     })
@@ -288,6 +292,19 @@ describe('repeat payments', () => {
     expect(plan.role).toBe('paying')
     const theirs = await programs.listRepeats(landlord)
     expect(theirs.some((p) => p.id === plan.id && p.role === 'getting')).toBe(true)
+  })
+
+  it('ask for an allowance on top of what the wallet’s other plans can still take', async () => {
+    const payer = privateKeyToAccount(generatePrivateKey())
+    chain.allowance = 120_000_000n // another plan's $120 still to come
+    const prepared = await programs.prepareRepeat(payer.address, {
+      payee: landlord,
+      amount: 50_000_000n,
+      every: 7 * 86_400,
+      start: Math.floor(Date.now() / 1000),
+      times: 4,
+    })
+    expect(prepared.permit_value).toBe('320000000')
   })
 
   it('refuse a plan signed by anyone but the payer', async () => {
@@ -310,6 +327,7 @@ describe('repeat payments', () => {
     )
     await expect(
       programs.startRepeat(payer.address, input, prepared.deadline, forged, {
+        value: prepared.permit_value,
         deadline: prepared.deadline,
         signature: forged,
       }),
