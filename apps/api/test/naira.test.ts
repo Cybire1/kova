@@ -79,6 +79,16 @@ describe('naira quotes', () => {
     expect(quote.fee).toBe(1_000n)
   })
 
+  it('turns naira into the fewest whole cents that pay at least that much, fee and all', async () => {
+    for (const kobo of [500_000n, 1_234_567n, 5_000_000n, 25_000_000n]) {
+      const quote = await naira.quoteCashOutForNaira(kobo)
+      expect(quote.units % 10_000n).toBe(0n)
+      expect(quote.naira).toBeGreaterThanOrEqual(kobo)
+      expect((await naira.quoteCashOut(quote.units - 10_000n)).naira).toBeLessThan(kobo)
+      expect(quote.naira).toBe((await naira.quoteCashOut(quote.units)).naira)
+    }
+  })
+
   it('charges for a top-up so Paystack’s fee is covered and the wallet gets every dollar', async () => {
     const quote = await naira.quoteTopUp(10_000_000n)
     const paystackTakes = (quote.naira * 15n) / 1000n + 10_000n

@@ -48,6 +48,10 @@ interface Recent {
 }
 
 const RECENTS = 'kova.naira.recents.v1'
+const UNIT = 'kova.naira.unit.v1'
+
+/** What the amount is typed in: naira (what the bank account gets) or dollars (what leaves). */
+type Unit = 'ngn' | 'usd'
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const dollars = (base: bigint) => (Number(base) / 1e6).toFixed(2)
 const nairaText = (n: number) =>
@@ -85,7 +89,12 @@ export default function CashOutScreen() {
   const { width } = useWindowDimensions()
   const [info, setInfo] = useState<NairaInfo | null>(null)
   const [step, setStep] = useState<Step>('amount')
+  const [unit, setUnit] = useState<Unit>('ngn')
   const [typed, setTyped] = useState('')
+  /** For an amount typed in naira: the dollars it takes, for exactly that typed amount. */
+  const [byNaira, setByNaira] = useState<{ typed: string; dollars: string; naira: string } | null>(
+    null,
+  )
   const [preview, setPreview] = useState<string | null>(null)
   const [banks, setBanks] = useState<NairaBank[] | null>(null)
   const [recents, setRecents] = useState<Recent[]>([])
@@ -122,6 +131,9 @@ export default function CashOutScreen() {
 
   useEffect(() => {
     void naira.info().then(setInfo)
+    void SecureStore.getItemAsync(UNIT)
+      .then((u) => setUnit(u === 'usd' ? 'usd' : 'ngn'))
+      .catch(() => {})
     void SecureStore.getItemAsync(RECENTS)
       .then((raw) => {
         const list = raw ? (JSON.parse(raw) as Recent[]) : []
@@ -141,19 +153,51 @@ export default function CashOutScreen() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, from the dev link
   useEffect(() => {
     if (!__DEV__ || !dev.amount) return
+    setUnit('usd')
     setTyped(dev.amount)
     if (dev.account) setAccount(dev.account)
     if (dev.step === 'account' || dev.step === 'review') setStep('account')
   }, [])
 
   const onKey = useCallback((key: Key) => setTyped((v) => applyKey(v, key, 2)), [])
+  // Naira typed: ask Kova what it takes in dollars (whole cents, at least that much naira).
+  useEffect(() => {
+    if (unit !== 'ngn' || !info?.enabled || !typed || !(Number(typed) > 0)) return
+    const asked = typed.replace(/\.$/, '')
+    const id = setTimeout(() => {
+      void naira
+        .quoteByNaira(asked)
+        .then((q) => q.amount && setByNaira({ typed, dollars: q.amount, naira: q.naira }))
+        .catch(() => setByNaira(null))
+    }, 250)
+    return () => clearTimeout(id)
+  }, [typed, unit, info?.enabled])
+  // The dollars that leave the wallet, whichever way the amount was typed.
   const amount = useMemo(() => {
+    const value = unit === 'usd' ? typed : byNaira?.typed === typed ? byNaira.dollars : ''
     try {
-      return typed && Number(typed) > 0 ? toBase(Number(typed).toFixed(2)) : 0n
+      return value && Number(value) > 0 ? toBase(Number(value).toFixed(2)) : 0n
     } catch {
       return 0n
     }
-  }, [typed])
+  }, [typed, unit, byNaira])
+
+  /** Naira ⇄ dollars, keeping the amount: what's on screen becomes the other side of the quote. */
+  const flip = () => {
+    void Haptics.selectionAsync()
+    const next: Unit = unit === 'ngn' ? 'usd' : 'ngn'
+    const other =
+      next === 'usd'
+        ? amount > 0n
+          ? dollars(amount).replace(/\.00$/, '')
+          : ''
+        : preview
+          ? String(Math.floor(Number(preview.replace(/[₦,]/g, ''))))
+          : ''
+    setTyped(other)
+    setUnit(next)
+    void SecureStore.setItemAsync(UNIT, next).catch(() => {})
+  }
   // A new amount needs a new quote.
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the amount changes, by design
   useEffect(() => {
@@ -425,25 +469,42 @@ export default function CashOutScreen() {
         <View style={styles.flow}>
           <View style={styles.amountBlock}>
             <Txt weight="semi" size={13} color={colors.muted}>
-              You send
+              {unit === 'ngn' ? 'They get' : 'You send'}
             </Txt>
             <View style={styles.typed}>
               <Txt weight="semi" size={24} color={colors.muted} style={{ marginTop: 8 }}>
-                $
+                {unit === 'ngn' ? '₦' : '$'}
               </Txt>
               <Txt weight="bold" size={52} exact style={{ letterSpacing: -1.5 }}>
                 {groupTyped(typed) || '0'}
               </Txt>
             </View>
-            <View style={styles.getsPill}>
-              <Coin symbol="₦" size={22} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                unit === 'ngn' ? 'Type the amount in dollars' : 'Type the amount in naira'
+              }
+              onPress={flip}
+              hitSlop={6}
+              style={({ pressed }) => [styles.getsPill, pressed && { opacity: 0.6 }]}
+            >
+              <Coin symbol={unit === 'ngn' ? '$' : '₦'} size={22} />
               <Txt weight="medium" size={14} color={colors.muted}>
-                They get
+                {unit === 'ngn' ? 'You send' : 'They get'}
               </Txt>
               <Txt weight="bold" size={15}>
-                {preview && !over ? preview : '₦—'}
+                {unit === 'ngn'
+                  ? amount > 0n
+                    ? `$${dollars(amount)}`
+                    : typed
+                      ? '…'
+                      : '$0.00'
+                  : preview && !over
+                    ? preview
+                    : '₦—'}
               </Txt>
-            </View>
+              <Icon name="swap" size={14} color={colors.ink} />
+            </Pressable>
           </View>
           <View style={styles.chips}>
             {have !== null ? (
@@ -459,7 +520,15 @@ export default function CashOutScreen() {
                 accessibilityLabel={`Cash out everything, ${formatUsd(have)}`}
                 onPress={() => {
                   void Haptics.selectionAsync()
-                  setTyped(dollars(have))
+                  if (unit === 'usd') return setTyped(dollars(have))
+                  // In naira: everything you have, as the whole naira it pays.
+                  void naira
+                    .quote(dollars(have), 'out')
+                    .then((q) => setTyped(String(Math.floor(Number(q.naira.replace(/[₦,]/g, ''))))))
+                    .catch(() => {
+                      setUnit('usd')
+                      setTyped(dollars(have))
+                    })
                 }}
                 hitSlop={8}
                 style={({ pressed }) => [styles.maxChip, pressed && { opacity: 0.6 }]}

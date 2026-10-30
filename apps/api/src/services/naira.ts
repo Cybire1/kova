@@ -169,26 +169,51 @@ export async function nameOnAccount(accountNumber: string, bankCode: string): Pr
   return pajAccountName(bankCode, accountNumber, tokenFor('USDC').address)
 }
 
-export async function quoteCashOut(units: bigint) {
+/** Today's cash-out rate, and the partner's fee on what it pays out. */
+async function cashOutRate() {
   if (nairaPartner() === 'paj') {
     const { offRamp } = await pajRates()
     // The swap to USDC costs about a basis point, and PAJ is asked for 0.1% under it.
     const rate = (offRamp * Number(10_000n - PAJ_MARGIN_BPS - 1n)) / 10_000
-    const naira = toKobo(units, rate, 'down')
-    return { market: offRamp, source: 'paj' as const, rate, gross: naira, fee: 0n, naira }
+    return { market: offRamp, source: 'paj' as const, rate, fee: (_gross: bigint) => 0n }
   }
   const market = await marketRate()
   const rate = market.perUsd * (1 - config.KOVA_NAIRA_SPREAD)
-  const gross = toKobo(units, rate, 'down')
-  const fee = transferFee(gross)
+  return { market: market.perUsd, source: market.source, rate, fee: transferFee }
+}
+
+function cashOutAt(units: bigint, r: Awaited<ReturnType<typeof cashOutRate>>) {
+  const gross = toKobo(units, r.rate, 'down')
+  const fee = r.fee(gross)
   return {
-    market: market.perUsd,
-    source: market.source,
-    rate,
+    market: r.market,
+    source: r.source,
+    rate: r.rate,
     gross,
     fee,
     naira: gross > fee ? gross - fee : 0n,
   }
+}
+
+export async function quoteCashOut(units: bigint) {
+  return cashOutAt(units, await cashOutRate())
+}
+
+const CENT = 10_000n
+
+/**
+ * The other way round, for people who think in naira: the fewest dollars (in whole cents) that
+ * pay at least `kobo` into the bank account, and what they pay exactly.
+ */
+export async function quoteCashOutForNaira(kobo: bigint) {
+  const r = await cashOutRate()
+  const covers = (units: bigint) => cashOutAt(units, r).naira >= kobo
+  const guess = (Number(kobo + r.fee(kobo)) / 100 / r.rate) * 1e6
+  let units = (BigInt(Math.ceil(guess)) / CENT + 1n) * CENT
+  // The guess is within a cent or two; walk to the exact edge.
+  for (let i = 0; i < 20 && !covers(units); i++) units += CENT
+  for (let i = 0; i < 20 && units > CENT && covers(units - CENT); i++) units -= CENT
+  return { units, ...cashOutAt(units, r) }
 }
 
 export async function quoteTopUp(units: bigint) {

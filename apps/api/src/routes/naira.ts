@@ -22,6 +22,7 @@ import {
   pajOrderEvent,
   payCashOut,
   quoteCashOut,
+  quoteCashOutForNaira,
   quoteTopUp,
   refreshPajCashOut,
   serializeCashOut,
@@ -41,6 +42,7 @@ import { webhookIsPaystack } from '../services/paystack.js'
  *   GET  /naira/banks                             Nigerian banks the partner can pay
  *   POST /naira/account                           the name on an account number at a bank
  *   GET  /naira/quote?amount=&direction=in|out    what an amount comes to in naira
+ *   GET  /naira/quote?naira=&direction=out        the dollars a cash-out takes to pay that much naira
  *   POST /wallets/:address/cash-outs              a quote for dollars out to a bank
  *   POST /cash-outs/:id/pay                       the wallet's signed transfer: relay it, pay the naira
  *   GET  /cash-outs/:id                           one cash-out
@@ -119,6 +121,23 @@ nairaRoutes.post('/naira/account', async (c) => {
 
 nairaRoutes.get('/naira/quote', async (c) => {
   needNaira()
+  // A cash-out can be asked for by what the bank account should get: ?naira=50000&direction=out.
+  const naira = c.req.query('naira')
+  if (naira !== undefined && c.req.query('direction') !== 'in') {
+    if (!/^\d{1,10}(\.\d{1,2})?$/.test(naira))
+      throw new KovaError('invalid_request', 'Give an amount in naira.')
+    const [whole = '0', kobo = ''] = naira.split('.')
+    const quote = await quoteCashOutForNaira(BigInt(whole) * 100n + BigInt(kobo.padEnd(2, '0')))
+    return c.json({
+      direction: 'out',
+      amount: formatAmount(quote.units),
+      naira: formatNaira(quote.naira),
+      naira_kobo: quote.naira.toString(),
+      rate: quote.rate.toFixed(2),
+      fee: formatNaira(quote.fee),
+      rate_source: quote.source,
+    })
+  }
   const amount = c.req.query('amount') ?? ''
   if (!/^\d{1,7}(\.\d{1,6})?$/.test(amount))
     throw new KovaError('invalid_request', 'Give an amount in dollars.')
@@ -126,6 +145,7 @@ nairaRoutes.get('/naira/quote', async (c) => {
     const quote = await quoteTopUp(parseAmount(amount))
     return c.json({
       direction: 'in',
+      amount: formatAmount(parseAmount(amount)),
       naira: formatNaira(quote.naira),
       naira_kobo: quote.naira.toString(),
       rate: quote.rate.toFixed(2),
@@ -136,6 +156,7 @@ nairaRoutes.get('/naira/quote', async (c) => {
   const quote = await quoteCashOut(parseAmount(amount))
   return c.json({
     direction: 'out',
+    amount: formatAmount(parseAmount(amount)),
     naira: formatNaira(quote.naira),
     naira_kobo: quote.naira.toString(),
     rate: quote.rate.toFixed(2),

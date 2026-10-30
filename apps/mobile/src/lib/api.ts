@@ -967,6 +967,8 @@ export interface NairaBank {
 }
 
 export interface NairaQuote {
+  /** The dollars: what was asked, or for a quote by naira, what it takes. */
+  amount?: string
   naira: string
   rate: string
   fee: string
@@ -1002,6 +1004,9 @@ export const naira = {
     }).then((r) => r.account_name),
   quote: (dollars: string, direction: 'in' | 'out') =>
     request<NairaQuote>(`/v1/naira/quote?amount=${dollars}&direction=${direction}`),
+  /** A cash-out by what the bank account should get: the dollars it takes, and the naira exactly. */
+  quoteByNaira: (amount: string) =>
+    request<NairaQuote>(`/v1/naira/quote?naira=${amount}&direction=out`),
   cashOut: (wallet: string, input: { amount: string; bankCode: string; accountNumber: string }) =>
     request<import('./chain').CashOutToPay>(`/v1/wallets/${wallet}/cash-outs`, {
       method: 'POST',

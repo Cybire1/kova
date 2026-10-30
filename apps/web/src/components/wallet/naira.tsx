@@ -30,6 +30,8 @@ export interface NairaInfo {
 }
 
 interface Quote {
+  /** The dollars, as the API reads them: what was asked, or for a quote by naira, what it takes. */
+  amount?: string
   naira: string
   rate: string
   fee: string
@@ -94,6 +96,25 @@ export function useQuote(amount: string, direction: 'in' | 'out', enabled: boole
     }, 250)
     return () => clearTimeout(timer)
   }, [amount, direction, enabled])
+  return quote
+}
+
+/** Naira as typed: up to ten digits, kobo optional. */
+export const NAIRA = /^\d{1,10}(\.\d{0,2})?$/
+
+/** A cash-out asked for by what the bank account should get: the dollars it takes, and the naira exactly. */
+export function useNairaQuote(naira: string, enabled: boolean) {
+  const [quote, setQuote] = useState<Quote | null>(null)
+  useEffect(() => {
+    setQuote(null)
+    if (!enabled || !NAIRA.test(naira) || Number(naira) <= 0) return
+    const timer = setTimeout(() => {
+      void json<Quote>(`/api/naira/naira/quote?naira=${naira.replace(/\.$/, '')}&direction=out`)
+        .then(setQuote)
+        .catch(() => setQuote(null))
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [naira, enabled])
   return quote
 }
 

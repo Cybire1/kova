@@ -7906,6 +7906,40 @@ button.w-chip-private:disabled {
   font-weight: 800;
 }
 
+/* The amount's other side is a button: tap it to type in that currency instead. */
+.cx-flip {
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    transform 0.12s ease;
+}
+
+.cx-flip:hover {
+  border-color: var(--ink);
+}
+
+.cx-flip:active {
+  transform: scale(0.97);
+}
+
+.cx-flip svg {
+  margin-left: 0.125rem;
+  color: var(--ink);
+}
+
+.cx-get-coin {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--teal, #46878b);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
 .cx-chips {
   display: flex;
   justify-content: center;

@@ -194,6 +194,13 @@ describe('cashing out through PAJ', () => {
     expect(quote.naira).toBe(BigInt(Math.floor(10 * 1378.07 * 0.9989 * 100)))
   })
 
+  it('turns ₦50,000 into the fewest whole cents that pay at least that much', async () => {
+    const quote = await naira.quoteCashOutForNaira(5_000_000n)
+    expect(quote.naira).toBeGreaterThanOrEqual(5_000_000n)
+    expect(quote.units % 10_000n).toBe(0n)
+    expect((await naira.quoteCashOut(quote.units - 10_000n)).naira).toBeLessThan(5_000_000n)
+  })
+
   it('asks PAJ for 0.1% under the live swap, and the wallet signs a nonce naming PAJ and that USDC', async () => {
     const { row, cashOut } = await quoted()
     expect(row.partner).toBe('paj')

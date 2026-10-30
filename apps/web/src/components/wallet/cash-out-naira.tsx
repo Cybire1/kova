@@ -5,10 +5,10 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Art, Icon } from '@/components/brand'
 import type { CashOutToPay } from '@/lib/wallet/chain'
-import { applyKey, formatUsd, type Key } from '@/lib/wallet/money'
+import { applyKey, formatUsd, groupTyped, type Key } from '@/lib/wallet/money'
 import { ScreenHead } from './activity'
 import { Steps } from './flow'
-import { DOLLARS, json, nairaText, useNaira, useQuote } from './naira'
+import { DOLLARS, json, nairaText, useNaira, useNairaQuote, useQuote } from './naira'
 import { useWallet } from './provider'
 import { SlideToSend } from './send'
 import { Keypad } from './ui'
@@ -44,6 +44,18 @@ type Check =
   | { code: string; state: 'missed'; why: string }
 
 const RECENTS = 'kova.web.naira.recents.v1'
+const UNIT = 'kova.web.naira.unit.v1'
+
+/** What the amount is typed in: naira (what the bank account gets) or dollars (what leaves). */
+type Unit = 'ngn' | 'usd'
+
+function readUnit(): Unit {
+  try {
+    return localStorage.getItem(UNIT) === 'usd' ? 'usd' : 'ngn'
+  } catch {
+    return 'ngn'
+  }
+}
 
 function readRecents(): Recent[] {
   try {
@@ -82,7 +94,15 @@ export function NairaCashOut() {
   const info = useNaira()
   const enabled = info?.enabled === true
   const [step, setStep] = useState<Step>('amount')
-  const [amount, setAmount] = useState('')
+  const [unit, setUnit] = useState<Unit>('ngn')
+  const [typed, setTyped] = useState('')
+  const byNaira = useNairaQuote(unit === 'ngn' ? typed : '', enabled)
+  // The dollars that leave the wallet, whichever way the amount was typed.
+  const amount = unit === 'usd' ? typed : (byNaira?.amount ?? '')
+  const setAmount = useCallback((dollars: string) => {
+    setUnit('usd')
+    setTyped(dollars)
+  }, [])
   const estimate = useQuote(amount, 'out', enabled)
   const [banks, setBanks] = useState<Bank[]>([])
   const [recents, setRecents] = useState<Recent[]>([])
@@ -97,12 +117,30 @@ export function NairaCashOut() {
   const [took, setTook] = useState<number | null>(null)
   const sentAt = useRef(0)
   const onKey = useCallback((key: Key) => {
-    setAmount((v) => applyKey(v, key, 2))
+    setTyped((v) => applyKey(v, key, 2))
     setCheck(null)
     setCashOut(null)
   }, [])
 
-  useEffect(() => setRecents(readRecents()), [])
+  useEffect(() => {
+    setRecents(readRecents())
+    setUnit(readUnit())
+  }, [])
+
+  /** Naira ⇄ dollars, keeping the amount: what's on screen becomes the other side of the quote. */
+  const flip = () => {
+    const next: Unit = unit === 'ngn' ? 'usd' : 'ngn'
+    const kobo = estimate ? Number(estimate.naira.replace(/[₦,]/g, '')) : null
+    setTyped(next === 'usd' ? amount.replace(/\.00$/, '') : kobo ? String(Math.floor(kobo)) : '')
+    setUnit(next)
+    setCheck(null)
+    setCashOut(null)
+    try {
+      localStorage.setItem(UNIT, next)
+    } catch {
+      // Not remembered on this browser.
+    }
+  }
 
   // Development only, for films and screenshots: ?capture=<JSON> opens a step with its data. Next
   // drops this from production builds (NODE_ENV is inlined).
@@ -122,7 +160,10 @@ export function NairaCashOut() {
         /** For the sending step: how long ago the payment left, so "Done in N seconds" counts from it. */
         elapsed?: number
       }
-      if (c.amount) setAmount(c.amount)
+      if (c.amount) {
+        setUnit('usd')
+        setTyped(c.amount)
+      }
       if (c.account) setAccount(c.account)
       if (c.bank) setBank(c.bank)
       if (c.bank && c.name) setCheck({ code: c.bank.code, state: 'named', name: c.name })
@@ -509,19 +550,41 @@ export function NairaCashOut() {
         <ScreenHead title="Cash out to naira" />
         <div className="cx w-fill">
           <div className="cx-amount">
-            <span className="cx-amount-label">You send</span>
+            <span className="cx-amount-label">{unit === 'ngn' ? 'They get' : 'You send'}</span>
             <p className="cx-big" aria-live="polite">
-              <span aria-hidden="true">$</span>
-              <strong key={amount} className={amount ? 'cx-big-num' : 'cx-big-num cx-big-empty'}>
-                {amount || '0'}
+              <span aria-hidden="true">{unit === 'ngn' ? '₦' : '$'}</span>
+              <strong key={typed} className={typed ? 'cx-big-num' : 'cx-big-num cx-big-empty'}>
+                {groupTyped(typed)}
               </strong>
-              <span className="w-sr">dollars</span>
+              <span className="w-sr">{unit === 'ngn' ? 'naira' : 'dollars'}</span>
             </p>
-            <span className="cx-get">
-              {/* biome-ignore lint/performance/noImgElement: pre-sized WebP art, no optimizer needed */}
-              <img src="/art/coin-ngn.webp" alt="" />
-              They get <strong>{estimate?.naira ?? '₦0.00'}</strong>
-            </span>
+            <button
+              type="button"
+              className="cx-get cx-flip"
+              onClick={flip}
+              aria-label={
+                unit === 'ngn' ? 'Type the amount in dollars' : 'Type the amount in naira'
+              }
+            >
+              {unit === 'ngn' ? (
+                <span className="cx-get-coin" aria-hidden="true">
+                  $
+                </span>
+              ) : (
+                // biome-ignore lint/performance/noImgElement: pre-sized WebP art, no optimizer needed
+                <img src="/art/coin-ngn.webp" alt="" />
+              )}
+              {unit === 'ngn' ? (
+                <>
+                  You send <strong>{byNaira ? `$${byNaira.amount}` : typed ? '…' : '$0.00'}</strong>
+                </>
+              ) : (
+                <>
+                  They get <strong>{estimate?.naira ?? '₦0.00'}</strong>
+                </>
+              )}
+              <Icon name="swap" size={14} />
+            </button>
           </div>
           <div className="cx-chips">
             <span className={short ? 'cx-chip cx-chip-bad' : 'cx-chip'}>
@@ -535,7 +598,15 @@ export function NairaCashOut() {
               <button
                 type="button"
                 className="cx-chip cx-chip-line"
-                onClick={() => setAmount((Math.floor(max * 100) / 100).toFixed(2))}
+                onClick={() => {
+                  const dollars = (Math.floor(max * 100) / 100).toFixed(2)
+                  if (unit === 'usd') return setTyped(dollars)
+                  void json<{ naira_kobo: string }>(
+                    `/api/naira/naira/quote?amount=${dollars}&direction=out`,
+                  )
+                    .then((q) => setTyped(String(Math.floor(Number(q.naira_kobo) / 100))))
+                    .catch(() => setAmount(dollars))
+                }}
               >
                 Max
               </button>
