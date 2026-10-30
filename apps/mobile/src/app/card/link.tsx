@@ -2,8 +2,8 @@ import { cardPinProblem } from '@kova/monad'
 import * as Haptics from 'expo-haptics'
 import { router } from 'expo-router'
 import { useState } from 'react'
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
-import { isCancelled, type KovaCard, linkCard } from '@/lib/card'
+import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { holdCard, isCancelled, type KovaCard, linkCard } from '@/lib/card'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { CardArt } from '@/ui/art'
@@ -141,7 +141,7 @@ export default function LinkCard() {
         </View>
         <Rise style={styles.copy}>
           <Txt weight="semi" size={34} style={styles.title}>
-            Hold your card to the top of your iPhone.
+            {holdCard('your card')}.
           </Txt>
           <Txt size={17} color={colors.onTint} style={styles.body}>
             Keep it there until the phone says it’s read, about a second. Then Face ID approves the
@@ -317,5 +317,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   phone: { alignItems: 'center', justifyContent: 'center' },
-  antenna: { position: 'absolute', top: -40 },
+  // An iPhone reads at its top edge; an Android phone, behind the card.
+  antenna: { position: 'absolute', ...(Platform.OS === 'ios' ? { top: -40 } : {}) },
 })

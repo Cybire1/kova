@@ -12,8 +12,9 @@ import {
   unlinkTypedData,
   updateTypedData,
 } from '@kova/monad'
+import * as Haptics from 'expo-haptics'
 import * as SecureStore from 'expo-secure-store'
-import { Platform } from 'react-native'
+import { AppState, Platform } from 'react-native'
 import NfcManager, { NfcTech } from 'react-native-nfc-manager'
 import {
   type Address,
@@ -140,8 +141,87 @@ export async function canReadCards(): Promise<boolean> {
 }
 
 /**
+ * Where a card goes on this phone. An iPhone reads at the top edge; an Android phone's antenna is
+ * on its back, usually around the middle (it moves from model to model).
+ */
+export const holdCard = (what: string) =>
+  Platform.OS === 'ios'
+    ? `Hold ${what} to the top of your iPhone`
+    : `Hold ${what} flat against the back of your phone`
+
+/**
+ * A tap as it happens, for the sheet Android has no system version of (ui/CardTapSheet). iPhone
+ * shows Apple's own NFC sheet instead, so there this stays empty.
+ *   off       NFC is switched off in the phone's settings
+ *   waiting   ready: hold the card to the phone
+ *   reading   the card is there: keep holding while it reads and signs
+ *   done      read; the sheet closes itself
+ *   failed    what went wrong, for a moment; then it closes
+ */
+export type TapStage = 'off' | 'waiting' | 'reading' | 'done' | 'failed'
+export interface TapSession {
+  prompt: string
+  stage: TapStage
+  message?: string
+}
+
+let session: TapSession | null = null
+const watchers = new Set<(s: TapSession | null) => void>()
+function show(next: TapSession | null) {
+  session = next
+  for (const w of watchers) w(next)
+}
+
+/** The tap now, and every change to it. Returns the unsubscribe. */
+export function watchTap(watch: (s: TapSession | null) => void): () => void {
+  watchers.add(watch)
+  watch(session)
+  return () => {
+    watchers.delete(watch)
+  }
+}
+
+let stopWaitingForNfc: (() => void) | null = null
+
+/** The person closed the tap sheet: stop listening for the card. */
+export function cancelTap() {
+  stopWaitingForNfc?.()
+  void NfcManager.cancelTechnologyRequest().catch(() => {})
+}
+
+/** Opens Android's NFC settings; the tap goes on by itself when they come back with NFC on. */
+export async function openNfcSettings() {
+  await NfcManager.goToNfcSetting().catch(() => {})
+}
+
+/** On Android, NFC can be off. Ask for it, and wait until it's on (or the person gives up). */
+async function nfcOn(prompt: string) {
+  if (Platform.OS !== 'android') return
+  if (await NfcManager.isEnabled().catch(() => true)) return
+  show({ prompt, stage: 'off' })
+  await new Promise<void>((resolve, reject) => {
+    const sub = AppState.addEventListener('change', async (state) => {
+      if (state !== 'active' || !(await NfcManager.isEnabled().catch(() => false))) return
+      done()
+      resolve()
+    })
+    const done = () => {
+      sub.remove()
+      stopWaitingForNfc = null
+    }
+    stopWaitingForNfc = () => {
+      done()
+      reject(new CardError('Cancelled.', 0, { cancelled: true }))
+    }
+  })
+}
+
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/**
  * Opens an NFC session, runs `work` against the card held to the phone, and closes it. On iPhone
- * the system sheet shows `prompt`, then `done` when the work succeeds.
+ * the system sheet shows `prompt`, then `done` when the work succeeds; on Android, Kova's own
+ * sheet does (ui/CardTapSheet), with NFC switched on first if it's off.
  */
 export async function withCard<T>(
   prompt: string,
@@ -157,20 +237,42 @@ export async function withCard<T>(
     await NfcManager.start()
     started = true
   }
+  const android = Platform.OS === 'android'
   try {
+    await nfcOn(prompt)
+    if (android) show({ prompt, stage: 'waiting' })
     await NfcManager.requestTechnology(NfcTech.IsoDep, { alertMessage: prompt })
+    if (android) {
+      show({ prompt, stage: 'reading' })
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    }
     const transceive: Transceive = async (apdu) => NfcManager.isoDepHandler.transceive(apdu)
     const result = await work(transceive)
     if (Platform.OS === 'ios') await NfcManager.setAlertMessageIOS(done).catch(() => {})
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    if (android) {
+      show({ prompt, stage: 'done', message: done })
+      await pause(900)
+      show(null)
+    }
     return result
   } catch (error) {
+    const message =
+      error instanceof HaloError || error instanceof CardError
+        ? error.message
+        : 'That didn’t work. Try again.'
     if (Platform.OS === 'ios')
-      await NfcManager.invalidateSessionWithErrorIOS(
-        error instanceof HaloError || error instanceof CardError
-          ? error.message
-          : 'That didn’t work. Try again.',
-      ).catch(() => {})
-    throw cancelled(error) ? new CardError('Cancelled.', 0, { cancelled: true }) : error
+      await NfcManager.invalidateSessionWithErrorIOS(message).catch(() => {})
+    const gaveUp = cancelled(error) || isCancelled(error)
+    if (android) {
+      if (gaveUp) show(null)
+      else {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+        show({ prompt, stage: 'failed', message })
+        void pause(1800).then(() => session?.stage === 'failed' && show(null))
+      }
+    }
+    throw gaveUp ? new CardError('Cancelled.', 0, { cancelled: true }) : error
   } finally {
     await NfcManager.cancelTechnologyRequest().catch(() => {})
   }
@@ -210,7 +312,7 @@ export async function linkCard(plan: LinkPlan, signTypedData: SignTypedData): Pr
   const deadline = inTenMinutes()
 
   const { card, cardSignature } = await withCard(
-    'Hold your Kova Card to the top of your iPhone',
+    holdCard('your Kova Card'),
     async (transceive) => {
       const address = await readCard(transceive)
       const status = await cardStatus(address)
@@ -340,7 +442,7 @@ export interface ReadTap {
  */
 export async function readTap(paymentIntent: string): Promise<{ tap: ReadTap; signature: Hex }> {
   return withCard(
-    'Hold the Kova Card to the top of the iPhone',
+    holdCard('the Kova Card'),
     async (transceive) => {
       const card = await readCard(transceive)
       const prepared = await post<

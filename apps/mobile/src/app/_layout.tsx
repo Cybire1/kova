@@ -26,6 +26,7 @@ import { takeTokenArrival, useTokenWatch, useWalletTokens } from '@/lib/tokens'
 import { TravelProvider } from '@/lib/travel'
 import { useWallet, WalletProvider } from '@/lib/wallet'
 import { OrderWatcher } from '@/lib/watch'
+import { CardTapSheet } from '@/ui/CardTapSheet'
 
 void SplashScreen.preventAutoHideAsync()
 
@@ -171,6 +172,7 @@ export default function RootLayout() {
                           <ArrivalWatcher />
                           <TokenArrivalWatcher />
                           <OrderWatcher />
+                          <CardTapSheet />
                           <DevLaunch />
                           <Stack
                             screenOptions={{
