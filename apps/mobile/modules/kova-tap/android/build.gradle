@@ -1,0 +1,15 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'xyz.kova.tap'
+version = '0.1.0'
+
+android {
+  namespace "xyz.kova.tap"
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+}

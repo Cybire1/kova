@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The NFC Forum Type 4 Tag application: any phone reading a tag selects this AID first. -->
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+  android:description="@string/kova_tap_service"
+  android:requireDeviceUnlock="false">
+  <aid-group android:description="@string/kova_tap_service" android:category="other">
+    <aid-filter android:name="D2760000850101" />
+  </aid-group>
+</host-apdu-service>

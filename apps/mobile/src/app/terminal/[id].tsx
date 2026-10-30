@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics'
 import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import QRCode from 'react-native-qrcode-svg'
 import { cancelCharge, getCharge, type PaymentIntent, payLinkFor } from '@/lib/api'
@@ -23,6 +23,7 @@ import {
   Txt,
 } from '@/ui/primitives'
 import { Stage as KoviStage } from '@/ui/Stage'
+import { offerTapLink, onPhoneTapped, tapToPhoneSupported } from '../../../modules/kova-tap'
 
 /**
  * The screen the merchant turns toward the customer. Read from across a counter, so it says
@@ -99,6 +100,25 @@ export default function CustomerDisplay() {
       clearInterval(poll)
     }
   }, [id])
+
+  // Tap a phone to pay (Android tills): while the charge waits, this phone answers a tap with its
+  // pay link, so the customer's phone opens the payment to approve. Not while a Kova Card is being
+  // read (the phone is the reader then), and never once it's paid or stopped.
+  const tapToPhone = useMemo(() => tapToPhoneSupported(), [])
+  const [phoneTapped, setPhoneTapped] = useState(false)
+  const offering = tapToPhone && intent?.status !== 'paid' && tap.at === 'idle'
+  useEffect(() => {
+    if (!offering) return
+    offerTapLink(payLinkFor(id))
+    const sub = onPhoneTapped(() => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+      setPhoneTapped(true)
+    })
+    return () => {
+      sub.remove()
+      offerTapLink(null)
+    }
+  }, [offering, id])
 
   // The price as the shop entered it travels in the link; reopened without it, fall back to the
   // charge's own dollar amount.
@@ -267,10 +287,14 @@ export default function CustomerDisplay() {
         <View style={styles.how}>
           <View style={styles.tapDisc}>
             <Ping size={40} color={colors.ink} />
-            <Icon name="scan" size={18} color={colors.white} />
+            <Icon name={tapToPhone ? 'tap' : 'scan'} size={18} color={colors.white} />
           </View>
-          <Txt weight="medium" size={15}>
-            Scan with Kova Pay or any phone camera
+          <Txt weight="medium" size={15} style={{ flexShrink: 1 }}>
+            {phoneTapped
+              ? 'Their phone has it: they approve the payment there'
+              : tapToPhone
+                ? 'Scan the code, or tap your phone on this one'
+                : 'Scan with Kova Pay or any phone camera'}
           </Txt>
         </View>
         {tap.at === 'idle' && tap.problem ? (
