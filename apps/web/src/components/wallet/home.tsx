@@ -111,6 +111,13 @@ export function Home() {
       <ShopCard />
 
       <StocksCard />
+      <Link href="/wallet/repeat" className="w-add-chain">
+        <span>
+          <strong>Repeat payments</strong>
+          <small>Rent, school fees, a wage every Friday: paid by itself when it’s due</small>
+        </span>
+        <Icon name="repeat" size={16} />
+      </Link>
       <Link href="/wallet/keys" className="w-add-chain">
         <span>
           <strong>Keys</strong>

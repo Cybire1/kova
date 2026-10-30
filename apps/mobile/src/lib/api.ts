@@ -38,6 +38,24 @@ export function onOwnerKeyRevoked(handler: (() => void) | null) {
   revoked.owner = handler
 }
 
+/** Kova said no: its own words, and the HTTP status, for the few screens that read it. */
+export class ApiError extends Error {
+  readonly status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    // Keeps instanceof working where classes extending Error are transpiled.
+    Object.setPrototypeOf(this, ApiError.prototype)
+  }
+}
+
+/** The HTTP status Kova answered with, or null when it wasn't Kova that failed (no connection). */
+export const statusOf = (error: unknown): number | null => {
+  const status = (error as { status?: unknown } | null)?.status
+  return typeof status === 'number' ? status : null
+}
+
 async function request<T>(path: string, init: RequestInit & { auth?: Auth } = {}): Promise<T> {
   const { auth, ...rest } = init
   const key = auth ? keys[auth] : null
@@ -52,7 +70,10 @@ async function request<T>(path: string, init: RequestInit & { auth?: Auth } = {}
   const body = (await response.json().catch(() => ({}))) as { error?: { message?: string } }
   if (auth && key && response.status === 401) revoked[auth]?.()
   if (!response.ok)
-    throw new Error(body.error?.message ?? `Kova is unreachable (${response.status})`)
+    throw new ApiError(
+      body.error?.message ?? `Kova is unreachable (${response.status})`,
+      response.status,
+    )
   return body as T
 }
 
@@ -1201,3 +1222,157 @@ export async function getTeamKeys(
   const body = (await response.json().catch(() => ({}))) as { data?: TeamKey[] }
   return { available: true, data: body.data ?? [] }
 }
+
+// --- programmable payments (the API's routes/programs.ts) ----------------------------------------
+
+/** A payment that repeats, from either side: the wallet pays it, or it pays the wallet. */
+export interface RepeatPayment {
+  object: 'repeat_payment'
+  id: string
+  plan_id: string
+  role: 'paying' | 'getting'
+  payer: `0x${string}`
+  payee: `0x${string}`
+  label: string | null
+  /** Dollars each time, e.g. "50.00". */
+  amount: string
+  /** Seconds between payments. */
+  every: number
+  times: number
+  left: number
+  paid: number
+  /** When the next one is collected. Null once it's stopped or finished. */
+  next_at: string | null
+  status: 'active' | 'stopped' | 'finished'
+  /** Why the last one didn't go, in plain words, e.g. the wallet was short. */
+  problem: string | null
+  last_paid_at: string | null
+  created_at: string
+  tx_hash?: string
+}
+
+export interface RepeatPlanInput {
+  payee: `0x${string}`
+  /** Dollars each time, e.g. "50.00". */
+  amount: string
+  every: number
+  /** Unix seconds of the first payment. */
+  start: number
+  times: number
+  label?: string
+}
+
+/** What the payer signs to start a plan: the plan, and a permit for the most it can ever take. */
+export interface RepeatToSign {
+  contract: `0x${string}`
+  chain_id: number
+  token: `0x${string}`
+  nonce: string
+  permit_nonce: string
+  /** Base units: the amount times the most payments. */
+  permit_value: string
+  deadline: string
+}
+
+export interface RepeatStopToSign {
+  contract: `0x${string}`
+  chain_id: number
+  plan_id: string
+  nonce: string
+  deadline: string
+}
+
+/** Kova hasn't switched this on yet on this network: a 404 that says so. */
+export const notSwitchedOn = (error: unknown) =>
+  statusOf(error) === 404 && error instanceof Error && /switched on/i.test(error.message)
+
+export const listRepeats = (wallet: string) =>
+  request<{ data: RepeatPayment[] }>(`/v1/wallets/${wallet}/repeats`).then((r) => r.data)
+
+/** The same list, and whether new plans can start (off until Kova switches repeat payments on). */
+export const repeatsOf = (wallet: string) =>
+  request<{ live?: boolean; data: RepeatPayment[] }>(`/v1/wallets/${wallet}/repeats`)
+
+export const prepareRepeat = (wallet: string, plan: RepeatPlanInput) =>
+  request<RepeatToSign>(`/v1/wallets/${wallet}/repeats/prepare`, {
+    method: 'POST',
+    body: JSON.stringify(plan),
+  })
+
+export const startRepeat = (
+  wallet: string,
+  plan: RepeatPlanInput & {
+    deadline: string
+    signature: `0x${string}`
+    permit: { value: string; deadline: string; signature: `0x${string}` }
+  },
+) =>
+  request<RepeatPayment>(`/v1/wallets/${wallet}/repeats`, {
+    method: 'POST',
+    body: JSON.stringify(plan),
+  })
+
+export const prepareStopRepeat = (wallet: string, id: string) =>
+  request<RepeatStopToSign>(`/v1/wallets/${wallet}/repeats/${id}/stop/prepare`, {
+    method: 'POST',
+  })
+
+export const stopRepeat = (
+  wallet: string,
+  id: string,
+  stop: { deadline: string; signature: `0x${string}` },
+) =>
+  request<RepeatPayment>(`/v1/wallets/${wallet}/repeats/${id}/stop`, {
+    method: 'POST',
+    body: JSON.stringify(stop),
+  })
+
+export interface SplitShareOut {
+  to: `0x${string}`
+  /** Basis points: 1000 is 10%. */
+  bps: number
+  name?: string
+}
+
+/** A shop's splits: off on this network, or its shares as Monad has them. */
+export type ShopSplits =
+  | { object: 'splits'; live: false }
+  | {
+      object: 'splits'
+      live: true
+      contract: `0x${string}`
+      chain_id: number
+      /** The wallet the shop is paid into: the only one that can sign its shares. */
+      owner: `0x${string}`
+      splitter: `0x${string}`
+      on: boolean
+      shares: SplitShareOut[]
+      private_takings: boolean
+      tx_hash?: string
+    }
+
+export interface SplitsToSign {
+  contract: `0x${string}`
+  chain_id: number
+  owner: `0x${string}`
+  to: `0x${string}`[]
+  bps: number[]
+  nonce: string
+  deadline: string
+}
+
+export const getSplits = () => request<ShopSplits>('/v1/splits', { auth: 'owner' })
+
+export const prepareSplits = (shares: SplitShareOut[]) =>
+  request<SplitsToSign>('/v1/splits/prepare', {
+    method: 'POST',
+    auth: 'owner',
+    body: JSON.stringify({ shares }),
+  })
+
+export const saveSplits = (shares: SplitShareOut[], deadline: string, signature: `0x${string}`) =>
+  request<ShopSplits>('/v1/splits', {
+    method: 'POST',
+    auth: 'owner',
+    body: JSON.stringify({ shares, deadline, signature }),
+  })

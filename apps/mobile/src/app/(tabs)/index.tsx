@@ -266,6 +266,34 @@ export default function Home() {
 
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Repeat payments. Rent, school fees, a wage every Friday"
+        onPress={() => router.push('/repeat')}
+        style={({ pressed }) => [
+          styles.keysRow,
+          { marginTop: 12 },
+          pressed && { transform: [{ scale: 0.98 }] },
+        ]}
+      >
+        <KeyIcon name="clock" tone={colors.tealSoft} />
+        <View style={{ flex: 1 }}>
+          <Txt weight="bold" size={18} style={{ letterSpacing: -0.3 }}>
+            Repeat payments
+          </Txt>
+          <Txt
+            size={12}
+            color={colors.onTint}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
+            Rent, school fees, a wage every Friday
+          </Txt>
+        </View>
+        <Icon name="arrow" size={18} />
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
         accessibilityLabel="Travel. Flights and hotels, paid in dollars"
         onPress={() => router.push('/travel')}
         style={({ pressed }) => [styles.travel, pressed && { transform: [{ scale: 0.98 }] }]}

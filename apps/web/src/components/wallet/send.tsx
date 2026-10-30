@@ -600,8 +600,28 @@ export function Fit({ children }: { children: React.ReactNode }) {
   )
 }
 
+/**
+ * Picking a wallet for something other than a one-off send (a repeat payment, a shop's share):
+ * only a person's wallet, by name, .nad name, Kova link or address; never a phone, a link or a shop.
+ */
+export interface PeoplePick {
+  /** The step's heading: "Who gets it?" */
+  title: string
+  /** What a found person's row says before their name: "Pay", "Share with". */
+  verb: string
+  /** What shows with nobody saved yet. */
+  empty: string
+}
+
 /** Who to send to: one field for a name, an address or a link; your people one tap away. */
-function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string }) => void }) {
+export function Who({
+  onPick,
+  people,
+}: {
+  onPick: (p: Payee & { amount?: string; note?: string }) => void
+  /** Only people's wallets, worded for this flow (repeat payments, splits). */
+  people?: PeoplePick
+}) {
   const router = useRouter()
   const { contacts, activity, network } = useWallet()
   const [text, setText] = useState('')
@@ -618,8 +638,23 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
         )
       : contacts
 
+  const verb = people?.verb ?? 'Send to'
   const go = (value: string) => {
     const phone = phoneInput(value)
+    if (people) {
+      const s = parseScanned(value)
+      if (phone || !s)
+        return setError(
+          phone
+            ? 'This goes to a wallet, not a phone number. Ask them for their .nad name or Kova link.'
+            : 'That isn’t a .nad name, a Kova link or a wallet address.',
+        )
+      if (s.kind !== 'person')
+        return setError(
+          'That’s a link for a payment, not a person. Ask them for their own Kova link or address.',
+        )
+      return onPick({ address: getAddress(s.address), name: s.name ?? undefined })
+    }
     if (phone) return router.push(`/wallet/send/phone?phone=${encodeURIComponent(phone)}`)
     const s = parseScanned(value)
     if (!s) return setError('That isn’t a Kova link or a wallet address.')
@@ -652,7 +687,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
 
   return (
     <div>
-      <h2 className="w-sheet-h">Send to</h2>
+      <h2 className="w-sheet-h">{people?.title ?? 'Send to'}</h2>
       <form
         className="w-find"
         onSubmit={(e) => {
@@ -672,8 +707,8 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
             setText(e.target.value)
             setError(null)
           }}
-          placeholder="Name, phone, address or link"
-          aria-label="Name, phone, address or link"
+          placeholder={people ? 'Name, .nad name or address' : 'Name, phone, address or link'}
+          aria-label={people ? 'Name, .nad name or address' : 'Name, phone, address or link'}
           spellCheck={false}
           autoComplete="off"
         />
@@ -699,12 +734,14 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
             Paste
           </button>
         )}
-        <Link href="/wallet/pay" className="w-find-scan" aria-label="Scan their code">
-          <Icon name="scan" size={18} />
-        </Link>
+        {people ? null : (
+          <Link href="/wallet/pay" className="w-find-scan" aria-label="Scan their code">
+            <Icon name="scan" size={18} />
+          </Link>
+        )}
       </form>
       {error ? <p className="form-error">{error}</p> : null}
-      {phoneInput(text) ? (
+      {phoneInput(text) && !people ? (
         <button className="w-match" type="button" onClick={() => go(text)}>
           <Icon name="send" size={20} />
           <span>
@@ -729,7 +766,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
             </span>
           )}
           <span>
-            <strong>{nad.state === 'found' ? `Send to ${nad.name}` : nad.name}</strong>
+            <strong>{nad.state === 'found' ? `${verb} ${nad.name}` : nad.name}</strong>
             <small>
               {nad.state === 'found'
                 ? `Their .nad name, ${short(nad.address)}`
@@ -743,7 +780,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
           {nad.state === 'found' ? <Icon name="arrow" size={18} /> : null}
         </button>
       ) : null}
-      {!query ? (
+      {!query && !people ? (
         <Link className="w-linkrow" href="/wallet/send/phone">
           <Icon name="send" size={20} />
           <span className="w-linkrow-text">
@@ -754,7 +791,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
         </Link>
       ) : null}
 
-      {scanned?.kind === 'claim' ? (
+      {scanned?.kind === 'claim' && !people ? (
         <button type="button" className="w-match" onClick={() => go(text)}>
           <span className="w-linkrow-disc">
             <Icon name="gift" size={20} />
@@ -767,7 +804,7 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
         </button>
       ) : null}
 
-      {query ? null : (
+      {query || people ? null : (
         <>
           <Link href="/wallet/send/link" className="w-linkrow">
             <span className="w-linkrow-disc">
@@ -791,11 +828,15 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
         <button type="button" className="w-match" onClick={() => go(text)}>
           <Avatar name={scanned.name ?? scanned.address} id={scanned.address} size={44} />
           <span>
-            <strong>Send to {scanned.name ?? short(scanned.address)}</strong>
+            <strong>
+              {verb} {scanned.name ?? short(scanned.address)}
+            </strong>
             <small>
-              {scanned.amount
-                ? `They asked for $${scanned.amount}${scanned.note ? `, for ${scanned.note}` : ''}`
-                : 'Wallet address, ready to pay'}
+              {people
+                ? `Wallet address, ${short(scanned.address)}`
+                : scanned.amount
+                  ? `They asked for $${scanned.amount}${scanned.note ? `, for ${scanned.note}` : ''}`
+                  : 'Wallet address, ready to pay'}
             </small>
           </span>
           <Icon name="arrow" size={18} />
@@ -805,10 +846,10 @@ function Who({ onPick }: { onPick: (p: Payee & { amount?: string; note?: string 
       {contacts.length === 0 && !scanned ? (
         <div className="w-empty w-empty-art">
           <Art name="kovi-ride" size={104} className="w-bob" />
-          <strong>Send your first payment</strong>
+          <strong>{people ? people.title : 'Send your first payment'}</strong>
           <span>
-            Type a friend’s .nad name, or paste their Kova link or wallet address. It lands in about
-            a second, and Kova covers the fee.
+            {people?.empty ??
+              'Type a friend’s .nad name, or paste their Kova link or wallet address. It lands in about a second, and Kova covers the fee.'}
           </span>
         </div>
       ) : null}

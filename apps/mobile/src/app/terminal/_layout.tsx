@@ -51,6 +51,10 @@ export default function TerminalLayout() {
           />
           <Stack.Screen name="team" options={{ contentStyle: { backgroundColor: colors.paper } }} />
           <Stack.Screen
+            name="splits"
+            options={{ contentStyle: { backgroundColor: colors.paper } }}
+          />
+          <Stack.Screen
             name="snap"
             options={{
               presentation: 'fullScreenModal',

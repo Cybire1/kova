@@ -205,6 +205,7 @@ export default function Profile() {
       {/* Dollars people sent privately, waiting at one-time addresses only this wallet can open. */}
       <PrivateRow />
       <KeysRow />
+      <RepeatRow />
 
       {/* Paying from a phone with no data: a small pocket spent by dialling Kova's USSD code. */}
       <Sticker
@@ -597,6 +598,31 @@ function KeysRow() {
           </Txt>
           <Txt size={13} color={colors.muted} numberOfLines={1}>
             Allowances, your team and AI agents
+          </Txt>
+        </View>
+        <Icon name="arrow" size={20} />
+      </View>
+    </Sticker>
+  )
+}
+
+/** Repeat payments: rent, fees, wages, paid when due until you stop them. */
+function RepeatRow() {
+  return (
+    <Sticker
+      radius={24}
+      accessibilityLabel="Repeat payments. Rent, school fees, a wage every Friday"
+      onPress={() => router.push('/repeat')}
+      style={{ height: 62, marginTop: 14 }}
+    >
+      <View style={[styles.cashOut, { gap: 14 }]}>
+        <Icon name="clock" size={22} />
+        <View style={{ flex: 1 }}>
+          <Txt weight="semi" size={16}>
+            Repeat payments
+          </Txt>
+          <Txt size={13} color={colors.muted} numberOfLines={1}>
+            Rent, school fees, a wage every Friday
           </Txt>
         </View>
         <Icon name="arrow" size={20} />

@@ -122,6 +122,14 @@ export function Profile() {
         <Icon name="lock" size={16} />
       </Link>
 
+      <Link href="/wallet/repeat" className="w-add-chain">
+        <span>
+          <strong>Repeat payments</strong>
+          <small>What you pay on repeat, what’s paid to you, and stopping any of it</small>
+        </span>
+        <Icon name="repeat" size={16} />
+      </Link>
+
       <Link href="/wallet/keys" className="w-add-chain">
         <span>
           <strong>Keys</strong>

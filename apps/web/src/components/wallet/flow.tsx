@@ -13,6 +13,7 @@ const FLOWS = [
   '/wallet/pay',
   '/wallet/add',
   '/wallet/convert-mon',
+  '/wallet/repeat/new',
 ]
 
 export const isFlow = (path: string) => {

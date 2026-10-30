@@ -426,6 +426,43 @@ export interface TakingsMove {
   error?: string
 }
 
+/** One share of every sale: to whom, how much (basis points, 1000 is 10%), and what the shop calls it. */
+export interface SplitShareOut {
+  to: `0x${string}`
+  bps: number
+  name?: string
+}
+
+/** GET /v1/splits: off until Kova's splits contract is set; otherwise the shop's shares. */
+export type Splits =
+  | { object: 'splits'; live: false }
+  | {
+      object: 'splits'
+      live: true
+      contract: `0x${string}`
+      chain_id: number
+      /** The wallet the shop is paid into: the only one that can set its shares. */
+      owner: `0x${string}`
+      /** Where sales are paid while splits are on; it shares each one out as it lands. */
+      splitter: `0x${string}`
+      on: boolean
+      shares: SplitShareOut[]
+      /** Private takings pay a new address per sale, so they can't be split. */
+      private_takings: boolean
+      tx_hash?: string
+    }
+
+/** POST /v1/splits/prepare: the Rules the shop's wallet signs. */
+export interface SplitsToSign {
+  contract: `0x${string}`
+  chain_id: number
+  owner: `0x${string}`
+  to: `0x${string}`[]
+  bps: number[]
+  nonce: string
+  deadline: string
+}
+
 /** Upload image bytes as the signed-in shop (route handlers only). */
 export async function kovaUpload(bytes: ArrayBuffer, contentType: string) {
   const session = await getSession()

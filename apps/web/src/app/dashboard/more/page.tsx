@@ -32,6 +32,12 @@ const ROWS: { href: string; icon: IconName; title: string; sub: string }[] = [
     sub: 'Sales only you can add up, and a view for your accountant',
   },
   {
+    href: '/wallet/shop/splits',
+    icon: 'split',
+    title: 'Splits',
+    sub: 'Share every sale as it lands: to savings, a partner, the rest to you',
+  },
+  {
     href: '/dashboard/settings',
     icon: 'settings',
     title: 'Settings',

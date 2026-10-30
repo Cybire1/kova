@@ -111,6 +111,12 @@ export default function ShopTab() {
       {owned ? (
         <Group title="Business">
           <Row
+            icon="grid"
+            label="Splits"
+            value="Share out every sale as it lands: savings, a partner"
+            onPress={() => router.push('/terminal/splits')}
+          />
+          <Row
             icon="chart"
             label="Business"
             value="This month’s payroll, suppliers and your team"

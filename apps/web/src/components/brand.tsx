@@ -241,6 +241,15 @@ const glyphs = {
     'M12 7c-1.5-3-5-3.5-5-1.2C7 7 9.5 7 12 7z',
     'M12 7c1.5-3 5-3.5 5-1.2C17 7 14.5 7 12 7z',
   ],
+  // A payment that comes round again, and a sale shared out three ways (repeat.tsx, splits.tsx).
+  repeat: [
+    'M17 2.5l3 3-3 3',
+    'M4 11V9.5a4 4 0 0 1 4-4h12',
+    'M7 21.5l-3-3 3-3',
+    'M20 13v1.5a4 4 0 0 1-4 4H4',
+  ],
+  split: ['M3 12h6', 'M9 12c3.5 0 4.5-6 8.5-6H21', 'M9 12h12', 'M9 12c3.5 0 4.5 6 8.5 6H21'],
+  calendar: ['M4 6h16v14H4z', 'M4 10.5h16', 'M8.5 3.5v4', 'M15.5 3.5v4'],
 } as const
 
 export type IconName = keyof typeof glyphs

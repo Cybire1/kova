@@ -1,0 +1,1184 @@
+/*
+ * Repeat payments (components/wallet/repeat.tsx) and a shop's splits (components/wallet/splits.tsx):
+ * the wallet's paper, ink outlines, teal for money at rest, coral for the action that signs.
+ */
+
+/* ── Shared ───────────────────────────────────────────────────────────────────────────────── */
+
+.rp-skel {
+  display: grid;
+  gap: 0.75rem;
+  animation: w-fade 0.35s 0.18s ease backwards;
+}
+
+.rp-skel-hero {
+  min-height: 9.5rem;
+}
+
+.rp-skel-row {
+  min-height: 6.5rem;
+}
+
+.rp-retry {
+  margin-top: 0.5rem;
+}
+
+.rp-center {
+  text-align: center;
+}
+
+.rp-go {
+  margin-top: 1rem;
+}
+
+/* Who it's to, at the top of each step. */
+.rp-to {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.25rem;
+  padding: 0.5rem 0.875rem 0.5rem 0.5rem;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.rp-to > span:not(.w-face) {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.rp-to strong {
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-to small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* A plain-words warning: short last time, a rule a share breaks. */
+.rp-short {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.625rem 0 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: 1rem;
+  background: var(--coral-soft);
+  color: #6e2219;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.rp-short svg {
+  flex: none;
+  margin-top: 0.1rem;
+}
+
+:root[data-theme="dark"] .rp-short {
+  color: #f1b3a8;
+}
+
+.rp-sure-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Quick picks: how many times, or a share's percentage. */
+.rp-quick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.rp-quick button {
+  display: grid;
+  justify-items: center;
+  gap: 0.05rem;
+  min-height: 3.5rem;
+  padding: 0.5rem 0.25rem;
+  border: 2px solid var(--line);
+  border-radius: 1.125rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 0.3s var(--spring),
+    background-color 0.2s;
+}
+
+.rp-quick button:active {
+  transform: scale(0.96);
+}
+
+.rp-quick strong {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-quick small {
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.rp-quick .rp-quick-on {
+  background: var(--fill);
+  color: var(--on-fill);
+}
+
+.rp-quick .rp-quick-on small {
+  color: var(--on-ink);
+}
+
+:root[data-theme="dark"] .rp-quick .rp-quick-on {
+  background: #343434;
+  color: var(--ink);
+}
+
+/* ── Repeat payments: the list ────────────────────────────────────────────────────────────── */
+
+.rp-hero {
+  position: relative;
+  display: grid;
+  gap: 0.15rem;
+  min-height: 9.5rem;
+  padding: 1rem 1.125rem 1.125rem;
+  border: 2px solid var(--line);
+  border-radius: 1.5rem;
+  background: var(--teal);
+  color: #fff;
+  overflow: hidden;
+}
+
+:root[data-theme="dark"] .rp-hero {
+  background:
+    radial-gradient(120% 130% at 100% 0%, rgba(95, 165, 169, 0.26), transparent 60%), var(--surface);
+  color: var(--ink);
+}
+
+.rp-hero-kovi {
+  position: absolute;
+  right: -0.25rem;
+  bottom: -0.5rem;
+  pointer-events: none;
+}
+
+.rp-hero-label {
+  position: relative;
+  margin: 0;
+  color: var(--on-teal, rgba(255, 255, 255, 0.82));
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+:root[data-theme="dark"] .rp-hero-label {
+  color: var(--muted);
+}
+
+.rp-hero-amount {
+  position: relative;
+  margin: 0;
+  font-size: 2.75rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-hero-amount small {
+  font-size: 1.375rem;
+  letter-spacing: -0.02em;
+  vertical-align: 0.95rem;
+}
+
+.rp-hero-line {
+  position: relative;
+  max-width: calc(100% - 6rem);
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.rp-hero-chips {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.625rem;
+}
+
+.rp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.625rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+:root[data-theme="dark"] .rp-chip {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.rp-new {
+  margin-top: 0.875rem;
+}
+
+.rp-plans {
+  display: grid;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rp-plan {
+  display: grid;
+  gap: 0.625rem;
+  padding: 0.875rem;
+  border: 2px solid var(--line);
+  border-radius: 1.375rem;
+  background: var(--surface);
+}
+
+.rp-plan[data-status="stopped"],
+.rp-plan[data-status="finished"] {
+  border-style: dashed;
+  background: transparent;
+}
+
+.rp-plan[data-status="stopped"] .rp-plan-top,
+.rp-plan[data-status="finished"] .rp-plan-top {
+  opacity: 0.7;
+}
+
+.rp-plan-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.rp-plan-text,
+.rp-plan-money {
+  display: grid;
+  line-height: 1.3;
+}
+
+.rp-plan-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.rp-plan-text strong,
+.rp-plan-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-plan-text strong {
+  font-size: 0.9375rem;
+  font-weight: 750;
+}
+
+.rp-plan-text small,
+.rp-plan-money small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.rp-plan-money {
+  flex: none;
+  text-align: right;
+}
+
+.rp-plan-money strong {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-bar {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--sunken);
+}
+
+.rp-bar > span {
+  display: block;
+  height: 100%;
+  min-width: 0.5rem;
+  border-radius: 999px;
+  background: var(--teal);
+  transition: width 0.6s var(--spring);
+}
+
+.rp-plan[data-status="stopped"] .rp-bar > span {
+  background: var(--muted);
+}
+
+.rp-plan-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.rp-plan-count strong {
+  color: var(--ink);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-plan-when {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.rp-status {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--sunken);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.rp-plan .rp-short {
+  margin: 0;
+}
+
+.rp-stop {
+  justify-self: start;
+  padding: 0.375rem 0.875rem;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+:root[data-theme="dark"] .rp-stop {
+  border-color: var(--hairline);
+}
+
+.rp-sure {
+  display: grid;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  background: var(--sunken);
+}
+
+.rp-sure p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.rp-row-problem {
+  margin: 0;
+}
+
+.rp-fine {
+  margin-top: 1.25rem;
+  text-align: center;
+}
+
+/* Before there are any. */
+.rp-intro {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+.rp-intro > .w-title,
+.rp-intro > .w-lead {
+  margin: 0;
+  text-align: center;
+}
+
+.rp-intro-art {
+  justify-self: center;
+}
+
+.rp-points {
+  display: grid;
+  gap: 0;
+  margin: 0.25rem 0 0.5rem;
+  padding: 0.25rem 1rem;
+  border: 2px solid var(--line);
+  border-radius: 1.375rem;
+  background: var(--surface);
+  list-style: none;
+}
+
+.rp-points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.rp-points li:first-child {
+  border-top: 0;
+}
+
+.rp-points li > span:last-child {
+  display: grid;
+  gap: 0.1rem;
+  line-height: 1.35;
+}
+
+.rp-points strong {
+  font-size: 0.9375rem;
+  font-weight: 750;
+}
+
+.rp-points small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.rp-point-icon,
+.rp-choice-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--teal-soft);
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .rp-point-icon,
+:root[data-theme="dark"] .rp-choice-icon {
+  background: #23393a;
+}
+
+/* ── Repeat payments: setting one up ──────────────────────────────────────────────────────── */
+
+.rp-label {
+  align-self: center;
+  width: min(100%, 20rem);
+}
+
+.rp-choices {
+  display: grid;
+  gap: 0.625rem;
+  margin-top: 0.875rem;
+}
+
+.rp-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.875rem;
+  border: 2px solid var(--line);
+  border-radius: 1.375rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 0.3s var(--spring),
+    border-color 0.2s;
+}
+
+.rp-choice:active {
+  transform: scale(0.98);
+}
+
+.rp-choice[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--ink) inset;
+}
+
+:root[data-theme="dark"] .rp-choice[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--teal) inset;
+}
+
+.rp-choice-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 0.1rem;
+  line-height: 1.35;
+}
+
+.rp-choice-text strong {
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.rp-choice-text small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.rp-choice-amount {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-radio {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  border: 2px solid var(--muted);
+  border-radius: 50%;
+}
+
+.rp-choice[aria-pressed="true"] .rp-radio {
+  border: 6px solid var(--coral);
+}
+
+.rp-choice-wrap {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.rp-date input {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 1rem;
+  border: 2px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 650;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] .rp-date input {
+  border-color: var(--hairline);
+  color-scheme: dark;
+}
+
+/* How many times: a number you can type, and a step either side. */
+.rp-times {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.rp-step {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.3s var(--spring);
+}
+
+.rp-step:active {
+  transform: scale(0.92);
+}
+
+.rp-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.rp-times-num {
+  display: grid;
+  justify-items: center;
+  min-width: 8rem;
+}
+
+.rp-times-num input {
+  width: 5ch;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 3.25rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.rp-times-num small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+/* Check and start. */
+.rp-review-hero {
+  display: grid;
+  justify-items: center;
+  gap: 0.375rem;
+  margin: 0.5rem 0 0.25rem;
+  text-align: center;
+}
+
+.rp-sentence {
+  max-width: 22rem;
+  margin: 0.25rem 0 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.rp-most {
+  margin: 0;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  color: var(--on-tint);
+  font-size: 0.875rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-promises {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.rp-promises li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.rp-promises svg {
+  color: var(--positive);
+}
+
+.rp-done .rp-short-done {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+/* ── Splits ───────────────────────────────────────────────────────────────────────────────── */
+
+.sp-lead {
+  margin: 0 0 0.75rem;
+}
+
+.sp-cta {
+  margin-top: 0.75rem;
+}
+
+.sp-state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.sp-state-dot {
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.sp-state[data-on] .sp-state-dot {
+  background: var(--positive);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--positive) 22%, transparent);
+}
+
+/* What a sale comes to, share by share. */
+.sp-preview {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 2px solid var(--line);
+  border-radius: 1.5rem;
+  background: var(--surface);
+}
+
+.sp-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.sp-samples {
+  display: flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--sunken);
+}
+
+.sp-samples button {
+  padding: 0.25rem 0.625rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.sp-samples .sp-sample-on {
+  background: var(--fill);
+  color: var(--on-fill);
+}
+
+:root[data-theme="dark"] .sp-samples .sp-sample-on {
+  background: #343434;
+  color: var(--ink);
+}
+
+.sp-bar {
+  display: flex;
+  gap: 3px;
+  height: 1.375rem;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.sp-bar > span {
+  flex-basis: 0;
+  min-width: 0.375rem;
+  transition: flex-grow 0.5s var(--spring);
+}
+
+/* Each share keeps its colour on the bar and its face; the rest, yours, is teal. */
+:is(.sp-bar > span, .sp-share-dot)[data-c="0"] {
+  --share: var(--coral);
+}
+:is(.sp-bar > span, .sp-share-dot)[data-c="1"] {
+  --share: #e0a93b;
+}
+:is(.sp-bar > span, .sp-share-dot)[data-c="2"] {
+  --share: #7f72c9;
+}
+:is(.sp-bar > span, .sp-share-dot)[data-c="3"] {
+  --share: #4f8fd1;
+}
+:is(.sp-bar > span, .sp-share-dot)[data-c="4"] {
+  --share: #c46a9a;
+}
+:is(.sp-bar > span, .sp-share-dot)[data-c="you"] {
+  --share: var(--teal);
+}
+
+.sp-bar > span[data-c] {
+  background: var(--share);
+}
+
+.sp-sentence {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-intro {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.sp-intro > .w-title,
+.sp-intro > .w-lead {
+  margin: 0;
+  text-align: center;
+}
+
+.sp-count {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.sp-list {
+  display: grid;
+  margin: 0;
+  padding: 0.25rem 0.875rem;
+  border: 2px solid var(--line);
+  border-radius: 1.375rem;
+  background: var(--surface);
+  list-style: none;
+}
+
+.sp-share {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.sp-share:first-child {
+  border-top: 0;
+}
+
+.sp-share-dot {
+  position: relative;
+  flex: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--share);
+}
+
+.sp-share-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.sp-share-text strong {
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-share-text small,
+.sp-share-pct small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-share-pct {
+  display: grid;
+  flex: none;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.sp-share-pct strong {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-share-actions {
+  display: flex;
+  flex: none;
+  gap: 0.25rem;
+}
+
+.sp-share-actions .round {
+  --round-size: 2.125rem;
+  color: var(--ink);
+}
+
+:root[data-theme="dark"] .sp-share-actions .round {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.sp-share-you .sp-share-text strong {
+  color: var(--teal-deep);
+}
+
+.sp-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 3.25rem;
+  margin-top: 0.625rem;
+  border: 2px dashed var(--ink);
+  border-radius: 1.375rem;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: transform 0.3s var(--spring);
+}
+
+:root[data-theme="dark"] .sp-add {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.sp-add:active {
+  transform: scale(0.98);
+}
+
+.sp-add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Why this wallet can only look. */
+.sp-blocked {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1.375rem;
+  background: var(--sunken);
+}
+
+.sp-blocked > img {
+  flex: none;
+}
+
+.sp-blocked > div {
+  display: grid;
+  justify-items: start;
+  gap: 0.375rem;
+}
+
+.sp-blocked strong {
+  font-size: 0.9375rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.sp-blocked p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.sp-saved {
+  margin-top: 1rem;
+}
+
+.sp-saved .textlink {
+  white-space: nowrap;
+}
+
+.sp-save {
+  display: grid;
+  justify-items: center;
+  gap: 0.375rem;
+  margin-top: 1rem;
+}
+
+.sp-undo {
+  padding: 0.5rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sp-off {
+  display: grid;
+  justify-items: center;
+  gap: 0.625rem;
+  margin-top: 1.25rem;
+  text-align: center;
+}
+
+.sp-off p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.sp-off .textlink {
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sp-fine {
+  margin-top: 1.25rem;
+  text-align: center;
+}
+
+/* Changing one share. */
+.sp-change {
+  flex: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.sp-field {
+  display: grid;
+  gap: 0.375rem;
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.sp-field input {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 1rem;
+  border: 2px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 650;
+  outline: none;
+}
+
+.sp-field input:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 35%, transparent);
+}
+
+.sp-pct {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  margin-top: 1.5rem;
+}
+
+.sp-pct-big {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: text;
+}
+
+.sp-pct-big input {
+  min-width: 1ch;
+  max-width: 6ch;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  letter-spacing: -0.05em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  field-sizing: content;
+}
+
+.sp-pct-big input::placeholder {
+  color: var(--muted);
+  opacity: 0.5;
+}
+
+.sp-pct-big > span {
+  margin-top: 0.4rem;
+  margin-left: 0.125rem;
+  color: var(--muted);
+  font-size: 1.75rem;
+}
+
+.sp-picks {
+  width: 100%;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.sp-picks button {
+  min-height: 2.75rem;
+}
+
+.sp-pct-line {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.sp-pct-over {
+  color: var(--danger);
+}
+
+.sp-remove {
+  color: var(--danger);
+}
+
+/* Groups of choices are fieldsets: no frame of their own. */
+fieldset.rp-quick,
+fieldset.sp-samples {
+  min-width: 0;
+  margin-inline: 0;
+  border: 0;
+}
+
+fieldset.rp-quick {
+  padding: 0;
+}
+
+.sp-saved svg {
+  flex: none;
+}
+
+:root[data-theme="dark"] .rp-done .cx-took {
+  background: #1d3536;
+  color: var(--teal);
+}
