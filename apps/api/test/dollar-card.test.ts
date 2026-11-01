@@ -67,11 +67,16 @@ function fakeNuvion() {
       if (method === 'POST' && (path === '/documents' || path === '/onboarding-submissions'))
         return ok({})
       if (method === 'GET' && path === '/entities/ent_1')
-        return ok({ entity: { id: 'ent_1', status: state.status } })
+        return ok({
+          entity: { id: 'ent_1', status: state.status },
+          business: { email: 'hello@kova.test' },
+          address: { line_1: '1 Kova Way', city: 'Lagos', state: 'Lagos', country_code: 'NG' },
+        })
       if (method === 'POST' && path === '/accounts')
         return ok({ account: { id: 'acc_1', nuvion_ban: '0010346002' } }, 201)
       if (method === 'GET' && path === '/accounts/acc_1')
         return ok({ account: { id: 'acc_1', balance: { available: state.balance } } })
+      if (method === 'GET' && path === '/counterparties') return ok({ data: [] })
       if (method === 'POST' && path === '/counterparties') return ok({ id: 'cp_1' }, 201)
       if (method === 'POST' && path === '/payment-details') return ok({ id: 'pd_1' }, 201)
       if (method === 'GET' && path === '/card-creation-fee/acc_1') return ok({ fee: 50 })
@@ -206,6 +211,7 @@ describe('dollar card (Nuvion)', () => {
       'POST /individual-entities',
       'POST /documents',
       'POST /onboarding-submissions',
+      'POST /counterparties',
       'GET /entities/ent_1',
     ])
     await expect(startCheck(wallet, person, photo)).rejects.toMatchObject({ code: 'conflict' })

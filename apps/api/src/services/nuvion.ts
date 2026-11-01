@@ -159,6 +159,33 @@ export async function rootEntity(): Promise<string> {
   return root.id
 }
 
+/** The email and address Kova's own business is registered with, for an owner's payee. */
+export async function businessContact(entityId: string) {
+  const d = await nuvion<{
+    business?: { email?: string }
+    address?: {
+      line_1?: string
+      city?: string
+      state?: string
+      postal_code?: string
+      country_code?: string
+    }
+  }>(`/entities/${encodeURIComponent(entityId)}`)
+  const a = d.address ?? {}
+  if (!d.business?.email || !a.line_1 || !a.city || !a.country_code)
+    throw new NuvionRefused(422, undefined, 'Kova’s business has no email or address on Nuvion.')
+  return {
+    email: d.business.email,
+    address: {
+      line1: a.line_1,
+      city: a.city,
+      state: a.state,
+      postalCode: a.postal_code,
+      country: a.country_code,
+    },
+  }
+}
+
 export async function entityStatus(entityId: string) {
   const data = await nuvion<EntityReply>(`/entities/${encodeURIComponent(entityId)}`)
   return {
@@ -191,27 +218,73 @@ export async function accountBalance(accountId: string): Promise<number> {
   return data.account.balance?.available ?? 0
 }
 
-/** Kova's way to pay a holder's account from its pot: a counterparty with a book-transfer detail. */
-export async function payeeFor(holder: {
+export interface PayeeAddress {
+  line1: string
+  city: string
+  state?: string
+  postalCode?: string
+  country: string
+}
+
+/**
+ * Kova's way to pay a holder's account from its pot, step one: the holder as Kova's counterparty.
+ * Nuvion needs their email and address, so it's made during the ID check while those are in hand;
+ * Kova keeps only the counterparty's id.
+ */
+export async function createPayee(person: {
   firstName: string
   lastName: string
-  email: string | null
-  accountNumber: string
+  email: string
+  address: PayeeAddress
 }) {
   const party = await nuvion<{ id?: string; counterparty?: { id: string } }>('/counterparties', {
     method: 'POST',
     body: {
       type: 'individual',
       profile: {
-        first_name: holder.firstName,
-        last_name: holder.lastName,
+        first_name: person.firstName,
+        last_name: person.lastName,
         relationship: 'customer',
-        ...(holder.email ? { email: holder.email } : {}),
+        email: person.email,
+        address: {
+          line1: person.address.line1,
+          city: person.address.city,
+          ...(person.address.state ? { state_or_province: person.address.state } : {}),
+          ...(person.address.postalCode ? { postal_code: person.address.postalCode } : {}),
+          country: person.address.country,
+        },
       },
     },
   })
-  const counterpartyId = party.counterparty?.id ?? party.id
-  if (!counterpartyId) throw new NuvionRefused(500, undefined, 'No counterparty id came back.')
+  const id = party.counterparty?.id ?? party.id
+  if (!id) throw new NuvionRefused(500, undefined, 'No counterparty id came back.')
+  return id
+}
+
+/**
+ * A book-transfer detail Kova already has for this account number, with its counterparty, so a
+ * retry (or an owner's second try) reuses it instead of making a duplicate Nuvion would refuse.
+ */
+export async function findBookDetail(accountNumber: string) {
+  const page = await nuvion<{ data?: Array<{ id: string; status?: string }> }>(
+    '/counterparties?limit=100',
+  )
+  for (const party of page.data ?? []) {
+    if (party.status && party.status !== 'active') continue
+    const details = await nuvion<
+      Array<{ id: string; payment_method?: string; account_number?: string }> | { data?: unknown }
+    >(`/counterparties/${encodeURIComponent(party.id)}/payment-details`).catch(() => [])
+    const list = Array.isArray(details) ? details : ((details.data as typeof details) ?? [])
+    const match = (
+      list as Array<{ id: string; payment_method?: string; account_number?: string }>
+    ).find((d) => d.payment_method === 'book-transfer' && d.account_number === accountNumber)
+    if (match) return { counterpartyId: party.id, paymentDetailId: match.id }
+  }
+  return null
+}
+
+/** Step two, once their card's account exists: a book-transfer detail naming its number. */
+export async function addBookDetail(counterpartyId: string, name: string, accountNumber: string) {
   const detail = await nuvion<{ id?: string; payment_detail?: { id: string } }>(
     '/payment-details',
     {
@@ -220,14 +293,14 @@ export async function payeeFor(holder: {
         counterparty_id: counterpartyId,
         payment_method: 'book-transfer',
         currency: 'USD',
-        account_holder_name: `${holder.firstName} ${holder.lastName}`,
-        account_number: holder.accountNumber,
+        account_holder_name: name,
+        account_number: accountNumber,
       },
     },
   )
-  const paymentDetailId = detail.payment_detail?.id ?? detail.id
-  if (!paymentDetailId) throw new NuvionRefused(500, undefined, 'No payment detail id came back.')
-  return { counterpartyId, paymentDetailId }
+  const id = detail.payment_detail?.id ?? detail.id
+  if (!id) throw new NuvionRefused(500, undefined, 'No payment detail id came back.')
+  return id
 }
 
 /**

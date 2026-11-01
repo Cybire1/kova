@@ -10,18 +10,21 @@ import { relayAuthorization } from '../relay.js'
 import { hasRequested } from './money.js'
 import {
   accountBalance,
+  addBookDetail,
   bookTransfer,
+  businessContact,
   cardFee,
   cardPayments,
   cardSecrets,
   createIndividual,
+  createPayee,
   entityStatus,
+  findBookDetail,
   issueVirtualCard,
   NuvionRefused,
   nuvionSandbox,
   openUsdAccount,
   type Person,
-  payeeFor,
   rootEntity,
   setCardFrozen,
   submitForReview,
@@ -170,10 +173,44 @@ async function issue(holder: Holder): Promise<Holder> {
           .returning()
       )[0] ?? row
   }
+  if (!row.paymentDetailId && row.accountNumber) {
+    // Already made on an earlier try? Reuse it rather than make a duplicate.
+    const found = await findBookDetail(row.accountNumber).catch(() => null)
+    if (found)
+      row =
+        (
+          await db
+            .update(schema.cardHolders)
+            .set({ ...found, updatedAt: new Date() })
+            .where(eq(schema.cardHolders.id, row.id))
+            .returning()
+        )[0] ?? row
+  }
+  if (!row.paymentDetailId && !row.counterpartyId && isOwner(row.wallet as Address)) {
+    // An owner's payee carries Kova's own business email and address.
+    const contact = await businessContact(row.entityId)
+    const counterpartyId = await createPayee({ ...row, ...contact })
+    row =
+      (
+        await db
+          .update(schema.cardHolders)
+          .set({ counterpartyId, updatedAt: new Date() })
+          .where(eq(schema.cardHolders.id, row.id))
+          .returning()
+      )[0] ?? row
+  }
   if (!row.paymentDetailId) {
     if (!row.accountNumber)
       throw new KovaError('chain_error', 'The card’s account has no number yet. Try again shortly.')
-    const payee = await payeeFor({ ...row, accountNumber: row.accountNumber })
+    if (!row.counterpartyId)
+      throw new KovaError('chain_error', 'This card holder has no payee at the issuer yet.')
+    const payee = {
+      paymentDetailId: await addBookDetail(
+        row.counterpartyId,
+        `${row.firstName} ${row.lastName}`,
+        row.accountNumber,
+      ),
+    }
     row =
       (
         await db
@@ -338,11 +375,14 @@ export async function startCheck(
     }
     await uploadIdentity(entityId, personId, document)
     await submitForReview(entityId)
+    // Kova's payee for this holder, made now while their address is in hand (it isn't kept).
+    const counterpartyId = existing?.counterpartyId ?? (await createPayee(person))
     await db
       .update(schema.cardHolders)
       .set({
         status: 'pending',
         reason: null,
+        counterpartyId,
         firstName: person.firstName,
         lastName: person.lastName,
         email: person.email,
