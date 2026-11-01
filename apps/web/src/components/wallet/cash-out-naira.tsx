@@ -89,6 +89,8 @@ const spaced = (n: string) => `${n.slice(0, 3)} ${n.slice(3, 6)} ${n.slice(6)}`
 const grouped = (n: string) =>
   [n.slice(0, 3), n.slice(3, 6), n.slice(6, 10)].filter(Boolean).join(' ')
 
+/** Dollars as a naira quote gives them: up to six decimals, so the bank gets what was typed. */
+const QUOTED = /^\d{1,7}(\.\d{1,6})?$/
 export function NairaCashOut() {
   const { profile, balance, cashOutNaira } = useWallet()
   const info = useNaira()
@@ -185,11 +187,12 @@ export function NairaCashOut() {
 
   const units = useMemo(() => {
     try {
-      return DOLLARS.test(amount) ? parseAmount(amount) : 0n
+      // Typed in dollars: cents. Asked in naira: the quote's dollars, to the millionth.
+      return (unit === 'usd' ? DOLLARS : QUOTED).test(amount) ? parseAmount(amount) : 0n
     } catch {
       return 0n
     }
-  }, [amount])
+  }, [amount, unit])
   const short = balance !== null && units > balance
   const amountOk = units >= 1_000_000n && units <= 500_000_000n && !short
   const suggestions = useMemo(() => suggestBanks(account, banks, 5), [account, banks])

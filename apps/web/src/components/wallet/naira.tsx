@@ -88,7 +88,8 @@ export function useQuote(amount: string, direction: 'in' | 'out', enabled: boole
   const [quote, setQuote] = useState<Quote | null>(null)
   useEffect(() => {
     setQuote(null)
-    if (!enabled || !DOLLARS.test(amount) || Number(amount) < 1) return
+    // Typed dollars have cents; a naira quote's dollars come to the millionth.
+    if (!enabled || !/^\d{1,7}(\.\d{0,6})?$/.test(amount) || Number(amount) < 1) return
     const timer = setTimeout(() => {
       void json<Quote>(`/api/naira/naira/quote?amount=${amount}&direction=${direction}`)
         .then(setQuote)

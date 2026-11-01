@@ -1,4 +1,4 @@
-import { bankDisplayName, POPULAR_BANKS, suggestBanks } from '@kova/monad'
+import { bankDisplayName, formatAmount, POPULAR_BANKS, suggestBanks } from '@kova/monad'
 import * as Haptics from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -53,6 +53,7 @@ const UNIT = 'kova.naira.unit.v1'
 /** What the amount is typed in: naira (what the bank account gets) or dollars (what leaves). */
 type Unit = 'ngn' | 'usd'
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
+/** For show: dollars to the cent. Requests send formatAmount, the exact amount. */
 const dollars = (base: bigint) => (Number(base) / 1e6).toFixed(2)
 const nairaText = (n: number) =>
   `₦${n.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -218,7 +219,7 @@ export default function CashOutScreen() {
     if (amount < 1_000_000n || !info?.enabled) return setPreview(null)
     const id = setTimeout(() => {
       void naira
-        .quote(dollars(amount), 'out')
+        .quote(formatAmount(amount), 'out')
         .then((q) => setPreview(q.naira))
         .catch(() => setPreview(null))
     }, 250)
@@ -261,7 +262,7 @@ export default function CashOutScreen() {
       void Haptics.selectionAsync()
       try {
         const quoted = await naira.cashOut(profile.address, {
-          amount: dollars(amount),
+          amount: formatAmount(amount),
           bankCode: b.code,
           accountNumber: number,
         })
@@ -331,7 +332,7 @@ export default function CashOutScreen() {
     try {
       setQuote(
         await naira.cashOut(profile.address, {
-          amount: dollars(amount),
+          amount: formatAmount(amount),
           bankCode: named.code,
           accountNumber: named.number,
         }),
