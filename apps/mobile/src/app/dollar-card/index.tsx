@@ -2,7 +2,15 @@ import * as Haptics from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
-import { type ColorValue, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import {
+  type ColorValue,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { formatUsd } from '@/lib/money'
 import { type DollarCard, getDollarCard, setDollarCard } from '@/lib/partners'
 import { colors } from '@/lib/theme'
@@ -64,7 +72,7 @@ export default function DollarCardScreen() {
   if (data.stage === 'intro') return <Intro sandbox={data.sandbox} />
   if (data.stage === 'checking') return <Checking />
   if (data.stage === 'fix') return <TryAgain reason={data.reason ?? null} />
-  return <CardHome data={data} onChange={setData} />
+  return <CardHome data={data} onChange={setData} onRefresh={reload} />
 }
 
 function Intro({ sandbox }: { sandbox: boolean }) {
@@ -183,7 +191,22 @@ function TryAgain({ reason }: { reason: string | null }) {
   )
 }
 
-function CardHome({ data, onChange }: { data: DollarCard; onChange: (d: DollarCard) => void }) {
+function CardHome({
+  data,
+  onChange,
+  onRefresh,
+}: {
+  data: DollarCard
+  onChange: (d: DollarCard) => void
+  onRefresh: () => Promise<void>
+}) {
+  const insets = useSafeAreaInsets()
+  const [refreshing, setRefreshing] = useState(false)
+  const refresh = async () => {
+    setRefreshing(true)
+    await onRefresh().catch(() => null)
+    setRefreshing(false)
+  }
   const { profile, signMessage } = useWallet()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -258,8 +281,19 @@ function CardHome({ data, onChange }: { data: DollarCard; onChange: (d: DollarCa
 
   return (
     <Screen bg={colors.paper} edges={['bottom']}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <View style={styles.band}>
+      {/* Behind the list: pulling down shows more of the band's colour, never a gap above it. */}
+      <View style={styles.bandBackdrop} />
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 32, backgroundColor: colors.paper }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void refresh()}
+            tintColor={colors.white}
+          />
+        }
+      >
+        <View style={[styles.band, { paddingTop: insets.top }]}>
           <Header
             title=""
             right={
@@ -535,6 +569,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  bandBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 320,
+    backgroundColor: colors.dark,
   },
   band: {
     backgroundColor: colors.dark,
