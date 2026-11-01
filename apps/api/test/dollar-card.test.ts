@@ -59,6 +59,8 @@ function fakeNuvion() {
       const method = init?.method ?? 'GET'
       const body = init?.body ? JSON.parse(String(init.body)) : {}
       state.calls.push(`${method} ${path}`)
+      if (method === 'GET' && path === '/entities')
+        return ok({ data: [{ id: 'ent_1', is_root: true, status: 'approved' }] })
       if (method === 'POST' && path === '/individual-entities')
         return ok({ entity: { id: 'ent_1', status: 'incomplete' }, person: { id: 'per_1' } }, 201)
       if (method === 'PATCH' && path === '/individual-entities/ent_1') return ok({})
@@ -226,6 +228,20 @@ describe('dollar card (Nuvion)', () => {
     const kept = JSON.stringify(card, (_, v) => (typeof v === 'bigint' ? v.toString() : v))
     expect(kept).not.toContain('4111111111114821')
     expect(kept).not.toContain('381')
+  })
+
+  it('gives an owner a card under Kova’s own business, with no ID check', async () => {
+    const nuvion = fakeNuvion()
+    const owner = newWallet()
+    config.KOVA_CARD_OWNER_WALLETS = `0x${'12'.repeat(20)}, ${owner}`
+    config.KOVA_CARD_OWNER_NAME = 'Afeez Shaibu'
+    expect(await dollarCardFor(owner)).toMatchObject({
+      stage: 'card',
+      card: { last_four: '4821', name: 'Afeez Shaibu' },
+    })
+    expect(nuvion.calls).not.toContain('POST /individual-entities')
+    // Anyone else still goes through the check.
+    expect(await dollarCardFor(newWallet())).toMatchObject({ stage: 'intro' })
   })
 
   it('shows a refused check with Nuvion’s reason, and lets the holder send it again', async () => {

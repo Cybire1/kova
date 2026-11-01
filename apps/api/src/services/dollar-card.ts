@@ -22,6 +22,7 @@ import {
   openUsdAccount,
   type Person,
   payeeFor,
+  rootEntity,
   setCardFrozen,
   submitForReview,
   updateIndividual,
@@ -63,6 +64,32 @@ type Card = typeof schema.dollarCards.$inferSelect
 
 const PASSED = 'approved'
 const CHECKING = ['incomplete', 'pending']
+
+const isOwner = (wallet: Address) =>
+  (config.KOVA_CARD_OWNER_WALLETS ?? '')
+    .split(',')
+    .some((a) => a.trim().toLowerCase() === wallet.toLowerCase())
+
+/**
+ * An owner's holder record: Kova's own business at Nuvion, approved already, since an owner's ID is
+ * on file as that business and Nuvion won't take the same person again as a customer.
+ */
+async function ownerHolder(wallet: Address): Promise<Holder> {
+  const [first, ...rest] = config.KOVA_CARD_OWNER_NAME.trim().split(/\s+/)
+  await db
+    .insert(schema.cardHolders)
+    .values({
+      id: uuidv7(),
+      wallet: wallet.toLowerCase(),
+      network: net,
+      entityId: await rootEntity(),
+      status: PASSED,
+      firstName: first || 'Kova',
+      lastName: rest.join(' ') || 'Team',
+    })
+    .onConflictDoNothing()
+  return (await holderOf(wallet)) as Holder
+}
 
 async function holderOf(wallet: Address): Promise<Holder | null> {
   const row = await db.query.cardHolders.findFirst({
@@ -206,6 +233,7 @@ export async function dollarCardFor(wallet: Address) {
       stage: 'intro' as const,
     }
   let holder = await holderOf(wallet)
+  if (!holder && isOwner(wallet)) holder = await ownerHolder(wallet).catch(() => null)
   if (holder)
     holder = await advance(holder).catch((error) => {
       console.error('[dollar-card]', error)

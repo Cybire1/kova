@@ -148,6 +148,17 @@ export async function submitForReview(entityId: string) {
   await nuvion('/onboarding-submissions', { method: 'POST', body: { entity_id: entityId } })
 }
 
+/** Kova's own entity at Nuvion (the key's root business), which owner cards are issued under. */
+export async function rootEntity(): Promise<string> {
+  const page = await nuvion<{ data: Array<{ id: string; is_root?: boolean }> }>(
+    '/entities?limit=50',
+  )
+  const root = page.data.find((e) => e.is_root)
+  if (!root)
+    throw new NuvionRefused(404, undefined, 'Kova’s own entity isn’t on this Nuvion account.')
+  return root.id
+}
+
 export async function entityStatus(entityId: string) {
   const data = await nuvion<EntityReply>(`/entities/${encodeURIComponent(entityId)}`)
   return {

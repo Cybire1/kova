@@ -136,6 +136,13 @@ const schema = z.object({
     .optional(),
   /** The most a wallet can put on its card in a day, in base units: $50. */
   KOVA_CARD_DAILY_TOPUP: z.string().regex(/^\d+$/).default('50000000'),
+  /**
+   * Kova's owners, who are on Nuvion already as Kova's own business and so can't pass its ID check
+   * again as customers: wallet addresses, comma-separated. Their cards are issued under Kova's own
+   * approved business, in the name KOVA_CARD_OWNER_NAME.
+   */
+  KOVA_CARD_OWNER_WALLETS: z.string().optional(),
+  KOVA_CARD_OWNER_NAME: z.string().default('Kova Team'),
   /** Kova's fee on each top-up, in basis points: 50 is 0.5%, paid on top of what lands on the card. */
   KOVA_CARD_TOPUP_FEE_BPS: z.coerce.number().int().min(0).max(1000).default(50),
   /** Savings: an ERC-4626 vault for the settlement dollar, and the KovaSaver in front of it. */

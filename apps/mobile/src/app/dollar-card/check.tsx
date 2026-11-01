@@ -141,7 +141,7 @@ export default function CardCheckScreen() {
             <Tip icon="list" label="Words easy to read" />
           </View>
           {error ? (
-            <Txt weight="medium" size={14} color={colors.coralSoft} style={{ marginTop: 14 }}>
+            <Txt weight="medium" size={14} color={colors.blush} style={{ marginTop: 14 }}>
               {error}
             </Txt>
           ) : null}
@@ -317,7 +317,10 @@ function Progress({ step, label, dark }: { step: 1 | 2; label: string; dark?: bo
         <View
           style={[
             styles.bar,
-            { backgroundColor: step === 2 ? colors.white : dark ? colors.onTint : colors.sunken },
+            {
+              backgroundColor:
+                step === 2 ? colors.white : dark ? 'rgba(255,255,255,0.16)' : colors.sunken,
+            },
           ]}
         />
       </View>
@@ -368,7 +371,7 @@ function Choice({ label, on, onPress }: { label: string; on: boolean; onPress: (
 function Tip({ icon, label }: { icon: IconName; label: string }) {
   return (
     <View style={styles.tip}>
-      <Icon name={icon} size={20} color={colors.coralSoft} />
+      <Icon name={icon} size={20} color={colors.blush} />
       <Txt weight="semi" size={12} color={colors.white} style={{ textAlign: 'center' }}>
         {label}
       </Txt>
@@ -436,7 +439,8 @@ const styles = StyleSheet.create({
     marginTop: 26,
     height: 236,
     borderRadius: 22,
-    backgroundColor: colors.onTint,
+    // The photo step is always on the dark ground, so its tints are fixed rather than themed.
+    backgroundColor: 'rgba(255,255,255,0.08)',
     overflow: 'hidden',
   },
   preview: { flex: 1 },
@@ -445,7 +449,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 34,
     height: 34,
-    borderColor: colors.coralSoft,
+    borderColor: colors.blush,
     borderRadius: 6,
   },
   tips: { flexDirection: 'row', gap: 8, marginTop: 20 },
@@ -456,6 +460,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 6,
     borderRadius: 18,
-    backgroundColor: colors.onTint,
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
 })
