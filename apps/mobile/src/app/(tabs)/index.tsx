@@ -268,11 +268,7 @@ export default function Home() {
         accessibilityRole="button"
         accessibilityLabel="Repeat payments. Rent, school fees, a wage every Friday"
         onPress={() => router.push('/repeat')}
-        style={({ pressed }) => [
-          styles.keysRow,
-          { marginTop: 12 },
-          pressed && { transform: [{ scale: 0.98 }] },
-        ]}
+        style={({ pressed }) => [styles.keysRow, pressed && { transform: [{ scale: 0.98 }] }]}
       >
         <KeyIcon name="clock" tone={colors.tealSoft} />
         <View style={{ flex: 1 }}>
@@ -522,6 +518,7 @@ function ShopCard() {
 
 const styles = StyleSheet.create({
   keysRow: {
+    marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,

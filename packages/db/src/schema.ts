@@ -1330,6 +1330,8 @@ export const cardHolders = pgTable(
     firstName: text('first_name').notNull(),
     lastName: text('last_name').notNull(),
     email: text('email'),
+    /** The issuer needs it to make the card (E.164). */
+    phone: text('phone'),
     /** The card's own USD account at the issuer, and its account number for top-ups. */
     accountId: text('account_id'),
     accountNumber: text('account_number'),

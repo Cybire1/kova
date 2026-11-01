@@ -186,15 +186,21 @@ async function issue(holder: Holder): Promise<Holder> {
             .returning()
         )[0] ?? row
   }
-  if (!row.paymentDetailId && !row.counterpartyId && isOwner(row.wallet as Address)) {
-    // An owner's payee carries Kova's own business email and address.
+  if (isOwner(row.wallet as Address) && (!row.email || !row.phone || !row.counterpartyId)) {
+    // An owner's card and payee carry Kova's own business email, phone and address.
     const contact = await businessContact(row.entityId)
-    const counterpartyId = await createPayee({ ...row, ...contact })
+    const counterpartyId =
+      row.counterpartyId ?? (row.paymentDetailId ? null : await createPayee({ ...row, ...contact }))
     row =
       (
         await db
           .update(schema.cardHolders)
-          .set({ counterpartyId, updatedAt: new Date() })
+          .set({
+            email: row.email ?? contact.email,
+            phone: row.phone ?? contact.phone,
+            ...(counterpartyId ? { counterpartyId } : {}),
+            updatedAt: new Date(),
+          })
           .where(eq(schema.cardHolders.id, row.id))
           .returning()
       )[0] ?? row
@@ -236,7 +242,13 @@ async function issue(holder: Holder): Promise<Holder> {
       if (!(e instanceof NuvionRefused && e.status === 409)) throw e
     })
   }
-  const cardId = await issueVirtualCard(row.entityId, accountId, row)
+  if (!row.email || !row.phone)
+    throw new KovaError('chain_error', 'The card issuer needs an email and phone for this card.')
+  const cardId = await issueVirtualCard(row.entityId, accountId, {
+    ...row,
+    email: row.email,
+    phone: row.phone,
+  })
   const secrets = await cardSecrets(cardId)
   await db.insert(schema.dollarCards).values({
     id: uuidv7(),
@@ -371,6 +383,7 @@ export async function startCheck(
         firstName: person.firstName,
         lastName: person.lastName,
         email: person.email,
+        phone: person.phone,
       })
     }
     await uploadIdentity(entityId, personId, document)
@@ -386,6 +399,7 @@ export async function startCheck(
         firstName: person.firstName,
         lastName: person.lastName,
         email: person.email,
+        phone: person.phone,
         updatedAt: new Date(),
       })
       .where(

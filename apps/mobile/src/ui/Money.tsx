@@ -12,7 +12,7 @@ import {
   requestAccess,
   type Savings,
 } from '@/lib/partners'
-import { colors, inkAt } from '@/lib/theme'
+import { colors, inkAt, pair } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import type { KoviPose } from './art'
 import { Icon } from './Icon'
@@ -209,7 +209,8 @@ export function MoneyTiles() {
         onPress={() => router.push('/savings')}
         style={({ pressed }) => [
           tiles.tile,
-          { backgroundColor: colors.tealSoft },
+          // Teal in either theme, so it never reads as the dollar card's grey in the dark.
+          { backgroundColor: pair('#A9C9C9', '#1C2E2E') },
           pressed && tiles.pressed,
         ]}
       >

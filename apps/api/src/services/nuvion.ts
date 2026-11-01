@@ -162,7 +162,7 @@ export async function rootEntity(): Promise<string> {
 /** The email and address Kova's own business is registered with, for an owner's payee. */
 export async function businessContact(entityId: string) {
   const d = await nuvion<{
-    business?: { email?: string }
+    business?: { email?: string; phonenumber?: string }
     address?: {
       line_1?: string
       city?: string
@@ -176,6 +176,7 @@ export async function businessContact(entityId: string) {
     throw new NuvionRefused(422, undefined, 'Kova’s business has no email or address on Nuvion.')
   return {
     email: d.business.email,
+    phone: d.business.phonenumber ?? null,
     address: {
       line1: a.line_1,
       city: a.city,
@@ -346,7 +347,7 @@ export async function cardFee(accountId: string): Promise<number> {
 export async function issueVirtualCard(
   entityId: string,
   accountId: string,
-  holder: { firstName: string; lastName: string; email: string | null },
+  holder: { firstName: string; lastName: string; email: string; phone: string },
 ) {
   const data = await nuvion<{ id: string; status: string }>('/virtual-cards', {
     method: 'POST',
@@ -358,7 +359,8 @@ export async function issueVirtualCard(
       cardholder: {
         first_name: holder.firstName,
         last_name: holder.lastName,
-        ...(holder.email ? { email: holder.email } : {}),
+        email: holder.email,
+        phone_number: holder.phone,
       },
     },
   })

@@ -69,7 +69,7 @@ function fakeNuvion() {
       if (method === 'GET' && path === '/entities/ent_1')
         return ok({
           entity: { id: 'ent_1', status: state.status },
-          business: { email: 'hello@kova.test' },
+          business: { email: 'hello@kova.test', phonenumber: '+2348000000000' },
           address: { line_1: '1 Kova Way', city: 'Lagos', state: 'Lagos', country_code: 'NG' },
         })
       if (method === 'POST' && path === '/accounts')
