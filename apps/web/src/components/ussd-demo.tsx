@@ -1,9 +1,17 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Brand, Icon } from '@/components/brand'
 import '@/styles/ussd-demo.css'
+import type { PhoneKey, PhoneScreen } from './ussd-phone-3d'
+
+// three.js only in the browser, and only once the page is up.
+const Phone3D = dynamic(() => import('./ussd-phone-3d').then((m) => m.Phone3D), {
+  ssr: false,
+  loading: () => <div className="ud-3d ud-3d-loading" />,
+})
 
 /**
  * "Try Kova on a basic phone": a feature phone on the page, driving Kova's real USSD menu (the API's
@@ -78,6 +86,8 @@ export function UssdDemo() {
   const [banner, setBanner] = useState<Text | null>(null)
   const [balance, setBalance] = useState<string | null>(null)
   const [paid, setPaid] = useState<string | null>(null)
+  const [flat, setFlat] = useState(false)
+  const [flash, setFlash] = useState<{ id: string; at: number } | null>(null)
   const parts = useRef<string[]>([])
   const session = useRef('')
   const since = useRef(0)
@@ -132,6 +142,12 @@ export function UssdDemo() {
       clearInterval(timer)
     }
   }, [demo])
+
+  // The 3D phone, unless motion is turned down or the browser has no WebGL: then the flat one.
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) setFlat(true)
+  }, [])
+  const goFlat = useCallback(() => setFlat(true), [])
 
   useEffect(() => {
     if (!banner) return
@@ -209,11 +225,20 @@ export function UssdDemo() {
     if (!demo) return
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return
-      if (/^[0-9*#]$/.test(event.key)) press(event.key)
-      else if (event.key === 'Enter') call()
-      else if (event.key === 'Backspace') back()
-      else if (event.key === 'Escape') hangUp()
-      else return
+      const at = performance.now()
+      if (/^[0-9*#]$/.test(event.key)) {
+        press(event.key)
+        setFlash({ id: event.key, at })
+      } else if (event.key === 'Enter') {
+        call()
+        setFlash({ id: 'call', at })
+      } else if (event.key === 'Backspace') {
+        back()
+        setFlash({ id: 'back', at })
+      } else if (event.key === 'Escape') {
+        hangUp()
+        setFlash({ id: 'end', at })
+      } else return
       event.preventDefault()
     }
     window.addEventListener('keydown', onKey)
@@ -233,6 +258,35 @@ export function UssdDemo() {
 
   const asksPin = phase === 'session' && /PIN/.test(screen)
   const shown = asksPin ? '•'.repeat(input.length) : input
+
+  /** What the 3D phone's LCD draws: the same screen the flat phone shows. */
+  const lcd = useMemo<PhoneScreen>(() => {
+    const status: [string, string, string] = ['Kova', balance ? `$${balance}` : '', '▮▮▮▯']
+    const message = banner ? { title: 'New message', text: banner.text } : null
+    if (!demo)
+      return { status: ['', '', ''], lines: ['', 'Get a demo phone', 'to switch it on'], dim: true }
+    if (phase === 'idle')
+      return {
+        status,
+        lines: [pretty(demo.phone), '', dial || ' '],
+        hint: `Dial ${demo.dial}`,
+        banner: message,
+      }
+    if (phase === 'busy') return { status, lines: ['Running USSD code…'], banner: message }
+    if (phase === 'session')
+      return { status, lines: screen.split('\n'), input: shown, banner: message }
+    return { status, lines: screen.split('\n'), hint: 'Press green to close', banner: message }
+  }, [demo, phase, dial, screen, shown, balance, banner])
+
+  const onKey = useCallback(
+    (key: PhoneKey) => {
+      if (key === 'call') call()
+      else if (key === 'back') back()
+      else if (key === 'end') hangUp()
+      else press(key)
+    },
+    [call, back, hangUp, press],
+  )
 
   return (
     <div className="ud">
@@ -290,66 +344,70 @@ export function UssdDemo() {
         </section>
 
         <section className="ud-stage" aria-label="The demo phone and the shop's till">
-          <div className={demo ? 'ud-phone' : 'ud-phone is-off'}>
-            <div className="ud-speaker" aria-hidden="true" />
-            <div className="ud-screen" aria-live="polite">
-              {demo ? (
-                <>
-                  <div className="ud-status">
-                    <span>Kova</span>
-                    <span>{balance ? `$${balance}` : '…'}</span>
-                    <span aria-hidden="true">▮▮▮▯</span>
+          {!flat ? (
+            <Phone3D screen={lcd} onKey={onKey} onFail={goFlat} flash={flash} />
+          ) : (
+            <div className={demo ? 'ud-phone' : 'ud-phone is-off'}>
+              <div className="ud-speaker" aria-hidden="true" />
+              <div className="ud-screen" aria-live="polite">
+                {demo ? (
+                  <>
+                    <div className="ud-status">
+                      <span>Kova</span>
+                      <span>{balance ? `$${balance}` : '…'}</span>
+                      <span aria-hidden="true">▮▮▮▯</span>
+                    </div>
+                    {banner ? (
+                      <div className="ud-banner">
+                        <b>New message</b>
+                        <span>{banner.text}</span>
+                      </div>
+                    ) : null}
+                    {phase === 'idle' ? (
+                      <div className="ud-idle">
+                        <span className="ud-num">{pretty(demo.phone)}</span>
+                        <span className="ud-dial">{dial || ' '}</span>
+                        <span className="ud-hint">Dial {demo.dial}</span>
+                      </div>
+                    ) : (
+                      <div className="ud-reply">
+                        <pre>{phase === 'busy' ? 'Running USSD code…' : screen}</pre>
+                        {phase === 'session' ? (
+                          <span className="ud-input">{shown || '_'}</span>
+                        ) : null}
+                        {phase === 'ended' ? (
+                          <span className="ud-hint">Press green to close</span>
+                        ) : null}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="ud-idle">
+                    <span className="ud-hint">Get a demo phone to switch it on</span>
                   </div>
-                  {banner ? (
-                    <div className="ud-banner">
-                      <b>New message</b>
-                      <span>{banner.text}</span>
-                    </div>
-                  ) : null}
-                  {phase === 'idle' ? (
-                    <div className="ud-idle">
-                      <span className="ud-num">{pretty(demo.phone)}</span>
-                      <span className="ud-dial">{dial || ' '}</span>
-                      <span className="ud-hint">Dial {demo.dial}</span>
-                    </div>
-                  ) : (
-                    <div className="ud-reply">
-                      <pre>{phase === 'busy' ? 'Running USSD code…' : screen}</pre>
-                      {phase === 'session' ? (
-                        <span className="ud-input">{shown || '_'}</span>
-                      ) : null}
-                      {phase === 'ended' ? (
-                        <span className="ud-hint">Press green to close</span>
-                      ) : null}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="ud-idle">
-                  <span className="ud-hint">Get a demo phone to switch it on</span>
-                </div>
-              )}
-            </div>
-            <div className="ud-soft">
-              <button type="button" className="ud-call" onClick={call} aria-label="Call or send">
-                <Icon name="check" size={18} />
-              </button>
-              <button type="button" className="ud-del" onClick={back} aria-label="Delete">
-                C
-              </button>
-              <button type="button" className="ud-end" onClick={hangUp} aria-label="Hang up">
-                <Icon name="close" size={18} />
-              </button>
-            </div>
-            <div className="ud-keys">
-              {KEYS.map(([k, letters]) => (
-                <button key={k} type="button" onClick={() => press(k)} aria-label={k}>
-                  <span>{k}</span>
-                  <small>{letters}</small>
+                )}
+              </div>
+              <div className="ud-soft">
+                <button type="button" className="ud-call" onClick={call} aria-label="Call or send">
+                  <Icon name="check" size={18} />
                 </button>
-              ))}
+                <button type="button" className="ud-del" onClick={back} aria-label="Delete">
+                  C
+                </button>
+                <button type="button" className="ud-end" onClick={hangUp} aria-label="Hang up">
+                  <Icon name="close" size={18} />
+                </button>
+              </div>
+              <div className="ud-keys">
+                {KEYS.map(([k, letters]) => (
+                  <button key={k} type="button" onClick={() => press(k)} aria-label={k}>
+                    <span>{k}</span>
+                    <small>{letters}</small>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="ud-side">
             {demo ? (
@@ -383,8 +441,8 @@ export function UssdDemo() {
             {texts.length ? (
               <div className="ud-texts">
                 <span className="ud-texts-title">Texts to this phone</span>
-                {texts.map((t) => (
-                  <p key={t.at}>{t.text}</p>
+                {texts.map((t, i) => (
+                  <p key={`${t.at}-${i}`}>{t.text}</p>
                 ))}
               </div>
             ) : null}
