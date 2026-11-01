@@ -615,9 +615,7 @@ export function MoneyRow() {
   return (
     <div className="m-row">
       <Link href="/wallet/savings" className="m-tile" data-tone="teal">
-        <span className="m-tile-icon">
-          <Icon name="bolt" size={16} />
-        </span>
+        <img src="/art/coin-usd.webp" alt="" className="m-tile-coin" />
         <small>Savings</small>
         <strong>
           {savings?.live && saved > 0n
@@ -631,9 +629,7 @@ export function MoneyRow() {
         ) : null}
       </Link>
       <Link href="/wallet/card" className="m-tile" data-tone="ink">
-        <span className="m-tile-icon">
-          <Icon name="card" size={16} />
-        </span>
+        <img src="/art/card-coral.png" alt="" className="m-tile-card" />
         <small>Dollar card</small>
         <strong>{card?.card ? `•••• ${card.card.last_four}` : 'Spend anywhere'}</strong>
         {card?.card?.frozen ? <span className="m-tile-note">Frozen</span> : null}

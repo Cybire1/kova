@@ -1,5 +1,6 @@
 import type { MoneyFeature } from '@kova/monad'
 import * as Haptics from 'expo-haptics'
+import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { useCallback, useEffect, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
@@ -214,9 +215,7 @@ export function MoneyTiles() {
           pressed && tiles.pressed,
         ]}
       >
-        <View style={tiles.icon}>
-          <Icon name="bolt" size={16} />
-        </View>
+        <Image source={coinArt} style={tiles.coin} contentFit="contain" />
         <Txt weight="semi" size={12} color={colors.onTint}>
           Savings
         </Txt>
@@ -238,9 +237,7 @@ export function MoneyTiles() {
           pressed && tiles.pressed,
         ]}
       >
-        <View style={[tiles.icon, { borderColor: colors.surface }]}>
-          <Icon name="card" size={16} color={colors.onFill} />
-        </View>
+        <Image source={cardArt} style={tiles.card} contentFit="contain" />
         <Txt weight="semi" size={12} color={colors.onInk}>
           Dollar card
         </Txt>
@@ -308,6 +305,10 @@ export function FromAbroadRow() {
   )
 }
 
+/** Kova's own art on the tiles: the gold dollar coin for savings, the coral card for the card. */
+const coinArt = require('../../assets/art/coin-usd.png')
+const cardArt = require('../../assets/cards/coral.png')
+
 const tiles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 12, marginTop: 12 },
   tile: {
@@ -322,6 +323,16 @@ const tiles = StyleSheet.create({
     borderRadius: 24,
   },
   pressed: { transform: [{ scale: 0.98 }] },
+  coin: { position: 'absolute', top: 10, left: 10, width: 40, height: 40 },
+  card: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    width: 54,
+    height: 34,
+    borderRadius: 5,
+    transform: [{ rotate: '-8deg' }],
+  },
   icon: {
     position: 'absolute',
     top: 12,

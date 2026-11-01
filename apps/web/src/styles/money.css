@@ -522,6 +522,24 @@
   border-radius: 50%;
 }
 
+.m-tile-coin,
+.m-tile-card {
+  position: absolute;
+  top: 0.625rem;
+  left: 0.625rem;
+}
+
+.m-tile-coin {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.m-tile-card {
+  width: 3.375rem;
+  border-radius: 5px;
+  transform: rotate(-8deg);
+}
+
 .m-tile-note {
   position: absolute;
   top: 0.85rem;
