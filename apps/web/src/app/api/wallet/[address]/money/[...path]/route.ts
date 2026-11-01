@@ -9,6 +9,8 @@ const PATHS = new Set([
   'us-account',
   'us-account/view',
   'dollar-card',
+  'dollar-card/check',
+  'dollar-card/top-up',
   'dollar-card/settings',
   'dollar-card/reveal',
   'savings',

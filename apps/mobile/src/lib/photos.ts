@@ -5,12 +5,13 @@ export type PhotoSource = 'camera' | 'library'
 
 /**
  * A photo from the camera or the library, shrunk to what it's for: item photos are cropped
- * square and kept small (Kova stores them, up to 1.5 MB), menu photos stay large enough to read.
+ * square and kept small (Kova stores them, up to 1.5 MB), menu photos stay large enough to read,
+ * and an ID photo for the dollar card's check stays sharp enough for the issuer to read.
  * Returns null when the person cancels.
  */
 export async function takePhoto(
   from: PhotoSource,
-  purpose: 'item' | 'menu',
+  purpose: 'item' | 'menu' | 'id',
 ): Promise<{ uri: string; width: number; height: number; base64?: string } | null> {
   if (from === 'camera') {
     // The library needs no permission (the system picker only hands over what's chosen); the camera does.
@@ -39,7 +40,7 @@ export async function takePhoto(
   }
   const asset = result.canceled ? null : result.assets[0]
   if (!asset) return null
-  return shrink(asset.uri, asset.width, purpose === 'item' ? 900 : 1800, purpose === 'menu')
+  return shrink(asset.uri, asset.width, purpose === 'item' ? 900 : 1800, purpose !== 'item')
 }
 
 /** Resizes to at most `max` points wide and saves a JPEG. */

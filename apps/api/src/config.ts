@@ -121,11 +121,23 @@ const schema = z.object({
   /** The chain and coin Bridge delivers to the wallet's deposit address (Aurora then lands it as AUSD). */
   BRIDGE_DESTINATION_RAIL: z.string().default('base'),
   BRIDGE_DESTINATION_CURRENCY: z.string().default('usdc'),
-  /** Lithic: the dollar card (virtual first). Sandbox keys are self-serve at lithic.com. */
-  LITHIC_API_KEY: z.string().optional(),
-  LITHIC_API_URL: z.string().url().default('https://sandbox.lithic.com'),
-  /** The secret Lithic signs card authorizations (Auth Stream Access) with. */
-  LITHIC_ASA_SECRET: z.string().optional(),
+  /**
+   * Nuvion: the dollar card. Each holder passes Nuvion's ID check once and gets a virtual USD card
+   * with its own account. A top-up is dollars sent to Kova on Monad (KOVA_CARD_TREASURY), then the
+   * same amount moved by book transfer from Kova's own USD account at Nuvion (NUVION_POT_ACCOUNT).
+   * The card is off until all four are set.
+   */
+  NUVION_API_KEY: z.string().optional(),
+  NUVION_API_URL: z.string().url().default('https://api.nuvion.dev'),
+  NUVION_POT_ACCOUNT: z.string().optional(),
+  KOVA_CARD_TREASURY: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{40}$/)
+    .optional(),
+  /** The most a wallet can put on its card in a day, in base units: $50. */
+  KOVA_CARD_DAILY_TOPUP: z.string().regex(/^\d+$/).default('50000000'),
+  /** Kova's fee on each top-up, in basis points: 50 is 0.5%, paid on top of what lands on the card. */
+  KOVA_CARD_TOPUP_FEE_BPS: z.coerce.number().int().min(0).max(1000).default(50),
   /** Savings: an ERC-4626 vault for the settlement dollar, and the KovaSaver in front of it. */
   KOVA_SAVINGS_VAULT: z.string().optional(),
   KOVA_SAVER: z.string().optional(),

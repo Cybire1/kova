@@ -5,6 +5,7 @@ import {
   moneyActionMessage,
   type NetworkId,
   receiveAuthorizationTypedData,
+  transferAuthorizationTypedData,
   vaultPermitTypedData,
 } from '@kova/monad'
 import { type Address, type Hex, type LocalAccount, toHex } from 'viem'
@@ -40,14 +41,58 @@ export interface DollarCard {
   sandbox: boolean
   provider: string
   requested: boolean
-  card: {
+  /** intro: no card yet. checking: the ID check is with the issuer. fix: it didn't pass. card: ready. */
+  stage: 'intro' | 'checking' | 'fix' | 'card'
+  /** The most a wallet puts on its card in a day, base units. */
+  daily_topup: string
+  /** Kova's fee on a top-up, in basis points (50 = 0.5%), paid on top. */
+  topup_fee_bps?: number
+  reason?: string | null
+  card?: {
     last_four: string
     exp_month: string | null
     exp_year: string | null
     frozen: boolean
-    daily_limit: string
-  } | null
-  transactions: Array<{ id: string; amount: string; status: string; merchant: string; at: string }>
+    /** What the card can spend now, base units; null when the issuer didn't answer. */
+    balance: string | null
+    name: string
+  }
+  topups?: { today: string; left: string; treasury: Address }
+  activity?: Array<{
+    id: string
+    kind: 'spend' | 'refund' | 'topup'
+    amount: string
+    status: string
+    title: string
+    at: string
+  }>
+}
+
+export interface CardDetails {
+  number: string
+  cvv: string
+  exp_month: string
+  exp_year: string
+  name: string
+}
+
+export interface CardCheck {
+  first_name: string
+  last_name: string
+  /** YYYY-MM-DD. */
+  date_of_birth: string
+  email: string
+  phone: string
+  nationality: string
+  gender: 'm' | 'f'
+  address: { line1: string; city: string; state: string; postal_code: string; country: string }
+  document: {
+    type: 'international_passport' | 'national_id' | 'drivers_license'
+    number: string
+    /** Base64, no data: prefix. */
+    file: string
+    mime: 'image/jpeg' | 'image/png' | 'application/pdf'
+  }
 }
 
 export interface Savings {
@@ -130,28 +175,65 @@ export async function viewUsAccount(address: Address, sign: Sign) {
   return post<UsAccount>(address, 'us-account/view', await signed(address, sign, 'view-us-account'))
 }
 
-export async function issueDollarCard(address: Address, sign: Sign) {
-  return post<DollarCard>(address, 'dollar-card', await signed(address, sign, 'issue-dollar-card'))
-}
-
-export async function setDollarCard(
-  address: Address,
-  sign: Sign,
-  change: { frozen?: boolean; daily_limit?: string },
-) {
-  const detail =
-    `${change.frozen === undefined ? '' : change.frozen ? 'freeze' : 'unfreeze'}${change.daily_limit ? ` limit ${change.daily_limit}` : ''}`.trim()
-  return post<DollarCard>(address, 'dollar-card/settings', {
-    ...change,
-    ...(await signed(address, sign, 'dollar-card-settings', detail)),
+/** Your details and ID photo, to the card issuer's check. */
+export async function startCardCheck(address: Address, sign: Sign, check: CardCheck) {
+  return post<DollarCard>(address, 'dollar-card/check', {
+    ...check,
+    ...(await signed(address, sign, 'dollar-card-check')),
   })
 }
 
+export async function setDollarCard(address: Address, sign: Sign, frozen: boolean) {
+  return post<DollarCard>(address, 'dollar-card/settings', {
+    frozen,
+    ...(await signed(address, sign, 'dollar-card-settings', frozen ? 'freeze' : 'unfreeze')),
+  })
+}
+
+/** The card's number, expiry and CVV, straight from the issuer. Shown, never stored. */
 export async function revealDollarCard(address: Address, sign: Sign) {
-  const origin = window.location.origin
-  return post<{ url: string; expires_at: string }>(address, 'dollar-card/reveal', {
-    origin,
-    ...(await signed(address, sign, 'reveal-dollar-card', origin)),
+  return post<CardDetails>(
+    address,
+    'dollar-card/reveal',
+    await signed(address, sign, 'reveal-dollar-card'),
+  )
+}
+
+/** Kova's fee on a top-up of `amount`, rounded up to the cent, as the API charges it. */
+export function topUpFee(amount: bigint, bps: number) {
+  const raw = (amount * BigInt(bps) + 9_999n) / 10_000n
+  return ((raw + 9_999n) / 10_000n) * 10_000n
+}
+
+/** Onto the card: one signed transfer of `amount` plus Kova's fee to Kova; `amount` lands on the card. */
+export async function topUpCard(
+  network: NetworkId,
+  account: LocalAccount,
+  treasury: Address,
+  amount: bigint,
+  bps: number,
+) {
+  const value = amount + topUpFee(amount, bps)
+  const token = getToken(network, 'AUSD')
+  const message = {
+    from: account.address,
+    to: treasury,
+    value,
+    validAfter: 0n,
+    validBefore: BigInt(Math.floor(Date.now() / 1000) + 600),
+    nonce: toHex(crypto.getRandomValues(new Uint8Array(32))),
+  }
+  const signature = await account.signTypedData(
+    transferAuthorizationTypedData(token, getNetwork(network).chainId, message),
+  )
+  return post<{ tx_hash: Hex; card: DollarCard }>(account.address, 'dollar-card/top-up', {
+    amount: amount.toString(),
+    to: treasury,
+    value: value.toString(),
+    valid_after: '0',
+    valid_before: message.validBefore.toString(),
+    nonce: message.nonce,
+    signature,
   })
 }
 

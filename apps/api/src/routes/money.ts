@@ -5,20 +5,20 @@ import { z } from 'zod'
 import { KovaError } from '../errors.js'
 import { clientIp, limit } from '../limits.js'
 import {
-  type CardAuthorizationEvent,
-  decideCardAuthorization,
   dollarCardFor,
-  issueDollarCard,
+  revealDollarCard,
+  setDollarCard,
+  startCheck,
+  topUp,
+} from '../services/dollar-card.js'
+import {
   openUsAccount,
   requestAccess,
   requireWalletSignature,
-  revealDollarCard,
   saveIn,
   saveOut,
   savingsFor,
-  setDollarCard,
   usAccountFor,
-  verifyLithicSignature,
 } from '../services/money.js'
 
 /**
@@ -28,11 +28,11 @@ import {
  *   GET  /wallets/:address/us-account             the US account's status
  *   POST /wallets/:address/us-account             start it: Bridge's KYC (signed; name and email)
  *   POST /wallets/:address/us-account/view        its account and routing number (signed)
- *   GET  /wallets/:address/dollar-card            the card, frozen or not, its limit and payments
- *   POST /wallets/:address/dollar-card            issue it (signed)
- *   POST /wallets/:address/dollar-card/settings   freeze, unfreeze or change the daily limit (signed)
- *   POST /wallets/:address/dollar-card/reveal     a short-lived link to the issuer's own frame with the number (signed)
- *   POST /dollar-card/authorizations              the issuer asks whether a payment may go through
+ *   GET  /wallets/:address/dollar-card            where the card is: intro, checking, fix or the card itself
+ *   POST /wallets/:address/dollar-card/check      the holder's details and ID photo, to the issuer's check (signed)
+ *   POST /wallets/:address/dollar-card/top-up     a signed AUSD transfer to Kova (amount + 0.5%), the amount moved onto the card
+ *   POST /wallets/:address/dollar-card/settings   freeze or unfreeze (signed)
+ *   POST /wallets/:address/dollar-card/reveal     the card's number, expiry and CVV (signed)
  *   GET  /wallets/:address/savings                balance, put in, earned, moves
  *   POST /wallets/:address/savings/in             a signed receiveWithAuthorization into savings
  *   POST /wallets/:address/savings/out            a signed permit on the vault's shares, back to the wallet
@@ -55,22 +55,42 @@ const openBody = z.object({
   ...signed,
 })
 const plainSigned = z.object(signed)
-const issueBody = z.object({
-  daily_limit: z
-    .string()
-    .regex(/^\d{1,13}$/)
-    .optional(),
+const checkBody = z.object({
+  first_name: z.string().trim().min(1).max(60),
+  last_name: z.string().trim().min(1).max(60),
+  date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  email: z.string().trim().email().max(200),
+  phone: z.string().regex(/^\+\d{8,15}$/),
+  nationality: z.string().regex(/^[A-Z]{2}$/),
+  gender: z.enum(['m', 'f']),
+  address: z.object({
+    line1: z.string().trim().min(3).max(120),
+    city: z.string().trim().min(2).max(60),
+    state: z.string().trim().min(2).max(60),
+    postal_code: z.string().trim().min(2).max(20),
+    country: z.string().regex(/^[A-Z]{2}$/),
+  }),
+  document: z.object({
+    type: z.enum(['international_passport', 'national_id', 'drivers_license']),
+    number: z.string().trim().min(4).max(40),
+    /** The photo, base64 (no data: prefix), at most about 6 MB. */
+    file: z.string().min(100).max(8_000_000),
+    mime: z.enum(['image/jpeg', 'image/png', 'application/pdf']),
+    file_back: z.string().min(100).max(8_000_000).optional(),
+  }),
   ...signed,
 })
-const settingsBody = z.object({
-  frozen: z.boolean().optional(),
-  daily_limit: z
-    .string()
-    .regex(/^\d{1,13}$/)
-    .optional(),
-  ...signed,
+const topUpBody = z.object({
+  /** What lands on the card; `value` is that plus Kova's fee. */
+  amount: z.string().regex(/^\d{1,20}$/),
+  to: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
+  value: z.string().regex(/^\d{1,20}$/),
+  valid_after: z.string().regex(/^\d{1,20}$/),
+  valid_before: z.string().regex(/^\d{1,20}$/),
+  nonce: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+  signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/),
 })
-const revealBody = z.object({ origin: z.string().url().max(200), ...signed })
+const settingsBody = z.object({ frozen: z.boolean(), ...signed })
 const saveInBody = z.object({
   value: z.string().regex(/^\d{1,30}$/),
   valid_after: z.string().regex(/^\d{1,20}$/),
@@ -136,71 +156,92 @@ export const moneyRoutes = new Hono()
     return c.json(await usAccountFor(wallet, true))
   })
   .get('/wallets/:address/dollar-card', async (c) => c.json(await dollarCardFor(walletAddress(c))))
-  .post('/wallets/:address/dollar-card', async (c) => {
+  .post('/wallets/:address/dollar-card/check', async (c) => {
     const wallet = walletAddress(c)
-    const b = await body(c, issueBody, '{ daily_limit?, signed_at, signature }')
-    await requireWalletSignature(
-      wallet,
-      'issue-dollar-card',
-      b.signed_at,
-      b.signature,
-      b.daily_limit ?? '',
+    const b = await body(c, checkBody, '{ your details, document, signed_at, signature }')
+    await requireWalletSignature(wallet, 'dollar-card-check', b.signed_at, b.signature)
+    limit(
+      `dollar-card-check:${clientIp(c)}`,
+      6,
+      3_600_000,
+      'That’s a lot of ID checks from here. Try again later.',
+    )
+    return c.json(
+      await startCheck(
+        wallet,
+        {
+          firstName: b.first_name,
+          lastName: b.last_name,
+          dateOfBirth: b.date_of_birth,
+          email: b.email,
+          phone: b.phone,
+          nationality: b.nationality,
+          gender: b.gender,
+          address: {
+            line1: b.address.line1,
+            city: b.address.city,
+            state: b.address.state,
+            postalCode: b.address.postal_code,
+            country: b.address.country,
+          },
+          document: { type: b.document.type, number: b.document.number },
+        },
+        { base64: b.document.file, mime: b.document.mime, backBase64: b.document.file_back },
+      ),
+    )
+  })
+  .post('/wallets/:address/dollar-card/top-up', async (c) => {
+    const wallet = walletAddress(c)
+    const b = await body(
+      c,
+      topUpBody,
+      '{ amount, to, value, valid_after, valid_before, nonce, signature }',
     )
     limit(
-      `dollar-card-ip:${clientIp(c)}`,
-      10,
+      `dollar-card-top-up:${wallet.toLowerCase()}`,
+      20,
       3_600_000,
-      'That’s a lot of cards from here. Try again later.',
+      'That’s a lot of top-ups in an hour. Try again later.',
     )
-    return c.json(await issueDollarCard(wallet, b.daily_limit ? BigInt(b.daily_limit) : undefined))
+    return c.json(
+      await topUp(
+        wallet,
+        BigInt(b.amount),
+        {
+          from: wallet,
+          to: getAddress(b.to),
+          value: BigInt(b.value),
+          validAfter: BigInt(b.valid_after),
+          validBefore: BigInt(b.valid_before),
+          nonce: b.nonce as Hex,
+        },
+        b.signature as Hex,
+      ),
+    )
   })
   .post('/wallets/:address/dollar-card/settings', async (c) => {
     const wallet = walletAddress(c)
-    const b = await body(c, settingsBody, '{ frozen?, daily_limit?, signed_at, signature }')
-    const detail =
-      `${b.frozen === undefined ? '' : b.frozen ? 'freeze' : 'unfreeze'}${b.daily_limit ? ` limit ${b.daily_limit}` : ''}`.trim()
-    await requireWalletSignature(wallet, 'dollar-card-settings', b.signed_at, b.signature, detail)
-    return c.json(
-      await setDollarCard(wallet, {
-        frozen: b.frozen,
-        dailyLimit: b.daily_limit ? BigInt(b.daily_limit) : undefined,
-      }),
+    const b = await body(c, settingsBody, '{ frozen, signed_at, signature }')
+    await requireWalletSignature(
+      wallet,
+      'dollar-card-settings',
+      b.signed_at,
+      b.signature,
+      b.frozen ? 'freeze' : 'unfreeze',
     )
+    return c.json(await setDollarCard(wallet, b.frozen))
   })
   .post('/wallets/:address/dollar-card/reveal', async (c) => {
     const wallet = walletAddress(c)
-    const b = await body(c, revealBody, '{ origin, signed_at, signature }')
-    await requireWalletSignature(
-      wallet,
-      'reveal-dollar-card',
-      b.signed_at,
-      b.signature,
-      new URL(b.origin).origin,
-    )
+    const b = await body(c, plainSigned, '{ signed_at, signature }')
+    await requireWalletSignature(wallet, 'reveal-dollar-card', b.signed_at, b.signature)
     limit(
       `dollar-card-reveal:${wallet.toLowerCase()}`,
       20,
       3_600_000,
       'That’s a lot of looks at the card. Try again later.',
     )
-    return c.json(await revealDollarCard(wallet, new URL(b.origin).origin))
-  })
-  .post('/dollar-card/authorizations', async (c) => {
-    const raw = await c.req.text()
-    const signed = verifyLithicSignature(raw, {
-      id: c.req.header('webhook-id'),
-      timestamp: c.req.header('webhook-timestamp'),
-      signature: c.req.header('webhook-signature'),
-    })
-    if (!signed) throw new KovaError('unauthorized', 'Not signed by the card issuer.')
-    const event = (() => {
-      try {
-        return JSON.parse(raw) as CardAuthorizationEvent
-      } catch {
-        throw new KovaError('invalid_request', 'Expected a card authorization.')
-      }
-    })()
-    return c.json(await decideCardAuthorization(event))
+    return c.json(await revealDollarCard(wallet))
   })
   .get('/wallets/:address/savings', async (c) => c.json(await savingsFor(walletAddress(c))))
   .post('/wallets/:address/savings/in', async (c) => {

@@ -1,0 +1,355 @@
+import { config } from '../config.js'
+import { KovaError } from '../errors.js'
+
+/**
+ * Nuvion (docs.nuvion.co), the dollar card's issuer: the few calls Kova makes, typed as far as
+ * Kova reads them. Amounts are in cents, Nuvion's smallest unit for USD. Every reply is
+ * `{ status, message?, data }`; a refusal carries the reason in `message`.
+ *
+ * Each card holder is a child entity of Kova's own (the key's entity): they pass Nuvion's ID check,
+ * then hold a USD account the card spends from. Kova's pot (NUVION_POT_ACCOUNT) pays that account
+ * by book transfer, so each holder is also a counterparty of Kova's with a book-transfer detail.
+ */
+
+export const nuvionSandbox = () => config.NUVION_API_URL.includes('nuvion.dev')
+
+export class NuvionRefused extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string | undefined,
+    message: string,
+  ) {
+    super(message)
+  }
+}
+
+async function nuvion<T>(
+  path: string,
+  init: { method?: string; body?: unknown; timeoutMs?: number } = {},
+): Promise<T> {
+  if (!config.NUVION_API_KEY)
+    throw new KovaError('conflict', 'The dollar card isn’t switched on for this server yet.')
+  const response = await fetch(`${config.NUVION_API_URL}${path}`, {
+    method: init.method ?? 'GET',
+    headers: {
+      Authorization: `Bearer ${config.NUVION_API_KEY}`,
+      'content-type': 'application/json',
+    },
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+    signal: AbortSignal.timeout(init.timeoutMs ?? 20_000),
+  }).catch(() => null)
+  if (!response)
+    throw new KovaError('chain_error', 'The card issuer didn’t answer. Try again in a moment.')
+  const body = (await response.json().catch(() => null)) as {
+    status?: string
+    message?: string
+    code?: string
+    error?: { code?: string; message?: string }
+    data?: T
+  } | null
+  if (!response.ok || !body || body.status === 'error')
+    throw new NuvionRefused(
+      response.status,
+      body?.error?.code ?? body?.code,
+      body?.error?.message ?? body?.message ?? `Nuvion answered ${response.status}.`,
+    )
+  return body.data as T
+}
+
+// --- The ID check -------------------------------------------------------------------------------
+
+export interface Person {
+  firstName: string
+  lastName: string
+  /** YYYY-MM-DD. */
+  dateOfBirth: string
+  email: string
+  phone: string
+  /** ISO 3166-1 alpha-2. */
+  nationality: string
+  gender: 'm' | 'f'
+  address: { line1: string; city: string; state: string; postalCode: string; country: string }
+  document: { type: 'international_passport' | 'national_id' | 'drivers_license'; number: string }
+}
+
+function individual(person: Person) {
+  return {
+    name: `${person.firstName} ${person.lastName}`,
+    person: {
+      first_name: person.firstName,
+      last_name: person.lastName,
+      date_of_birth: person.dateOfBirth,
+      email: person.email,
+      nationality: person.nationality,
+      gender: person.gender,
+      phonenumber: person.phone,
+    },
+    address: {
+      line_1: person.address.line1,
+      city: person.address.city,
+      state: person.address.state,
+      postal_code: person.address.postalCode,
+      country_code: person.address.country,
+    },
+    identification: {
+      document: {
+        type: person.document.type,
+        number: person.document.number,
+        issuing_country: person.nationality,
+      },
+    },
+    meta: { customer_types: 'individual', funding_source: 'savings' },
+  }
+}
+
+interface EntityReply {
+  entity: { id: string; status: string; person_id?: string }
+  person?: { id: string }
+  rejection_reasons?: string[]
+}
+
+export async function createIndividual(person: Person) {
+  const data = await nuvion<EntityReply>('/individual-entities', {
+    method: 'POST',
+    body: individual(person),
+  })
+  return { entityId: data.entity.id, personId: data.person?.id ?? data.entity.person_id ?? null }
+}
+
+/** For a holder sending their details again after a check that didn't pass. */
+export async function updateIndividual(entityId: string, person: Person) {
+  await nuvion(`/individual-entities/${encodeURIComponent(entityId)}`, {
+    method: 'PATCH',
+    body: individual(person),
+  })
+}
+
+export async function uploadIdentity(
+  entityId: string,
+  personId: string | null,
+  file: { base64: string; mime: string; backBase64?: string },
+) {
+  await nuvion('/documents', {
+    method: 'POST',
+    timeoutMs: 60_000,
+    body: {
+      entity_id: entityId,
+      key: 'identity',
+      description: 'Identity document',
+      file: file.base64,
+      ...(file.backBase64 ? { file_back: file.backBase64 } : {}),
+      meta: { file_type: file.mime },
+      ...(personId ? { link_to_identity: { person_id: personId } } : {}),
+    },
+  })
+}
+
+export async function submitForReview(entityId: string) {
+  await nuvion('/onboarding-submissions', { method: 'POST', body: { entity_id: entityId } })
+}
+
+export async function entityStatus(entityId: string) {
+  const data = await nuvion<EntityReply>(`/entities/${encodeURIComponent(entityId)}`)
+  return {
+    status: data.entity.status,
+    reason: data.rejection_reasons?.length ? data.rejection_reasons.join(' ') : null,
+  }
+}
+
+// --- Accounts and moving money --------------------------------------------------------------------
+
+interface AccountReply {
+  account: {
+    id: string
+    nuvion_ban?: string
+    balance?: { available?: number; current?: number }
+  }
+}
+
+export async function openUsdAccount(entityId: string) {
+  const data = await nuvion<AccountReply>('/accounts', {
+    method: 'POST',
+    body: { entity_id: entityId, type: 'checking', currency: 'USD', display_name: 'Kova card' },
+  })
+  return { accountId: data.account.id, accountNumber: data.account.nuvion_ban ?? null }
+}
+
+/** What the account can spend now, in cents. */
+export async function accountBalance(accountId: string): Promise<number> {
+  const data = await nuvion<AccountReply>(`/accounts/${encodeURIComponent(accountId)}`)
+  return data.account.balance?.available ?? 0
+}
+
+/** Kova's way to pay a holder's account from its pot: a counterparty with a book-transfer detail. */
+export async function payeeFor(holder: {
+  firstName: string
+  lastName: string
+  email: string | null
+  accountNumber: string
+}) {
+  const party = await nuvion<{ id?: string; counterparty?: { id: string } }>('/counterparties', {
+    method: 'POST',
+    body: {
+      type: 'individual',
+      profile: {
+        first_name: holder.firstName,
+        last_name: holder.lastName,
+        relationship: 'customer',
+        ...(holder.email ? { email: holder.email } : {}),
+      },
+    },
+  })
+  const counterpartyId = party.counterparty?.id ?? party.id
+  if (!counterpartyId) throw new NuvionRefused(500, undefined, 'No counterparty id came back.')
+  const detail = await nuvion<{ id?: string; payment_detail?: { id: string } }>(
+    '/payment-details',
+    {
+      method: 'POST',
+      body: {
+        counterparty_id: counterpartyId,
+        payment_method: 'book-transfer',
+        currency: 'USD',
+        account_holder_name: `${holder.firstName} ${holder.lastName}`,
+        account_number: holder.accountNumber,
+      },
+    },
+  )
+  const paymentDetailId = detail.payment_detail?.id ?? detail.id
+  if (!paymentDetailId) throw new NuvionRefused(500, undefined, 'No payment detail id came back.')
+  return { counterpartyId, paymentDetailId }
+}
+
+/**
+ * Moves `cents` from Kova's pot to a holder's account. `reference` is unique per transfer: Nuvion
+ * refuses a second transfer with it (409), which is what makes a retry safe.
+ */
+export async function bookTransfer(
+  to: { counterpartyId: string; paymentDetailId: string },
+  cents: number,
+  reference: string,
+  narration: string,
+) {
+  if (!config.NUVION_POT_ACCOUNT)
+    throw new KovaError('conflict', 'The dollar card isn’t switched on for this server yet.')
+  const data = await nuvion<{ id?: string; _id?: string; transfer?: { id: string } }>(
+    '/transfers',
+    {
+      method: 'POST',
+      body: {
+        account_id: config.NUVION_POT_ACCOUNT,
+        counterparty_id: to.counterpartyId,
+        payment_detail_id: to.paymentDetailId,
+        currency: 'USD',
+        amount: cents,
+        payment_type: 'book-transfer',
+        narration,
+        unique_reference: reference,
+      },
+    },
+  )
+  return data.transfer?.id ?? data.id ?? data._id ?? null
+}
+
+// --- Cards ----------------------------------------------------------------------------------------
+
+export async function cardFee(accountId: string): Promise<number> {
+  const data = await nuvion<{ fee?: number }>(
+    `/card-creation-fee/${encodeURIComponent(accountId)}?currency=USD`,
+  )
+  return data.fee ?? 0
+}
+
+export async function issueVirtualCard(
+  entityId: string,
+  accountId: string,
+  holder: { firstName: string; lastName: string; email: string | null },
+) {
+  const data = await nuvion<{ id: string; status: string }>('/virtual-cards', {
+    method: 'POST',
+    body: {
+      entity_id: entityId,
+      account_id: accountId,
+      card_name: 'Kova',
+      currency: 'USD',
+      cardholder: {
+        first_name: holder.firstName,
+        last_name: holder.lastName,
+        ...(holder.email ? { email: holder.email } : {}),
+      },
+    },
+  })
+  return data.id
+}
+
+export interface CardSecrets {
+  number: string
+  cvv: string
+  expMonth: string
+  expYear: string
+  name: string
+  status: string
+}
+
+/** The card's number and CVV. Sensitive: pass it straight to the holder, never keep it. */
+export async function cardSecrets(cardId: string): Promise<CardSecrets> {
+  const d = await nuvion<{
+    number: string
+    cvv: string
+    expiration_month: string
+    expiration_year: string
+    first_name?: string
+    last_name?: string
+    status: string
+  }>(`/card-details/${encodeURIComponent(cardId)}`)
+  return {
+    number: d.number,
+    cvv: d.cvv,
+    expMonth: d.expiration_month,
+    expYear: d.expiration_year,
+    name: [d.first_name, d.last_name].filter(Boolean).join(' '),
+    status: d.status,
+  }
+}
+
+export async function setCardFrozen(cardId: string, frozen: boolean) {
+  await nuvion(`/card-details/${encodeURIComponent(cardId)}/${frozen ? 'freeze' : 'unfreeze'}`, {
+    method: 'PATCH',
+  })
+}
+
+export interface CardPayment {
+  id: string
+  /** Cents; a spend is negative. */
+  cents: number
+  status: string
+  merchant: string
+  at: Date
+}
+
+export async function cardPayments(cardId: string): Promise<CardPayment[]> {
+  const data = await nuvion<{
+    payments?: Array<{
+      _id: string
+      amount: number
+      status: string
+      type?: string
+      payment_type?: string
+      narration?: string
+      recipient?: { name?: string }
+      created: number
+    }>
+  }>(`/card-transactions/${encodeURIComponent(cardId)}?limit=20`)
+  return (data.payments ?? []).map((p) => {
+    const incoming = p.type === 'inflow'
+    const named = p.narration?.match(/(?:Payment to|to)\s+(.+?)\s+for\s+[\d.]+/i)?.[1]
+    return {
+      id: p._id,
+      cents: incoming ? p.amount : -p.amount,
+      status: p.status,
+      merchant: incoming
+        ? 'Refund'
+        : named?.trim() || p.recipient?.name?.trim() || p.narration?.trim() || 'Card payment',
+      at: new Date(p.created),
+    }
+  })
+}

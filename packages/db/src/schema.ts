@@ -1308,6 +1308,72 @@ export const dollarCards = pgTable(
   ],
 )
 
+/**
+ * Who a dollar card is issued to: the person behind a wallet, as the card issuer (Nuvion) knows
+ * them after their ID check. Kova keeps the issuer's ids and whether they passed, never their ID
+ * document; the card's own account and the payment detail that tops it up are made once they pass.
+ */
+export const cardHolders = pgTable(
+  'card_holders',
+  {
+    id: id(),
+    /** Lowercase. */
+    wallet: address('wallet').notNull(),
+    network: network('network').notNull(),
+    provider: text('provider').notNull().default('nuvion'),
+    entityId: text('entity_id').notNull(),
+    personId: text('person_id'),
+    /** The issuer's check: incomplete, pending, approved, rejected, failed or suspended. */
+    status: text('status').notNull().default('pending'),
+    /** Why a check didn't pass, in the issuer's words. */
+    reason: text('reason'),
+    firstName: text('first_name').notNull(),
+    lastName: text('last_name').notNull(),
+    email: text('email'),
+    /** The card's own USD account at the issuer, and its account number for top-ups. */
+    accountId: text('account_id'),
+    accountNumber: text('account_number'),
+    /** Kova's way to pay that account from its pot: a counterparty and its book-transfer detail. */
+    counterpartyId: text('counterparty_id'),
+    paymentDetailId: text('payment_detail_id'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('card_holders_wallet_idx').on(t.wallet, t.network)],
+)
+
+/**
+ * Each top-up of a dollar card: the dollars the wallet sent Kova on Monad (paid), then the same
+ * amount moved onto the card at the issuer (credited). One Monad transaction credits once.
+ */
+export const cardTopups = pgTable(
+  'card_topups',
+  {
+    id: id(),
+    /** Lowercase. */
+    wallet: address('wallet').notNull(),
+    network: network('network').notNull(),
+    /** What lands on the card, in base units. */
+    amount: amount('amount').notNull(),
+    /** Kova's fee on top, kept by Kova: the wallet sent amount + fee. */
+    fee: amount('fee').notNull().default(0n),
+    txHash: text('tx_hash').notNull(),
+    /** The issuer transfer's unique reference, so a retry can never credit twice. */
+    reference: text('reference').notNull(),
+    /** paid, credited or failed. */
+    status: text('status').notNull().default('paid'),
+    transferId: text('transfer_id'),
+    problem: text('problem'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('card_topups_tx_idx').on(t.txHash),
+    uniqueIndex('card_topups_reference_idx').on(t.reference),
+    index('card_topups_wallet_idx').on(t.wallet, t.network, t.createdAt),
+  ],
+)
+
 /** Each move into or out of savings, so "earned" is what the vault holds less what went in. */
 export const savingsMoves = pgTable(
   'savings_moves',

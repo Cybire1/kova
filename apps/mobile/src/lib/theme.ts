@@ -63,6 +63,9 @@ const light = {
   wash: 'rgba(11,26,29,0.07)',
   /** Hairlines and dividers. */
   rule: 'rgba(11,26,29,0.16)',
+  /** A frozen dollar card's ground, and the text on it. */
+  ice: '#D3DAF5',
+  iceInk: '#2A3358',
 } as const
 
 type Name = keyof typeof light
@@ -97,6 +100,8 @@ const dark: Record<Name, string> = {
   raised: '#262626',
   wash: 'rgba(236,232,223,0.1)',
   rule: 'rgba(236,232,223,0.14)',
+  ice: '#0E1220',
+  iceInk: '#C4CAE6',
 }
 
 /** Where Appearance on You keeps its choice (iOS user defaults, readable before any style is made). */

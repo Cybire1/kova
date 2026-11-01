@@ -251,6 +251,7 @@ export default function RootLayout() {
                             />
                             <Stack.Screen name="send/[to]" options={sendSheet} />
                             <Stack.Screen name="send/link" options={sendSheet} />
+                            <Stack.Screen name="dollar-card/top-up" options={sendSheet} />
                             <Stack.Screen
                               name="stocks/buy"
                               options={{
