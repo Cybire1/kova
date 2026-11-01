@@ -43,8 +43,8 @@
   max-width: 1120px;
   margin: 32px auto 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-  gap: 48px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 40px;
   align-items: start;
 }
 
@@ -202,7 +202,7 @@
 }
 
 .ud-phone {
-  width: 280px;
+  width: 270px;
   max-width: 100%;
   padding: 18px 18px 22px;
   border-radius: 44px 44px 56px 56px;
@@ -293,7 +293,7 @@
 
 .ud-banner {
   position: absolute;
-  inset: 8px 8px auto;
+  inset: auto 8px 8px;
   z-index: 2;
   display: grid;
   gap: 2px;
@@ -307,7 +307,7 @@
 
 @keyframes ud-in {
   from {
-    transform: translateY(-12px);
+    transform: translateY(12px);
     opacity: 0;
   }
 }
@@ -391,7 +391,7 @@
 .ud-side {
   display: grid;
   gap: 16px;
-  width: 260px;
+  width: 236px;
   max-width: 100%;
 }
 

@@ -10,7 +10,7 @@ import { hashSecret, sealKey } from '../secrets.js'
 import { giveTestDollars } from './faucet.js'
 import { createIntent } from './intents.js'
 import { pocketBalance, pocketsReady, tillCodeFor } from './pockets.js'
-import { DEMO_PHONE_PREFIX, demoMessages, forgetDemoPhone, sendSms } from './sms.js'
+import { DEMO_PHONE_PREFIX, demoMessages, forgetDemoPhone } from './sms.js'
 import { ussdReply } from './ussd.js'
 
 /**
@@ -92,10 +92,7 @@ export async function startDemo() {
     lastSignedAt: Math.floor(Date.now() / 1000),
   })
   const drip = await giveTestDollars(pocket)
-  await sendSms(
-    phone,
-    `$${drip.amount} arrived in your Kova pocket. Dial ${config.KOVA_USSD_CODE} to pay a shop or send money.`,
-  )
+  // Kova texts the arrival itself, as for any pocket (services/pockets.ts), so the page shows that.
   return {
     object: 'ussd_demo' as const,
     network: network.id,

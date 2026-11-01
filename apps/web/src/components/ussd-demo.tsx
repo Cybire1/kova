@@ -260,7 +260,7 @@ export function UssdDemo() {
                 <b>Dial</b> <code>{demo.dial}</code> and press the green key.
               </li>
               <li>
-                <b>Press 2</b>, Pay a till, and send.
+                <b>Press 2</b> (Pay a till) and send.
               </li>
               <li>
                 <b>Type the till’s code</b> <code>{demo.till.code}</code> and send.

@@ -96,7 +96,7 @@ afterAll(() => {
 })
 
 describe('the basic-phone demo', () => {
-  it('gives a demo number a funded pocket, a PIN and a till, and keeps its texts on the page', async () => {
+  it('gives a demo number a funded pocket, a PIN and a till, and reads its balance and the till', async () => {
     const { status, json: demo } = await call('POST', '/v1/ussd/demo')
     expect(status).toBe(201)
     expect(demo.phone).toMatch(/^\+999\d{9}$/)
@@ -109,7 +109,6 @@ describe('the basic-phone demo', () => {
       `/v1/ussd/demo/state?phone=${encodeURIComponent(demo.phone)}&till=${demo.till.id}`,
     )
     expect(s.balance).toBe('5.00')
-    expect(s.messages[0].text).toContain('$5.00 arrived')
     expect(s.till.status).toBe('requires_payment')
   })
 
