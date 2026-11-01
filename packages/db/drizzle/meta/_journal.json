@@ -239,6 +239,13 @@
       "when": 1793200000000,
       "tag": "0033_card_holder_phone",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1793300000000,
+      "tag": "0034_card_brand",
+      "breakpoints": true
     }
   ]
 }

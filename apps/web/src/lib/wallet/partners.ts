@@ -50,6 +50,8 @@ export interface DollarCard {
   reason?: string | null
   card?: {
     last_four: string
+    /** mastercard, visa or other. */
+    brand?: string
     exp_month: string | null
     exp_year: string | null
     frozen: boolean
@@ -69,6 +71,8 @@ export interface DollarCard {
 }
 
 export interface CardDetails {
+  /** mastercard, visa or other. */
+  brand?: string
   number: string
   cvv: string
   exp_month: string

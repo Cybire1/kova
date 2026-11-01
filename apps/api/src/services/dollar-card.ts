@@ -53,6 +53,15 @@ export const dollarCardLive = () =>
   Boolean(config.NUVION_API_KEY && config.NUVION_POT_ACCOUNT && config.KOVA_CARD_TREASURY)
 
 const dailyCap = () => BigInt(config.KOVA_CARD_DAILY_TOPUP)
+/** The card's brand, from the first digits of its number (only the name is kept). */
+export function cardBrand(number: string): 'mastercard' | 'visa' | 'other' {
+  const two = Number(number.slice(0, 2))
+  const four = Number(number.slice(0, 4))
+  if (number.startsWith('4')) return 'visa'
+  if ((two >= 51 && two <= 55) || (four >= 2221 && four <= 2720)) return 'mastercard'
+  return 'other'
+}
+
 /** Base units (6 decimals) per cent. */
 const CENT = 10_000n
 
@@ -257,6 +266,7 @@ async function issue(holder: Holder): Promise<Holder> {
     provider: 'nuvion',
     providerCardToken: cardId,
     lastFour: secrets.number.slice(-4),
+    brand: cardBrand(secrets.number),
     expMonth: secrets.expMonth,
     expYear: secrets.expYear,
     state: secrets.status === 'blocked' ? 'paused' : 'open',
@@ -288,7 +298,20 @@ export async function dollarCardFor(wallet: Address) {
       console.error('[dollar-card]', error)
       return holder
     })
-  const card = await cardOf(wallet)
+  let card = await cardOf(wallet)
+  if (card && !card.brand) {
+    // A card made before Kova kept its brand: work it out once.
+    const brand = await cardSecrets(card.providerCardToken)
+      .then((s) => cardBrand(s.number))
+      .catch(() => null)
+    if (brand) {
+      await db
+        .update(schema.dollarCards)
+        .set({ brand, updatedAt: new Date() })
+        .where(eq(schema.dollarCards.id, card.id))
+      card = { ...card, brand }
+    }
+  }
   if (!holder || !card)
     return {
       ...base,
@@ -342,6 +365,7 @@ export async function dollarCardFor(wallet: Address) {
     stage: 'card' as const,
     card: {
       last_four: card.lastFour,
+      brand: card.brand ?? 'other',
       exp_month: card.expMonth,
       exp_year: card.expYear,
       frozen: card.state === 'paused',
@@ -568,5 +592,6 @@ export async function revealDollarCard(wallet: Address) {
     exp_month: s.expMonth,
     exp_year: s.expYear,
     name: s.name,
+    brand: cardBrand(s.number),
   }
 }

@@ -1293,6 +1293,8 @@ export const dollarCards = pgTable(
     provider: text('provider').notNull().default('lithic'),
     providerCardToken: text('provider_card_token').notNull(),
     lastFour: text('last_four').notNull(),
+    /** The card's brand: mastercard, visa or other, worked out from the number when it's made. */
+    brand: text('brand'),
     expMonth: text('exp_month'),
     expYear: text('exp_year'),
     /** open, paused or closed (the partner's states). */

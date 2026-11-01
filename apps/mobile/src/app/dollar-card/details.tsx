@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, View } from 'react-native'
 import { type CardDetails, revealDollarCard } from '@/lib/partners'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import { CardBrand } from '@/ui/CardBrand'
 import { Icon } from '@/ui/Icon'
 import { problemOf } from '@/ui/Money'
 import { RoundButton, Screen, Txt } from '@/ui/primitives'
@@ -56,7 +57,12 @@ export default function CardDetailsScreen() {
         </Txt>
         <RoundButton icon="close" label="Hide details" onPress={() => router.back()} />
       </View>
-      <Image source={cardArt} style={styles.card} contentFit="contain" />
+      <View style={styles.cardBox}>
+        <Image source={cardArt} style={styles.card} contentFit="contain" />
+        <View style={styles.brandOnCard}>
+          <CardBrand brand={details?.brand} width={42} />
+        </View>
+      </View>
       {error ? (
         <Txt weight="medium" size={15} color={colors.danger} style={{ margin: 20 }}>
           {error}
@@ -88,6 +94,19 @@ export default function CardDetailsScreen() {
               />
             </View>
           </View>
+          {details?.brand === 'mastercard' ? (
+            <View style={[styles.row, styles.rule]}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Txt size={13} color={colors.muted}>
+                  Network
+                </Txt>
+                <Txt weight="bold" size={17}>
+                  Mastercard
+                </Txt>
+              </View>
+              <CardBrand brand="mastercard" width={38} />
+            </View>
+          ) : null}
           <View style={styles.rule}>
             <Row
               label="Name on card"
@@ -173,7 +192,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
   },
-  card: { width: 333, height: 210, alignSelf: 'center', marginTop: 20, borderRadius: 18 },
+  cardBox: { width: 333, height: 210, alignSelf: 'center', marginTop: 20 },
+  card: { width: 333, height: 210, borderRadius: 18 },
+  brandOnCard: { position: 'absolute', right: 14, top: 12 },
   section: {
     marginTop: 18,
     marginHorizontal: 20,

@@ -613,6 +613,7 @@ function CardHome({
         <span className="dc-tilt">
           <img src="/art/card-coral.png" alt={`Your Kova card ending ${card.last_four}`} />
           <span className="dc-last4">•••• {card.last_four}</span>
+          <CardBrand brand={card.brand} className="dc-brand" />
         </span>
         <div className="dc-meter dc-tilt">
           <p>
@@ -846,7 +847,10 @@ function Details({ onClose }: { onClose: () => void }) {
     <div className="w-screen dc">
       <ScreenHead title="Card details" onBack={onClose} />
       <div className="dc-pad">
-        <img src="/art/card-coral.png" alt="Your Kova dollar card" className="dc-details-card" />
+        <span className="dc-details-box">
+          <img src="/art/card-coral.png" alt="Your Kova dollar card" className="dc-details-card" />
+          <CardBrand brand={details?.brand} className="dc-brand dc-brand-lg" />
+        </span>
         {error ? (
           <p className="form-error">{error}</p>
         ) : (
@@ -864,6 +868,15 @@ function Details({ onClose }: { onClose: () => void }) {
               )}
               {row('CVV', details?.cvv ?? '···', 'cvv', details?.cvv)}
             </div>
+            {details?.brand === 'mastercard' ? (
+              <div className="dc-row">
+                <span>
+                  <small>Network</small>
+                  <strong>Mastercard</strong>
+                </span>
+                <CardBrand brand="mastercard" />
+              </div>
+            ) : null}
             {row('Name on card', details?.name ?? '', 'name', details?.name)}
           </div>
         )}
@@ -883,5 +896,24 @@ function Details({ onClose }: { onClose: () => void }) {
         </p>
       </div>
     </div>
+  )
+}
+
+/** Mastercard's two overlapping circles on a Mastercard; other brands show nothing rather than a guess. */
+function CardBrand({ brand, className }: { brand?: string; className?: string }) {
+  if (brand !== 'mastercard') return null
+  return (
+    <svg
+      viewBox="0 0 38 24"
+      width="38"
+      height="24"
+      className={className}
+      role="img"
+      aria-label="Mastercard"
+    >
+      <circle cx="12" cy="12" r="12" fill="#EB001B" />
+      <circle cx="26" cy="12" r="12" fill="#F79E1B" />
+      <path d="M19 2.25A12 12 0 0 1 19 21.75A12 12 0 0 1 19 2.25Z" fill="#FF5F00" />
+    </svg>
   )
 }

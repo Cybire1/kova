@@ -7,6 +7,7 @@ import { formatUsd } from '@/lib/money'
 import { type DollarCard, getDollarCard, setDollarCard } from '@/lib/partners'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import { CardBrand } from '@/ui/CardBrand'
 import { Icon, type IconName } from '@/ui/Icon'
 import { NotYet, problemOf, SandboxNote, useMoney } from '@/ui/Money'
 import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
@@ -286,6 +287,9 @@ function CardHome({ data, onChange }: { data: DollarCard; onChange: (d: DollarCa
                 •••• {card.last_four}
               </Txt>
             </View>
+            <View style={styles.brand}>
+              <CardBrand brand={card.brand} width={34} />
+            </View>
           </View>
           <View style={[styles.meter, styles.tiltSoft]}>
             <View style={styles.meterHead}>
@@ -542,9 +546,10 @@ const styles = StyleSheet.create({
   tilt: { transform: [{ rotate: '-4deg' }] },
   tiltSoft: { transform: [{ rotate: '-4deg' }] },
   heroCard: { width: 290, height: 183, borderRadius: 17 },
+  brand: { position: 'absolute', right: 12, top: 10 },
   lastFour: {
     position: 'absolute',
-    right: 14,
+    left: 14,
     top: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,

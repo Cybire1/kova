@@ -103,7 +103,7 @@ function fakeNuvion() {
         return ok({
           id: card,
           status: state.frozen ? 'blocked' : 'active',
-          number: '4111111111114821',
+          number: '5412751234124821',
           cvv: '381',
           expiration_month: '09',
           expiration_year: '29',
@@ -220,7 +220,13 @@ describe('dollar card (Nuvion)', () => {
     const ready = await dollarCardFor(wallet)
     expect(ready).toMatchObject({
       stage: 'card',
-      card: { last_four: '4821', exp_month: '09', exp_year: '29', frozen: false },
+      card: {
+        last_four: '4821',
+        brand: 'mastercard',
+        exp_month: '09',
+        exp_year: '29',
+        frozen: false,
+      },
       topups: { today: '0', left: '50000000' },
     })
     expect(nuvion.transfers).toEqual([
@@ -232,7 +238,7 @@ describe('dollar card (Nuvion)', () => {
       .from(schema.dollarCards)
       .where(eq(schema.dollarCards.wallet, wallet.toLowerCase()))
     const kept = JSON.stringify(card, (_, v) => (typeof v === 'bigint' ? v.toString() : v))
-    expect(kept).not.toContain('4111111111114821')
+    expect(kept).not.toContain('5412751234124821')
     expect(kept).not.toContain('381')
   })
 
@@ -370,7 +376,7 @@ describe('dollar card (Nuvion)', () => {
     expect(nuvion.frozen).toBe(true)
     expect(await setDollarCard(wallet, false)).toMatchObject({ card: { frozen: false } })
     expect(await revealDollarCard(wallet)).toMatchObject({
-      number: '4111111111114821',
+      number: '5412751234124821',
       cvv: '381',
       exp_month: '09',
       exp_year: '29',

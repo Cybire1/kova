@@ -430,7 +430,7 @@
 
 .dc-last4 {
   position: absolute;
-  right: 14px;
+  left: 14px;
   top: 12px;
   padding: 4px 10px;
   border-radius: 999px;
@@ -439,6 +439,27 @@
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.06em;
+}
+
+.dc-brand {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  width: 34px;
+  height: auto;
+}
+
+.dc-brand-lg {
+  right: 14px;
+  top: 12px;
+  width: 42px;
+}
+
+.dc-details-box {
+  position: relative;
+  display: block;
+  width: min(333px, 100%);
+  margin: 12px auto 0;
 }
 
 .dc-meter {
@@ -771,8 +792,7 @@
 /* Card details */
 .dc-details-card {
   display: block;
-  width: min(333px, 100%);
-  margin: 12px auto 0;
+  width: 100%;
   border-radius: 18px;
   border: 2px solid var(--dark);
 }
