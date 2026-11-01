@@ -45,6 +45,7 @@ import { rateBook } from './services/rates.js'
 import { popularStocks } from './services/stocks.js'
 import { expireTrips } from './services/travel.js'
 import { redactCallbackLog } from './services/ussd-callback.js'
+import { closeOldDemos } from './services/ussd-demo.js'
 import { startAnnouncer } from './workers/announcer.js'
 import { startPruner } from './workers/prune.js'
 import { startWatcher } from './workers/watcher.js'
@@ -127,6 +128,11 @@ if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js
   }
   programs()
   setInterval(programs, 30_000)
+  // The basic-phone demo's pockets close after an hour (testnet only).
+  setInterval(
+    () => void closeOldDemos().catch((error) => console.error('[ussd-demo]', error)),
+    5 * 60_000,
+  )
   // Rates change every 15 minutes at most; keep Kova Travel's copy fresh without waiting for a request.
   void rateBook()
   setInterval(() => void rateBook(), 5 * 60_000)

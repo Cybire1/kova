@@ -36,7 +36,28 @@ const notAccepted = () =>
     'The message provider hasn’t accepted the message. Please try again shortly.',
   )
 
+/**
+ * The "Try Kova on a basic phone" page's numbers (+999, a country code no network uses): their texts
+ * are kept for the page to show, never sent (services/ussd-demo.ts).
+ */
+export const DEMO_PHONE_PREFIX = '+999'
+const demoInbox = new Map<string, { at: number; text: string }[]>()
+
+export function demoMessages(phone: string, since = 0) {
+  return (demoInbox.get(phone) ?? []).filter((m) => m.at > since)
+}
+
+export function forgetDemoPhone(phone: string) {
+  demoInbox.delete(phone)
+}
+
 export async function sendSms(to: string, message: string): Promise<void> {
+  if (to.startsWith(DEMO_PHONE_PREFIX)) {
+    const list = demoInbox.get(to) ?? []
+    list.push({ at: Date.now(), text: message })
+    demoInbox.set(to, list.slice(-20))
+    return
+  }
   if (!smsReady()) throw new KovaError('conflict', 'Phone verification isn’t available right now.')
   const recipient = normalizePhone(to)
   if (!recipient)

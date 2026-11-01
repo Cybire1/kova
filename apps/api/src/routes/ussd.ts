@@ -27,6 +27,7 @@ import {
 } from '../services/pockets.js'
 import { ussdReply } from '../services/ussd.js'
 import { callbackForm, callbackSecretMatches } from '../services/ussd-callback.js'
+import { demoState, newDemoTill, pressDemo, startDemo } from '../services/ussd-demo.js'
 
 /**
  * Paying by USSD.
@@ -93,6 +94,15 @@ async function body<T>(
   return parsed.data
 }
 
+const demoPress = z.object({
+  session: z.string().regex(/^[\w-]{8,64}$/),
+  phone: z.string().max(20),
+  text: z
+    .string()
+    .max(80)
+    .regex(/^[\d*#]*$/),
+})
+
 export const ussdRoutes = new Hono()
   .get('/ussd/info', (c) =>
     c.json({
@@ -103,6 +113,37 @@ export const ussdRoutes = new Hono()
       recovery: Boolean(config.KOVA_POCKET_MASTER_KEY),
       dial: pocketsReady() ? config.KOVA_USSD_CODE : null,
     }),
+  )
+  // "Try Kova on a basic phone" (services/ussd-demo.ts): testnet only. Before /ussd/:secret, which would
+  // otherwise take /ussd/demo for a callback.
+  .post('/ussd/demo', async (c) => {
+    limit(
+      `ussd-demo:${clientIp(c)}`,
+      6,
+      3_600_000,
+      'You’ve tried a few demos. Come back in an hour.',
+    )
+    return c.json(await startDemo(), 201)
+  })
+  .post('/ussd/demo/press', async (c) => {
+    const input = demoPress.safeParse(await c.req.json().catch(() => ({})))
+    if (!input.success)
+      throw new KovaError('invalid_request', 'Expected a session, a phone and what was typed.')
+    limit(`ussd-demo-press:${input.data.phone}`, 60, 60_000, 'Slow down a little, then try again.')
+    return c.json(await pressDemo(input.data))
+  })
+  .post('/ussd/demo/till', async (c) => {
+    limit(`ussd-demo-till:${clientIp(c)}`, 20, 3_600_000, 'That’s plenty of croissants for now.')
+    return c.json(await newDemoTill())
+  })
+  .get('/ussd/demo/state', async (c) =>
+    c.json(
+      await demoState(
+        c.req.query('phone') ?? '',
+        c.req.query('till'),
+        Number(c.req.query('since') ?? 0) || 0,
+      ),
+    ),
   )
   .post(
     '/ussd/:secret',

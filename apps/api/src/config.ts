@@ -178,6 +178,13 @@ const schema = z.object({
   KOVA_USSD_ENABLED: z.enum(['0', '1']).default('0'),
   /** The code people dial, as the app shows it. */
   KOVA_USSD_CODE: z.string().default(''),
+  /**
+   * "Try Kova on a basic phone" (services/ussd-demo.ts): a demo number with a funded test pocket,
+   * driving the real USSD menu from a web page. Testnet only, and only with KOVA_USSD_DEMO=1.
+   */
+  KOVA_USSD_DEMO: z.enum(['0', '1']).default('0'),
+  /** The test shop whose till the demo pays (a stall slug on this server). */
+  KOVA_USSD_DEMO_SHOP: z.string().default('adas-bakery-a2cf'),
   /** Africa's Talking: USSD sessions and SMS receipts. Username "sandbox" uses their simulator. */
   AT_USERNAME: z.string().optional(),
   AT_API_KEY: z.string().optional(),

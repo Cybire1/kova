@@ -1,0 +1,496 @@
+/* "Try Kova on a basic phone" (components/ussd-demo.tsx): the page around a feature phone. The phone
+   itself is a dark handset with a cream LCD in either theme; the page follows the site's tokens. */
+
+.ud {
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+
+.ud-nav {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ud-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 2px solid var(--hairline);
+  background: var(--surface);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.ud-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.ud-main {
+  max-width: 1120px;
+  margin: 32px auto 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 48px;
+  align-items: start;
+}
+
+@media (max-width: 880px) {
+  .ud-main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+}
+
+.ud-kicker {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--coral);
+}
+
+.ud-title {
+  margin: 8px 0 0;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.ud-title span {
+  color: var(--coral);
+}
+
+.ud-lead {
+  margin: 16px 0 0;
+  max-width: 34rem;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.ud-steps {
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+  display: grid;
+  gap: 10px;
+}
+
+.ud-steps li {
+  counter-increment: step;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 2px solid var(--hairline);
+  font-size: 0.975rem;
+}
+
+.ud-steps li::before {
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--on-fill);
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.ud-steps code,
+.ud-till-code {
+  font-family: ui-monospace, Menlo, monospace;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.ud-steps code {
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--sunken);
+}
+
+.ud-start {
+  margin-top: 24px;
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.ud-start p {
+  margin: 0;
+  max-width: 30rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.ud-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--coral);
+  color: var(--dark);
+  font: 800 1.0625rem var(--font);
+  cursor: pointer;
+}
+
+.ud-go:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.ud-go:focus-visible,
+.ud-keys button:focus-visible,
+.ud-soft button:focus-visible,
+.ud-again:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.ud-problem {
+  color: var(--danger) !important;
+  font-weight: 600;
+}
+
+.ud-fine {
+  margin: 24px 0 0;
+  max-width: 34rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.ud-fine a {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* The stage: the phone, and the till with the phone's texts beside it. */
+.ud-stage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.ud-phone {
+  width: 280px;
+  max-width: 100%;
+  padding: 18px 18px 22px;
+  border-radius: 44px 44px 56px 56px;
+  background: linear-gradient(180deg, #232c2f, #141b1d);
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.28),
+    inset 0 2px 0 rgba(255, 255, 255, 0.08);
+  transition: filter 0.3s;
+}
+
+.ud-phone.is-off {
+  filter: grayscale(0.6) brightness(0.85);
+}
+
+.ud-speaker {
+  width: 64px;
+  height: 6px;
+  margin: 0 auto 14px;
+  border-radius: 3px;
+  background: #0a0f10;
+}
+
+.ud-screen {
+  position: relative;
+  height: 210px;
+  border-radius: 12px;
+  background: #cfdcc0;
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.35);
+  color: #1c2a1a;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 13.5px;
+  line-height: 1.35;
+  padding: 10px 12px;
+  overflow: hidden;
+}
+
+.ud-status {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.8;
+  border-bottom: 1px solid rgba(28, 42, 26, 0.25);
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.ud-idle {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+  padding-top: 18px;
+}
+
+.ud-num {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.ud-dial {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  min-height: 30px;
+}
+
+.ud-hint {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.ud-reply pre {
+  margin: 0;
+  font: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ud-input {
+  display: block;
+  margin-top: 6px;
+  padding: 2px 6px;
+  border: 1px solid rgba(28, 42, 26, 0.45);
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.ud-banner {
+  position: absolute;
+  inset: 8px 8px auto;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #1c2a1a;
+  color: #cfdcc0;
+  font-size: 11.5px;
+  animation: ud-in 0.25s var(--spring);
+}
+
+@keyframes ud-in {
+  from {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+}
+
+.ud-soft {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  margin: 16px 0 12px;
+}
+
+.ud-soft button,
+.ud-keys button {
+  border: 0;
+  cursor: pointer;
+  font-family: var(--font);
+}
+
+.ud-call,
+.ud-end {
+  height: 40px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+}
+
+.ud-call {
+  background: #2e8b57;
+}
+
+.ud-end {
+  background: #c2453a;
+}
+
+.ud-del {
+  width: 48px;
+  height: 40px;
+  border-radius: 14px;
+  background: #3a4447;
+  color: #e7e5e0;
+  font-weight: 800;
+}
+
+.ud-keys {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.ud-keys button {
+  height: 48px;
+  border-radius: 16px;
+  background: #2f393c;
+  color: #f1efea;
+  display: grid;
+  place-content: center;
+  line-height: 1;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.ud-keys button:active,
+.ud-soft button:active {
+  transform: translateY(1px);
+  filter: brightness(1.2);
+}
+
+.ud-keys span {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.ud-keys small {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  min-height: 0.7rem;
+}
+
+.ud-side {
+  display: grid;
+  gap: 16px;
+  width: 260px;
+  max-width: 100%;
+}
+
+.ud-till {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  transition: background 0.4s;
+}
+
+.ud-till.is-paid {
+  background: var(--teal-soft);
+}
+
+.ud-till-shop {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.ud-till-item {
+  font-weight: 700;
+}
+
+.ud-till-amount {
+  font-size: 2.6rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.ud-till-label {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.ud-till-code {
+  font-size: 1.9rem;
+  letter-spacing: 0.18em;
+}
+
+.ud-wait {
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.ud-paid {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--positive);
+}
+
+.ud-till a {
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+.ud-again {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font: 700 0.9375rem var(--font);
+  cursor: pointer;
+}
+
+.ud-texts {
+  display: grid;
+  gap: 8px;
+}
+
+.ud-texts-title {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.ud-texts p {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--surface);
+  border: 2px solid var(--hairline);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ud-banner {
+    animation: none;
+  }
+}
