@@ -410,6 +410,8 @@ export interface CardPayment {
   status: string
   merchant: string
   at: Date
+  /** A shop's card check (Nuvion's "reversible test payment"): held for a moment, never charged. */
+  check: boolean
 }
 
 export async function cardPayments(cardId: string): Promise<CardPayment[]> {
@@ -421,6 +423,7 @@ export async function cardPayments(cardId: string): Promise<CardPayment[]> {
       type?: string
       payment_type?: string
       narration?: string
+      status_reason?: string
       recipient?: { name?: string }
       created: number
     }>
@@ -436,6 +439,7 @@ export async function cardPayments(cardId: string): Promise<CardPayment[]> {
         ? 'Refund'
         : named?.trim() || p.recipient?.name?.trim() || p.narration?.trim() || 'Card payment',
       at: new Date(p.created),
+      check: /reversible test payment/i.test(`${p.status_reason ?? ''} ${p.narration ?? ''}`),
     }
   })
 }

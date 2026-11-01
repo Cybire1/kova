@@ -118,6 +118,15 @@ function fakeNuvion() {
         return ok({
           payments: [
             {
+              _id: 'pay_check',
+              amount: 100,
+              status: 'successful',
+              type: 'outflow',
+              status_reason: 'Reversible test payment approved and processed',
+              narration: 'Reversible test payment to GOOGLE *TEMPORARY HOLD for 1 USD',
+              created: Date.now() - 60_000,
+            },
+            {
               _id: 'pay_1',
               amount: 1099,
               status: 'successful',
@@ -282,9 +291,10 @@ describe('dollar card (Nuvion)', () => {
       amount: 2000,
       reference: expect.stringMatching(/^kova-topup-/),
     })
-    expect(('activity' in done.card ? done.card.activity : []).map((a) => a.kind)).toEqual(
-      expect.arrayContaining(['topup', 'spend']),
-    )
+    const activity = 'activity' in done.card ? done.card.activity : []
+    expect(activity.map((a) => a.kind)).toEqual(expect.arrayContaining(['topup', 'spend', 'check']))
+    // A shop's $1 card check is shown as a check, never as money spent.
+    expect(activity.find((a) => a.kind === 'check')?.title).toBe('GOOGLE *TEMPORARY HOLD')
   })
 
   it('charges 0.5% on top, rounded up to the cent, and refuses a top-up signed without it', async () => {

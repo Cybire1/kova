@@ -340,7 +340,7 @@ export async function dollarCardFor(wallet: Address) {
   const activity = [
     ...payments.map((p) => ({
       id: p.id,
-      kind: p.cents < 0 ? ('spend' as const) : ('refund' as const),
+      kind: p.check ? ('check' as const) : p.cents < 0 ? ('spend' as const) : ('refund' as const),
       amount: (BigInt(p.cents) * CENT).toString(),
       status: p.status,
       title: p.merchant,

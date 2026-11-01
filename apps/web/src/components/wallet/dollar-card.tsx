@@ -667,12 +667,13 @@ function CardHome({
                     hour: 'numeric',
                     minute: '2-digit',
                   })}
-                  {a.status === 'pending' ? ' · On its way' : ''}
+                  {a.kind === 'check' ? ' · Card check, not charged' : ''}
+                  {a.kind !== 'check' && a.status === 'pending' ? ' · On its way' : ''}
                   {a.status === 'failed' ? ' · Declined' : ''}
                 </small>
               </span>
               <span className="dc-amount" data-kind={a.kind}>
-                {a.kind === 'spend' ? '−' : '+'}
+                {a.kind === 'spend' ? '−' : a.kind === 'check' ? '' : '+'}
                 {formatUsd(BigInt(a.amount) < 0n ? -BigInt(a.amount) : BigInt(a.amount))}
               </span>
             </li>

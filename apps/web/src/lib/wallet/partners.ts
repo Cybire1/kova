@@ -62,7 +62,7 @@ export interface DollarCard {
   topups?: { today: string; left: string; treasury: Address }
   activity?: Array<{
     id: string
-    kind: 'spend' | 'refund' | 'topup'
+    kind: 'spend' | 'refund' | 'topup' | 'check'
     amount: string
     status: string
     title: string

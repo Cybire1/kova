@@ -392,16 +392,26 @@ function CardHome({
                   </Txt>
                   <Txt size={12} color={colors.muted}>
                     {when(a.at)}
-                    {a.status === 'pending' ? ' · On its way' : ''}
+                    {a.kind === 'check' ? ' · Card check, not charged' : ''}
+                    {a.kind !== 'check' && a.status === 'pending' ? ' · On its way' : ''}
                     {a.status === 'failed' ? ' · Declined' : ''}
                   </Txt>
                 </View>
                 <Txt
                   weight="bold"
                   size={15}
-                  color={a.kind === 'spend' ? colors.ink : colors.positive}
+                  color={
+                    a.kind === 'check'
+                      ? colors.muted
+                      : a.kind === 'spend'
+                        ? colors.ink
+                        : colors.positive
+                  }
+                  style={a.kind === 'check' ? { textDecorationLine: 'line-through' } : undefined}
                 >
-                  {formatUsd(BigInt(a.amount), { sign: true })}
+                  {a.kind === 'check'
+                    ? formatUsd(-BigInt(a.amount))
+                    : formatUsd(BigInt(a.amount), { sign: true })}
                 </Txt>
               </View>
             ))

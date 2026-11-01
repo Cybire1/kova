@@ -603,6 +603,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.dc-amount[data-kind="check"] {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
 .dc-amount[data-kind="topup"],
 .dc-amount[data-kind="refund"] {
   color: var(--positive);
