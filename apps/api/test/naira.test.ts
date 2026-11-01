@@ -79,12 +79,13 @@ describe('naira quotes', () => {
     expect(quote.fee).toBe(1_000n)
   })
 
-  it('turns naira into the fewest whole cents that pay at least that much, fee and all', async () => {
+  it('turns naira into the fewest dollars, to the millionth, that pay at least that much, fee and all', async () => {
     for (const kobo of [500_000n, 1_234_567n, 5_000_000n, 25_000_000n]) {
       const quote = await naira.quoteCashOutForNaira(kobo)
-      expect(quote.units % 10_000n).toBe(0n)
       expect(quote.naira).toBeGreaterThanOrEqual(kobo)
-      expect((await naira.quoteCashOut(quote.units - 10_000n)).naira).toBeLessThan(kobo)
+      // Not a naira over: whole cents used to overshoot by up to a cent's worth (₦5,000 → ₦5,003).
+      expect(quote.naira - kobo).toBeLessThan(100n)
+      expect((await naira.quoteCashOut(quote.units - 1n)).naira).toBeLessThan(kobo)
       expect(quote.naira).toBe((await naira.quoteCashOut(quote.units)).naira)
     }
   })

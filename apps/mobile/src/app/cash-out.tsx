@@ -174,9 +174,11 @@ export default function CashOutScreen() {
   }, [typed, unit, info?.enabled])
   // The dollars that leave the wallet, whichever way the amount was typed.
   const amount = useMemo(() => {
-    const value = unit === 'usd' ? typed : byNaira?.typed === typed ? byNaira.dollars : ''
     try {
-      return value && Number(value) > 0 ? toBase(Number(value).toFixed(2)) : 0n
+      // Asked in naira: the quote's dollars exactly, to the millionth, so the bank gets what was
+      // typed. Rounding them to cents here would land a few naira off.
+      if (unit !== 'usd') return byNaira?.typed === typed ? toBase(byNaira.dollars) : 0n
+      return typed && Number(typed) > 0 ? toBase(Number(typed).toFixed(2)) : 0n
     } catch {
       return 0n
     }

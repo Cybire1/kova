@@ -202,18 +202,23 @@ export async function quoteCashOut(units: bigint) {
 const CENT = 10_000n
 
 /**
- * The other way round, for people who think in naira: the fewest dollars (in whole cents) that
+ * The other way round, for people who think in naira: the fewest dollars (to the millionth) that
  * pay at least `kobo` into the bank account, and what they pay exactly.
  */
 export async function quoteCashOutForNaira(kobo: bigint) {
   const r = await cashOutRate()
   const covers = (units: bigint) => cashOutAt(units, r).naira >= kobo
-  const guess = (Number(kobo + r.fee(kobo)) / 100 / r.rate) * 1e6
-  let units = (BigInt(Math.ceil(guess)) / CENT + 1n) * CENT
-  // The guess is within a cent or two; walk to the exact edge.
-  for (let i = 0; i < 20 && !covers(units); i++) units += CENT
-  for (let i = 0; i < 20 && units > CENT && covers(units - CENT); i++) units -= CENT
-  return { units, ...cashOutAt(units, r) }
+  // The fewest dollars, to the millionth, whose naira covers what was asked: whole cents overshot
+  // by up to a cent's worth (about ₦14), so ₦5,000 went out as ₦5,003.
+  let hi = BigInt(Math.ceil((Number(kobo + r.fee(kobo)) / 100 / r.rate) * 1e6)) + CENT
+  for (let i = 0; i < 40 && !covers(hi); i++) hi *= 2n
+  let lo = 0n
+  while (hi - lo > 1n) {
+    const mid = (lo + hi) / 2n
+    if (covers(mid)) hi = mid
+    else lo = mid
+  }
+  return { units: hi, ...cashOutAt(hi, r) }
 }
 
 export async function quoteTopUp(units: bigint) {
