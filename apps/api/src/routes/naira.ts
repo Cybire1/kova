@@ -174,14 +174,26 @@ nairaRoutes.post('/wallets/:address/cash-outs', async (c) => {
   limit(`cash-out-ip:${ip(c)}`, 40, 60 * 60_000, 'That’s a lot of cash-outs. Try again later.')
   const body = await bodyOf(
     c,
-    z.object({
-      amount: money,
-      bank_code: z.string().min(2).max(10),
-      account_number: z.string().regex(/^\d{10}$/),
-    }),
+    z
+      .object({
+        amount: money.optional(),
+        /** What the bank account should get, in naira: it gets exactly that. */
+        naira: z
+          .string()
+          .regex(/^\d{1,10}(\.\d{1,2})?$/)
+          .optional(),
+        bank_code: z.string().min(2).max(10),
+        account_number: z.string().regex(/^\d{10}$/),
+      })
+      .refine((b) => b.amount !== undefined || b.naira !== undefined, 'amount or naira'),
   )
+  const kobo = body.naira
+    ? BigInt(body.naira.split('.')[0] ?? '0') * 100n +
+      BigInt((body.naira.split('.')[1] ?? '').padEnd(2, '0'))
+    : undefined
   const row = await createCashOut(wallet, {
-    amount: parseAmount(body.amount),
+    amount: body.amount ? parseAmount(body.amount) : 0n,
+    naira: kobo,
     bankCode: body.bank_code,
     accountNumber: body.account_number,
   })

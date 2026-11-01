@@ -32,6 +32,7 @@ import {
   sendFromRelayer,
 } from '../relay.js'
 import {
+  freshPajRates,
   openOfframp,
   openOnramp,
   PajError,
@@ -307,11 +308,19 @@ export function serializeCashOut(row: CashOutRow) {
   }
 }
 
+/**
+ * A cash-out, asked for in dollars (`amount`) or by what the bank should get (`naira`, in kobo).
+ * Asked in naira, the bank gets exactly that: PAJ's own live numbers size the payout, and Paystack
+ * pays the kobo asked.
+ */
 export async function createCashOut(
   wallet: Address,
-  input: { amount: bigint; bankCode: string; accountNumber: string },
+  input: { amount: bigint; naira?: bigint; bankCode: string; accountNumber: string },
 ): Promise<CashOutRow> {
   requireNaira()
+  if (input.naira !== undefined && nairaPartner() === 'paj') return createPajCashOut(wallet, input)
+  if (input.naira !== undefined)
+    input = { ...input, amount: (await quoteCashOutForNaira(input.naira)).units }
   if (input.amount < MIN_CASH_OUT) throw new KovaError('invalid_request', 'Cash out at least $1.')
   if (input.amount > MAX_CASH_OUT)
     throw new KovaError('invalid_request', 'Cash out up to $500 at a time.')
@@ -322,6 +331,8 @@ export async function createCashOut(
   const quote = await quoteCashOut(input.amount)
   if (quote.naira <= 0n)
     throw new KovaError('invalid_request', 'That’s too little to send to a bank.')
+  // Asked in naira: the bank gets exactly what was asked (the dollars cover it to the millionth).
+  if (input.naira !== undefined && input.naira <= quote.naira) quote.naira = input.naira
   const [row] = await db
     .insert(schema.cashOuts)
     .values({
@@ -627,21 +638,48 @@ function pajWebhookUrl(): string | undefined {
  */
 async function createPajCashOut(
   wallet: Address,
-  input: { amount: bigint; bankCode: string; accountNumber: string },
+  input: { amount: bigint; naira?: bigint; bankCode: string; accountNumber: string },
 ): Promise<CashOutRow> {
   const bank = (await pajBanks()).find((b) => b.code === input.bankCode)
   if (!bank) throw new KovaError('invalid_request', 'Pick your bank from the list.')
   const usdc = tokenFor('USDC').address
   const price = await swapPrice(settlementToken.address, usdc)
-  const out = BigInt(Math.floor(Number(input.amount) * price))
-  const pay = (out * (10_000n - PAJ_MARGIN_BPS)) / 10_000n
-  const order = await openOfframp({
-    bankCode: bank.code,
-    accountNumber: input.accountNumber,
-    usdc: pay,
-    usdcAddress: usdc,
-    webhookUrl: pajWebhookUrl(),
-  })
+  const open = (usdcUnits: bigint) =>
+    openOfframp({
+      bankCode: bank.code,
+      accountNumber: input.accountNumber,
+      usdc: usdcUnits,
+      usdcAddress: usdc,
+      webhookUrl: pajWebhookUrl(),
+    })
+  let amount = input.amount
+  let pay: bigint
+  let order: Awaited<ReturnType<typeof openOfframp>>
+  if (input.naira !== undefined) {
+    // Asked in naira: the USDC PAJ needs for exactly that, from PAJ's rate this second, with a
+    // kobo to spare for its rounding. If PAJ's order still comes back short, its own numbers say
+    // how much more, and it's opened once more with that.
+    const want = input.naira
+    const { offRamp } = await freshPajRates()
+    pay = BigInt(Math.ceil(((Number(want) + 1) / 100 / offRamp) * 1e6))
+    order = await open(pay)
+    const got = BigInt(Math.floor(order.fiatAmount * 100))
+    if (got < want && got > 0n) {
+      pay = (pay * (want + 1n) + got - 1n) / got
+      order = await open(pay)
+    }
+    // The wallet signs enough dollars for that USDC with the usual room for the swap; the
+    // cash-out contract swaps only what PAJ needs and sends the rest back.
+    const out = (pay * 10_000n + 10_000n - PAJ_MARGIN_BPS - 1n) / (10_000n - PAJ_MARGIN_BPS)
+    amount = BigInt(Math.ceil(Number(out) / price))
+    if (amount < MIN_CASH_OUT) throw new KovaError('invalid_request', 'Cash out at least $1.')
+    if (amount > MAX_CASH_OUT)
+      throw new KovaError('invalid_request', 'Cash out up to $500 at a time.')
+  } else {
+    const out = BigInt(Math.floor(Number(input.amount) * price))
+    pay = (out * (10_000n - PAJ_MARGIN_BPS)) / 10_000n
+    order = await open(pay)
+  }
   if (!isAddress(order.address))
     throw new KovaError('internal', 'The payout didn’t open. Try again.')
   const naira = BigInt(Math.floor(order.fiatAmount * 100))
@@ -652,10 +690,10 @@ async function createPajCashOut(
       id: uuidv7(),
       network: config.KOVA_NETWORK,
       walletAddress: wallet.toLowerCase(),
-      amount: input.amount,
+      amount,
       naira,
       // What each dollar the wallet signs comes to in naira, the swap included.
-      rate: (order.fiatAmount / (Number(input.amount) / 1e6)).toFixed(4),
+      rate: (order.fiatAmount / (Number(amount) / 1e6)).toFixed(4),
       fee: 0n,
       bankCode: bank.code,
       bankName: bank.name,

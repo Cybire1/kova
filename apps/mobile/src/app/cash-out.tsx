@@ -263,6 +263,7 @@ export default function CashOutScreen() {
       try {
         const quoted = await naira.cashOut(profile.address, {
           amount: formatAmount(amount),
+          naira: unit === 'usd' ? undefined : typed.replace(/[^\d.]/g, ''),
           bankCode: b.code,
           accountNumber: number,
         })
@@ -333,6 +334,7 @@ export default function CashOutScreen() {
       setQuote(
         await naira.cashOut(profile.address, {
           amount: formatAmount(amount),
+          naira: unit === 'usd' ? undefined : typed.replace(/[^\d.]/g, ''),
           bankCode: named.code,
           accountNumber: named.number,
         }),

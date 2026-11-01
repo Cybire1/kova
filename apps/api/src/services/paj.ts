@@ -143,6 +143,11 @@ async function readRates() {
   return rates
 }
 
+/** PAJ's rate this second, for sizing a payout to the naira (never the cached one). */
+export async function freshPajRates(): Promise<{ onRamp: number; offRamp: number }> {
+  return readRates()
+}
+
 /**
  * Naira per dollar each way, PAJ's fee included. PAJ takes a couple of seconds to answer, so the
  * last rate is served at once and re-read behind the scenes once it's a minute old (never more

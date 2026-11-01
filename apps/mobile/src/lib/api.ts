@@ -1028,11 +1028,16 @@ export const naira = {
   /** A cash-out by what the bank account should get: the dollars it takes, and the naira exactly. */
   quoteByNaira: (amount: string) =>
     request<NairaQuote>(`/v1/naira/quote?naira=${amount}&direction=out`),
-  cashOut: (wallet: string, input: { amount: string; bankCode: string; accountNumber: string }) =>
+  /** `naira`: asked in naira, the bank gets exactly that (the server sizes the dollars). */
+  cashOut: (
+    wallet: string,
+    input: { amount: string; naira?: string; bankCode: string; accountNumber: string },
+  ) =>
     request<import('./chain').CashOutToPay>(`/v1/wallets/${wallet}/cash-outs`, {
       method: 'POST',
       body: JSON.stringify({
         amount: input.amount,
+        ...(input.naira ? { naira: input.naira } : {}),
         bank_code: input.bankCode,
         account_number: input.accountNumber,
       }),

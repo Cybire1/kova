@@ -211,7 +211,13 @@ export function NairaCashOut() {
       try {
         const quoted = await json<CashOutToPay>(`/api/naira/wallets/${profile.address}/cash-outs`, {
           method: 'POST',
-          body: JSON.stringify({ amount, bank_code: picked.code, account_number: number }),
+          body: JSON.stringify({
+            amount,
+            // Asked in naira: the bank gets exactly what was typed.
+            ...(unit === 'ngn' ? { naira: typed.replace(/[^\d.]/g, '') } : {}),
+            bank_code: picked.code,
+            account_number: number,
+          }),
         })
         setCashOut(quoted)
         setCheck({ code: picked.code, state: 'named', name: quoted.account_name ?? '' })

@@ -59,6 +59,8 @@ vi.mock('../src/services/paj.js', () => {
     pajReady: () => true,
     pajBanks: vi.fn(async () => [{ name: 'Opay', code: '100004' }]),
     pajRates: vi.fn(async () => ({ onRamp: 1397.72, offRamp: 1378.07 })),
+    // PAJ's live rate a touch under the cached one, as it drifts: sizing must use the live one.
+    freshPajRates: vi.fn(async () => ({ onRamp: 1397.72, offRamp: 1378.07 })),
     pajAccountName: vi.fn(async () => 'ADA OBI'),
     openOfframp: vi.fn(async (input: { usdc: bigint }) => {
       const id = newOrderId()
@@ -199,6 +201,21 @@ describe('cashing out through PAJ', () => {
     expect(quote.naira).toBeGreaterThanOrEqual(5_000_000n)
     expect(quote.naira - 5_000_000n).toBeLessThan(100n)
     expect((await naira.quoteCashOut(quote.units - 1n)).naira).toBeLessThan(5_000_000n)
+  })
+
+  it('asked for ₦5,000, the bank gets ₦5,000 (or a kobo over), never a kobo short', async () => {
+    for (const kobo of [500_000n, 1_234_567n, 2_500_000n]) {
+      const row = await naira.createCashOut(privateKeyToAccount(generatePrivateKey()).address, {
+        amount: 0n,
+        naira: kobo,
+        bankCode: '100004',
+        accountNumber: '0123456789',
+      })
+      expect(row.naira).toBeGreaterThanOrEqual(kobo)
+      expect((row.naira as bigint) - kobo).toBeLessThanOrEqual(2n)
+      // The wallet signs enough dollars for the USDC PAJ needs; the contract sends the rest back.
+      expect(row.amount).toBeGreaterThan(0n)
+    }
   })
 
   it('asks PAJ for 0.1% under the live swap, and the wallet signs a nonce naming PAJ and that USDC', async () => {
