@@ -960,6 +960,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+.dc-row-text strong {
+  font-size: 1.0625rem;
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
 .dc-row button {
   height: 36px;
   padding: 0 14px;

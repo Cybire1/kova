@@ -661,7 +661,7 @@ export async function setDollarCard(wallet: Address, frozen: boolean) {
   return dollarCardFor(wallet)
 }
 
-/** The card's number, expiry and CVV, read from Nuvion for the holder and never kept. */
+/** The card's number, expiry, CVV and billing address, read from Nuvion for the holder and never kept. */
 export async function revealDollarCard(wallet: Address) {
   const holder = await holderOf(wallet)
   const card = await cardOf(wallet)
@@ -675,5 +675,15 @@ export async function revealDollarCard(wallet: Address) {
     exp_year: s.expYear,
     name: s.name,
     brand: cardBrand(s.number),
+    billing_address: s.billing
+      ? {
+          line1: s.billing.line1,
+          line2: s.billing.line2,
+          city: s.billing.city,
+          state: s.billing.state,
+          postal_code: s.billing.postalCode,
+          country: s.billing.country,
+        }
+      : null,
   }
 }

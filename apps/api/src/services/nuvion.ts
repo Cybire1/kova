@@ -435,6 +435,17 @@ export interface CardSecrets {
   expYear: string
   name: string
   status: string
+  /** The card's billing address, as Nuvion issued it: what a checkout asks for with the number. */
+  billing: CardBilling | null
+}
+
+export interface CardBilling {
+  line1: string
+  line2: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
 }
 
 /** The card's number and CVV. Sensitive: pass it straight to the holder, never keep it. */
@@ -447,6 +458,15 @@ export async function cardSecrets(cardId: string, entityId: string): Promise<Car
     first_name?: string
     last_name?: string
     status: string
+    billing?: {
+      address_line_1?: string
+      address_line_2?: string
+      city?: string
+      state?: string
+      postal_code?: string
+      country?: string
+      country_code?: string
+    }
   }>(`/card-details/${encodeURIComponent(cardId)}?entity_id=${encodeURIComponent(entityId)}`)
   return {
     number: d.number,
@@ -455,6 +475,17 @@ export async function cardSecrets(cardId: string, entityId: string): Promise<Car
     expYear: d.expiration_year,
     name: [d.first_name, d.last_name].filter(Boolean).join(' '),
     status: d.status,
+    billing: d.billing?.address_line_1
+      ? {
+          line1: d.billing.address_line_1,
+          line2: d.billing.address_line_2 ?? '',
+          city: d.billing.city ?? '',
+          state: d.billing.state ?? '',
+          postalCode: d.billing.postal_code ?? '',
+          // Nuvion's cards are US cards; its example leaves the country out.
+          country: d.billing.country_code ?? d.billing.country ?? 'US',
+        }
+      : null,
   }
 }
 

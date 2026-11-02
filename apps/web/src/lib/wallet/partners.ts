@@ -80,6 +80,24 @@ export interface CardDetails {
   exp_month: string
   exp_year: string
   name: string
+  /** What a checkout asks for with the number; null when Nuvion hasn't given one. */
+  billing_address?: CardBillingAddress | null
+}
+
+export interface CardBillingAddress {
+  line1: string
+  line2: string
+  city: string
+  state: string
+  postal_code: string
+  country: string
+}
+
+/** The billing address on two lines, as it's shown, and on one, as it's copied. */
+export function billingLines(a: CardBillingAddress) {
+  const street = [a.line1, a.line2].filter(Boolean).join(', ')
+  const town = `${[a.city, a.state].filter(Boolean).join(', ')} ${a.postal_code}`.trim()
+  return { street, town, oneLine: [street, town, a.country].filter(Boolean).join(', ') }
 }
 
 export interface CardCheck {

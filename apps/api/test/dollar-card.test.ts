@@ -175,6 +175,13 @@ function fakeNuvion() {
           expiration_year: '29',
           first_name: 'Ada',
           last_name: 'Okafor',
+          billing: {
+            address_line_1: '350 Fifth Avenue',
+            address_line_2: '',
+            city: 'New York',
+            state: 'NY',
+            postal_code: '10001',
+          },
         })
       }
       if (method === 'PATCH' && path.startsWith(`/card-details/${card}/`)) {
@@ -558,6 +565,14 @@ describe('dollar card (Nuvion)', () => {
       exp_month: '09',
       exp_year: '29',
       name: 'Ada Okafor',
+      billing_address: {
+        line1: '350 Fifth Avenue',
+        line2: '',
+        city: 'New York',
+        state: 'NY',
+        postal_code: '10001',
+        country: 'US',
+      },
     })
   })
 })

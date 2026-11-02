@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Icon } from '@/components/brand'
 import { formatUsd, toBase } from '@/lib/wallet/money'
 import {
+  billingLines,
   type CardCheck,
   type CardDetails,
   type DollarCard,
@@ -1023,6 +1024,7 @@ function Details({ onClose }: { onClose: () => void }) {
     void navigator.clipboard.writeText(value)
     setCopied(what)
   }
+  const address = details?.billing_address ? billingLines(details.billing_address) : null
   const row = (label: string, value: string, what?: string, raw?: string) => (
     <div className="dc-row">
       <span>
@@ -1061,16 +1063,22 @@ function Details({ onClose }: { onClose: () => void }) {
               )}
               {row('CVV', details?.cvv ?? '···', 'cvv', details?.cvv)}
             </div>
-            {details?.brand === 'mastercard' ? (
-              <div className="dc-row">
+            {row('Name on card', details?.name ?? '', 'name', details?.name)}
+            {address ? (
+              <div className="dc-row dc-row-text">
                 <span>
-                  <small>Network</small>
-                  <strong>Mastercard</strong>
+                  <small>Billing address</small>
+                  <strong>
+                    {address.street}
+                    <br />
+                    {address.town}
+                  </strong>
                 </span>
-                <CardBrand brand="mastercard" />
+                <button type="button" onClick={() => copy('address', address.oneLine)}>
+                  {copied === 'address' ? 'Copied' : 'Copy'}
+                </button>
               </div>
             ) : null}
-            {row('Name on card', details?.name ?? '', 'name', details?.name)}
           </div>
         )}
         {details ? (

@@ -4,7 +4,7 @@ import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, View } from 'react-native'
-import { type CardDetails, revealDollarCard } from '@/lib/partners'
+import { billingLines, type CardDetails, revealDollarCard } from '@/lib/partners'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { CardBrand } from '@/ui/CardBrand'
@@ -16,7 +16,7 @@ const cardArt = require('../../../assets/cards/coral.png')
 const SHOWN_FOR = 30
 
 /**
- * The card's number, expiry and CVV, read from Nuvion when you open this and gone 30 seconds later.
+ * The card's number, expiry, CVV and billing address, read from Nuvion when you open this and gone 30 seconds later.
  * Kova never stores them; copying puts one value on the clipboard.
  */
 export default function CardDetailsScreen() {
@@ -42,6 +42,8 @@ export default function CardDetailsScreen() {
   useEffect(() => {
     if (left <= 0) router.back()
   }, [left])
+
+  const address = details?.billing_address ? billingLines(details.billing_address) : null
 
   const copy = async (what: string, value: string) => {
     await Clipboard.setStringAsync(value)
@@ -94,19 +96,6 @@ export default function CardDetailsScreen() {
               />
             </View>
           </View>
-          {details?.brand === 'mastercard' ? (
-            <View style={[styles.row, styles.rule]}>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Txt size={13} color={colors.muted}>
-                  Network
-                </Txt>
-                <Txt weight="bold" size={17}>
-                  Mastercard
-                </Txt>
-              </View>
-              <CardBrand brand="mastercard" width={38} />
-            </View>
-          ) : null}
           <View style={styles.rule}>
             <Row
               label="Name on card"
@@ -115,6 +104,16 @@ export default function CardDetailsScreen() {
               onCopy={details ? () => void copy('name', details.name) : undefined}
             />
           </View>
+          {address ? (
+            <View style={styles.rule}>
+              <Row
+                label="Billing address"
+                value={`${address.street}\n${address.town}`}
+                copied={copied === 'address'}
+                onCopy={() => void copy('address', address.oneLine)}
+              />
+            </View>
+          ) : null}
         </View>
       )}
       {details ? (
