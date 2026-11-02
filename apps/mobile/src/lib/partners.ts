@@ -66,7 +66,7 @@ export interface DollarCard {
   topups?: { today: string; left: string; treasury: Address }
   activity?: Array<{
     id: string
-    kind: 'spend' | 'refund' | 'topup' | 'check'
+    kind: 'spend' | 'refund' | 'topup' | 'check' | 'withdraw'
     amount: string
     status: string
     title: string
@@ -226,6 +226,14 @@ export async function setDollarCard(address: Address, sign: Sign, frozen: boolea
   return call<DollarCard>(`${address}/dollar-card/settings`, {
     frozen,
     ...(await signed(address, sign, 'dollar-card-settings', frozen ? 'freeze' : 'unfreeze')),
+  })
+}
+
+/** Off the card, back to the wallet, free. The amount is in the signature. */
+export async function withdrawFromCard(address: Address, sign: Sign, amount: bigint) {
+  return call<{ tx_hash: Hex | null; card: DollarCard }>(`${address}/dollar-card/withdraw`, {
+    amount: amount.toString(),
+    ...(await signed(address, sign, 'dollar-card-withdraw', amount.toString())),
   })
 }
 

@@ -1340,6 +1340,9 @@ export const cardHolders = pgTable(
     /** Kova's way to pay that account from its pot: a counterparty and its book-transfer detail. */
     counterpartyId: text('counterparty_id'),
     paymentDetailId: text('payment_detail_id'),
+    /** The holder's way to pay Kova's pot back (money moved off the card): Kova as their counterparty. */
+    returnCounterpartyId: text('return_counterparty_id'),
+    returnPaymentDetailId: text('return_payment_detail_id'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -1375,6 +1378,37 @@ export const cardTopups = pgTable(
     uniqueIndex('card_topups_tx_idx').on(t.txHash),
     uniqueIndex('card_topups_reference_idx').on(t.reference),
     index('card_topups_wallet_idx').on(t.wallet, t.network, t.createdAt),
+  ],
+)
+
+/**
+ * Money moved off a dollar card back to the wallet: the amount moved from the card's account to
+ * Kova's pot at the issuer (pulled), then the same AUSD sent to the wallet on Monad by the relayer
+ * (paid). A move is pulled once (its reference is unique at the issuer) and paid once.
+ */
+export const cardWithdrawals = pgTable(
+  'card_withdrawals',
+  {
+    id: id(),
+    /** Lowercase. */
+    wallet: address('wallet').notNull(),
+    network: network('network').notNull(),
+    /** What leaves the card and reaches the wallet, in base units. */
+    amount: amount('amount').notNull(),
+    /** The issuer transfer's unique reference, so a retry can never pull twice. */
+    reference: text('reference').notNull(),
+    /** pulling, pulled, paid or failed (nothing left the card). */
+    status: text('status').notNull().default('pulling'),
+    transferId: text('transfer_id'),
+    /** The relayer's AUSD transfer to the wallet, kept before it's sent. */
+    txHash: text('tx_hash'),
+    problem: text('problem'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    uniqueIndex('card_withdrawals_reference_idx').on(t.reference),
+    index('card_withdrawals_wallet_idx').on(t.wallet, t.network, t.createdAt),
   ],
 )
 

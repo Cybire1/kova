@@ -36,7 +36,7 @@ import { ussdRoutes } from './routes/ussd.js'
 import { walletRoutes } from './routes/wallet.js'
 import { webhookRoutes } from './routes/webhooks.js'
 import { startDemo } from './services/demo.js'
-import { creditTopups } from './services/dollar-card.js'
+import { creditTopups, settleWithdrawals } from './services/dollar-card.js'
 import { expireStaleIntents } from './services/intents.js'
 import { checkPayingCashOuts, retryTopUps } from './services/naira.js'
 import { recoverPhonePayments } from './services/phone-payments.js'
@@ -137,6 +137,11 @@ if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js
   // A card top-up paid on Monad but not yet moved onto the card is tried again until it is.
   setInterval(
     () => void creditTopups().catch((error) => console.error('[dollar-card]', error)),
+    60_000,
+  )
+  // Money that left a card but hasn't reached the wallet yet is finished until it has.
+  setInterval(
+    () => void settleWithdrawals().catch((error) => console.error('[dollar-card]', error)),
     60_000,
   )
   // Rates change every 15 minutes at most; keep Kova Travel's copy fresh without waiting for a request.

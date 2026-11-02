@@ -23,7 +23,22 @@ vi.mock('../src/relay.js', () => ({
   })),
 }))
 
+const chain = vi.hoisted(() => ({ relayerDollars: 100_000_000n }))
+vi.mock('../src/chain.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../src/chain.js')>()
+  return {
+    ...real,
+    feePayerAddress: '0x000000000000000000000000000000000000fee1',
+    publicClient: {
+      ...real.publicClient,
+      readContract: vi.fn(async () => chain.relayerDollars),
+      getTransactionReceipt: vi.fn(async () => null),
+    },
+  }
+})
+
 const { config } = await import('../src/config.js')
+const { sendFromRelayer } = await import('../src/relay.js')
 const { db } = await import('../src/db.js')
 const {
   creditTopups,
@@ -31,9 +46,11 @@ const {
   idNumberFor,
   revealDollarCard,
   setDollarCard,
+  settleWithdrawals,
   startCheck,
   topUp,
   topUpFee,
+  withdraw,
 } = await import('../src/services/dollar-card.js')
 
 const TREASURY = '0x7e5f4552091a69125d5dfcb7b8c2659029395bdf'
@@ -50,6 +67,11 @@ function fakeNuvion() {
     individual: null as null | { person: Record<string, unknown>; identification: unknown },
     documents: [] as string[],
     transfers: [] as Array<{ amount: number; reference: string }>,
+    /** Moves off the card, from its own account back to Kova's pot. */
+    returns: [] as Array<{ amount: number; reference: string; to: string }>,
+    /** Kova as the holder's own counterparty, and its book-transfer detail. */
+    kovaPayees: [] as Array<Record<string, unknown>>,
+    kovaDetails: [] as Array<Record<string, unknown>>,
     balance: 0,
     frozen: false,
     failNextTransfer: false,
@@ -121,7 +143,17 @@ function fakeNuvion() {
         return ok({ account: { id: 'acc_1', nuvion_ban: '0010346002' } }, 201)
       if (method === 'GET' && path === '/accounts/acc_1')
         return ok({ account: { id: 'acc_1', balance: { available: state.balance } } })
+      if (method === 'GET' && path === '/accounts/acc_pot')
+        return ok({ account: { id: 'acc_pot', nuvion_ban: '0099990001' } })
       if (method === 'GET' && path === '/counterparties') return ok({ data: [] })
+      if (method === 'POST' && path === '/counterparties' && body.entity_id) {
+        state.kovaPayees.push(body)
+        return ok({ counterparty: { id: 'cp_back' } }, 201)
+      }
+      if (method === 'POST' && path === '/payment-details' && body.entity_id) {
+        state.kovaDetails.push(body)
+        return ok({ payment_detail: { id: 'pd_back' } }, 201)
+      }
       if (method === 'POST' && path === '/counterparties') {
         if (state.refusePayee) {
           state.refusePayee = false
@@ -146,10 +178,31 @@ function fakeNuvion() {
             status: 503,
           })
         }
-        if (state.transfers.some((t) => t.reference === body.unique_reference))
+        if (
+          [...state.transfers, ...state.returns].some((t) => t.reference === body.unique_reference)
+        )
           return new Response(JSON.stringify({ status: 'error', message: 'Duplicate' }), {
             status: 409,
           })
+        // From the card's own account: on the holder's behalf, back to Kova's pot.
+        if (body.account_id === 'acc_1') {
+          if (body.entity_id !== 'ent_1')
+            return new Response(JSON.stringify({ status: 'error', message: 'Wrong entity' }), {
+              status: 404,
+            })
+          if (body.amount > state.balance)
+            return new Response(
+              JSON.stringify({ status: 'error', message: 'Insufficient balance' }),
+              { status: 422 },
+            )
+          state.returns.push({
+            amount: body.amount,
+            reference: body.unique_reference,
+            to: `${body.counterparty_id}/${body.payment_detail_id}`,
+          })
+          state.balance -= body.amount
+          return ok({ id: `tr_back_${state.returns.length}` }, 201)
+        }
         state.transfers.push({ amount: body.amount, reference: body.unique_reference })
         state.balance += body.amount
         return ok({ id: `tr_${state.transfers.length}` }, 201)
@@ -573,6 +626,91 @@ describe('dollar card (Nuvion)', () => {
         postal_code: '10001',
         country: 'US',
       },
+    })
+  })
+  describe('moving money off the card', () => {
+    /** The relayer's sends: each one's hash is kept before it "leaves", like the real one. */
+    const sends: Array<{ to: string; data: string }> = []
+    beforeEach(() => {
+      sends.length = 0
+      chain.relayerDollars = 100_000_000n
+      vi.mocked(sendFromRelayer).mockReset()
+      vi.mocked(sendFromRelayer).mockImplementation(async (to, data, options) => {
+        const hash = `0x${crypto.randomUUID().replaceAll('-', '')}${'0'.repeat(32)}` as const
+        await options?.beforeBroadcast?.(hash)
+        sends.push({ to, data })
+        return { status: 'success', transactionHash: hash } as never
+      })
+    })
+
+    it('moves money off the card to the wallet, free, through Kova’s own payee on the holder', async () => {
+      const { nuvion, wallet } = await cardHolder()
+      nuvion.balance = 2000
+      const done = await withdraw(wallet, 5_000_000n)
+      expect(done.tx_hash).toMatch(/^0x/)
+      expect(nuvion.returns).toEqual([
+        { amount: 500, reference: expect.stringMatching(/^kova-back-/), to: 'cp_back/pd_back' },
+      ])
+      expect(nuvion.balance).toBe(1500)
+      // Kova as the holder's counterparty, with a detail naming Kova's pot.
+      expect(nuvion.kovaPayees[0]).toMatchObject({ type: 'business', entity_id: 'ent_1' })
+      expect(nuvion.kovaDetails[0]).toMatchObject({
+        entity_id: 'ent_1',
+        payment_method: 'book-transfer',
+        account_number: '0099990001',
+      })
+      // The same dollars, free, from the relayer to the wallet.
+      expect(sends).toHaveLength(1)
+      expect(sends[0]?.data.toLowerCase()).toContain(wallet.slice(2).toLowerCase())
+      expect(sends[0]?.data).toContain((5_000_000).toString(16).padStart(64, '0'))
+      expect(done.card).toMatchObject({
+        card: { balance: '15000000' },
+        activity: expect.arrayContaining([
+          expect.objectContaining({ kind: 'withdraw', amount: '-5000000', status: 'successful' }),
+        ]),
+      })
+      // The way back is made once.
+      await withdraw(wallet, 1_000_000n)
+      expect(nuvion.kovaPayees).toHaveLength(1)
+      expect(nuvion.returns).toHaveLength(2)
+    })
+
+    it('refuses more than the card has, less than $1, or when the relayer can’t pay, moving nothing', async () => {
+      const { nuvion, wallet } = await cardHolder()
+      nuvion.balance = 300
+      await expect(withdraw(wallet, 5_000_000n)).rejects.toMatchObject({ code: 'policy_declined' })
+      await expect(withdraw(wallet, 500_000n)).rejects.toMatchObject({ code: 'invalid_request' })
+      await expect(withdraw(wallet, 1_000_001n)).rejects.toMatchObject({ code: 'invalid_request' })
+      chain.relayerDollars = 1_000_000n
+      await expect(withdraw(wallet, 2_000_000n)).rejects.toMatchObject({ code: 'conflict' })
+      expect(nuvion.returns).toHaveLength(0)
+      expect(nuvion.balance).toBe(300)
+      expect(sends).toHaveLength(0)
+    })
+
+    it('finishes a move that stopped part way, never pulling or paying it twice', async () => {
+      const { nuvion, wallet } = await cardHolder()
+      nuvion.balance = 2000
+      // Nuvion doesn't answer: nothing is paid yet, and the move waits with its reference.
+      nuvion.failNextTransfer = true
+      const first = await withdraw(wallet, 3_000_000n)
+      expect(first.tx_hash).toBeNull()
+      expect(sends).toHaveLength(0)
+      // Then the relayer fails once.
+      vi.mocked(sendFromRelayer).mockRejectedValueOnce(new Error('rpc down'))
+      await settleWithdrawals()
+      expect(nuvion.returns).toHaveLength(1)
+      expect(sends).toHaveLength(0)
+      await settleWithdrawals()
+      await settleWithdrawals()
+      expect(nuvion.returns).toHaveLength(1)
+      expect(sends).toHaveLength(1)
+      const [row] = await db
+        .select()
+        .from(schema.cardWithdrawals)
+        .where(eq(schema.cardWithdrawals.wallet, wallet.toLowerCase()))
+      expect(row).toMatchObject({ status: 'paid', amount: 3_000_000n })
+      expect(nuvion.balance).toBe(1700)
     })
   })
 })

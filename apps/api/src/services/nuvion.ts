@@ -180,7 +180,7 @@ export async function rootEntity(): Promise<string> {
 /** The email and address Kova's own business is registered with, for an owner's payee. */
 export async function businessContact(entityId: string) {
   const d = await nuvion<{
-    business?: { email?: string; phonenumber?: string }
+    business?: { email?: string; phonenumber?: string; legal_name?: string; name?: string }
     address?: {
       line_1?: string
       city?: string
@@ -193,6 +193,7 @@ export async function businessContact(entityId: string) {
   if (!d.business?.email || !a.line_1 || !a.city || !a.country_code)
     throw new NuvionRefused(422, undefined, 'Kova’s business has no email or address on Nuvion.')
   return {
+    name: d.business.legal_name ?? d.business.name ?? 'Kova',
     email: d.business.email,
     phone: d.business.phonenumber ?? null,
     address: {
@@ -331,8 +332,16 @@ export async function findBookDetail(accountNumber: string) {
   return null
 }
 
-/** Step two, once their card's account exists: a book-transfer detail naming its number. */
-export async function addBookDetail(counterpartyId: string, name: string, accountNumber: string) {
+/**
+ * Step two, once their card's account exists: a book-transfer detail naming its number. With
+ * `entityId`, the detail belongs to that holder's own counterparty (the way back to Kova's pot).
+ */
+export async function addBookDetail(
+  counterpartyId: string,
+  name: string,
+  accountNumber: string,
+  entityId?: string,
+) {
   const detail = await nuvion<{ id?: string; payment_detail?: { id: string } }>(
     '/payment-details',
     {
@@ -343,6 +352,7 @@ export async function addBookDetail(counterpartyId: string, name: string, accoun
         currency: 'USD',
         account_holder_name: name,
         account_number: accountNumber,
+        ...(entityId ? { entity_id: entityId } : {}),
       },
     },
   )
@@ -369,6 +379,85 @@ export async function bookTransfer(
       method: 'POST',
       body: {
         account_id: config.NUVION_POT_ACCOUNT,
+        counterparty_id: to.counterpartyId,
+        payment_detail_id: to.paymentDetailId,
+        currency: 'USD',
+        amount: cents,
+        payment_type: 'book-transfer',
+        narration,
+        unique_reference: reference,
+      },
+    },
+  )
+  return data.transfer?.id ?? data.id ?? data._id ?? null
+}
+
+/** Kova's pot's own account number, for a holder's way to pay it back. Read once. */
+let potNumber: string | null = null
+export async function potAccountNumber(): Promise<string> {
+  if (potNumber) return potNumber
+  if (!config.NUVION_POT_ACCOUNT)
+    throw new KovaError('conflict', 'The dollar card isn’t switched on for this server yet.')
+  const data = await nuvion<AccountReply>(
+    `/accounts/${encodeURIComponent(config.NUVION_POT_ACCOUNT)}`,
+  )
+  if (!data.account.nuvion_ban)
+    throw new NuvionRefused(404, undefined, 'Kova’s pot has no account number at Nuvion.')
+  potNumber = data.account.nuvion_ban
+  return potNumber
+}
+
+/**
+ * Kova's business as a counterparty of the holder's own entity, so the holder's card account can
+ * pay Kova's pot back by book transfer (money moved off the card). Returns its id.
+ */
+export async function createKovaPayee(
+  entityId: string,
+  kova: { name: string; email: string; address: PayeeAddress },
+) {
+  const party = await nuvion<{ id?: string; counterparty?: { id: string } }>('/counterparties', {
+    method: 'POST',
+    body: {
+      type: 'business',
+      entity_id: entityId,
+      profile: {
+        legal_name: kova.name,
+        relationship: 'vendor',
+        email: kova.email,
+        registered_address: {
+          line1: kova.address.line1,
+          city: kova.address.city,
+          ...(kova.address.state ? { state_or_province: kova.address.state } : {}),
+          ...(kova.address.postalCode ? { postal_code: kova.address.postalCode } : {}),
+          country: kova.address.country,
+        },
+      },
+    },
+  })
+  const id = party.counterparty?.id ?? party.id
+  if (!id) throw new NuvionRefused(500, undefined, 'No counterparty id came back.')
+  return id
+}
+
+/**
+ * Moves `cents` from a holder's card account back to Kova's pot, through the holder's own
+ * counterparty for Kova. `reference` is unique per move: a retry with it is refused (409), so
+ * nothing leaves the card twice.
+ */
+export async function bookTransferToPot(
+  from: { accountId: string; entityId: string },
+  to: { counterpartyId: string; paymentDetailId: string },
+  cents: number,
+  reference: string,
+  narration: string,
+) {
+  const data = await nuvion<{ id?: string; _id?: string; transfer?: { id: string } }>(
+    '/transfers',
+    {
+      method: 'POST',
+      body: {
+        account_id: from.accountId,
+        entity_id: from.entityId,
         counterparty_id: to.counterpartyId,
         payment_detail_id: to.paymentDetailId,
         currency: 'USD',

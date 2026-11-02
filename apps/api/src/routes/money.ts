@@ -11,6 +11,7 @@ import {
   setDollarCard,
   startCheck,
   topUp,
+  withdraw,
 } from '../services/dollar-card.js'
 import {
   openUsAccount,
@@ -32,6 +33,7 @@ import {
  *   GET  /wallets/:address/dollar-card            where the card is: intro, checking, fix or the card itself
  *   POST /wallets/:address/dollar-card/check      the holder's details and ID photo, to the issuer's check (signed)
  *   POST /wallets/:address/dollar-card/top-up     a signed AUSD transfer to Kova (amount + 0.5%), the amount moved onto the card
+ *   POST /wallets/:address/dollar-card/withdraw   money off the card, back to the wallet, free (signed)
  *   POST /wallets/:address/dollar-card/settings   freeze or unfreeze (signed)
  *   POST /wallets/:address/dollar-card/reveal     the card's number, expiry and CVV (signed)
  *   GET  /wallets/:address/savings                balance, put in, earned, moves
@@ -104,6 +106,7 @@ const topUpBody = z.object({
   signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/),
 })
 const settingsBody = z.object({ frozen: z.boolean(), ...signed })
+const withdrawBody = z.object({ amount: z.string().regex(/^\d{1,15}$/), ...signed })
 const saveInBody = z.object({
   value: z.string().regex(/^\d{1,30}$/),
   valid_after: z.string().regex(/^\d{1,20}$/),
@@ -245,6 +248,19 @@ export const moneyRoutes = new Hono()
         b.signature as Hex,
       ),
     )
+  })
+  .post('/wallets/:address/dollar-card/withdraw', async (c) => {
+    const wallet = walletAddress(c)
+    const b = await body(c, withdrawBody, '{ amount, signed_at, signature }')
+    // The amount is signed too, so a signature moves exactly what the holder asked for.
+    await requireWalletSignature(wallet, 'dollar-card-withdraw', b.signed_at, b.signature, b.amount)
+    limit(
+      `dollar-card-withdraw:${wallet.toLowerCase()}`,
+      20,
+      3_600_000,
+      'That’s a lot of moves off the card in an hour. Try again later.',
+    )
+    return c.json(await withdraw(wallet, BigInt(b.amount)))
   })
   .post('/wallets/:address/dollar-card/settings', async (c) => {
     const wallet = walletAddress(c)

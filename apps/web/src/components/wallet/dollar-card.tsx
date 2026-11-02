@@ -15,6 +15,7 @@ import {
   startCardCheck,
   topUpCard,
   topUpFee,
+  withdrawFromCard,
 } from '@/lib/wallet/partners'
 import '@/styles/dollar-card.css'
 import { ScreenHead } from './activity'
@@ -35,7 +36,7 @@ export function DollarCardScreen() {
   const address = profile?.address
   const [data, setData] = useState<DollarCard | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
-  const [view, setView] = useState<'home' | 'check' | 'top-up' | 'details'>('home')
+  const [view, setView] = useState<'home' | 'check' | 'top-up' | 'withdraw' | 'details'>('home')
   const load = useCallback(async () => {
     if (!address) return
     try {
@@ -78,10 +79,18 @@ export function DollarCardScreen() {
         data={data}
         onChange={setData}
         onTopUp={() => setView('top-up')}
+        onWithdraw={() => setView('withdraw')}
         onDetails={() => setView('details')}
       />
       {view === 'top-up' ? (
         <TopUp
+          data={data}
+          onClose={() => setView('home')}
+          onDone={(d) => (setData(d), setView('home'))}
+        />
+      ) : null}
+      {view === 'withdraw' ? (
+        <Withdraw
           data={data}
           onClose={() => setView('home')}
           onDone={(d) => (setData(d), setView('home'))}
@@ -721,11 +730,13 @@ function CardHome({
   data,
   onChange,
   onTopUp,
+  onWithdraw,
   onDetails,
 }: {
   data: DollarCard
   onChange: (d: DollarCard) => void
   onTopUp: () => void
+  onWithdraw: () => void
   onDetails: () => void
 }) {
   const { profile, signMessage } = useWallet()
@@ -829,6 +840,14 @@ function CardHome({
           <Icon name="plus" size={18} />
           Top up
         </button>
+        <button
+          type="button"
+          disabled={!card.balance || BigInt(card.balance) < 1_000_000n}
+          onClick={onWithdraw}
+        >
+          <Icon name="down" size={18} />
+          Withdraw
+        </button>
         <button type="button" onClick={onDetails}>
           <Icon name="eye" size={18} />
           Details
@@ -840,7 +859,7 @@ function CardHome({
       </div>
       <ul className="dc-activity dc-pad">
         {(data.activity ?? []).length === 0 ? (
-          <li className="w-quiet">Top-ups and card payments show up here.</li>
+          <li className="w-quiet">Top-ups, withdrawals and card payments show up here.</li>
         ) : (
           (data.activity ?? []).map((a) => (
             <li key={a.id}>
@@ -866,7 +885,7 @@ function CardHome({
                 </small>
               </span>
               <span className="dc-amount" data-kind={a.kind}>
-                {a.kind === 'spend' ? '−' : a.kind === 'check' ? '' : '+'}
+                {a.kind === 'spend' || a.kind === 'withdraw' ? '−' : a.kind === 'check' ? '' : '+'}
                 {formatUsd(BigInt(a.amount) < 0n ? -BigInt(a.amount) : BigInt(a.amount))}
               </span>
             </li>
@@ -990,6 +1009,108 @@ function TopUp({
                 : busy
                   ? 'Topping up…'
                   : `Top up ${formatUsd(value)}`}
+          </span>
+          <span className="pill-cap">
+            <Icon name="face" size={18} />
+          </span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** Off the card, back to the Kova balance, free: an amount up to what's on the card, signed. */
+function Withdraw({
+  data,
+  onClose,
+  onDone,
+}: {
+  data: DollarCard
+  onClose: () => void
+  onDone: (d: DollarCard) => void
+}) {
+  const { profile, signMessage } = useWallet()
+  const [typed, setTyped] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const onCard = data.card?.balance ? BigInt(data.card.balance) : null
+  // Whole cents only: what's on the card, rounded down to the cent.
+  const all = onCard === null ? null : (onCard / 10_000n) * 10_000n
+  const value = (() => {
+    try {
+      return typed ? toBase(typed) : 0n
+    } catch {
+      return 0n
+    }
+  })()
+  const tooMuch = all !== null && value > all
+  const tooLittle = value > 0n && value < 1_000_000n
+
+  const go = async () => {
+    if (!profile) return
+    setBusy(true)
+    setError(null)
+    try {
+      onDone((await withdrawFromCard(profile.address, signMessage, value)).card)
+    } catch (e) {
+      setError(problemOf(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="dc-sheet-back" role="dialog" aria-label="Withdraw to Kova">
+      <div className="dc-sheet">
+        <p className="dc-sheet-head">
+          <strong>Withdraw to Kova</strong>
+          <button type="button" aria-label="Close" onClick={onClose}>
+            <Icon name="close" size={18} />
+          </button>
+        </p>
+        <label className="dc-amount-input">
+          <span>$</span>
+          <input
+            inputMode="decimal"
+            value={typed}
+            placeholder="0"
+            onChange={(e) => setTyped(e.target.value.replace(/[^\d.]/g, '').slice(0, 8))}
+            aria-label="Amount"
+          />
+        </label>
+        <p className="dc-from">
+          <span>On your card</span>
+          <strong data-over={tooMuch ? 'yes' : 'no'}>{all === null ? '—' : formatUsd(all)}</strong>
+          {all !== null && all >= 1_000_000n ? (
+            <button
+              type="button"
+              className="dc-all"
+              onClick={() => setTyped((Number(all) / 1_000_000).toFixed(2).replace(/\.00$/, ''))}
+            >
+              All
+            </button>
+          ) : null}
+        </p>
+        <p className="dc-from dc-fee">
+          <span>To your Kova balance</span>
+          <span>Free · you get {formatUsd(value)}</span>
+        </p>
+        {error ? <p className="form-error">{error}</p> : null}
+        <button
+          type="button"
+          className="pill pill-block"
+          data-tone="ink"
+          disabled={busy || value <= 0n || tooMuch || tooLittle}
+          onClick={() => void go()}
+        >
+          <span className="pill-label">
+            {tooMuch
+              ? `Up to ${formatUsd(all ?? 0n)}`
+              : tooLittle
+                ? 'At least $1.00'
+                : busy
+                  ? 'Withdrawing…'
+                  : `Withdraw ${formatUsd(value)}`}
           </span>
           <span className="pill-cap">
             <Icon name="face" size={18} />

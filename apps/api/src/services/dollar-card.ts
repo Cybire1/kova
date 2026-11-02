@@ -1,22 +1,24 @@
 import { schema, uuidv7 } from '@kova/db'
 import { formatAmount, type TransferAuthorization } from '@kova/monad'
 import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm'
-import { type Address, type Hex, isAddressEqual } from 'viem'
-import { settlementToken } from '../chain.js'
+import { type Address, encodeFunctionData, erc20Abi, type Hex, isAddressEqual } from 'viem'
+import { feePayerAddress, publicClient, settlementToken } from '../chain.js'
 import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
-import { relayAuthorization } from '../relay.js'
+import { relayAuthorization, relayReady, sendFromRelayer } from '../relay.js'
 import { hasRequested } from './money.js'
 import {
   accountBalance,
   addBookDetail,
   bookTransfer,
+  bookTransferToPot,
   businessContact,
   cardFee,
   cardPayments,
   cardSecrets,
   createIndividual,
+  createKovaPayee,
   createPayee,
   entityStatus,
   findBookDetail,
@@ -27,6 +29,7 @@ import {
   openUsdAccount,
   type Person,
   personContact,
+  potAccountNumber,
   rootEntity,
   setCardFrozen,
   submitForReview,
@@ -45,6 +48,9 @@ import {
  *    payment, then the amount moved from the pot to the card by book transfer. The wallet sends the
  *    amount plus Kova's fee (KOVA_CARD_TOPUP_FEE_BPS, 0.5%); the card gets the amount. A wallet puts
  *    at most KOVA_CARD_DAILY_TOPUP on its card a UTC day, and one Monad transaction credits once.
+ *
+ * 4. Money moves off the card the other way, free: the amount from the card's account back to the
+ *    pot by book transfer, then the same AUSD sent to the wallet by Kova's relayer.
  *
  * The card's number and CVV are read from Nuvion when the holder asks and never stored.
  */
@@ -391,7 +397,7 @@ export async function dollarCardFor(wallet: Address) {
       reason: holder?.reason ?? null,
     }
 
-  const [cents, payments, today, topups] = await Promise.all([
+  const [cents, payments, today, topups, withdrawals] = await Promise.all([
     holder.accountId ? accountBalance(holder.accountId, holder.entityId).catch(() => null) : null,
     cardPayments(card.providerCardToken, holder.entityId).catch(() => []),
     toppedUpToday(wallet),
@@ -402,6 +408,18 @@ export async function dollarCardFor(wallet: Address) {
         and(eq(schema.cardTopups.wallet, wallet.toLowerCase()), eq(schema.cardTopups.network, net)),
       )
       .orderBy(desc(schema.cardTopups.createdAt))
+      .limit(20),
+    db
+      .select()
+      .from(schema.cardWithdrawals)
+      .where(
+        and(
+          eq(schema.cardWithdrawals.wallet, wallet.toLowerCase()),
+          eq(schema.cardWithdrawals.network, net),
+          sql`${schema.cardWithdrawals.status} <> 'failed'`,
+        ),
+      )
+      .orderBy(desc(schema.cardWithdrawals.createdAt))
       .limit(20),
   ])
   const activity = [
@@ -421,6 +439,14 @@ export async function dollarCardFor(wallet: Address) {
         t.status === 'credited' ? 'successful' : t.status === 'failed' ? 'pending' : 'pending',
       title: 'Top up from Kova',
       at: t.createdAt.toISOString(),
+    })),
+    ...withdrawals.map((w) => ({
+      id: w.id,
+      kind: 'withdraw' as const,
+      amount: (-w.amount).toString(),
+      status: w.status === 'paid' ? 'successful' : 'pending',
+      title: 'Moved to Kova',
+      at: w.createdAt.toISOString(),
     })),
   ]
     .sort((a, b) => b.at.localeCompare(a.at))
@@ -646,6 +672,289 @@ export async function creditTopups() {
   for (const row of due) {
     const holder = await holderOf(row.wallet as Address)
     if (holder?.paymentDetailId) await credit(row, holder)
+  }
+}
+
+/** Wallets moving money off their card right now: one move at a time each. */
+const withdrawing = new Map<string, Promise<unknown>>()
+
+/** The least that moves off a card at once. */
+const MIN_WITHDRAW = 1_000_000n
+
+/**
+ * Moves `amount` off the card to the wallet, free: from the card's account back to Kova's pot at
+ * Nuvion, then the same AUSD from the relayer to the wallet. Nothing leaves the card unless the
+ * relayer holds the dollars to pay it, and a move that stops part way is finished by
+ * `settleWithdrawals`, so dollars that left the card always reach the wallet.
+ */
+export async function withdraw(wallet: Address, amount: bigint) {
+  const key = wallet.toLowerCase()
+  if (withdrawing.has(key))
+    throw new KovaError('conflict', 'Money is already on its way off your card. Give it a second.')
+  const job = (async () => {
+    if (!dollarCardLive() || !relayReady() || !feePayerAddress)
+      throw new KovaError('conflict', 'The dollar card isn’t switched on for this server yet.')
+    const holder = await holderOf(wallet)
+    const card = await cardOf(wallet)
+    if (!holder?.accountId || !card)
+      throw new KovaError('not_found', 'This wallet has no dollar card yet.')
+    if (amount % CENT !== 0n)
+      throw new KovaError('invalid_request', 'Move a whole number of cents.')
+    if (amount < MIN_WITHDRAW)
+      throw new KovaError('invalid_request', `Move at least $${formatAmount(MIN_WITHDRAW)}.`)
+    const onCard = BigInt(await accountBalance(holder.accountId, holder.entityId)) * CENT
+    if (amount > onCard)
+      throw new KovaError(
+        'policy_declined',
+        `Your card has $${formatAmount(onCard)}. Move that much or less.`,
+      )
+    // Kova pays the wallet from the relayer: it must hold the dollars before any leave the card.
+    const [held, owed] = await Promise.all([relayerDollars(), owedToWallets()])
+    if (held < owed + amount) {
+      console.error('[dollar-card] the relayer is short for a move off a card', {
+        held: String(held),
+        owed: String(owed),
+        amount: String(amount),
+      })
+      throw new KovaError(
+        'conflict',
+        'Moving money off the card is paused for a moment. Everything is still on your card.',
+      )
+    }
+    const back = await wayBack(holder)
+    const [row] = await db
+      .insert(schema.cardWithdrawals)
+      .values({
+        id: uuidv7(),
+        wallet: key,
+        network: net,
+        amount,
+        reference: `kova-back-${uuidv7().replace(/-/g, '')}`,
+      })
+      .returning()
+    if (!row) throw new KovaError('internal', 'Kova couldn’t start that move. Try again.')
+    const pulled = await pull(row, holder, back)
+    if (pulled === 'refused')
+      throw new KovaError(
+        'policy_declined',
+        'The card issuer didn’t let that money move. Everything is still on your card.',
+      )
+    const paid = pulled === 'pulled' ? await pay(row) : null
+    return { tx_hash: paid, card: await dollarCardFor(wallet) }
+  })()
+  withdrawing.set(key, job)
+  try {
+    return await job
+  } finally {
+    withdrawing.delete(key)
+  }
+}
+
+/** The AUSD the relayer holds. */
+async function relayerDollars() {
+  return publicClient.readContract({
+    address: settlementToken.address,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [feePayerAddress as Address],
+  })
+}
+
+/** Dollars already off cards and not yet sent to their wallets. */
+async function owedToWallets() {
+  const [row] = await db
+    .select({ sum: sql<string>`coalesce(sum(${schema.cardWithdrawals.amount}), 0)` })
+    .from(schema.cardWithdrawals)
+    .where(
+      and(
+        eq(schema.cardWithdrawals.network, net),
+        inArray(schema.cardWithdrawals.status, ['pulling', 'pulled']),
+      ),
+    )
+  return BigInt(row?.sum ?? '0')
+}
+
+/**
+ * The holder's way to pay Kova's pot: Kova's business as their own counterparty, with a
+ * book-transfer detail naming the pot. Made the first time they move money off the card.
+ */
+async function wayBack(holder: Holder) {
+  if (holder.returnCounterpartyId && holder.returnPaymentDetailId)
+    return {
+      counterpartyId: holder.returnCounterpartyId,
+      paymentDetailId: holder.returnPaymentDetailId,
+    }
+  const mine = eq(schema.cardHolders.id, holder.id)
+  try {
+    const kova = await businessContact(await rootEntity())
+    const counterpartyId =
+      holder.returnCounterpartyId ?? (await createKovaPayee(holder.entityId, kova))
+    await db
+      .update(schema.cardHolders)
+      .set({ returnCounterpartyId: counterpartyId, updatedAt: new Date() })
+      .where(mine)
+    const paymentDetailId = await addBookDetail(
+      counterpartyId,
+      kova.name,
+      await potAccountNumber(),
+      holder.entityId,
+    )
+    await db
+      .update(schema.cardHolders)
+      .set({ returnPaymentDetailId: paymentDetailId, updatedAt: new Date() })
+      .where(mine)
+    return { counterpartyId, paymentDetailId }
+  } catch (e) {
+    if (!(e instanceof NuvionRefused)) throw e
+    console.error('[dollar-card] no way back to the pot:', e.status, e.code ?? '', e.message)
+    throw new KovaError(
+      'conflict',
+      'Moving money off the card isn’t ready for your card yet. Everything is still on it.',
+    )
+  }
+}
+
+type Withdrawal = typeof schema.cardWithdrawals.$inferSelect
+
+/**
+ * Moves a withdrawal's amount from the card back to the pot, once (its reference is unique at
+ * Nuvion). `refused` means Nuvion said no and nothing moved; `unsure` means it didn't answer, so it
+ * is asked again with the same reference until it says.
+ */
+async function pull(
+  row: Withdrawal,
+  holder: Holder,
+  back: { counterpartyId: string; paymentDetailId: string },
+): Promise<'pulled' | 'refused' | 'unsure'> {
+  const mine = eq(schema.cardWithdrawals.id, row.id)
+  try {
+    const transferId = await bookTransferToPot(
+      { accountId: holder.accountId as string, entityId: holder.entityId },
+      back,
+      Number(row.amount / CENT),
+      row.reference,
+      'Moved to Kova',
+    )
+    await db
+      .update(schema.cardWithdrawals)
+      .set({ status: 'pulled', transferId, problem: null, updatedAt: new Date() })
+      .where(mine)
+    return 'pulled'
+  } catch (e) {
+    // 409: a transfer with this reference already exists, so the money already left the card.
+    if (e instanceof NuvionRefused && e.status === 409) {
+      await db
+        .update(schema.cardWithdrawals)
+        .set({ status: 'pulled', problem: null, updatedAt: new Date() })
+        .where(mine)
+      return 'pulled'
+    }
+    const problem = (e as Error).message.slice(0, 500)
+    const refused = e instanceof NuvionRefused && e.status < 500
+    if (refused) console.error('[dollar-card] a move off a card was refused:', problem)
+    await db
+      .update(schema.cardWithdrawals)
+      .set({ status: refused ? 'failed' : 'pulling', problem, updatedAt: new Date() })
+      .where(mine)
+    return refused ? 'refused' : 'unsure'
+  }
+}
+
+/**
+ * Sends a pulled withdrawal's AUSD from the relayer to the wallet. The hash is kept before the
+ * transaction can leave, so one already sent is checked, never sent again.
+ */
+async function pay(row: Withdrawal): Promise<Hex | null> {
+  const mine = eq(schema.cardWithdrawals.id, row.id)
+  if (row.txHash) {
+    const sent = await publicClient
+      .getTransactionReceipt({ hash: row.txHash as Hex })
+      .catch(() => null)
+    if (sent?.status === 'success') {
+      await db
+        .update(schema.cardWithdrawals)
+        .set({ status: 'paid', problem: null, updatedAt: new Date() })
+        .where(mine)
+      return row.txHash as Hex
+    }
+    // Sent and not on Monad: never send a second time on a guess. Someone looks at it.
+    if (!sent) {
+      console.error('[dollar-card] a move off a card was sent with no receipt yet:', row.id)
+      return null
+    }
+  }
+  try {
+    const receipt = await sendFromRelayer(
+      settlementToken.address,
+      encodeFunctionData({
+        abi: erc20Abi,
+        functionName: 'transfer',
+        args: [row.wallet as Address, row.amount],
+      }),
+      {
+        beforeBroadcast: async (hash) => {
+          await db
+            .update(schema.cardWithdrawals)
+            .set({ txHash: hash, updatedAt: new Date() })
+            .where(mine)
+        },
+      },
+    )
+    if (receipt.status !== 'success') {
+      await db
+        .update(schema.cardWithdrawals)
+        .set({
+          txHash: null,
+          problem: 'The transfer to the wallet reverted.',
+          updatedAt: new Date(),
+        })
+        .where(mine)
+      return null
+    }
+    await db
+      .update(schema.cardWithdrawals)
+      .set({
+        status: 'paid',
+        txHash: receipt.transactionHash,
+        problem: null,
+        updatedAt: new Date(),
+      })
+      .where(mine)
+    return receipt.transactionHash
+  } catch (e) {
+    const problem = (e as Error).message.slice(0, 500)
+    console.error('[dollar-card] paying a move off a card failed:', problem)
+    await db.update(schema.cardWithdrawals).set({ problem, updatedAt: new Date() }).where(mine)
+    return null
+  }
+}
+
+/** Finishes moves off cards that stopped part way (run every minute). */
+export async function settleWithdrawals() {
+  if (!dollarCardLive() || !relayReady()) return
+  const due = await db
+    .select()
+    .from(schema.cardWithdrawals)
+    .where(
+      and(
+        eq(schema.cardWithdrawals.network, net),
+        inArray(schema.cardWithdrawals.status, ['pulling', 'pulled']),
+      ),
+    )
+    .limit(20)
+  for (const row of due) {
+    if (withdrawing.has(row.wallet)) continue
+    if (row.status === 'pulling') {
+      const holder = await holderOf(row.wallet as Address)
+      if (!holder?.accountId || !holder.returnCounterpartyId || !holder.returnPaymentDetailId)
+        continue
+      const pulled = await pull(row, holder, {
+        counterpartyId: holder.returnCounterpartyId,
+        paymentDetailId: holder.returnPaymentDetailId,
+      })
+      if (pulled !== 'pulled') continue
+    }
+    await pay(row)
   }
 }
 

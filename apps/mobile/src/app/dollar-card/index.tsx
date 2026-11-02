@@ -411,11 +411,18 @@ function CardHome({
           <Action
             icon="plus"
             label="Top up"
-            wide
             coral
             disabled={left === 0n}
             onPress={() => router.push('/dollar-card/top-up')}
           />
+          <Action
+            icon="down"
+            label="Withdraw"
+            disabled={!card.balance || BigInt(card.balance) < 1_000_000n}
+            onPress={() => router.push('/dollar-card/withdraw')}
+          />
+        </View>
+        <View style={[styles.actions, { marginTop: 10 }]}>
           <Action icon="eye" label="Details" onPress={() => router.push('/dollar-card/details')} />
           <Action
             icon="snow"
@@ -427,7 +434,7 @@ function CardHome({
         <View style={styles.activity}>
           {(data.activity ?? []).length === 0 ? (
             <Txt size={15} color={colors.muted}>
-              Top-ups and card payments show up here.
+              Top-ups, withdrawals and card payments show up here.
             </Txt>
           ) : (
             (data.activity ?? []).map((a, i) => (
@@ -436,6 +443,7 @@ function CardHome({
                   style={[
                     styles.rowIcon,
                     a.kind === 'topup' && { backgroundColor: colors.tealSoft },
+                    a.kind === 'withdraw' && { backgroundColor: colors.sunken },
                     a.kind === 'spend' && { backgroundColor: colors.fill },
                   ]}
                 >
@@ -464,7 +472,7 @@ function CardHome({
                   color={
                     a.kind === 'check'
                       ? colors.muted
-                      : a.kind === 'spend'
+                      : a.kind === 'spend' || a.kind === 'withdraw'
                         ? colors.ink
                         : colors.positive
                   }
