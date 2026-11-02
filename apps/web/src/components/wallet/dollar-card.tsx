@@ -21,7 +21,7 @@ import { useWallet } from './provider'
 
 /**
  * The dollar card (Nuvion) in the web wallet: a virtual USD card topped up from the wallet, up to
- * $50 a day. Where you are decides the screen: what it is, the ID check, the check with the issuer,
+ * a daily cap. Where you are decides the screen: what it is, the ID check, the check with the issuer,
  * a check that didn't pass, or the card itself (balance, top up, details, freeze).
  */
 
@@ -61,7 +61,7 @@ export function DollarCardScreen() {
   if (!data.live)
     return <Waitlist data={data} onRequested={() => setData({ ...data, requested: true })} />
   if (data.stage === 'intro')
-    return <Intro sandbox={data.sandbox} onStart={() => setView('check')} />
+    return <Intro sandbox={data.sandbox} cap={data.daily_topup} onStart={() => setView('check')} />
   if (data.stage === 'checking') return <Checking />
   if (data.stage === 'fix')
     return (
@@ -134,7 +134,7 @@ function Waitlist({ data, onRequested }: { data: DollarCard; onRequested: () => 
   )
 }
 
-function Intro({ sandbox, onStart }: { sandbox: boolean; onStart: () => void }) {
+function Intro({ sandbox, cap, onStart }: { sandbox: boolean; cap: string; onStart: () => void }) {
   return (
     <div className="w-screen dc">
       <ScreenHead title="Dollar card" />
@@ -145,7 +145,7 @@ function Intro({ sandbox, onStart }: { sandbox: boolean; onStart: () => void }) 
       </div>
       <div className="dc-stickers dc-pad">
         <span>Top up from Kova</span>
-        <span data-tone="teal">Up to $50 a day</span>
+        <span data-tone="teal">Up to ${Number(BigInt(cap) / 1_000_000n)} a day</span>
         <span>Freeze in one tap</span>
         <span data-tone="coral">One ID check</span>
       </div>

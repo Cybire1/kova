@@ -134,8 +134,8 @@ const schema = z.object({
     .string()
     .regex(/^0x[0-9a-fA-F]{40}$/)
     .optional(),
-  /** The most a wallet can put on its card in a day, in base units: $50. */
-  KOVA_CARD_DAILY_TOPUP: z.string().regex(/^\d+$/).default('50000000'),
+  /** The most a wallet can put on its card in a day, in base units: $100. */
+  KOVA_CARD_DAILY_TOPUP: z.string().regex(/^\d+$/).default('100000000'),
   /**
    * Kova's owners, who are on Nuvion already as Kova's own business and so can't pass its ID check
    * again as customers: wallet addresses, comma-separated. Their cards are issued under Kova's own

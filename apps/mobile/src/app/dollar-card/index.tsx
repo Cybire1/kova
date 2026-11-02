@@ -26,7 +26,7 @@ const koviRide = require('../../../assets/art/kovi-ride.png')
 const koviPeek = require('../../../assets/art/kovi-peek.png')
 
 /**
- * The dollar card (Nuvion): a virtual USD card, topped up from the wallet, up to $50 a day.
+ * The dollar card (Nuvion): a virtual USD card, topped up from the wallet, up to a daily cap.
  *
  * Where you are decides the screen: no card yet (what it is, then the ID check), the check with the
  * issuer, a check that didn't pass, or the card itself (balance, top up, details, freeze).
@@ -86,7 +86,7 @@ export default function DollarCardScreen() {
             lead="Subscriptions, flights, apps, anything online that takes a card. Fill it from your Kova balance in a tap."
             facts={[
               ['Top up from', 'Your Kova balance'],
-              ['Up to', '$50 a day'],
+              ['Up to', `$${Number(BigInt(data.daily_topup) / 1_000_000n)} a day`],
               ['Freeze', 'One tap'],
               ['Card number', 'Shown only to you'],
             ]}
@@ -97,7 +97,7 @@ export default function DollarCardScreen() {
         </ScrollView>
       </Screen>
     )
-  if (data.stage === 'intro') return <Intro sandbox={data.sandbox} />
+  if (data.stage === 'intro') return <Intro sandbox={data.sandbox} cap={data.daily_topup} />
   if (data.stage === 'checking')
     return <Checking approved={!!data.approved} problem={problem} onRefresh={reload} />
   if (data.stage === 'fix')
@@ -105,7 +105,8 @@ export default function DollarCardScreen() {
   return <CardHome data={data} onChange={setData} onRefresh={reload} />
 }
 
-function Intro({ sandbox }: { sandbox: boolean }) {
+function Intro({ sandbox, cap }: { sandbox: boolean; cap: string }) {
+  const perDay = `$${Number(BigInt(cap) / 1_000_000n)} a day`
   return (
     <Screen bg={colors.coral} edges={['top']}>
       <Header />
@@ -120,7 +121,7 @@ function Intro({ sandbox }: { sandbox: boolean }) {
         <View style={styles.introBottom}>
           <View style={styles.stickers}>
             <Sticker label="Top up from Kova" />
-            <Sticker label="Up to $50 a day" fill={colors.tealSoft} tilt={-2} />
+            <Sticker label={`Up to ${perDay}`} fill={colors.tealSoft} tilt={-2} />
             <Sticker label="Freeze in one tap" />
             <Sticker label="One ID check" fill={colors.coralSoft} tilt={1.5} />
           </View>
