@@ -45,33 +45,41 @@ export function ShopDock({ state, navigation }: BottomTabBarProps) {
     const focused = state.index === index
     const count = name === 'orders' ? toHand.length : 0
     return (
-      <Pressable
-        key={route.key}
-        accessibilityRole="tab"
-        accessibilityLabel={count ? `${tab.label}, ${count} to hand over` : tab.label}
-        accessibilityState={{ selected: focused }}
-        onPress={() => go(name, route.key, focused)}
-        style={styles.slot}
-      >
-        <View style={[styles.tab, focused && styles.tabOn]}>
-          {tab.icon === 'shop' ? (
-            <View
-              style={[
-                styles.badgeRing,
-                { borderColor: focused ? colors.yellow : 'rgba(255,255,255,0.45)' },
-              ]}
-            >
-              <ShopBadge size={focused ? 28 : 26} />
+      <View key={route.key} style={styles.slot}>
+        <Pressable
+          accessibilityRole="tab"
+          accessibilityLabel={count ? `${tab.label}, ${count} to hand over` : tab.label}
+          accessibilityState={{ selected: focused }}
+          onPress={() => go(name, route.key, focused)}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.tab,
+            focused && styles.tabOn,
+            pressed && styles.tabPressed,
+          ]}
+        >
+          {({ pressed }) => (
+            <View>
+              {tab.icon === 'shop' ? (
+                <View
+                  style={[
+                    styles.badgeRing,
+                    { borderColor: focused ? colors.yellow : 'rgba(255,255,255,0.45)' },
+                  ]}
+                >
+                  <ShopBadge size={focused ? 28 : 26} />
+                </View>
+              ) : (
+                <NavIcon
+                  name={tab.icon}
+                  active={focused || pressed}
+                  size={26}
+                  color={focused || pressed ? colors.dark : 'rgba(255,255,255,0.66)'}
+                />
+              )}
             </View>
-          ) : (
-            <NavIcon
-              name={tab.icon}
-              active={focused}
-              size={26}
-              color={focused ? colors.dark : 'rgba(255,255,255,0.66)'}
-            />
           )}
-        </View>
+        </Pressable>
         {count ? (
           <View style={styles.count} pointerEvents="none">
             <Txt weight="bold" size={12} color={colors.ink}>
@@ -79,7 +87,7 @@ export function ShopDock({ state, navigation }: BottomTabBarProps) {
             </Txt>
           </View>
         ) : null}
-      </Pressable>
+      </View>
     )
   }
 
@@ -149,8 +157,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   slot: { flex: 1, height: H, alignItems: 'center', justifyContent: 'center' },
-  tab: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  tab: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tabOn: { backgroundColor: colors.onFill },
+  tabPressed: { backgroundColor: colors.onFill, transform: [{ scale: 0.94 }] },
   badgeRing: { borderRadius: 18, borderWidth: 2, padding: 1 },
   count: {
     position: 'absolute',

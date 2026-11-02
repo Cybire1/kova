@@ -35,44 +35,52 @@ export function Dock({ state, navigation }: BottomTabBarProps) {
     if (!tab) return null
     const focused = state.index === index
     return (
-      <Pressable
-        key={route.key}
-        accessibilityRole="tab"
-        accessibilityLabel={tab.label}
-        accessibilityState={{ selected: focused }}
-        onPress={() => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          })
-          if (!focused && !event.defaultPrevented) {
-            void Haptics.selectionAsync()
-            navigation.navigate(route.name)
-          }
-        }}
-        style={styles.slot}
-      >
-        <View style={[styles.tab, focused && styles.tabOn]}>
-          {tab.icon === 'profile' && profile ? (
-            <View
-              style={[
-                styles.face,
-                { borderColor: focused ? colors.yellow : 'rgba(255,255,255,0.45)' },
-              ]}
-            >
-              <Avatar name={profile.name} id={profile.address} size={focused ? 28 : 26} />
+      <View key={route.key} style={styles.slot}>
+        <Pressable
+          accessibilityRole="tab"
+          accessibilityLabel={tab.label}
+          accessibilityState={{ selected: focused }}
+          onPress={() => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            })
+            if (!focused && !event.defaultPrevented) {
+              void Haptics.selectionAsync()
+              navigation.navigate(route.name)
+            }
+          }}
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.tab,
+            focused && styles.tabOn,
+            pressed && styles.tabPressed,
+          ]}
+        >
+          {({ pressed }) => (
+            <View>
+              {tab.icon === 'profile' && profile ? (
+                <View
+                  style={[
+                    styles.face,
+                    { borderColor: focused ? colors.yellow : 'rgba(255,255,255,0.45)' },
+                  ]}
+                >
+                  <Avatar name={profile.name} id={profile.address} size={focused ? 28 : 26} />
+                </View>
+              ) : (
+                <NavIcon
+                  name={tab.icon}
+                  active={focused || pressed}
+                  size={26}
+                  color={focused || pressed ? colors.dark : 'rgba(255,255,255,0.66)'}
+                />
+              )}
             </View>
-          ) : (
-            <NavIcon
-              name={tab.icon}
-              active={focused}
-              size={26}
-              color={focused ? colors.dark : 'rgba(255,255,255,0.66)'}
-            />
           )}
-        </View>
-      </Pressable>
+        </Pressable>
+      </View>
     )
   })
 
@@ -131,8 +139,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   slot: { flex: 1, height: H, alignItems: 'center', justifyContent: 'center' },
-  tab: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  tab: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tabOn: { backgroundColor: colors.onFill },
+  tabPressed: { backgroundColor: colors.onFill, transform: [{ scale: 0.94 }] },
   /** You, on the Profile tab: your own face in a ring that lights up yellow when you're there. */
   face: { borderRadius: 18, borderWidth: 2, padding: 1 },
   pay: {
