@@ -1,4 +1,5 @@
-import { type ColorValue, DynamicColorIOS, Platform, Settings } from 'react-native'
+import * as SecureStore from 'expo-secure-store'
+import { Appearance, type ColorValue, DynamicColorIOS, Platform, Settings } from 'react-native'
 
 /**
  * Kova's visual system: warm paper, one deep teal-black ink, and three colours that each
@@ -104,8 +105,38 @@ const dark: Record<Name, string> = {
   iceInk: '#C4CAE6',
 }
 
-/** Where Appearance on You keeps its choice (iOS user defaults, readable before any style is made). */
+/** Where Appearance on You keeps its choice (readable before any style is made). */
 export const LOOK_KEY = 'KovaLook'
+
+/**
+ * A setting the app needs before any style exists, so read synchronously: iOS user defaults, or on
+ * Android the secure store's synchronous read (Android has no `Settings`).
+ */
+export function readStartSetting(key: string): string | null {
+  if (Platform.OS === 'ios') {
+    const value = Settings.get(key)
+    return typeof value === 'string' && value ? value : null
+  }
+  try {
+    return SecureStore.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+/** Saves (or, with null, clears) a setting `readStartSetting` reads. */
+export function writeStartSetting(key: string, value: string | null) {
+  if (Platform.OS === 'ios') {
+    Settings.set({ [key]: value ?? '' })
+    return
+  }
+  try {
+    if (value) SecureStore.setItem(key, value)
+    else void SecureStore.deleteItemAsync(key)
+  } catch {
+    // Not kept: the app starts in the phone's look, which is the default anyway.
+  }
+}
 
 /**
  * Light or dark, if chosen on You; null follows the phone. Read once, as the app starts: a choice
@@ -114,20 +145,25 @@ export const LOOK_KEY = 'KovaLook'
  * under a chosen look would leave some edges in the other one). Changing it reloads the app.
  */
 export const chosenLook: 'light' | 'dark' | null = (() => {
-  if (Platform.OS !== 'ios') return null
-  const saved = Settings.get(LOOK_KEY)
+  const saved = readStartSetting(LOOK_KEY)
   return saved === 'light' || saved === 'dark' ? saved : null
 })()
 
-/** A colour in each look. Following the phone, it's an iOS dynamic colour, resolved against each
+/**
+ * The look Android draws this run in. Android has no dynamic colours, so following the phone means
+ * taking its setting as the app starts, and reloading when it changes (lib/prefs.tsx).
+ */
+export const androidLook: 'light' | 'dark' =
+  chosenLook ?? (Appearance.getColorScheme() === 'dark' ? 'dark' : 'light')
+
+/** A colour in each look. Following the phone on iOS, it's a dynamic colour, resolved against each
  * screen's own appearance, so module-level styles follow light and dark with no re-render. Under
- * a chosen look it's that look's plain colour; on Android, the light one. Also for the few one-off
- * colours outside the palette. */
+ * a chosen look it's that look's plain colour; on Android, the look the app started in. Also for
+ * the few one-off colours outside the palette. */
 export function pair(lightValue: string, darkValue: string): ColorValue {
   if (chosenLook) return chosenLook === 'dark' ? darkValue : lightValue
-  return Platform.OS === 'ios'
-    ? DynamicColorIOS({ light: lightValue, dark: darkValue })
-    : lightValue
+  if (Platform.OS === 'ios') return DynamicColorIOS({ light: lightValue, dark: darkValue })
+  return androidLook === 'dark' ? darkValue : lightValue
 }
 
 export const colors = Object.fromEntries(

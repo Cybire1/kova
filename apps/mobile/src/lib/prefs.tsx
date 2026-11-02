@@ -1,8 +1,8 @@
 import { reloadAppAsync } from 'expo'
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react'
-import { Appearance, Platform, Settings } from 'react-native'
+import { Appearance, Platform } from 'react-native'
 import { load, save } from './storage'
-import { chosenLook, LOOK_KEY } from './theme'
+import { androidLook, chosenLook, LOOK_KEY, writeStartSetting } from './theme'
 
 /**
  * Settings that are not money: which side of the counter this phone is on, whether the balance
@@ -37,6 +37,13 @@ const startLook: Look = chosenLook ?? 'system'
 
 // Native parts (the keyboard, alerts, the status bar, sheets' chrome) follow the same look.
 Appearance.setColorScheme(chosenLook)
+
+// Android draws every colour once, in the look the phone had as the app started: when the phone
+// switches while Kova follows it, redraw in the new one (as Android itself does for most apps).
+if (Platform.OS === 'android' && !chosenLook)
+  Appearance.addChangeListener(({ colorScheme }) => {
+    if (colorScheme && colorScheme !== androidLook) void reloadAppAsync('Appearance changed')
+  })
 
 const PrefsContext = createContext<Prefs | null>(null)
 
@@ -79,9 +86,10 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
         setHideBalance: (hideBalance) => update({ hideBalance }),
         look: startLook,
         setLook: (look, from) => {
-          if (look === startLook || Platform.OS !== 'ios') return
+          if (look === startLook) return
           // Every style is made once, from the look the app started in: redraw it all in the new one.
-          Settings.set({ [LOOK_KEY]: look, ...(from ? { [AFTER_RELOAD_KEY]: from } : {}) })
+          writeStartSetting(LOOK_KEY, look === 'system' ? null : look)
+          if (from) writeStartSetting(AFTER_RELOAD_KEY, from)
           void reloadAppAsync('Appearance changed')
         },
       }}

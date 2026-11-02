@@ -21,7 +21,7 @@ import { useLiveRates } from '@/lib/rates'
 import { StallProvider } from '@/lib/stall'
 import { TakingsProvider } from '@/lib/takings'
 import { TerminalProvider } from '@/lib/terminal'
-import { colors, palette } from '@/lib/theme'
+import { colors, palette, readStartSetting, writeStartSetting } from '@/lib/theme'
 import { takeTokenArrival, useTokenWatch, useWalletTokens } from '@/lib/tokens'
 import { TravelProvider } from '@/lib/travel'
 import { useWallet, WalletProvider } from '@/lib/wallet'
@@ -58,12 +58,12 @@ function AfterReload() {
   const { status } = useWallet()
   const { ready, mode } = usePrefs()
   useEffect(() => {
-    if (resumed || Platform.OS !== 'ios' || !navigation?.key || !ready) return
+    if (resumed || !navigation?.key || !ready) return
     if (status === 'loading') return
     resumed = true
-    const to = Settings.get(AFTER_RELOAD_KEY)
-    if (typeof to !== 'string' || !to) return
-    Settings.set({ [AFTER_RELOAD_KEY]: '' })
+    const to = readStartSetting(AFTER_RELOAD_KEY)
+    if (!to) return
+    writeStartSetting(AFTER_RELOAD_KEY, null)
     if (status !== 'none' && mode === 'pay') setTimeout(() => router.navigate(to as never), 300)
   }, [navigation?.key, status, ready, mode])
   return null
