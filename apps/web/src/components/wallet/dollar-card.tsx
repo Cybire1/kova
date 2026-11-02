@@ -64,7 +64,13 @@ export function DollarCardScreen() {
     return <Intro sandbox={data.sandbox} onStart={() => setView('check')} />
   if (data.stage === 'checking') return <Checking />
   if (data.stage === 'fix')
-    return <TryAgain reason={data.reason ?? null} onRetry={() => setView('check')} />
+    return (
+      <TryAgain
+        reason={data.reason ?? null}
+        unfinished={!!data.unfinished}
+        onRetry={() => setView('check')}
+      />
+    )
   return (
     <>
       <CardHome
@@ -175,7 +181,7 @@ function Checking() {
         <p className="w-lead">Your card appears here the moment Nuvion is done.</p>
         <ol className="dc-steps">
           <li data-state="done">Details sent</li>
-          <li data-state="done">ID photo sent</li>
+          <li data-state="done">ID and proof of address sent</li>
           <li data-state="now">Nuvion checks it</li>
           <li>Your card is made</li>
         </ol>
@@ -185,20 +191,28 @@ function Checking() {
   )
 }
 
-function TryAgain({ reason, onRetry }: { reason: string | null; onRetry: () => void }) {
+/** A check to send again: one that stopped before Nuvion could review it, or one it refused. */
+function TryAgain({
+  reason,
+  unfinished,
+  onRetry,
+}: {
+  reason: string | null
+  unfinished: boolean
+  onRetry: () => void
+}) {
   return (
     <div className="w-screen dc">
       <ScreenHead title="Dollar card" />
       <div className="dc-pad">
-        <h1 className="dc-title">Your ID didn’t pass</h1>
+        <h1 className="dc-title">{unfinished ? 'Finish your ID check' : 'Your ID didn’t pass'}</h1>
         <p className="w-lead">
-          {reason
-            ? `Nuvion said: ${reason}`
-            : 'Nuvion couldn’t confirm your details from that photo.'}{' '}
-          Check that your details match your ID exactly, then send a clearer photo.
+          {unfinished
+            ? `${reason ? `Nuvion said: ${reason} ` : ''}Nuvion needs a photo of your ID and a bill or bank statement with your address before it can check you. It takes a minute.`
+            : `${reason ? `Nuvion said: ${reason}` : 'Nuvion couldn’t confirm your details from that photo.'} Check that your details match your ID exactly, then send a clearer photo.`}
         </p>
         <button type="button" className="pill pill-block" data-tone="ink" onClick={onRetry}>
-          <span className="pill-label">Try again</span>
+          <span className="pill-label">{unfinished ? 'Finish my check' : 'Try again'}</span>
           <span className="pill-cap">
             <Icon name="arrow" size={18} />
           </span>
@@ -222,9 +236,31 @@ const IDS: Array<[CardCheck['document']['type'], string]> = [
   ['drivers_license', 'Licence'],
 ]
 
+const PROOFS: Array<[CardCheck['address_proof']['type'], string]> = [
+  ['utility_bill', 'Utility bill'],
+  ['bank_statement', 'Bank statement'],
+]
+
+/** The national number Nuvion needs from some countries: a NIN or BVN in Nigeria, an SSN in the US. */
+const NUMBERS = {
+  nin: {
+    label: 'NIN',
+    digits: 11,
+    hint: 'On your NIN slip and newer passports. Or dial *346# from the phone it’s linked to.',
+  },
+  bvn: { label: 'BVN', digits: 11, hint: 'Dial *565*0# from the phone number your bank has.' },
+  ssn: { label: 'Social Security number', digits: 9, hint: 'The 9 digits on your card.' },
+} as const
+
+type Upload = { url: string; base64: string; mime: CardCheck['document']['mime'] }
+
+/**
+ * The ID check in three steps: your details exactly as on your ID, a photo of it, then a bill or
+ * bank statement showing your address (Nuvion needs both documents before it will check anyone).
+ */
 function Check({ onBack, onSent }: { onBack: () => void; onSent: (d: DollarCard) => void }) {
   const { profile, signMessage } = useWallet()
-  const [step, setStep] = useState<'details' | 'photo'>('details')
+  const [step, setStep] = useState<'details' | 'photo' | 'address'>('details')
   const [f, setF] = useState({
     first: '',
     last: '',
@@ -239,12 +275,12 @@ function Check({ onBack, onSent }: { onBack: () => void; onSent: (d: DollarCard)
     postal: '',
     idType: 'international_passport' as CardCheck['document']['type'],
     idNumber: '',
+    numberType: 'nin' as 'nin' | 'bvn',
+    number: '',
+    proofType: 'utility_bill' as CardCheck['address_proof']['type'],
   })
-  const [photo, setPhoto] = useState<{
-    url: string
-    base64: string
-    mime: CardCheck['document']['mime']
-  } | null>(null)
+  const [photo, setPhoto] = useState<Upload | null>(null)
+  const [proof, setProof] = useState<Upload | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) =>
@@ -255,6 +291,8 @@ function Check({ onBack, onSent }: { onBack: () => void; onSent: (d: DollarCard)
     line.setUTCFullYear(line.getUTCFullYear() - 18)
     return !Number.isNaN(d.getTime()) && d <= line && d.getUTCFullYear() >= 1900
   })()
+  const kind = f.country === 'NG' ? f.numberType : f.country === 'US' ? 'ssn' : null
+  const digits = f.number.replace(/\D/g, '')
   const ready =
     f.first.trim() &&
     f.last.trim() &&
@@ -266,13 +304,14 @@ function Check({ onBack, onSent }: { onBack: () => void; onSent: (d: DollarCard)
     f.city.trim().length >= 2 &&
     f.state.trim().length >= 2 &&
     f.postal.trim().length >= 2 &&
-    f.idNumber.trim().length >= 4
+    f.idNumber.trim().length >= 4 &&
+    (!kind || digits.length === NUMBERS[kind].digits)
   const idName = IDS.find(([t]) => t === f.idType)?.[1] ?? 'ID'
 
-  const choose = async (file: File | undefined) => {
+  const read = (keep: (u: Upload) => void) => async (file: File | undefined) => {
     if (!file) return
     setError(null)
-    if (file.size > 6_000_000) return setError('That photo is over 6 MB. Choose a smaller one.')
+    if (file.size > 6_000_000) return setError('That file is over 6 MB. Choose a smaller one.')
     const mime = file.type as CardCheck['document']['mime']
     if (!['image/jpeg', 'image/png', 'application/pdf'].includes(mime))
       return setError('Choose a JPEG, PNG or PDF.')
@@ -282,11 +321,11 @@ function Check({ onBack, onSent }: { onBack: () => void; onSent: (d: DollarCard)
       reader.onerror = () => reject(new Error('That file couldn’t be read.'))
       reader.readAsDataURL(file)
     })
-    setPhoto({ url: URL.createObjectURL(file), base64, mime })
+    keep({ url: URL.createObjectURL(file), base64, mime })
   }
 
   const send = async () => {
-    if (!profile || !photo || !f.gender) return
+    if (!profile || !photo || !proof || !f.gender) return
     setBusy(true)
     setError(null)
     try {
@@ -312,6 +351,8 @@ function Check({ onBack, onSent }: { onBack: () => void; onSent: (d: DollarCard)
             file: photo.base64,
             mime: photo.mime,
           },
+          ...(kind ? { id_number: { type: kind, value: digits } } : {}),
+          address_proof: { type: f.proofType, file: proof.base64, mime: proof.mime },
         }),
       )
     } catch (e) {
@@ -323,51 +364,66 @@ function Check({ onBack, onSent }: { onBack: () => void; onSent: (d: DollarCard)
 
   if (step === 'photo')
     return (
-      <div className="w-screen dc dc-dark">
-        <ScreenHead title="ID check" onBack={() => setStep('details')} />
-        <div className="dc-pad">
-          <Progress step={2} label={`Step 2 of 2 · Photo of your ${idName.toLowerCase()}`} />
-          <h1 className="dc-title dc-center">Fit your {idName.toLowerCase()} in the frame</h1>
-          <label className="dc-frame">
-            {photo ? (
-              photo.mime === 'application/pdf' ? (
-                <span className="dc-frame-empty">PDF chosen</span>
-              ) : (
-                <img src={photo.url} alt={`Your ${idName.toLowerCase()}`} />
-              )
-            ) : (
-              <span className="dc-frame-empty">
-                <Icon name="camera" size={30} />
-                Choose a photo
-              </span>
-            )}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,application/pdf"
-              capture="environment"
-              onChange={(e) => void choose(e.target.files?.[0])}
-            />
-          </label>
-          <ul className="dc-tips">
-            <li>No glare</li>
-            <li>All four corners</li>
-            <li>Words easy to read</li>
-          </ul>
-          {error ? <p className="form-error">{error}</p> : null}
-          <button
-            type="button"
-            className="pill pill-block"
-            data-tone="coral"
-            disabled={!photo || busy}
-            onClick={() => void send()}
-          >
-            <span className="pill-label">{busy ? 'Sending to Nuvion…' : 'Send for checking'}</span>
-            <span className="pill-cap">
-              <Icon name="check" size={18} />
-            </span>
-          </button>
-        </div>
-      </div>
+      <PhotoStep
+        step={2}
+        label={`Step 2 of 3 · Photo of your ${idName.toLowerCase()}`}
+        title={`Fit your ${idName.toLowerCase()} in the frame`}
+        camera
+        upload={photo}
+        tips={[
+          ['glare', 'No glare'],
+          ['corners', 'All four corners'],
+          ['type', 'Easy to read'],
+        ]}
+        error={error}
+        onBack={() => (setError(null), setStep('details'))}
+        onFile={read(setPhoto)}
+        next={{
+          label: 'Continue',
+          icon: 'arrow',
+          onClick: () => (setError(null), setStep('address')),
+        }}
+      />
+    )
+
+  if (step === 'address')
+    return (
+      <PhotoStep
+        step={3}
+        label="Step 3 of 3 · Proof of address"
+        title="A bill or statement with your address"
+        lead={`From the last 3 months, with ${`${f.first.trim()} ${f.last.trim()}`.trim() || 'your name'} and ${f.line1.trim() || 'your address'} on it. A photo or a PDF.`}
+        choices={
+          <div className="dc-choices">
+            {PROOFS.map(([type, name]) => (
+              <button
+                key={type}
+                type="button"
+                aria-pressed={f.proofType === type}
+                onClick={() => setF({ ...f, proofType: type })}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        }
+        tall
+        upload={proof}
+        tips={[
+          ['user', 'Your name'],
+          ['home', 'This address'],
+          ['calendar', 'Last 3 months'],
+        ]}
+        error={error}
+        onBack={() => (setError(null), setStep('photo'))}
+        onFile={read(setProof)}
+        next={{
+          label: busy ? 'Sending to Nuvion…' : 'Send for checking',
+          icon: 'check',
+          busy,
+          onClick: () => void send(),
+        }}
+      />
     )
 
   return (
@@ -380,7 +436,7 @@ function Check({ onBack, onSent }: { onBack: () => void; onSent: (d: DollarCard)
           if (ready) setStep('photo')
         }}
       >
-        <Progress step={1} label="Step 1 of 2 · Your details" />
+        <Progress step={1} label="Step 1 of 3 · Your details" />
         <h1 className="dc-title">Exactly as it’s written on your ID</h1>
         <div className="dc-pair">
           <Field
@@ -487,6 +543,36 @@ function Check({ onBack, onSent }: { onBack: () => void; onSent: (d: DollarCard)
           </div>
         </fieldset>
         <Field label={`${idName} number`} value={f.idNumber} onChange={set('idNumber')} />
+        {f.country === 'NG' ? (
+          <fieldset className="dc-fieldset">
+            <legend>NIN or BVN</legend>
+            <div className="dc-choices">
+              {(['nin', 'bvn'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  aria-pressed={f.numberType === t}
+                  onClick={() => setF({ ...f, numberType: t })}
+                >
+                  {NUMBERS[t].label}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
+        {kind ? (
+          <div className="dc-number">
+            <Field
+              label={NUMBERS[kind].label}
+              value={f.number}
+              onChange={(e) => setF({ ...f, number: e.target.value.replace(/[^\d -]/g, '') })}
+              placeholder={`${NUMBERS[kind].digits} digits`}
+              inputMode="numeric"
+              autoComplete="off"
+            />
+            <p className="dc-hint">{NUMBERS[kind].hint}</p>
+          </div>
+        ) : null}
         <p className="dc-note">
           <Icon name="lock" size={15} />
           Sent straight to Nuvion, who issue the card. Kova keeps only whether you passed.
@@ -502,13 +588,119 @@ function Check({ onBack, onSent }: { onBack: () => void; onSent: (d: DollarCard)
   )
 }
 
-function Progress({ step, label }: { step: 1 | 2; label: string }) {
+/**
+ * A step that takes a photo (or, for the bill, a PDF) on the dark ground: the frame, three tips,
+ * what went wrong, and the way on once there's something chosen.
+ */
+function PhotoStep({
+  step,
+  label,
+  title,
+  lead,
+  choices,
+  tall,
+  camera,
+  upload,
+  tips,
+  error,
+  onBack,
+  onFile,
+  next,
+}: {
+  step: 2 | 3
+  label: string
+  title: string
+  lead?: string
+  choices?: React.ReactNode
+  tall?: boolean
+  /** Open the camera on a phone; without it, a file can be chosen too. */
+  camera?: boolean
+  upload: Upload | null
+  tips: Array<[React.ComponentProps<typeof Icon>['name'], string]>
+  error: string | null
+  onBack: () => void
+  onFile: (file: File | undefined) => Promise<void>
+  next: {
+    label: string
+    icon: React.ComponentProps<typeof Icon>['name']
+    busy?: boolean
+    onClick: () => void
+  }
+}) {
   return (
-    <div className="dc-progress" data-step={step}>
+    <div className="w-screen dc dc-dark">
+      <ScreenHead title="ID check" onBack={onBack} />
+      <div className="dc-pad dc-shoot">
+        <Progress step={step} label={label} />
+        <h1 className="dc-title dc-center">{title}</h1>
+        {lead ? <p className="dc-lead">{lead}</p> : null}
+        {choices}
+        <label className="dc-frame" data-tall={tall || undefined}>
+          {upload ? (
+            upload.mime === 'application/pdf' ? (
+              <span className="dc-frame-empty">
+                <Icon name="check" size={28} />
+                PDF chosen
+              </span>
+            ) : (
+              <img src={upload.url} alt="What you chose" />
+            )
+          ) : (
+            <span className="dc-frame-empty">
+              <Icon name="camera" size={28} />
+              {camera ? 'Take or choose a photo' : 'Choose a photo or PDF'}
+            </span>
+          )}
+          <i className="dc-corner" data-at="tl" />
+          <i className="dc-corner" data-at="tr" />
+          <i className="dc-corner" data-at="bl" />
+          <i className="dc-corner" data-at="br" />
+          <input
+            type="file"
+            accept="image/jpeg,image/png,application/pdf"
+            capture={camera ? 'environment' : undefined}
+            onChange={(e) => void onFile(e.target.files?.[0])}
+          />
+        </label>
+        <ul className="dc-tips">
+          {tips.map(([icon, text]) => (
+            <li key={text}>
+              <Icon name={icon} size={20} />
+              {text}
+            </li>
+          ))}
+        </ul>
+        {error ? (
+          <p className="dc-problem" role="alert">
+            <Icon name="info" size={18} />
+            {error}
+          </p>
+        ) : null}
+        <button
+          type="button"
+          className="pill pill-block"
+          data-tone="cream"
+          disabled={!upload || next.busy}
+          onClick={next.onClick}
+        >
+          <span className="pill-label">{next.label}</span>
+          <span className="pill-cap">
+            <Icon name={next.icon} size={18} />
+          </span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function Progress({ step, label }: { step: 1 | 2 | 3; label: string }) {
+  return (
+    <div className="dc-progress">
       <span>{label}</span>
       <div>
-        <i />
-        <i />
+        {[1, 2, 3].map((n) => (
+          <i key={n} data-on={n <= step || undefined} />
+        ))}
       </div>
     </div>
   )

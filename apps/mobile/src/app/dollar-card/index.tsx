@@ -71,7 +71,8 @@ export default function DollarCardScreen() {
     )
   if (data.stage === 'intro') return <Intro sandbox={data.sandbox} />
   if (data.stage === 'checking') return <Checking />
-  if (data.stage === 'fix') return <TryAgain reason={data.reason ?? null} />
+  if (data.stage === 'fix')
+    return <TryAgain reason={data.reason ?? null} unfinished={!!data.unfinished} />
   return <CardHome data={data} onChange={setData} onRefresh={reload} />
 }
 
@@ -141,7 +142,7 @@ function Checking() {
         </Txt>
         <View style={styles.section}>
           <Step done label="Details sent" />
-          <Step done label="ID photo sent" />
+          <Step done label="ID and proof of address sent" />
           <Step label="Nuvion checks it" now />
           <Step label="Your card is made" />
         </View>
@@ -169,22 +170,25 @@ function Step({ label, done, now }: { label: string; done?: boolean; now?: boole
   )
 }
 
-function TryAgain({ reason }: { reason: string | null }) {
+/** A check to send again: one that stopped before Nuvion could review it, or one it refused. */
+function TryAgain({ reason, unfinished }: { reason: string | null; unfinished: boolean }) {
   return (
     <Screen>
       <Header />
       <ScrollView contentContainerStyle={styles.body}>
         <Txt weight="bold" size={32} style={styles.title}>
-          Your ID didn’t pass
+          {unfinished ? 'Finish your ID check' : 'Your ID didn’t pass'}
         </Txt>
         <Txt size={15} color={colors.muted} style={styles.lead}>
-          {reason
-            ? `Nuvion said: ${reason}`
-            : 'Nuvion couldn’t confirm your details from that photo.'}{' '}
-          Check that your details match your ID exactly, then send a clearer photo.
+          {unfinished
+            ? `${reason ? `Nuvion said: ${reason} ` : ''}Nuvion needs a photo of your ID and a bill or bank statement with your address before it can check you. It takes a minute.`
+            : `${reason ? `Nuvion said: ${reason}` : 'Nuvion couldn’t confirm your details from that photo.'} Check that your details match your ID exactly, then send a clearer photo.`}
         </Txt>
         <View style={{ marginTop: 28 }}>
-          <PillButton label="Try again" onPress={() => router.push('/dollar-card/check')} />
+          <PillButton
+            label={unfinished ? 'Finish my check' : 'Try again'}
+            onPress={() => router.push('/dollar-card/check')}
+          />
         </View>
       </ScrollView>
     </Screen>

@@ -6,6 +6,7 @@ import { KovaError } from '../errors.js'
 import { clientIp, limit } from '../limits.js'
 import {
   dollarCardFor,
+  idNumberFor,
   revealDollarCard,
   setDollarCard,
   startCheck,
@@ -78,6 +79,18 @@ const checkBody = z.object({
     mime: z.enum(['image/jpeg', 'image/png', 'application/pdf']),
     file_back: z.string().min(100).max(8_000_000).optional(),
   }),
+  /** NIN or BVN for Nigerians, SSN for Americans (see idNumberFor). */
+  id_number: z
+    .object({ type: z.enum(['nin', 'bvn', 'ssn']), value: z.string().trim().max(20) })
+    .optional(),
+  /** A bill or bank statement showing the home address. Optional only so older apps get a clear answer. */
+  address_proof: z
+    .object({
+      type: z.enum(['utility_bill', 'bank_statement']),
+      file: z.string().min(100).max(8_000_000),
+      mime: z.enum(['image/jpeg', 'image/png', 'application/pdf']),
+    })
+    .optional(),
   ...signed,
 })
 const topUpBody = z.object({
@@ -166,6 +179,11 @@ export const moneyRoutes = new Hono()
       3_600_000,
       'That’s a lot of ID checks from here. Try again later.',
     )
+    if (!b.address_proof)
+      throw new KovaError(
+        'invalid_request',
+        'Nuvion also needs a proof of address now: a bill or bank statement. Update Kova to add it.',
+      )
     return c.json(
       await startCheck(
         wallet,
@@ -185,8 +203,17 @@ export const moneyRoutes = new Hono()
             country: b.address.country,
           },
           document: { type: b.document.type, number: b.document.number },
+          idNumber: idNumberFor(b.nationality, b.address.country, b.id_number),
+          addressProof: b.address_proof.type,
         },
-        { base64: b.document.file, mime: b.document.mime, backBase64: b.document.file_back },
+        {
+          identity: {
+            base64: b.document.file,
+            mime: b.document.mime,
+            backBase64: b.document.file_back,
+          },
+          address: { base64: b.address_proof.file, mime: b.address_proof.mime },
+        },
       ),
     )
   })

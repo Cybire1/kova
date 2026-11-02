@@ -218,18 +218,31 @@
 
 .dc-progress div {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
 .dc-progress i {
   height: 6px;
   border-radius: 3px;
+  background: var(--sunken);
+}
+
+.dc-progress i[data-on] {
   background: var(--ink);
 }
 
-.dc-progress[data-step="1"] i:last-child {
-  background: var(--sunken);
+.dc-number {
+  display: grid;
+  gap: 6px;
+}
+
+.dc-hint {
+  margin: 0;
+  padding: 0 2px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
 }
 
 .dc-pair {
@@ -327,12 +340,39 @@
   color: var(--on-ink);
 }
 
+/* The camera steps are always on the dark ground, so their tints are fixed rather than themed. */
 .dc-dark .dc-progress i {
-  background: var(--teal);
+  background: rgba(255, 255, 255, 0.16);
 }
 
-.dc-dark .dc-progress[data-step="2"] i:last-child {
-  background: var(--on-fill);
+.dc-dark .dc-progress i[data-on] {
+  background: #fff;
+}
+
+.dc-lead {
+  margin: 8px 0 0;
+  padding: 0 8px;
+  text-align: center;
+  color: var(--on-ink);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.dc-shoot .dc-choices {
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.dc-dark .dc-choices button {
+  background: transparent;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.dc-dark .dc-choices button[aria-pressed="true"] {
+  background: #f1efea;
+  color: #0b1a1d;
+  border-color: #f1efea;
 }
 
 .dc-frame {
@@ -342,10 +382,50 @@
   height: 236px;
   margin-top: 22px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 3px dashed var(--coral-soft);
+  background: rgba(255, 255, 255, 0.07);
   overflow: hidden;
   cursor: pointer;
+}
+
+.dc-frame[data-tall] {
+  height: 250px;
+}
+
+.dc-corner {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 0 solid rgba(255, 255, 255, 0.92);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.dc-corner[data-at="tl"] {
+  left: 12px;
+  top: 12px;
+  border-left-width: 3px;
+  border-top-width: 3px;
+}
+
+.dc-corner[data-at="tr"] {
+  right: 12px;
+  top: 12px;
+  border-right-width: 3px;
+  border-top-width: 3px;
+}
+
+.dc-corner[data-at="bl"] {
+  left: 12px;
+  bottom: 12px;
+  border-left-width: 3px;
+  border-bottom-width: 3px;
+}
+
+.dc-corner[data-at="br"] {
+  right: 12px;
+  bottom: 12px;
+  border-right-width: 3px;
+  border-bottom-width: 3px;
 }
 
 .dc-frame input {
@@ -378,12 +458,54 @@
 }
 
 .dc-tips li {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
   padding: 14px 6px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--on-ink);
   text-align: center;
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+.dc-tips svg {
+  color: #fff;
+}
+
+.dc-problem {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 0 16px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.dc-problem svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.dc-dark .pill[data-tone="cream"] {
+  --bg: #f1efea;
+  --fg: #0b1a1d;
+  --cap: #0b1a1d;
+  --cap-fg: #f1efea;
+  font-weight: 700;
+}
+
+.dc-dark .pill[data-tone="cream"]:disabled {
+  --bg: rgba(255, 255, 255, 0.14);
+  --fg: rgba(255, 255, 255, 0.5);
+  --cap: rgba(255, 255, 255, 0.1);
+  --cap-fg: rgba(255, 255, 255, 0.5);
 }
 
 /* Card home */

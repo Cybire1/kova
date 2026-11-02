@@ -25,18 +25,19 @@ import {
   nuvionSandbox,
   openUsdAccount,
   type Person,
+  personContact,
   rootEntity,
   setCardFrozen,
   submitForReview,
   updateIndividual,
-  uploadIdentity,
+  uploadDocument,
 } from './nuvion.js'
 
 /**
  * The dollar card: a virtual USD card from Nuvion, topped up from the wallet.
  *
- * 1. The holder passes Nuvion's ID check once (their details and a photo of their ID go straight
- *    to Nuvion; Kova keeps the ids and whether they passed).
+ * 1. The holder passes Nuvion's ID check once (their details, a photo of their ID and a proof of
+ *    address go straight to Nuvion; Kova keeps the ids and whether they passed).
  * 2. Once they pass, Kova opens their card's USD account, makes Kova's pot able to pay it, covers
  *    the card fee from the pot and issues the card.
  * 3. A top-up is the wallet's signed transfer of AUSD to Kova's treasury on Monad, relayed like any
@@ -75,7 +76,38 @@ type Holder = typeof schema.cardHolders.$inferSelect
 type Card = typeof schema.dollarCards.$inferSelect
 
 const PASSED = 'approved'
-const CHECKING = ['incomplete', 'pending']
+/** Sent to Nuvion and being reviewed. */
+const REVIEWING = 'pending'
+/** Made at Nuvion but never sent for review: a check that stopped part way, to finish. */
+const UNSENT = 'incomplete'
+
+/**
+ * The national number Nuvion needs, by where the holder is from or lives: a NIN or BVN (11 digits)
+ * in Nigeria, a Social Security number in the US, nothing elsewhere.
+ */
+export function idNumberFor(
+  nationality: string,
+  residence: string,
+  given: { type: 'nin' | 'bvn' | 'ssn'; value: string } | undefined,
+): Person['idNumber'] {
+  const from = [nationality, residence]
+  if (from.includes('NG')) {
+    const value = given?.value.replace(/\s/g, '') ?? ''
+    if ((given?.type !== 'nin' && given?.type !== 'bvn') || !/^\d{11}$/.test(value))
+      throw new KovaError(
+        'invalid_request',
+        'Nuvion needs your NIN or BVN (11 digits) to check a Nigerian ID.',
+      )
+    return { type: given.type, value }
+  }
+  if (from.includes('US')) {
+    const value = given?.value.replace(/[\s-]/g, '') ?? ''
+    if (given?.type !== 'ssn' || !/^\d{9}$/.test(value))
+      throw new KovaError('invalid_request', 'Nuvion needs your Social Security number (9 digits).')
+    return { type: 'ssn', value }
+  }
+  return undefined
+}
 
 const isOwner = (wallet: Address) =>
   (config.KOVA_CARD_OWNER_WALLETS ?? '')
@@ -151,14 +183,16 @@ async function toppedUpToday(wallet: Address): Promise<bigint> {
 /** Refreshes a holder still being checked, and issues their card the first time they pass. */
 async function advance(holder: Holder): Promise<Holder> {
   let row = holder
-  if (CHECKING.includes(row.status)) {
+  if (row.status === REVIEWING || row.status === UNSENT) {
     const now = await entityStatus(row.entityId).catch(() => null)
-    if (now && (now.status !== row.status || now.reason !== row.reason)) {
+    // Nuvion's word wins, but a check it never received keeps Kova's note of why it stopped.
+    const reason = now && now.status === row.status ? (now.reason ?? row.reason) : now?.reason
+    if (now && (now.status !== row.status || reason !== row.reason)) {
       row =
         (
           await db
             .update(schema.cardHolders)
-            .set({ status: now.status, reason: now.reason, updatedAt: new Date() })
+            .set({ status: now.status, reason: reason ?? null, updatedAt: new Date() })
             .where(eq(schema.cardHolders.id, row.id))
             .returning()
         )[0] ?? row
@@ -210,6 +244,18 @@ async function issue(holder: Holder): Promise<Holder> {
             ...(counterpartyId ? { counterpartyId } : {}),
             updatedAt: new Date(),
           })
+          .where(eq(schema.cardHolders.id, row.id))
+          .returning()
+      )[0] ?? row
+  }
+  if (!row.counterpartyId && !row.paymentDetailId) {
+    // A check that reached Nuvion before Kova's payee was made: make it from what Nuvion holds.
+    const contact = await personContact(row.entityId)
+    row =
+      (
+        await db
+          .update(schema.cardHolders)
+          .set({ counterpartyId: await createPayee({ ...row, ...contact }), updatedAt: new Date() })
           .where(eq(schema.cardHolders.id, row.id))
           .returning()
       )[0] ?? row
@@ -318,9 +364,11 @@ export async function dollarCardFor(wallet: Address) {
       requested: false,
       stage: !holder
         ? ('intro' as const)
-        : holder.status === PASSED || CHECKING.includes(holder.status)
+        : holder.status === PASSED || holder.status === REVIEWING
           ? ('checking' as const)
           : ('fix' as const),
+      // Never reviewed (it stopped before Nuvion had everything), as against reviewed and refused.
+      unfinished: holder?.status === UNSENT,
       reason: holder?.reason ?? null,
     }
 
@@ -377,23 +425,36 @@ export async function dollarCardFor(wallet: Address) {
   }
 }
 
-/** Sends the holder's details and ID photo to Nuvion's check, or sends them again after a refusal. */
+/** A file for Nuvion, base64 without the data: prefix. */
+type Upload = { base64: string; mime: string; backBase64?: string }
+
+/**
+ * Sends the holder's details, ID and proof of address to Nuvion's check. Safe to send again: a
+ * check that stopped part way carries on where Nuvion has it, and one Nuvion is already reviewing
+ * just answers where it is. A refusal is kept as the reason, so the card screen says what to fix.
+ */
 export async function startCheck(
   wallet: Address,
   person: Person,
-  document: { base64: string; mime: string; backBase64?: string },
+  files: { identity: Upload; address: Upload },
 ) {
   if (!dollarCardLive())
     throw new KovaError('conflict', 'The dollar card isn’t switched on for this server yet.')
-  const existing = await holderOf(wallet)
-  if (existing && (existing.status === PASSED || CHECKING.includes(existing.status)))
-    throw new KovaError('conflict', 'Your ID is already with the card issuer.')
+  const mine = and(
+    eq(schema.cardHolders.wallet, wallet.toLowerCase()),
+    eq(schema.cardHolders.network, net),
+  )
+  let existing = await holderOf(wallet)
+  // Where Nuvion has it now: an earlier try may have got further than Kova recorded.
+  if (existing) existing = await advance(existing).catch(() => existing)
+  // Already with Nuvion: nothing to send again (a payee it lacks is made when the card is issued).
+  if (existing && (existing.status === PASSED || existing.status === REVIEWING))
+    return dollarCardFor(wallet)
   try {
     let entityId: string
     let personId: string | null
     if (existing) {
-      entityId = existing.entityId
-      personId = existing.personId
+      ;({ entityId, personId } = existing)
       await updateIndividual(entityId, person)
     } else {
       ;({ entityId, personId } = await createIndividual(person))
@@ -403,21 +464,22 @@ export async function startCheck(
         network: net,
         entityId,
         personId,
-        status: 'incomplete',
+        status: UNSENT,
         firstName: person.firstName,
         lastName: person.lastName,
         email: person.email,
         phone: person.phone,
       })
     }
-    await uploadIdentity(entityId, personId, document)
+    await uploadDocument(entityId, personId, 'identity', files.identity)
+    await uploadDocument(entityId, personId, 'proof_of_address', files.address)
     await submitForReview(entityId)
     // Kova's payee for this holder, made now while their address is in hand (it isn't kept).
     const counterpartyId = existing?.counterpartyId ?? (await createPayee(person))
     await db
       .update(schema.cardHolders)
       .set({
-        status: 'pending',
+        status: REVIEWING,
         reason: null,
         counterpartyId,
         firstName: person.firstName,
@@ -426,16 +488,15 @@ export async function startCheck(
         phone: person.phone,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(schema.cardHolders.wallet, wallet.toLowerCase()),
-          eq(schema.cardHolders.network, net),
-        ),
-      )
+      .where(mine)
   } catch (e) {
-    if (e instanceof NuvionRefused)
-      throw new KovaError('invalid_request', `The card issuer couldn’t take that: ${e.message}`)
-    throw e
+    if (!(e instanceof NuvionRefused)) throw e
+    console.error('[dollar-card] check refused:', e.status, e.code ?? '', e.message)
+    await db
+      .update(schema.cardHolders)
+      .set({ reason: e.message, updatedAt: new Date() })
+      .where(mine)
+    throw new KovaError('invalid_request', `The card issuer couldn’t take that: ${e.message}`)
   }
   return dollarCardFor(wallet)
 }

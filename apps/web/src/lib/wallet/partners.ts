@@ -43,6 +43,8 @@ export interface DollarCard {
   requested: boolean
   /** intro: no card yet. checking: the ID check is with the issuer. fix: it didn't pass. card: ready. */
   stage: 'intro' | 'checking' | 'fix' | 'card'
+  /** With fix: the check stopped before the issuer could review it (to finish), not refused. */
+  unfinished?: boolean
   /** The most a wallet puts on its card in a day, base units. */
   daily_topup: string
   /** Kova's fee on a top-up, in basis points (50 = 0.5%), paid on top. */
@@ -93,6 +95,15 @@ export interface CardCheck {
   document: {
     type: 'international_passport' | 'national_id' | 'drivers_license'
     number: string
+    /** Base64, no data: prefix. */
+    file: string
+    mime: 'image/jpeg' | 'image/png' | 'application/pdf'
+  }
+  /** The issuer needs a NIN or BVN from Nigerians and an SSN from Americans. */
+  id_number?: { type: 'nin' | 'bvn' | 'ssn'; value: string }
+  /** A bill or bank statement showing the home address: the issuer's second document. */
+  address_proof: {
+    type: 'utility_bill' | 'bank_statement'
     /** Base64, no data: prefix. */
     file: string
     mime: 'image/jpeg' | 'image/png' | 'application/pdf'

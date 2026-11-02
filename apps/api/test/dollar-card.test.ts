@@ -28,6 +28,7 @@ const { db } = await import('../src/db.js')
 const {
   creditTopups,
   dollarCardFor,
+  idNumberFor,
   revealDollarCard,
   setDollarCard,
   startCheck,
@@ -42,7 +43,12 @@ function fakeNuvion() {
   const card = `card_${Math.random().toString(36).slice(2, 10)}`
   const state = {
     card,
-    status: 'pending',
+    status: 'incomplete',
+    /** The next submission is refused for a missing proof of address, as Nuvion's 422 says it. */
+    refuseSubmission: false,
+    refusePayee: false,
+    individual: null as null | { person: Record<string, unknown>; identification: unknown },
+    documents: [] as string[],
     transfers: [] as Array<{ amount: number; reference: string }>,
     balance: 0,
     frozen: false,
@@ -61,15 +67,38 @@ function fakeNuvion() {
       state.calls.push(`${method} ${path}`)
       if (method === 'GET' && path === '/entities')
         return ok({ data: [{ id: 'ent_1', is_root: true, status: 'approved' }] })
-      if (method === 'POST' && path === '/individual-entities')
+      if (method === 'POST' && path === '/individual-entities') {
+        state.individual = body
         return ok({ entity: { id: 'ent_1', status: 'incomplete' }, person: { id: 'per_1' } }, 201)
+      }
       if (method === 'PATCH' && path === '/individual-entities/ent_1') return ok({})
-      if (method === 'POST' && (path === '/documents' || path === '/onboarding-submissions'))
+      if (method === 'POST' && path === '/documents') {
+        state.documents.push(body.key)
         return ok({})
+      }
+      if (method === 'POST' && path === '/onboarding-submissions') {
+        if (state.refuseSubmission) {
+          state.refuseSubmission = false
+          return new Response(
+            JSON.stringify({
+              status: 'error',
+              message: 'Validation error',
+              type: 'error_validation_error',
+              validations: [
+                { message: 'proof_of_address is required', type: 'error_kyc_documents_incomplete' },
+              ],
+            }),
+            { status: 422 },
+          )
+        }
+        state.status = 'pending'
+        return ok({})
+      }
       if (method === 'GET' && path === '/entities/ent_1')
         return ok({
           entity: { id: 'ent_1', status: state.status },
           business: { email: 'hello@kova.test', phonenumber: '+2348000000000' },
+          person: { email: 'ada@example.com' },
           address: { line_1: '1 Kova Way', city: 'Lagos', state: 'Lagos', country_code: 'NG' },
         })
       if (method === 'POST' && path === '/accounts')
@@ -77,7 +106,15 @@ function fakeNuvion() {
       if (method === 'GET' && path === '/accounts/acc_1')
         return ok({ account: { id: 'acc_1', balance: { available: state.balance } } })
       if (method === 'GET' && path === '/counterparties') return ok({ data: [] })
-      if (method === 'POST' && path === '/counterparties') return ok({ id: 'cp_1' }, 201)
+      if (method === 'POST' && path === '/counterparties') {
+        if (state.refusePayee) {
+          state.refusePayee = false
+          return new Response(JSON.stringify({ status: 'error', message: 'Try later' }), {
+            status: 503,
+          })
+        }
+        return ok({ id: 'cp_1' }, 201)
+      }
       if (method === 'POST' && path === '/payment-details') return ok({ id: 'pd_1' }, 201)
       if (method === 'GET' && path === '/card-creation-fee/acc_1') return ok({ fee: 50 })
       if (method === 'POST' && path === '/transfers') {
@@ -160,8 +197,13 @@ const person = {
     country: 'NG',
   },
   document: { type: 'international_passport' as const, number: 'A01234567' },
+  idNumber: { type: 'nin' as const, value: '12345678901' },
+  addressProof: 'utility_bill' as const,
 }
-const photo = { base64: 'a'.repeat(200), mime: 'image/jpeg' }
+const files = {
+  identity: { base64: 'a'.repeat(200), mime: 'image/jpeg' },
+  address: { base64: 'b'.repeat(200), mime: 'application/pdf' },
+}
 
 const saved = { ...config }
 beforeAll(async () => {
@@ -196,7 +238,7 @@ const SIG = `0x${'22'.repeat(65)}` as `0x${string}`
 async function cardHolder() {
   const nuvion = fakeNuvion()
   const wallet = newWallet()
-  await startCheck(wallet, person, photo)
+  await startCheck(wallet, person, files)
   nuvion.status = 'approved'
   await dollarCardFor(wallet)
   return { nuvion, wallet }
@@ -215,15 +257,24 @@ describe('dollar card (Nuvion)', () => {
     const nuvion = fakeNuvion()
     const wallet = newWallet()
     expect(await dollarCardFor(wallet)).toMatchObject({ stage: 'intro' })
-    expect(await startCheck(wallet, person, photo)).toMatchObject({ stage: 'checking' })
+    expect(await startCheck(wallet, person, files)).toMatchObject({ stage: 'checking' })
     expect(nuvion.calls).toEqual([
       'POST /individual-entities',
+      'POST /documents',
       'POST /documents',
       'POST /onboarding-submissions',
       'POST /counterparties',
       'GET /entities/ent_1',
     ])
-    await expect(startCheck(wallet, person, photo)).rejects.toMatchObject({ code: 'conflict' })
+    // Both documents Nuvion needs, the NIN and the kind of proof of address went with it.
+    expect(nuvion.documents).toEqual(['identity', 'proof_of_address'])
+    expect(nuvion.individual).toMatchObject({
+      person: { nin: '12345678901' },
+      identification: { proof_of_address: { type: 'utility_bill' } },
+    })
+    // Sent again while Nuvion reviews it: nothing is sent twice, it just says where it is.
+    expect(await startCheck(wallet, person, files)).toMatchObject({ stage: 'checking' })
+    expect(nuvion.calls.filter((c) => c === 'POST /onboarding-submissions')).toHaveLength(1)
 
     nuvion.status = 'approved'
     const ready = await dollarCardFor(wallet)
@@ -268,11 +319,73 @@ describe('dollar card (Nuvion)', () => {
   it('shows a refused check with Nuvion’s reason, and lets the holder send it again', async () => {
     const nuvion = fakeNuvion()
     const wallet = newWallet()
-    await startCheck(wallet, person, photo)
+    await startCheck(wallet, person, files)
     nuvion.status = 'rejected'
     expect(await dollarCardFor(wallet)).toMatchObject({ stage: 'fix' })
     nuvion.status = 'pending'
-    expect(await startCheck(wallet, person, photo)).toMatchObject({ stage: 'checking' })
+    expect(await startCheck(wallet, person, files)).toMatchObject({ stage: 'checking' })
+  })
+
+  it('names what Nuvion is missing when it refuses a check, and lets it be sent again', async () => {
+    const nuvion = fakeNuvion()
+    nuvion.refuseSubmission = true
+    const wallet = newWallet()
+    await expect(startCheck(wallet, person, files)).rejects.toMatchObject({
+      code: 'invalid_request',
+      message: expect.stringContaining('proof_of_address is required'),
+    })
+    // Never reviewed: the card screen asks to finish it and says why, rather than "checking".
+    expect(await dollarCardFor(wallet)).toMatchObject({
+      stage: 'fix',
+      unfinished: true,
+      reason: expect.stringContaining('proof_of_address is required'),
+    })
+    nuvion.calls.length = 0
+    expect(await startCheck(wallet, person, files)).toMatchObject({
+      stage: 'checking',
+      unfinished: false,
+      reason: null,
+    })
+    expect(nuvion.calls).toEqual([
+      'GET /entities/ent_1',
+      'PATCH /individual-entities/ent_1',
+      'POST /documents',
+      'POST /documents',
+      'POST /onboarding-submissions',
+      'POST /counterparties',
+      'GET /entities/ent_1',
+    ])
+  })
+
+  it('makes a missing payee when the card is issued, if the check reached Nuvion without one', async () => {
+    const nuvion = fakeNuvion()
+    nuvion.refusePayee = true
+    const wallet = newWallet()
+    await expect(startCheck(wallet, person, files)).rejects.toMatchObject({
+      code: 'invalid_request',
+    })
+    // Nuvion has the check, so it's being reviewed, whatever stopped after it.
+    expect(await dollarCardFor(wallet)).toMatchObject({ stage: 'checking', reason: null })
+    nuvion.status = 'approved'
+    expect(await dollarCardFor(wallet)).toMatchObject({ stage: 'card' })
+    expect(nuvion.calls.filter((c) => c === 'POST /counterparties')).toHaveLength(2)
+  })
+
+  it('asks Nigerians for a NIN or BVN and Americans for an SSN, and nobody else', () => {
+    expect(idNumberFor('NG', 'NG', { type: 'bvn', value: '123 4567 8901' })).toEqual({
+      type: 'bvn',
+      value: '12345678901',
+    })
+    expect(() => idNumberFor('NG', 'NG', undefined)).toThrow(/NIN or BVN/)
+    // Living in Nigeria counts too, and an SSN won't do there.
+    expect(() => idNumberFor('GH', 'NG', { type: 'ssn', value: '123456789' })).toThrow(/NIN/)
+    expect(() => idNumberFor('NG', 'NG', { type: 'nin', value: '1234' })).toThrow(/11 digits/)
+    expect(idNumberFor('US', 'GB', { type: 'ssn', value: '123-45-6789' })).toEqual({
+      type: 'ssn',
+      value: '123456789',
+    })
+    expect(() => idNumberFor('GB', 'US', undefined)).toThrow(/Social Security/)
+    expect(idNumberFor('GB', 'GB', { type: 'nin', value: '1' })).toBeUndefined()
   })
 
   it('tops up: pays Kova on Monad, then moves the same cents onto the card, once', async () => {

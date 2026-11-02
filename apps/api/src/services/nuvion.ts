@@ -44,17 +44,27 @@ async function nuvion<T>(
     status?: string
     message?: string
     code?: string
-    error?: { code?: string; message?: string }
+    type?: string
+    validations?: Problem[]
+    error?: { code?: string; message?: string; validations?: Problem[] }
     data?: T
   } | null
-  if (!response.ok || !body || body.status === 'error')
+  if (!response.ok || !body || body.status === 'error') {
+    const said = body?.error?.message ?? body?.message ?? `Nuvion answered ${response.status}.`
+    // A 422 lists each missing or wrong field: name them, so the holder knows what to fix.
+    const problems = (body?.validations ?? body?.error?.validations ?? [])
+      .map((p) => (typeof p === 'string' ? p : (p.message ?? p.field ?? p.path ?? p.type)))
+      .filter(Boolean)
     throw new NuvionRefused(
       response.status,
-      body?.error?.code ?? body?.code,
-      body?.error?.message ?? body?.message ?? `Nuvion answered ${response.status}.`,
+      body?.error?.code ?? body?.code ?? body?.type,
+      problems.length ? `${said.replace(/\.$/, '')}: ${problems.join('; ')}.` : said,
     )
+  }
   return body.data as T
 }
+
+type Problem = string | { field?: string; path?: string; message?: string; type?: string }
 
 // --- The ID check -------------------------------------------------------------------------------
 
@@ -70,6 +80,10 @@ export interface Person {
   gender: 'm' | 'f'
   address: { line1: string; city: string; state: string; postalCode: string; country: string }
   document: { type: 'international_passport' | 'national_id' | 'drivers_license'; number: string }
+  /** The national number Nuvion needs from some countries: NIN or BVN in Nigeria, SSN in the US. */
+  idNumber?: { type: 'nin' | 'bvn' | 'ssn'; value: string }
+  /** What the proof of address is: Nuvion needs one before it will review anyone. */
+  addressProof: 'utility_bill' | 'bank_statement'
 }
 
 function individual(person: Person) {
@@ -83,6 +97,7 @@ function individual(person: Person) {
       nationality: person.nationality,
       gender: person.gender,
       phonenumber: person.phone,
+      ...(person.idNumber ? { [person.idNumber.type]: person.idNumber.value } : {}),
     },
     address: {
       line_1: person.address.line1,
@@ -97,6 +112,7 @@ function individual(person: Person) {
         number: person.document.number,
         issuing_country: person.nationality,
       },
+      proof_of_address: { type: person.addressProof },
     },
     meta: { customer_types: 'individual', funding_source: 'savings' },
   }
@@ -124,9 +140,11 @@ export async function updateIndividual(entityId: string, person: Person) {
   })
 }
 
-export async function uploadIdentity(
+/** One of the two documents Nuvion needs before review: the ID, then the proof of address. */
+export async function uploadDocument(
   entityId: string,
   personId: string | null,
+  key: 'identity' | 'proof_of_address',
   file: { base64: string; mime: string; backBase64?: string },
 ) {
   await nuvion('/documents', {
@@ -134,8 +152,8 @@ export async function uploadIdentity(
     timeoutMs: 60_000,
     body: {
       entity_id: entityId,
-      key: 'identity',
-      description: 'Identity document',
+      key,
+      description: key === 'identity' ? 'Identity document' : 'Proof of address',
       file: file.base64,
       ...(file.backBase64 ? { file_back: file.backBase64 } : {}),
       meta: { file_type: file.mime },
@@ -177,6 +195,33 @@ export async function businessContact(entityId: string) {
   return {
     email: d.business.email,
     phone: d.business.phonenumber ?? null,
+    address: {
+      line1: a.line_1,
+      city: a.city,
+      state: a.state,
+      postalCode: a.postal_code,
+      country: a.country_code,
+    },
+  }
+}
+
+/** The email and address a holder gave at their check, as Nuvion keeps them (Kova doesn't). */
+export async function personContact(entityId: string) {
+  const d = await nuvion<{
+    person?: { email?: string }
+    address?: {
+      line_1?: string
+      city?: string
+      state?: string
+      postal_code?: string
+      country_code?: string
+    }
+  }>(`/entities/${encodeURIComponent(entityId)}`)
+  const a = d.address ?? {}
+  if (!d.person?.email || !a.line_1 || !a.city || !a.country_code)
+    throw new NuvionRefused(422, undefined, 'Nuvion has no email or address for this holder.')
+  return {
+    email: d.person.email,
     address: {
       line1: a.line_1,
       city: a.city,

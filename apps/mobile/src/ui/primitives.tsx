@@ -49,6 +49,8 @@ export function Txt({
 }
 
 const press = { damping: 18, stiffness: 420, mass: 0.6 }
+/** The light pill's cream: fixed, since it only sits on the always-dark camera steps. */
+const CREAM = '#F1EFEA'
 
 /** A die-cut sticker: a flat surface with an ink outline that gives a little when pressed. */
 export function Sticker({
@@ -138,13 +140,15 @@ export function PillButton({
   onPress: () => void
   disabled?: boolean
   loading?: boolean
-  tone?: 'ink' | 'white' | 'coral'
+  /** light: a cream pill for a dark ground, the same in either appearance (the camera steps). */
+  tone?: 'ink' | 'white' | 'coral' | 'light'
 }) {
   const scale = useSharedValue(1)
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
   const coral = tone === 'coral'
-  const bg = tone === 'ink' ? colors.fill : coral ? colors.coral : colors.surface
-  const fg = tone === 'ink' ? colors.white : coral ? colors.dark : colors.ink
+  const light = tone === 'light'
+  const bg = tone === 'ink' ? colors.fill : coral ? colors.coral : light ? CREAM : colors.surface
+  const fg = tone === 'ink' ? colors.white : coral || light ? colors.dark : colors.ink
   const disc = coral ? colors.white : fg
   const glyph = coral ? colors.coralDeep : bg
   return (
@@ -188,12 +192,15 @@ export function RoundButton({
   label,
   onPress,
   fill,
+  color,
   size = 36,
 }: {
   icon: IconName
   label: string
   onPress: () => void
   fill?: ColorValue
+  /** The icon's colour, ink unless the button sits on something dark. */
+  color?: ColorValue
   size?: number
 }) {
   return (
@@ -213,7 +220,7 @@ export function RoundButton({
         pressed && { transform: [{ scale: 0.92 }], opacity: 0.8 },
       ]}
     >
-      <Icon name={icon} size={Math.round(size * 0.5)} strokeWidth={2.4} />
+      <Icon name={icon} size={Math.round(size * 0.5)} strokeWidth={2.4} color={color} />
     </Pressable>
   )
 }
@@ -282,12 +289,15 @@ export function Header({
   right,
   onBack = () => (router.canGoBack() ? router.back() : router.replace('/')),
   backIcon = 'back',
+  onDark,
 }: {
   title?: string
   subtitle?: string
   right?: ReactNode
   onBack?: (() => void) | null
   backIcon?: IconName
+  /** On a ground that's dark in either appearance (the camera steps): a white back button. */
+  onDark?: boolean
 }) {
   return (
     <View style={styles.header}>
@@ -296,6 +306,8 @@ export function Header({
           icon={backIcon}
           label={backIcon === 'close' ? 'Close' : 'Back'}
           onPress={onBack}
+          fill={onDark ? 'rgba(255,255,255,0.12)' : undefined}
+          color={onDark ? colors.white : undefined}
         />
       ) : (
         <View style={{ width: 36 }} />
