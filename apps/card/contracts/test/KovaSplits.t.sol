@@ -183,4 +183,103 @@ contract KovaSplitsTest is Test {
         vm.expectRevert(KovaSplitter.NotAllowed.selector);
         impl.initialize(address(this));
     }
+
+    // KupiaSec's report (2 Nov 2026): one share AUSD won't send to used to stop every sale, block
+    // the rules from changing and strand what was in the splitter. Now that share is held for its
+    // address and everything else carries on.
+
+    function test_aFrozenShareDoesntStopASale() public {
+        KovaSplitter splitter = _setUp();
+        dollar.freeze(partner, true);
+        bytes32 nonce = keccak256("partner frozen");
+        (uint8 v, bytes32 r, bytes32 s) = _authorize(address(splitter), 6_500_000, nonce);
+        splitter.collect(customer, 6_500_000, block.timestamp - 1, block.timestamp + 600, nonce, v, r, s);
+        assertEq(dollar.balanceOf(savings), 650_000);
+        assertEq(dollar.balanceOf(shop), 5_525_000);
+        // The partner's 5% waits here, held for the partner alone.
+        assertEq(dollar.balanceOf(partner), 0);
+        assertEq(splitter.owed(partner), 325_000);
+        assertEq(splitter.totalOwed(), 325_000);
+        assertEq(dollar.balanceOf(address(splitter)), 325_000);
+    }
+
+    function test_heldDollarsArentSharedOutAgain() public {
+        KovaSplitter splitter = _setUp();
+        dollar.freeze(partner, true);
+        dollar.mint(address(splitter), 10e6);
+        splitter.release();
+        splitter.release(); // nothing new arrived, so nothing moves
+        assertEq(dollar.balanceOf(shop), 8_500_000);
+        assertEq(dollar.balanceOf(savings), 1_000_000);
+        assertEq(splitter.owed(partner), 500_000);
+        dollar.mint(address(splitter), 10e6);
+        splitter.release();
+        assertEq(dollar.balanceOf(shop), 17_000_000);
+        assertEq(splitter.owed(partner), 1_000_000);
+        assertEq(dollar.balanceOf(address(splitter)), 1_000_000);
+    }
+
+    function test_aFrozenShareDoesntStopTheShopChangingItsRules() public {
+        KovaSplitter splitter = _setUp();
+        dollar.freeze(partner, true);
+        dollar.mint(address(splitter), 10e6);
+        address[] memory to = new address[](1);
+        uint16[] memory bps = new uint16[](1);
+        to[0] = savings;
+        bps[0] = 1000;
+        uint256 deadline = block.timestamp + 600;
+        splits.setRules(shop, to, bps, deadline, _rules(to, bps, deadline, shopKey));
+        (, address[] memory shares,) = splitter.rules();
+        assertEq(shares.length, 1);
+        // What was here went out by the old rules, and the partner's part of it is still theirs.
+        assertEq(dollar.balanceOf(shop), 8_500_000);
+        assertEq(splitter.owed(partner), 500_000);
+    }
+
+    function test_heldDollarsGoOnlyToTheirAddressOnceItCanTakeThem() public {
+        KovaSplitter splitter = _setUp();
+        dollar.freeze(partner, true);
+        dollar.mint(address(splitter), 10e6);
+        splitter.release();
+        // Still frozen: the try fails and the dollars stay held.
+        vm.expectRevert(KovaSplitter.TransferFailed.selector);
+        splitter.withdraw(partner);
+        assertEq(splitter.owed(partner), 500_000);
+        dollar.freeze(partner, false);
+        vm.prank(address(0xBEEF)); // anyone may send them, and only to the partner
+        splitter.withdraw(partner);
+        assertEq(dollar.balanceOf(partner), 500_000);
+        assertEq(dollar.balanceOf(address(0xBEEF)), 0);
+        assertEq(splitter.owed(partner), 0);
+        assertEq(splitter.totalOwed(), 0);
+        assertEq(dollar.balanceOf(address(splitter)), 0);
+        // Nothing left to send: a second call does nothing.
+        splitter.withdraw(partner);
+        assertEq(dollar.balanceOf(partner), 500_000);
+    }
+
+    function test_aFrozenShopWalletDoesntStopItsShares() public {
+        KovaSplitter splitter = _setUp();
+        dollar.freeze(shop, true);
+        dollar.mint(address(splitter), 10e6);
+        splitter.release();
+        assertEq(dollar.balanceOf(savings), 1_000_000);
+        assertEq(dollar.balanceOf(partner), 500_000);
+        assertEq(splitter.owed(shop), 8_500_000);
+    }
+
+    function testFuzz_everyDollarIsPaidOrHeld(uint96 amount, bool savingsFrozen, bool partnerFrozen, bool shopFrozen)
+        public
+    {
+        KovaSplitter splitter = _setUp();
+        dollar.freeze(savings, savingsFrozen);
+        dollar.freeze(partner, partnerFrozen);
+        dollar.freeze(shop, shopFrozen);
+        dollar.mint(address(splitter), amount);
+        splitter.release();
+        uint256 paid = dollar.balanceOf(savings) + dollar.balanceOf(partner) + dollar.balanceOf(shop);
+        assertEq(paid + splitter.totalOwed(), amount);
+        assertEq(dollar.balanceOf(address(splitter)), splitter.totalOwed());
+        assertEq(splitter.owed(savings) + splitter.owed(partner) + splitter.owed(shop), splitter.totalOwed());
+    }
 }

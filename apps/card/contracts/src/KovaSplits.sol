@@ -27,6 +27,11 @@ interface ISplitDollar {
 /// transaction on Monad; dollars that arrive any other way are shared out by `release`, which
 /// anyone may call. Either way they can only go where the shop's rules say. The rules change only
 /// with the shop's signature (through KovaSplits) or from the shop's own wallet.
+///
+/// Each share is sent on its own. One that can't be sent (an address AUSD's issuer has frozen, say)
+/// is held here for that address instead of stopping the rest: the sale still goes through, the
+/// shop can still change its rules, and the held dollars wait until `withdraw` can send them, to
+/// that address and nowhere else. Held dollars are never shared out again.
 contract KovaSplitter {
     uint256 public constant MAX_SHARES = 5;
     uint256 private constant WHOLE = 10_000;
@@ -38,9 +43,16 @@ contract KovaSplitter {
     address[] private _to;
     uint16[] private _bps;
 
+    /// @notice Dollars held for an address its share couldn't be sent to, until it can take them.
+    mapping(address account => uint256) public owed;
+    /// @notice All of `owed`: dollars here that are no longer the splitter's to share out.
+    uint256 public totalOwed;
+
     event Configured(address indexed owner, address[] to, uint16[] bps);
     event Released(uint256 amount, uint256 kept);
     event SharePaid(address indexed to, uint256 amount);
+    event ShareHeld(address indexed to, uint256 amount);
+    event Withdrawn(address indexed to, uint256 amount);
 
     error NotAllowed();
     error AlreadySetUp();
@@ -61,7 +73,8 @@ contract KovaSplitter {
         owner = owner_;
     }
 
-    /// @notice Replaces the shares. What's already here is shared out by the old rules first.
+    /// @notice Replaces the shares. What's already here is shared out by the old rules first; a share
+    /// that can't be sent is held, so a frozen address never stops the rules from changing.
     function configure(address[] calldata to, uint16[] calldata bps) external {
         if (msg.sender != factory && msg.sender != owner) revert NotAllowed();
         if (to.length != bps.length || to.length > MAX_SHARES) revert BadRules();
@@ -93,20 +106,49 @@ contract KovaSplitter {
         release();
     }
 
-    /// @notice Shares out everything here, by the rules; the rest goes to the shop.
+    /// @notice Shares out everything here that isn't held, by the rules; the rest goes to the shop.
+    /// Never fails for a share that can't be sent: that share is held for its address instead.
     function release() public {
-        uint256 amount = token.balanceOf(address(this));
-        if (amount == 0) return;
+        uint256 balance = token.balanceOf(address(this));
+        if (balance <= totalOwed) return;
+        uint256 amount = balance - totalOwed;
         uint256 sent;
         for (uint256 i; i < _to.length; i++) {
             uint256 share = (amount * _bps[i]) / WHOLE;
             if (share == 0) continue;
             sent += share;
-            if (!token.transfer(_to[i], share)) revert TransferFailed();
-            emit SharePaid(_to[i], share);
+            _pay(_to[i], share);
         }
-        if (amount > sent && !token.transfer(owner, amount - sent)) revert TransferFailed();
+        if (amount > sent) _pay(owner, amount - sent);
         emit Released(amount, amount - sent);
+    }
+
+    /// @notice Sends `account` the dollars held for it. Anyone may call it, the account or anyone on
+    /// its behalf; the dollars can only go to `account`. Fails, holding them still, while it can't
+    /// take them.
+    function withdraw(address account) external {
+        uint256 amount = owed[account];
+        if (amount == 0) return;
+        owed[account] = 0;
+        totalOwed -= amount;
+        if (!_send(account, amount)) revert TransferFailed();
+        emit Withdrawn(account, amount);
+    }
+
+    function _pay(address to, uint256 amount) private {
+        if (_send(to, amount)) {
+            emit SharePaid(to, amount);
+        } else {
+            owed[to] += amount;
+            totalOwed += amount;
+            emit ShareHeld(to, amount);
+        }
+    }
+
+    /// A transfer that answers false rather than reverting: AUSD reverts for a frozen address.
+    function _send(address to, uint256 amount) private returns (bool) {
+        (bool ok, bytes memory ret) = address(token).call(abi.encodeCall(ISplitDollar.transfer, (to, amount)));
+        return ok && (ret.length == 0 || (ret.length >= 32 && abi.decode(ret, (bool))));
     }
 
     /// @notice The shop, and who gets what (basis points: 1000 is 10%).

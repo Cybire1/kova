@@ -23,8 +23,15 @@ contract TransferDollar {
         )
     );
 
+    /// Addresses the issuer has frozen: like AUSD, any transfer to or from them reverts.
+    mapping(address => bool) public frozen;
+
     function mint(address to, uint256 value) external {
         balanceOf[to] += value;
+    }
+
+    function freeze(address account, bool on) external {
+        frozen[account] = on;
     }
 
     function approve(address spender, uint256 value) external returns (bool) {
@@ -33,12 +40,14 @@ contract TransferDollar {
     }
 
     function transfer(address to, uint256 value) external returns (bool) {
+        require(!frozen[msg.sender] && !frozen[to], "frozen");
         balanceOf[msg.sender] -= value;
         balanceOf[to] += value;
         return true;
     }
 
     function transferFrom(address from, address to, uint256 value) external returns (bool) {
+        require(!frozen[from] && !frozen[to], "frozen");
         allowance[from][msg.sender] -= value;
         balanceOf[from] -= value;
         balanceOf[to] += value;
@@ -68,6 +77,7 @@ contract TransferDollar {
             )
         );
         require(ecrecover(digest, v, r, s) == from, "bad signature");
+        require(!frozen[from] && !frozen[to], "frozen");
         authorizationState[from][nonce] = true;
         balanceOf[from] -= value;
         balanceOf[to] += value;
