@@ -45,6 +45,8 @@ export interface DollarCard {
   stage: 'intro' | 'checking' | 'fix' | 'card'
   /** With fix: the check stopped before the issuer could review it (to finish), not refused. */
   unfinished?: boolean
+  /** The ID check passed, but the issuer is still preparing the card. */
+  approved?: boolean
   /** The most a wallet puts on its card in a day, base units. */
   daily_topup: string
   /** Kova's fee on a top-up, in basis points (50 = 0.5%), paid on top. */

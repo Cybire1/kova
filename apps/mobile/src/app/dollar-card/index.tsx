@@ -3,6 +3,7 @@ import { Image } from 'expo-image'
 import { router, useFocusEffect } from 'expo-router'
 import { useCallback, useState } from 'react'
 import {
+  AppState,
   type ColorValue,
   Pressable,
   RefreshControl,
@@ -31,11 +32,38 @@ const koviPeek = require('../../../assets/art/kovi-peek.png')
  * issuer, a check that didn't pass, or the card itself (balance, top up, details, freeze).
  */
 export default function DollarCardScreen() {
-  const { data, setData, problem, reload } = useMoney<DollarCard>(getDollarCard)
+  const { data, setData, problem, reload } = useMoney<DollarCard>(getDollarCard, {
+    loadOnMount: false,
+  })
+  const checking = data?.stage === 'checking'
   useFocusEffect(
     useCallback(() => {
-      void reload()
-    }, [reload]),
+      let disposed = false
+      let running = false
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const refresh = async () => {
+        if (disposed || running || AppState.currentState !== 'active') return
+        clearTimeout(timer)
+        running = true
+        try {
+          await reload()
+        } finally {
+          running = false
+          if (!disposed && checking && AppState.currentState === 'active')
+            timer = setTimeout(refresh, 10_000)
+        }
+      }
+      void refresh()
+      const subscription = AppState.addEventListener('change', (state) => {
+        clearTimeout(timer)
+        if (state === 'active') void refresh()
+      })
+      return () => {
+        disposed = true
+        clearTimeout(timer)
+        subscription.remove()
+      }
+    }, [reload, checking]),
   )
 
   if (!data)
@@ -70,7 +98,8 @@ export default function DollarCardScreen() {
       </Screen>
     )
   if (data.stage === 'intro') return <Intro sandbox={data.sandbox} />
-  if (data.stage === 'checking') return <Checking />
+  if (data.stage === 'checking')
+    return <Checking approved={!!data.approved} problem={problem} onRefresh={reload} />
   if (data.stage === 'fix')
     return <TryAgain reason={data.reason ?? null} unfinished={!!data.unfinished} />
   return <CardHome data={data} onChange={setData} onRefresh={reload} />
@@ -125,27 +154,54 @@ function Sticker({ label, fill, tilt = 0 }: { label: string; fill?: ColorValue; 
   )
 }
 
-function Checking() {
+function Checking({
+  approved,
+  problem,
+  onRefresh,
+}: {
+  approved: boolean
+  problem: string | null
+  onRefresh: () => Promise<void>
+}) {
+  const [refreshing, setRefreshing] = useState(false)
+  const refresh = async () => {
+    setRefreshing(true)
+    try {
+      await onRefresh()
+    } finally {
+      setRefreshing(false)
+    }
+  }
   return (
     <Screen>
       <Header />
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView
+        contentContainerStyle={styles.body}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}
+      >
         <View style={styles.checkArt}>
           <View style={styles.checkCard} />
           <Image source={koviPeek} style={styles.checkKovi} contentFit="contain" />
         </View>
         <Txt weight="bold" size={32} style={styles.title}>
-          Checking your ID
+          {approved ? 'Your ID is approved' : 'Checking your ID'}
         </Txt>
         <Txt size={15} color={colors.muted} style={styles.lead}>
-          You can close Kova. Your card appears here the moment Nuvion is done.
+          {approved
+            ? 'We’re preparing your card. It appears here as soon as it’s ready.'
+            : 'You can close Kova. We’ll check again automatically when you come back.'}
         </Txt>
         <View style={styles.section}>
           <Step done label="Details sent" />
           <Step done label="ID and proof of address sent" />
-          <Step label="Nuvion checks it" now />
-          <Step label="Your card is made" />
+          <Step label="Nuvion checks it" done={approved} now={!approved} />
+          <Step label="Your card is made" now={approved} />
         </View>
+        {problem ? (
+          <Txt size={13} color={colors.danger} style={styles.fine}>
+            {problem}
+          </Txt>
+        ) : null}
         <View style={{ marginTop: 24 }}>
           <PillButton label="Back to home" icon="home" tone="white" onPress={() => router.back()} />
         </View>

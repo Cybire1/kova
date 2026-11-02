@@ -20,6 +20,7 @@ import {
   createPayee,
   entityStatus,
   findBookDetail,
+  findVirtualCard,
   issueVirtualCard,
   NuvionRefused,
   nuvionSandbox,
@@ -198,8 +199,21 @@ async function advance(holder: Holder): Promise<Holder> {
         )[0] ?? row
     }
   }
-  if (row.status === PASSED && !(await cardOf(row.wallet as Address))) row = await issue(row)
+  if (row.status === PASSED && !(await cardOf(row.wallet as Address))) row = await issueOnce(row)
   return row
+}
+
+/** Focus and foreground refreshes can arrive together; share the same issuance attempt. */
+const issuing = new Map<string, Promise<Holder>>()
+function issueOnce(holder: Holder): Promise<Holder> {
+  const running = issuing.get(holder.id)
+  if (running) return running
+  const job = (async () => {
+    const fresh = (await holderOf(holder.wallet as Address)) ?? holder
+    return (await cardOf(holder.wallet as Address)) ? fresh : issue(fresh)
+  })().finally(() => issuing.delete(holder.id))
+  issuing.set(holder.id, job)
+  return job
 }
 
 /** Opens the card's account, lets the pot pay it, covers the card fee and issues the card. */
@@ -282,7 +296,8 @@ async function issue(holder: Holder): Promise<Holder> {
       )[0] ?? row
   }
   const accountId = row.accountId as string
-  const fee = await cardFee(accountId)
+  const existingCard = await findVirtualCard(row.entityId, accountId)
+  const fee = existingCard ? 0 : await cardFee(accountId, row.entityId)
   if (fee > 0) {
     // Kova pays the issuer's card fee; the reference makes sure it's paid once per holder.
     await bookTransfer(
@@ -299,12 +314,14 @@ async function issue(holder: Holder): Promise<Holder> {
   }
   if (!row.email || !row.phone)
     throw new KovaError('chain_error', 'The card issuer needs an email and phone for this card.')
-  const cardId = await issueVirtualCard(row.entityId, accountId, {
-    ...row,
-    email: row.email,
-    phone: row.phone,
-  })
-  const secrets = await cardSecrets(cardId)
+  const cardId =
+    existingCard ??
+    (await issueVirtualCard(row.entityId, accountId, {
+      ...row,
+      email: row.email,
+      phone: row.phone,
+    }))
+  const secrets = await cardSecrets(cardId, row.entityId)
   await db.insert(schema.dollarCards).values({
     id: uuidv7(),
     wallet: row.wallet,
@@ -340,14 +357,15 @@ export async function dollarCardFor(wallet: Address) {
   let holder = await holderOf(wallet)
   if (!holder && isOwner(wallet)) holder = await ownerHolder(wallet).catch(() => null)
   if (holder)
-    holder = await advance(holder).catch((error) => {
+    holder = await advance(holder).catch(async (error) => {
       console.error('[dollar-card]', error)
-      return holder
+      // Approval may have been saved before a later issuer request failed.
+      return (await holderOf(wallet)) ?? holder
     })
   let card = await cardOf(wallet)
-  if (card && !card.brand) {
+  if (card && !card.brand && holder) {
     // A card made before Kova kept its brand: work it out once.
-    const brand = await cardSecrets(card.providerCardToken)
+    const brand = await cardSecrets(card.providerCardToken, holder.entityId)
       .then((s) => cardBrand(s.number))
       .catch(() => null)
     if (brand) {
@@ -369,12 +387,13 @@ export async function dollarCardFor(wallet: Address) {
           : ('fix' as const),
       // Never reviewed (it stopped before Nuvion had everything), as against reviewed and refused.
       unfinished: holder?.status === UNSENT,
+      approved: holder?.status === PASSED,
       reason: holder?.reason ?? null,
     }
 
   const [cents, payments, today, topups] = await Promise.all([
-    holder.accountId ? accountBalance(holder.accountId).catch(() => null) : null,
-    cardPayments(card.providerCardToken).catch(() => []),
+    holder.accountId ? accountBalance(holder.accountId, holder.entityId).catch(() => null) : null,
+    cardPayments(card.providerCardToken, holder.entityId).catch(() => []),
     toppedUpToday(wallet),
     db
       .select()
@@ -631,9 +650,10 @@ export async function creditTopups() {
 }
 
 export async function setDollarCard(wallet: Address, frozen: boolean) {
+  const holder = await holderOf(wallet)
   const card = await cardOf(wallet)
-  if (!card) throw new KovaError('not_found', 'This wallet has no dollar card yet.')
-  await setCardFrozen(card.providerCardToken, frozen)
+  if (!card || !holder) throw new KovaError('not_found', 'This wallet has no dollar card yet.')
+  await setCardFrozen(card.providerCardToken, frozen, holder.entityId)
   await db
     .update(schema.dollarCards)
     .set({ state: frozen ? 'paused' : 'open', updatedAt: new Date() })
@@ -643,9 +663,10 @@ export async function setDollarCard(wallet: Address, frozen: boolean) {
 
 /** The card's number, expiry and CVV, read from Nuvion for the holder and never kept. */
 export async function revealDollarCard(wallet: Address) {
+  const holder = await holderOf(wallet)
   const card = await cardOf(wallet)
-  if (!card) throw new KovaError('not_found', 'This wallet has no dollar card yet.')
-  const s = await cardSecrets(card.providerCardToken)
+  if (!card || !holder) throw new KovaError('not_found', 'This wallet has no dollar card yet.')
+  const s = await cardSecrets(card.providerCardToken, holder.entityId)
   return {
     object: 'dollar_card_details' as const,
     number: s.number,

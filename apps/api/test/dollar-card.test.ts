@@ -53,6 +53,8 @@ function fakeNuvion() {
     balance: 0,
     frozen: false,
     failNextTransfer: false,
+    failNextCardDetails: false,
+    cardsIssued: 0,
     calls: [] as string[],
   }
   const ok = (data: unknown, status = 200) =>
@@ -65,6 +67,20 @@ function fakeNuvion() {
       const method = init?.method ?? 'GET'
       const body = init?.body ? JSON.parse(String(init.body)) : {}
       state.calls.push(`${method} ${path}`)
+      // Child resources must be requested on behalf of their entity, even with a parent key.
+      if (
+        (method === 'GET' &&
+          (path === '/accounts/acc_1' ||
+            path === '/cards' ||
+            path.startsWith('/card-details/') ||
+            path.startsWith('/card-transactions/') ||
+            path.startsWith('/card-creation-fee/')) &&
+          url.searchParams.get('entity_id') !== 'ent_1') ||
+        (method === 'PATCH' && path.startsWith('/card-details/') && body.entity_id !== 'ent_1')
+      )
+        return new Response(JSON.stringify({ status: 'error', message: 'Wrong entity' }), {
+          status: 404,
+        })
       if (method === 'GET' && path === '/entities')
         return ok({ data: [{ id: 'ent_1', is_root: true, status: 'approved' }] })
       if (method === 'POST' && path === '/individual-entities') {
@@ -117,6 +133,12 @@ function fakeNuvion() {
       }
       if (method === 'POST' && path === '/payment-details') return ok({ id: 'pd_1' }, 201)
       if (method === 'GET' && path === '/card-creation-fee/acc_1') return ok({ fee: 50 })
+      if (method === 'GET' && path === '/cards') {
+        expect(url.searchParams.get('account_id')).toBe('acc_1')
+        return ok({
+          cards: state.cardsIssued ? [{ id: card, type: 'virtual', status: 'active' }] : [],
+        })
+      }
       if (method === 'POST' && path === '/transfers') {
         if (state.failNextTransfer) {
           state.failNextTransfer = false
@@ -133,10 +155,17 @@ function fakeNuvion() {
         return ok({ id: `tr_${state.transfers.length}` }, 201)
       }
       if (method === 'POST' && path === '/virtual-cards') {
+        state.cardsIssued++
         state.balance -= 50
         return ok({ id: card, status: 'active' }, 201)
       }
-      if (method === 'GET' && path === `/card-details/${card}`)
+      if (method === 'GET' && path === `/card-details/${card}`) {
+        if (state.failNextCardDetails) {
+          state.failNextCardDetails = false
+          return new Response(JSON.stringify({ status: 'error', message: 'Try later' }), {
+            status: 503,
+          })
+        }
         return ok({
           id: card,
           status: state.frozen ? 'blocked' : 'active',
@@ -147,6 +176,7 @@ function fakeNuvion() {
           first_name: 'Ada',
           last_name: 'Okafor',
         })
+      }
       if (method === 'PATCH' && path.startsWith(`/card-details/${card}/`)) {
         state.frozen = path.endsWith('/freeze')
         return ok({})
@@ -245,6 +275,30 @@ async function cardHolder() {
 }
 
 describe('dollar card (Nuvion)', () => {
+  it('recovers a card already issued before its details could be saved, without issuing again', async () => {
+    const nuvion = fakeNuvion()
+    const wallet = newWallet()
+    await startCheck(wallet, person, files)
+    nuvion.status = 'approved'
+    nuvion.failNextCardDetails = true
+    expect(await dollarCardFor(wallet)).toMatchObject({ stage: 'checking', approved: true })
+    expect(nuvion.cardsIssued).toBe(1)
+    expect(await dollarCardFor(wallet)).toMatchObject({ stage: 'card' })
+    expect(nuvion.cardsIssued).toBe(1)
+    expect(nuvion.transfers.filter((t) => t.reference.startsWith('kova-card-fee-'))).toHaveLength(1)
+  })
+
+  it('shares one issuance when two status requests arrive after approval', async () => {
+    const nuvion = fakeNuvion()
+    const wallet = newWallet()
+    await startCheck(wallet, person, files)
+    nuvion.status = 'approved'
+    const results = await Promise.all([dollarCardFor(wallet), dollarCardFor(wallet)])
+    expect(results.every((result) => result.stage === 'card')).toBe(true)
+    expect(nuvion.calls.filter((call) => call === 'POST /accounts')).toHaveLength(1)
+    expect(nuvion.cardsIssued).toBe(1)
+  })
+
   it('is honest without a key: asks for access, never calls Nuvion', async () => {
     config.NUVION_API_KEY = undefined
     const fetch = vi.fn()

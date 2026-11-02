@@ -259,8 +259,10 @@ export async function openUsdAccount(entityId: string) {
 }
 
 /** What the account can spend now, in cents. */
-export async function accountBalance(accountId: string): Promise<number> {
-  const data = await nuvion<AccountReply>(`/accounts/${encodeURIComponent(accountId)}`)
+export async function accountBalance(accountId: string, entityId: string): Promise<number> {
+  const data = await nuvion<AccountReply>(
+    `/accounts/${encodeURIComponent(accountId)}?entity_id=${encodeURIComponent(entityId)}`,
+  )
   return data.account.balance?.available ?? 0
 }
 
@@ -382,9 +384,9 @@ export async function bookTransfer(
 
 // --- Cards ----------------------------------------------------------------------------------------
 
-export async function cardFee(accountId: string): Promise<number> {
+export async function cardFee(accountId: string, entityId: string): Promise<number> {
   const data = await nuvion<{ fee?: number }>(
-    `/card-creation-fee/${encodeURIComponent(accountId)}?currency=USD`,
+    `/card-creation-fee/${encodeURIComponent(accountId)}?currency=USD&entity_id=${encodeURIComponent(entityId)}`,
   )
   return data.fee ?? 0
 }
@@ -412,6 +414,20 @@ export async function issueVirtualCard(
   return data.id
 }
 
+/** Recover a card issued before Kova could save it, scoped to this holder's own account. */
+export async function findVirtualCard(entityId: string, accountId: string): Promise<string | null> {
+  const data = await nuvion<{
+    cards: Array<{ id: string; type: string; status: string }>
+  }>(
+    `/cards?entity_id=${encodeURIComponent(entityId)}&account_id=${encodeURIComponent(accountId)}&limit=100`,
+  )
+  return (
+    data.cards.find(
+      (card) => card.type === 'virtual' && (card.status === 'active' || card.status === 'blocked'),
+    )?.id ?? null
+  )
+}
+
 export interface CardSecrets {
   number: string
   cvv: string
@@ -422,7 +438,7 @@ export interface CardSecrets {
 }
 
 /** The card's number and CVV. Sensitive: pass it straight to the holder, never keep it. */
-export async function cardSecrets(cardId: string): Promise<CardSecrets> {
+export async function cardSecrets(cardId: string, entityId: string): Promise<CardSecrets> {
   const d = await nuvion<{
     number: string
     cvv: string
@@ -431,7 +447,7 @@ export async function cardSecrets(cardId: string): Promise<CardSecrets> {
     first_name?: string
     last_name?: string
     status: string
-  }>(`/card-details/${encodeURIComponent(cardId)}`)
+  }>(`/card-details/${encodeURIComponent(cardId)}?entity_id=${encodeURIComponent(entityId)}`)
   return {
     number: d.number,
     cvv: d.cvv,
@@ -442,9 +458,10 @@ export async function cardSecrets(cardId: string): Promise<CardSecrets> {
   }
 }
 
-export async function setCardFrozen(cardId: string, frozen: boolean) {
+export async function setCardFrozen(cardId: string, frozen: boolean, entityId: string) {
   await nuvion(`/card-details/${encodeURIComponent(cardId)}/${frozen ? 'freeze' : 'unfreeze'}`, {
     method: 'PATCH',
+    body: { entity_id: entityId },
   })
 }
 
@@ -459,7 +476,7 @@ export interface CardPayment {
   check: boolean
 }
 
-export async function cardPayments(cardId: string): Promise<CardPayment[]> {
+export async function cardPayments(cardId: string, entityId: string): Promise<CardPayment[]> {
   const data = await nuvion<{
     payments?: Array<{
       _id: string
@@ -472,7 +489,9 @@ export async function cardPayments(cardId: string): Promise<CardPayment[]> {
       recipient?: { name?: string }
       created: number
     }>
-  }>(`/card-transactions/${encodeURIComponent(cardId)}?limit=20`)
+  }>(
+    `/card-transactions/${encodeURIComponent(cardId)}?limit=20&entity_id=${encodeURIComponent(entityId)}`,
+  )
   return (data.payments ?? []).map((p) => {
     const incoming = p.type === 'inflow'
     const named = p.narration?.match(/(?:Payment to|to)\s+(.+?)\s+for\s+[\d.]+/i)?.[1]

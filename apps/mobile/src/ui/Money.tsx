@@ -28,7 +28,10 @@ import { Stage } from './Stage'
 export const problemOf = (e: unknown) =>
   e instanceof Error ? e.message : 'Something went wrong. Try again.'
 
-export function useMoney<T>(load: (address: Address) => Promise<T>) {
+export function useMoney<T>(
+  load: (address: Address) => Promise<T>,
+  { loadOnMount = true }: { loadOnMount?: boolean } = {},
+) {
   const { profile } = useWallet()
   const [data, setData] = useState<T | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
@@ -43,8 +46,8 @@ export function useMoney<T>(load: (address: Address) => Promise<T>) {
     }
   }, [address, load])
   useEffect(() => {
-    void reload()
-  }, [reload])
+    if (loadOnMount) void reload()
+  }, [loadOnMount, reload])
   return { data, setData, problem, reload }
 }
 
