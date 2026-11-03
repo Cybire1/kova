@@ -30,6 +30,7 @@ import {
 import { payPayroll, reachOf } from '@/lib/business'
 import { finishTap, forgetDevCard, linkCard, readTap } from '@/lib/card'
 import { apiUrl, shareWebUrl } from '@/lib/config'
+import { startDemoCard } from '@/lib/demo-card'
 import { stashWallet, unstashWallet } from '@/lib/dev-slots'
 import type { DisplayCurrency } from '@/lib/money'
 import { useOffline } from '@/lib/offline'
@@ -66,6 +67,7 @@ import { booksMessage } from '@/ui/Takings'
  * `stall=<name>&tagline=<line>` opens a stall from this wallet the way Profile does, `seed=1` fills
  * that stall with a small menu (and a barcoded drink for the till), `seed=bakery` with a bakery's, `till=keypad|items|scan` picks
  * the till's mode, `tables=6&stamps=5` gives the stall table codes and a stamp card (0 turns either off), and `sell=<item name>*<qty>;<item name>*<qty>` rings a sale up at the till and shows the customer display.
+ * `dollarcard=demo` gives the wallet a pretend approved dollar card with a balance, to try its screens.
  * `card=link&limit=100&pin=4827` links the software Kova Card (`newcard=1` makes a fresh one first); `tapcard=<charge>` taps it at this till.
  * `takings=on|off|open` turns this shop's private takings on or off (or opens its keys on this phone) through the real flow,
  * `takings=forget` drops this phone's copy of the keys (relaunch to see the phone without them),
@@ -227,6 +229,7 @@ export default function Dev() {
     sell?: string
     payee?: string
     card?: string
+    dollarcard?: string
     newcard?: string
     limit?: string
     pin?: string
@@ -461,6 +464,8 @@ export default function Dev() {
         }
         // card=link: links this install's software Kova Card (the simulator has no NFC) through the
         // real flow, with `limit` dollars a day and `pin`, then shows the Card tab.
+        // dollarcard=demo: a pretend approved dollar card (lib/demo-card.ts), to try its screens.
+        if (params.dollarcard === 'demo') startDemoCard()
         if (params.card === 'link' && wallet.profile) {
           setStep('linking a card')
           // newcard=1: a fresh software card, when this install's last one is linked to an old wallet.

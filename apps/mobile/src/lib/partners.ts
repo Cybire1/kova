@@ -8,6 +8,7 @@ import {
 } from '@kova/monad'
 import type { Address, Hex, TypedDataDefinition } from 'viem'
 import { apiUrl, network, networkId } from './config'
+import { demoCard, demoCardOn, demoDetails, demoFreeze, demoTopUp, demoWithdraw } from './demo-card'
 
 /**
  * Money in (a US account number), the dollar card and savings: the parts of Kova that run through
@@ -176,10 +177,12 @@ const DEFAULT_DAILY_TOPUP = '100000000'
 /** The card, with the daily cap always filled in: an older server leaves it out, and the screens do
  * arithmetic on it. */
 export const getDollarCard = (address: Address) =>
-  call<DollarCard>(`${address}/dollar-card`).then((d) => ({
-    ...d,
-    daily_topup: d.daily_topup ?? DEFAULT_DAILY_TOPUP,
-  }))
+  demoCardOn()
+    ? Promise.resolve(demoCard())
+    : call<DollarCard>(`${address}/dollar-card`).then((d) => ({
+        ...d,
+        daily_topup: d.daily_topup ?? DEFAULT_DAILY_TOPUP,
+      }))
 export const getSavings = (address: Address) => call<Savings>(`${address}/savings`)
 
 type Sign = (message: string) => Promise<Hex>
@@ -225,6 +228,7 @@ export async function startCardCheck(address: Address, sign: Sign, check: CardCh
 }
 
 export async function setDollarCard(address: Address, sign: Sign, frozen: boolean) {
+  if (demoCardOn()) return demoFreeze(frozen)
   return call<DollarCard>(`${address}/dollar-card/settings`, {
     frozen,
     ...(await signed(address, sign, 'dollar-card-settings', frozen ? 'freeze' : 'unfreeze')),
@@ -233,6 +237,7 @@ export async function setDollarCard(address: Address, sign: Sign, frozen: boolea
 
 /** Off the card, back to the wallet, free. The amount is in the signature. */
 export async function withdrawFromCard(address: Address, sign: Sign, amount: bigint) {
+  if (demoCardOn()) return { tx_hash: null, card: demoWithdraw(amount) }
   return call<{ tx_hash: Hex | null; card: DollarCard }>(`${address}/dollar-card/withdraw`, {
     amount: amount.toString(),
     ...(await signed(address, sign, 'dollar-card-withdraw', amount.toString())),
@@ -241,6 +246,7 @@ export async function withdrawFromCard(address: Address, sign: Sign, amount: big
 
 /** The card's number, expiry and CVV, straight from the issuer. Shown, never stored. */
 export async function revealDollarCard(address: Address, sign: Sign) {
+  if (demoCardOn()) return demoDetails
   return call<CardDetails>(
     `${address}/dollar-card/reveal`,
     await signed(address, sign, 'reveal-dollar-card'),
@@ -264,6 +270,7 @@ export async function topUpCard(
   amount: bigint,
   bps: number,
 ) {
+  if (demoCardOn()) return { tx_hash: '0x' as Hex, card: demoTopUp(amount) }
   const value = amount + topUpFee(amount, bps)
   const token = getToken(networkId, 'AUSD')
   const message = {
