@@ -35,8 +35,8 @@ export default function Welcome() {
   return (
     <View style={styles.screen}>
       <View style={[styles.wordmark, { top: insets.top + 10 }]}>
-        <LogoMark size={40} />
-        <Wordmark height={26} />
+        <LogoMark size={28} />
+        <Wordmark height={18} />
       </View>
       <View style={{ position: 'absolute', top: sceneTop, left: sceneLeft }}>
         <PlanetScene width={sceneW} />
@@ -87,7 +87,7 @@ export default function Welcome() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
-  wordmark: { position: 'absolute', left: 20, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  wordmark: { position: 'absolute', left: 24, flexDirection: 'row', alignItems: 'center', gap: 6 },
   panel: {
     position: 'absolute',
     left: 0,
