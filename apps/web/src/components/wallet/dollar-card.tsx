@@ -1188,13 +1188,21 @@ const countryName = (code: string) => {
   }
 }
 
+/**
+ * The card's details, read from Nuvion when this opens and gone a minute later; Kova never stores
+ * them. They're printed on the card the way a physical card lays them out (chip and contactless
+ * left, the number on its own line, valid thru, the name, the network bottom right), and the
+ * security code is on the back: "Show CVV" turns the card over. Every value copies on click, and
+ * so does each part of the billing address (the card's own, which checkouts ask for).
+ */
 function Details({ onClose }: { onClose: () => void }) {
   const { profile, signMessage } = useWallet()
   const [details, setDetails] = useState<CardDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
   // Long enough to copy the number, expiry, CVV, name and each part of the address into a checkout.
   const [left, setLeft] = useState(SHOWN_FOR)
-  const [copied, setCopied] = useState<string | null>(null)
+  const [back, setBack] = useState(false)
+  const [copied, setCopied] = useState<{ what: string; at: number } | null>(null)
   useEffect(() => {
     if (!profile) return
     revealDollarCard(profile.address as `0x${string}`, signMessage)
@@ -1209,101 +1217,190 @@ function Details({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (left <= 0) onClose()
   }, [left, onClose])
+  useEffect(() => {
+    if (!copied) return
+    const t = setTimeout(() => setCopied(null), 1600)
+    return () => clearTimeout(t)
+  }, [copied])
   const copy = (what: string, value: string) => {
     void navigator.clipboard.writeText(value)
-    setCopied(what)
+    setCopied({ what, at: Date.now() })
   }
+  const expiry = details ? `${details.exp_month}/${details.exp_year.slice(-2)}` : '··/··'
   const address = details?.billing_address ?? null
   const street = address ? [address.line1, address.line2].filter(Boolean).join(', ') : ''
-  // One value per row: the whole row copies it, with a small icon that turns to a tick.
-  const row = (label: string, value: string, what?: string, raw?: string) =>
-    what && raw ? (
-      <button
-        type="button"
-        className="dc-row dc-row-copy"
-        aria-label={`${label}: ${value}. Copy`}
-        onClick={() => copy(what, raw)}
-      >
-        <span>
-          <small>{label}</small>
-          <strong>{value}</strong>
-        </span>
-        <Icon name={copied === what ? 'check' : 'copy'} size={16} />
-      </button>
-    ) : (
-      <div className="dc-row">
-        <span>
-          <small>{label}</small>
-          <strong>{value}</strong>
-        </span>
-      </div>
-    )
+  const cell = (label: string, value: string, className = '') => (
+    <button
+      type="button"
+      className={`dc-cell ${className}`}
+      aria-label={`${label}: ${value}. Copy`}
+      onClick={() => copy(label, value)}
+    >
+      <span>
+        <small>{label}</small>
+        <strong>{value}</strong>
+      </span>
+      <Icon name="copy" size={14} />
+    </button>
+  )
   return (
     <div className="w-screen dc">
-      <ScreenHead title="Card details" onBack={onClose} />
+      <ScreenHead title="Card details" onBack={onClose}>
+        {details ? (
+          <span className="dc-clock">
+            <Icon name="clock" size={13} />
+            {left} s
+          </span>
+        ) : null}
+      </ScreenHead>
       <div className="dc-pad">
-        <span className="dc-details-box">
-          <img src="/art/card-coral.png" alt="Your Kova dollar card" className="dc-details-card" />
-          <CardBrand brand={details?.brand} className="dc-brand dc-brand-lg" />
-        </span>
-        {error ? (
-          <p className="form-error">{error}</p>
-        ) : (
-          <div className="dc-section">
-            {row(
-              'Card number',
-              details ? details.number.replace(/(\d{4})(?=\d)/g, '$1 ') : 'Opening…',
-              'number',
-              details?.number,
-            )}
-            <div className="dc-split">
-              {row(
-                'Expires',
-                details ? `${details.exp_month}/${details.exp_year.slice(-2)}` : '··/··',
-              )}
-              {row('CVV', details?.cvv ?? '···', 'cvv', details?.cvv)}
+        <div className="dc-plastic" data-back={back ? 'yes' : 'no'}>
+          <div className="dc-plastic-turn">
+            <div className="dc-face" aria-hidden={back}>
+              <svg className="dc-face-mark" viewBox="0 0 354 223" aria-hidden="true">
+                <path d="M236 44v136" strokeWidth="20" />
+                <path
+                  d="M264 80a44 44 0 0 1 0 64M286 62a72 72 0 0 1 0 100M308 44a100 100 0 0 1 0 136"
+                  strokeWidth="15"
+                />
+              </svg>
+              <span className="dc-face-logo">kova</span>
+              <span className="dc-face-kind">VIRTUAL</span>
+              <Chip />
+              <svg className="dc-face-tap" viewBox="0 0 20 24" aria-hidden="true">
+                <path d="M3 8a6 6 0 0 1 0 8M8 5a10 10 0 0 1 0 14M13 2a14 14 0 0 1 0 20" />
+              </svg>
+              <button
+                type="button"
+                className="dc-print dc-face-number"
+                disabled={!details || back}
+                aria-label="Copy card number"
+                onClick={() => details && copy('Card number', details.number)}
+              >
+                {details ? details.number.replace(/(\d{4})(?=\d)/g, '$1 ') : '•••• •••• •••• ••••'}
+                <Icon name="copy" size={16} />
+              </button>
+              <button
+                type="button"
+                className="dc-print dc-face-expiry"
+                disabled={!details || back}
+                aria-label={`Copy expiry ${expiry}`}
+                onClick={() => copy('Expiry', expiry)}
+              >
+                <small>
+                  VALID
+                  <br />
+                  THRU
+                </small>
+                {expiry}
+              </button>
+              <button
+                type="button"
+                className="dc-print dc-face-name"
+                disabled={!details || back}
+                aria-label="Copy name on card"
+                onClick={() => details && copy('Name', details.name)}
+              >
+                {details?.name ?? ''}
+              </button>
+              <CardBrand brand={details?.brand ?? 'mastercard'} className="dc-face-brand" />
             </div>
-            {row('Name on card', details?.name ?? '', 'name', details?.name)}
+            <div className="dc-face dc-face-back" aria-hidden={!back}>
+              <i className="dc-stripe" />
+              <small className="dc-back-label">SECURITY CODE</small>
+              <div className="dc-back-panel">
+                <i className="dc-signature" />
+                <button
+                  type="button"
+                  className="dc-cvv"
+                  disabled={!details || !back}
+                  aria-label="Copy CVV"
+                  onClick={() => details && copy('CVV', details.cvv)}
+                >
+                  {details?.cvv ?? '···'}
+                  <Icon name="copy" size={14} />
+                </button>
+              </div>
+              <p className="dc-back-note">For online and phone payments. Never share it.</p>
+              <span className="dc-back-logo">kova</span>
+              <CardBrand brand={details?.brand ?? 'mastercard'} className="dc-back-brand" />
+            </div>
           </div>
-        )}
+        </div>
+
+        <div className="dc-plastic-actions">
+          <button type="button" className="dc-pill" onClick={() => setBack((b) => !b)}>
+            <Icon name="swap" size={15} />
+            {back ? 'Show front' : 'Show CVV'}
+          </button>
+          <button
+            type="button"
+            className="dc-pill dc-pill-ink"
+            disabled={!details}
+            onClick={() => details && copy('Card number', details.number)}
+          >
+            <Icon name="copy" size={15} />
+            Copy number
+          </button>
+        </div>
+
+        {error ? <p className="form-error">{error}</p> : null}
+
         {address && !error ? (
           <>
-            <div className="dc-billing-head">
+            <div className="dc-grid-head">
               <strong>Billing address</strong>
-              <small>
-                When a checkout asks for the card’s billing address, use this. It’s the card’s
-                address, not your home.
-              </small>
+              <small>The card’s, not your home</small>
             </div>
-            <div className="dc-section dc-billing">
-              {row('Street', street, 'street', street)}
-              <div className="dc-split">
-                {row('City', address.city, 'city', address.city)}
-                {row('State', stateName(address.state), 'state', stateName(address.state))}
-              </div>
-              <div className="dc-split">
-                {row('ZIP code', address.postal_code, 'zip', address.postal_code)}
-                {row('Country', countryName(address.country))}
-              </div>
+            <div className="dc-grid">
+              {cell('Street', street, 'dc-cell-wide')}
+              {cell('City', address.city)}
+              {cell('State', stateName(address.state))}
+              {cell('ZIP code', address.postal_code)}
+              {cell('Country', countryName(address.country))}
             </div>
           </>
         ) : null}
-        {details ? (
-          <div className="dc-timer">
-            <i style={{ width: `${(left / SHOWN_FOR) * 100}%` }} />
-            <p>
-              <span>Hides by itself</span>
-              <strong>{left} s</strong>
-            </p>
-          </div>
-        ) : null}
-        <p className="dc-note">
-          <Icon name="lock" size={15} />
-          Only you can see this. It comes straight from Nuvion, and Kova never stores your card
-          number or CVV.
+
+        <p className="dc-note dc-note-quiet">
+          <Icon name="lock" size={13} />
+          Only you can see this. Kova never stores your card number.
         </p>
       </div>
+      <output className="dc-toast" data-on={copied ? 'yes' : 'no'} key={copied?.at}>
+        <Icon name="check" size={16} />
+        {copied ? `${copied.what} copied` : ''}
+      </output>
     </div>
+  )
+}
+
+/** The EMV chip: gold, with its contact pads. */
+function Chip() {
+  return (
+    <svg className="dc-face-chip" viewBox="0 0 46 35" aria-hidden="true">
+      <defs>
+        <linearGradient id="dc-chip-gold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#F3DB9A" />
+          <stop offset="0.5" stopColor="#D9B866" />
+          <stop offset="1" stopColor="#C49A48" />
+        </linearGradient>
+      </defs>
+      <rect
+        x="0.5"
+        y="0.5"
+        width="45"
+        height="34"
+        rx="6"
+        fill="url(#dc-chip-gold)"
+        stroke="#A8823A"
+      />
+      <path
+        d="M0.5 12h14M0.5 23h14M31.5 12h14M31.5 23h14M14.5 0.5v34M31.5 0.5v34M14.5 17.5h17"
+        stroke="#A8823A"
+        fill="none"
+      />
+    </svg>
   )
 }
 
