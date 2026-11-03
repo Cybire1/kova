@@ -61,17 +61,20 @@
   backdrop-filter: blur(12px);
 }
 
+/* The wallet's logo stays small on every screen, as in the app: the page leads, not the brand. */
+.w-top .brand > svg:first-child {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.w-top .brand > svg:nth-child(2) {
+  width: 2.84rem;
+  height: 1.125rem;
+}
+
 @media (max-width: 640px) {
   .w-top {
     padding-block: 0.625rem;
-  }
-  .w-top .brand > svg:first-child {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-  .w-top .brand > svg:nth-child(2) {
-    width: 2.68rem;
-    height: 1.0625rem;
   }
 }
 
