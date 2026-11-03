@@ -1,7 +1,6 @@
 import { formatMon, monInDollars } from '@kova/monad'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
-import * as WebBrowser from 'expo-web-browser'
 import { useCallback, useEffect, useState } from 'react'
 import {
   Pressable,
@@ -15,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
 import { getSummary, naira } from '@/lib/api'
 import { getMonUsd } from '@/lib/chain'
-import { isTestnet, webUrl } from '@/lib/config'
+import { isTestnet } from '@/lib/config'
 import { formatUsd } from '@/lib/money'
 import { useOffline } from '@/lib/offline'
 import { usePrefs } from '@/lib/prefs'
@@ -127,7 +126,7 @@ export default function Home() {
   }, [])
   const ramp = nairaOn === false && !isTestnet
   const cashOut = useCallback(() => {
-    if (ramp) void WebBrowser.openBrowserAsync(`${webUrl}/wallet/cash-out`)
+    if (ramp) router.push('/cash-out-world')
     else router.push('/cash-out')
   }, [ramp])
 
@@ -264,6 +263,21 @@ export default function Home() {
           <Icon name="arrow" size={18} color={colors.dark} />
         </View>
       </Pressable>
+
+      {isTestnet ? null : (
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel="Cash out to another country"
+          onPress={() => router.push('/cash-out-world')}
+          hitSlop={8}
+          style={({ pressed }) => [styles.elsewhere, pressed && { opacity: 0.6 }]}
+        >
+          <Txt weight="semi" size={14} color={colors.muted}>
+            Cash out to another country: US, Canada, UK, Europe, Ghana, Kenya and more
+          </Txt>
+          <Icon name="arrow" size={14} color={colors.muted} />
+        </Pressable>
+      )}
 
       <KeysOnHome />
 
@@ -550,6 +564,13 @@ function ShopCard() {
 }
 
 const styles = StyleSheet.create({
+  elsewhere: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingHorizontal: 6,
+  },
   words: {
     flexDirection: 'row',
     alignItems: 'center',

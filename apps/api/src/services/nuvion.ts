@@ -627,3 +627,169 @@ export async function cardPayments(cardId: string, entityId: string): Promise<Ca
     }
   })
 }
+
+// --- Payouts: cash-outs to banks, mobile money and wallets worldwide ------------------------------
+
+/** One bank in a country's directory, as Nuvion lists it. */
+export interface NuvionBank {
+  bank_name: string
+  bank_code?: string
+  swift_bic?: string
+  bank_institution_number?: string
+}
+
+/** A country's bank directory (empty where Nuvion has none and the bank is typed instead). */
+export async function bankCodes(country: string): Promise<NuvionBank[]> {
+  const data = await nuvion<NuvionBank[]>(`/bank-codes/${encodeURIComponent(country)}`)
+  return Array.isArray(data) ? data : []
+}
+
+export interface FxQuote {
+  id: string
+  rate: number
+  /** Smallest unit of the destination currency. */
+  amountTo: number
+  expiresAt: Date
+}
+
+/** A rate locked for a few minutes, from Kova's pot (its own margin applies) into `to`. */
+export async function fxQuote(to: string, cents: number): Promise<FxQuote> {
+  if (!config.NUVION_POT_ACCOUNT)
+    throw new KovaError('conflict', 'Cashing out isn’t switched on for this server yet.')
+  const data = await nuvion<{
+    id: string
+    rate: number
+    amount_to: number
+    quote?: { expires_at?: number; valid_for?: number }
+  }>('/fx-quotes', {
+    method: 'POST',
+    body: {
+      from_currency: 'USD',
+      to_currency: to,
+      amount_from: cents,
+      account_id: config.NUVION_POT_ACCOUNT,
+    },
+  })
+  const expires =
+    data.quote?.expires_at ?? Date.now() + Math.max(30, data.quote?.valid_for ?? 120) * 1000
+  return { id: data.id, rate: data.rate, amountTo: data.amount_to, expiresAt: new Date(expires) }
+}
+
+/** What's in Kova's pot to pay out now, in cents. */
+export async function potCents(): Promise<number> {
+  if (!config.NUVION_POT_ACCOUNT)
+    throw new KovaError('conflict', 'Cashing out isn’t switched on for this server yet.')
+  const data = await nuvion<AccountReply>(
+    `/accounts/${encodeURIComponent(config.NUVION_POT_ACCOUNT)}`,
+  )
+  return data.account.balance?.available ?? 0
+}
+
+/**
+ * Someone Kova pays out to: a counterparty of Kova's own entity, with their name, email and address
+ * (Nuvion needs all three), then the one payment detail that says where the money goes.
+ */
+export async function createRecipient(
+  person: { firstName: string; lastName: string; email: string; address: PayeeAddress },
+  detail: Record<string, unknown>,
+): Promise<{ counterpartyId: string; paymentDetailId: string }> {
+  const party = await nuvion<{ id?: string; counterparty?: { id: string } }>('/counterparties', {
+    method: 'POST',
+    body: {
+      type: 'individual',
+      profile: {
+        first_name: person.firstName,
+        last_name: person.lastName,
+        relationship: 'customer',
+        email: person.email,
+        address: {
+          line1: person.address.line1,
+          city: person.address.city,
+          ...(person.address.state ? { state_or_province: person.address.state } : {}),
+          ...(person.address.postalCode ? { postal_code: person.address.postalCode } : {}),
+          country: person.address.country,
+        },
+      },
+    },
+  })
+  const counterpartyId = party.counterparty?.id ?? party.id
+  if (!counterpartyId) throw new NuvionRefused(500, undefined, 'No counterparty id came back.')
+  const made = await nuvion<{ id?: string; payment_detail?: { id: string } }>('/payment-details', {
+    method: 'POST',
+    body: { ...detail, counterparty_id: counterpartyId },
+  })
+  const paymentDetailId = made.payment_detail?.id ?? made.id
+  if (!paymentDetailId) throw new NuvionRefused(500, undefined, 'No payment detail id came back.')
+  return { counterpartyId, paymentDetailId }
+}
+
+export interface NuvionTransfer {
+  id: string
+  status: string
+  statusReason: string | null
+  /** Nuvion's fee on the transfer, in the source currency's smallest unit, when it says. */
+  fee: number | null
+}
+
+type TransferReply = {
+  id?: string
+  _id?: string
+  status?: string
+  status_reason?: string
+  applicable_fee?: number
+  transfer?: { id: string; status?: string; status_reason?: string; applicable_fee?: number }
+}
+
+const transferOf = (d: TransferReply): NuvionTransfer => {
+  const t = d.transfer ?? d
+  return {
+    id: (t.id ?? d._id) as string,
+    status: t.status ?? 'pending',
+    statusReason: t.status_reason ?? null,
+    fee: typeof t.applicable_fee === 'number' ? t.applicable_fee : null,
+  }
+}
+
+/**
+ * Pays `cents` out of Kova's pot to a recipient, converted at `fxQuoteId` when it isn't USD.
+ * `reference` is unique per payout: a second try with it is refused (409), never paid twice.
+ */
+export async function sendPayout(input: {
+  counterpartyId: string
+  paymentDetailId: string
+  paymentType: string
+  cents: number
+  reference: string
+  fxQuoteId?: string | null
+}): Promise<NuvionTransfer> {
+  if (!config.NUVION_POT_ACCOUNT)
+    throw new KovaError('conflict', 'Cashing out isn’t switched on for this server yet.')
+  const data = await nuvion<TransferReply>('/transfers', {
+    method: 'POST',
+    body: {
+      account_id: config.NUVION_POT_ACCOUNT,
+      counterparty_id: input.counterpartyId,
+      payment_detail_id: input.paymentDetailId,
+      payment_type: input.paymentType,
+      currency: 'USD',
+      amount: input.cents,
+      narration: 'Kova cash out',
+      unique_reference: input.reference,
+      ...(input.fxQuoteId ? { fx_quote_id: input.fxQuoteId } : {}),
+    },
+  })
+  return transferOf(data)
+}
+
+export async function payoutTransfer(id: string): Promise<NuvionTransfer> {
+  return transferOf(await nuvion<TransferReply>(`/transfers/${encodeURIComponent(id)}`))
+}
+
+/** The transfer made with `reference`, for a retry Nuvion refused as a duplicate (it says no more). */
+export async function payoutByReference(reference: string): Promise<NuvionTransfer | null> {
+  const page = await nuvion<{ data?: TransferReply[] } | TransferReply[]>(
+    `/transfers?unique_reference=${encodeURIComponent(reference)}&type=outflow&limit=5`,
+  )
+  const list = Array.isArray(page) ? page : (page.data ?? [])
+  return list[0] ? transferOf(list[0]) : null
+}

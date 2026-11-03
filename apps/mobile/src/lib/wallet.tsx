@@ -55,6 +55,7 @@ import { signOfflinePayment } from './offline-core'
 import { offlineArrival, offlineEntryId } from './offline-store'
 import { kovaWebAuthnClient, takeVaultOutput } from './passkey'
 import { forgetLink, linkArrival, linkKey, markClaiming, newLinkKey, setLinkId } from './paylinks'
+import { inCurrency, type Payout, payPayout } from './payouts'
 import { fetchReceivingKey, type PrivateReceipt, UntrustedKey } from './private-core'
 import { ensureReceiving, forgetReceiving, isPrivateAddress, resetScan } from './private-store'
 import { secretFromWords, wordsFor } from './recovery'
@@ -207,6 +208,8 @@ interface Wallet {
   payCheckout: (checkout: Checkout, options?: { signer?: LocalAccount }) => Promise<Entry>
   /** Cashes out to a Nigerian bank: signs the quote's exact transfer to Kova's treasury; Kova pays the naira (app/cash-out.tsx). */
   cashOutNaira: (cashOut: CashOutToPay) => Promise<CashOutToPay>
+  /** A cash-out through Nuvion, to any country: signs the quoted payout's transfer and records it. */
+  cashOutWorld: (payout: Payout) => Promise<Payout>
   /**
    * Sends dollars to a person. `privately`: to a fresh one-time address made from their published
    * key, checked against their own signature first; Monad shows the amount, but not who got it.
@@ -954,6 +957,29 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [unlock, record, refresh],
   )
 
+  const cashOutWorld = useCallback(
+    async (payout: Payout) => {
+      const amount = BigInt(payout.pay.value)
+      const account = await unlock(amount)
+      const paid = await payPayout(account, payout)
+      spend(amount)
+      if (paid.tx_hash)
+        await record({
+          id: newId(),
+          kind: 'sent',
+          amount: payout.pay.value,
+          name: `Cash out to ${payout.recipient?.name ?? 'your account'}`,
+          detail: `${inCurrency(paid.amount_to, paid.currency)} to ${payout.recipient?.label ?? 'your account'}`,
+          ...(payout.pay.to ? { address: getAddress(payout.pay.to) } : {}),
+          txHash: paid.tx_hash,
+          at: Date.now(),
+        })
+      void refresh()
+      return paid
+    },
+    [unlock, record, refresh],
+  )
+
   const rememberContact = useCallback(async (contact: Contact) => {
     setSavedContacts((prev) => {
       const before = prev.find((c) => isAddressEqual(c.address, contact.address))
@@ -1346,6 +1372,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     addMoney,
     payCheckout,
     cashOutNaira,
+    cashOutWorld,
     send,
     makeLink,
     signOffline,

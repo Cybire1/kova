@@ -9667,3 +9667,378 @@ button.w-chip-private:disabled {
     animation: none;
   }
 }
+
+/* Cash out to any country (cash-out-world.tsx): saved accounts, countries, rails, the form,
+   the amount, the locked quote and the payout's progress. */
+.cw-list {
+  display: grid;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+  border: 2px solid var(--line);
+  border-radius: 1.375rem;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.cw-list li + li {
+  border-top: 2px solid var(--sunken);
+}
+
+.cw-row,
+.cw-rail {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cw-row:hover {
+  background: var(--sunken);
+}
+
+.cw-rail {
+  border-radius: 1.125rem;
+  background: var(--sunken);
+  cursor: default;
+}
+
+.cw-flag {
+  font-size: 1.625rem;
+  line-height: 1;
+}
+
+.cw-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.cw-text strong {
+  font-size: 1rem;
+}
+
+.cw-text small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.cw-chip {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  color: var(--teal-deep);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.cw-gap {
+  margin-top: 1.125rem;
+}
+
+.cw-search,
+.cw-field input {
+  width: 100%;
+  height: 3.125rem;
+  padding: 0 1rem;
+  border: 2px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--ink);
+  font: 600 1rem var(--font);
+}
+
+.cw-search {
+  margin-top: 0.75rem;
+}
+
+.cw-form {
+  display: grid;
+  gap: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.cw-field {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.cw-field > span {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.cw-section {
+  display: grid;
+  gap: 0.125rem;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.cw-section strong {
+  font-size: 1rem;
+}
+
+.cw-section small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.cw-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cw-options button,
+.cw-picked {
+  height: 2.5rem;
+  padding: 0 1rem;
+  border: 2px solid var(--line);
+  border-radius: 1.25rem;
+  background: transparent;
+  color: var(--ink);
+  font: 600 0.875rem var(--font);
+  cursor: pointer;
+}
+
+.cw-options button[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.cw-picked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3.125rem;
+  border-radius: 1rem;
+  background: var(--surface);
+  font-size: 1rem;
+}
+
+.cw-picked small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.cw-banks {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 2px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.cw-banks li + li {
+  border-top: 2px solid var(--sunken);
+}
+
+.cw-banks button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 600 0.9375rem var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cw-amount {
+  display: grid;
+  gap: 0.625rem;
+  justify-items: stretch;
+  margin-top: 0.5rem;
+}
+
+.cw-to {
+  justify-self: center;
+  max-width: 100%;
+  padding: 0.375rem 0.875rem;
+  border-radius: 999px;
+  background: var(--sunken);
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cw-typed {
+  justify-self: center;
+  font-size: 3.5rem;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.cw-typed small {
+  color: var(--muted);
+  font-size: 1.875rem;
+  vertical-align: top;
+}
+
+.cw-gets {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: center;
+}
+
+.cw-gets strong {
+  color: var(--ink);
+}
+
+.cw-review {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.cw-hero {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  margin: 0;
+}
+
+.cw-hero small {
+  color: var(--muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.cw-hero strong {
+  font-size: 2.5rem;
+  letter-spacing: -0.04em;
+}
+
+.cw-facts {
+  margin: 0;
+  border: 2px solid var(--line);
+  border-radius: 1.375rem;
+  background: var(--surface);
+}
+
+.cw-facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+}
+
+.cw-facts div + div {
+  border-top: 2px solid var(--sunken);
+}
+
+.cw-facts dt {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.cw-facts dd {
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cw-held {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.cw-held[data-out="yes"] {
+  color: var(--danger);
+}
+
+.cw-stages {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 2px solid var(--line);
+  border-radius: 1.375rem;
+  background: var(--surface);
+}
+
+.cw-stages li {
+  display: grid;
+  gap: 0.125rem;
+  padding: 0.875rem 1rem 0.875rem 3rem;
+  position: relative;
+}
+
+.cw-stages li + li {
+  border-top: 2px solid var(--sunken);
+}
+
+.cw-stages li::before {
+  content: "";
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.cw-stages li[data-state="done"]::before {
+  border-color: var(--positive);
+  background: var(--positive);
+}
+
+.cw-stages li[data-state="active"]::before {
+  border-color: var(--ink);
+  box-shadow:
+    inset 0 0 0 3px var(--surface),
+    inset 0 0 0 8px var(--ink);
+}
+
+.cw-stages li[data-state="failed"]::before {
+  border-color: var(--danger);
+  background: var(--danger);
+}
+
+.cw-stages li[data-state="pending"] strong {
+  color: var(--muted);
+}
+
+.cw-stages small {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.w-elsewhere {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.625rem;
+  padding: 0 0.375rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.w-elsewhere:hover {
+  color: var(--ink);
+}

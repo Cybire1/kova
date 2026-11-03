@@ -1412,6 +1412,77 @@ export const cardWithdrawals = pgTable(
   ],
 )
 
+/**
+ * Where a wallet cashes out through Nuvion: a bank, a mobile-money number or a wallet, in any of the
+ * countries Kova pays out to. The details live at Nuvion (a counterparty and its payment detail);
+ * Kova keeps only their ids and a masked label.
+ */
+export const payoutRecipients = pgTable(
+  'payout_recipients',
+  {
+    id: id(),
+    /** Lowercase. */
+    wallet: address('wallet').notNull(),
+    network: network('network').notNull(),
+    /** The rail, from services/payout-corridors.ts (us_rtp, ca_interac_email, ke_momo…). */
+    corridor: text('corridor').notNull(),
+    /** The account's country and the currency it receives. */
+    country: text('country').notNull(),
+    currency: text('currency').notNull(),
+    holderName: text('holder_name').notNull(),
+    /** What Kova shows for it, never the whole number: "RBC •••• 6789". */
+    label: text('label').notNull(),
+    counterpartyId: text('counterparty_id').notNull(),
+    paymentDetailId: text('payment_detail_id').notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('payout_recipients_wallet_idx').on(t.wallet, t.network, t.createdAt)],
+)
+
+/**
+ * A cash-out through Nuvion: quoted (a rate locked for a few minutes), received (the wallet's AUSD
+ * reached Kova on Monad), sending (Nuvion is paying it out of Kova's pot), then paid, or refunding
+ * and failed (the dollars went back to the wallet). Paid out once: its reference is unique at Nuvion.
+ */
+export const payouts = pgTable(
+  'payouts',
+  {
+    id: id(),
+    network: network('network').notNull(),
+    /** Lowercase. */
+    wallet: address('wallet').notNull(),
+    recipientId: uuid('recipient_id').notNull(),
+    /** AUSD the wallet sends, base units. */
+    amount: amount('amount').notNull(),
+    /** Kova's fee within it, base units. */
+    fee: amount('fee').notNull().default(0n),
+    /** What the account receives, in its currency's smallest unit. */
+    currency: text('currency').notNull(),
+    amountTo: bigint('amount_to', { mode: 'bigint' }).notNull(),
+    /** The currency's units per dollar, as quoted. */
+    rate: text('rate').notNull(),
+    fxQuoteId: text('fx_quote_id'),
+    /** quoted | received | sending | paid | refunding | failed */
+    status: text('status').notNull().default('quoted'),
+    txHash: text('tx_hash'),
+    transferId: text('transfer_id'),
+    /** Nuvion's fee on the transfer, in cents, when it says. */
+    providerFee: bigint('provider_fee', { mode: 'bigint' }),
+    refundTxHash: text('refund_tx_hash'),
+    failure: text('failure'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('payouts_wallet_idx').on(t.wallet, t.network, t.createdAt),
+    index('payouts_status_idx').on(t.network, t.status),
+    uniqueIndex('payouts_tx_idx').on(t.txHash),
+  ],
+)
+
 /** Each move into or out of savings, so "earned" is what the vault holds less what went in. */
 export const savingsMoves = pgTable(
   'savings_moves',

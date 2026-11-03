@@ -100,6 +100,15 @@ export function Profile() {
 
       {/* Mainnet only: on testnet there's nothing real to cash out. */}
       {network === 'mainnet' ? (
+        <Link href="/wallet/cash-out/world" className="w-add-chain">
+          <span>
+            <strong>Cash out to any country</strong>
+            <small>Banks, mobile money and Interac, in 20+ countries</small>
+          </span>
+          <Icon name="out" size={16} />
+        </Link>
+      ) : null}
+      {network === 'mainnet' ? (
         <Link href="/wallet/cash-out" className="w-add-chain">
           <span>
             <strong>Cash out</strong>

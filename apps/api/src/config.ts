@@ -143,6 +143,8 @@ const schema = z.object({
    */
   KOVA_CARD_OWNER_WALLETS: z.string().optional(),
   KOVA_CARD_OWNER_NAME: z.string().default('Kova Team'),
+  /** Kova's fee on a cash-out through Nuvion, in basis points of what the wallet sends (0: none). */
+  KOVA_PAYOUT_FEE_BPS: z.coerce.number().int().min(0).max(1000).default(0),
   /** Kova's fee on each top-up, in basis points: 50 is 0.5%, paid on top of what lands on the card. */
   KOVA_CARD_TOPUP_FEE_BPS: z.coerce.number().int().min(0).max(1000).default(50),
   /** Savings: an ERC-4626 vault for the settlement dollar, and the KovaSaver in front of it. */

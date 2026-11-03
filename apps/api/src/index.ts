@@ -20,6 +20,7 @@ import { mcpRoutes } from './routes/mcp.js'
 import { moneyRoutes } from './routes/money.js'
 import { nairaRoutes } from './routes/naira.js'
 import { orderRoutes } from './routes/orders.js'
+import { payoutRoutes } from './routes/payouts.js'
 import { phoneRoutes } from './routes/phone.js'
 import { programRoutes } from './routes/programs.js'
 import { rateRoutes } from './routes/rates.js'
@@ -39,6 +40,7 @@ import { startDemo } from './services/demo.js'
 import { creditTopups, settleWithdrawals } from './services/dollar-card.js'
 import { expireStaleIntents } from './services/intents.js'
 import { checkPayingCashOuts, retryTopUps } from './services/naira.js'
+import { settlePayouts } from './services/payouts.js'
 import { recoverPhonePayments } from './services/phone-payments.js'
 import { reconcilePendingPockets } from './services/pockets.js'
 import { collectDueRepeats, releaseSplitters } from './services/programs.js'
@@ -75,6 +77,7 @@ app.route('/v1', insightRoutes)
 app.route('/v1', walletRoutes)
 app.route('/v1', nairaRoutes)
 app.route('/v1', moneyRoutes)
+app.route('/v1', payoutRoutes)
 app.route('/v1', linkRoutes)
 app.route('/v1', takingsRoutes)
 app.route('/v1', businessRoutes)
@@ -138,6 +141,11 @@ if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js
   setInterval(
     () => void creditTopups().catch((error) => console.error('[dollar-card]', error)),
     60_000,
+  )
+  // Cash-outs through Nuvion: each one followed to paid, or its dollars sent back.
+  setInterval(
+    () => void settlePayouts().catch((error) => console.error('[payouts]', error)),
+    30_000,
   )
   // Money that left a card but hasn't reached the wallet yet is finished until it has.
   setInterval(

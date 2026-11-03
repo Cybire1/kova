@@ -202,6 +202,29 @@ export default function Profile() {
         </Sticker>
       )}
 
+      {/* Banks, mobile money, Interac and USDC wallets in 20+ countries, through Nuvion. */}
+      {isTestnet ? null : (
+        <Sticker
+          radius={24}
+          accessibilityLabel="Cash out to any country"
+          onPress={() => router.push('/cash-out-world')}
+          style={{ height: 62, marginTop: 14 }}
+        >
+          <View style={[styles.cashOut, { gap: 14 }]}>
+            <Txt size={22}>🌍</Txt>
+            <View style={{ flex: 1 }}>
+              <Txt weight="semi" size={16}>
+                Cash out to any country
+              </Txt>
+              <Txt size={13} color={colors.muted} numberOfLines={1}>
+                Banks, mobile money and Interac, in 20+ countries
+              </Txt>
+            </View>
+            <Icon name="arrow" size={20} />
+          </View>
+        </Sticker>
+      )}
+
       {/* Naira through Paystack: dollars to any Nigerian bank account (app/cash-out.tsx). */}
       <NairaRow />
 

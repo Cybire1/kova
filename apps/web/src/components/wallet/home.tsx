@@ -81,7 +81,7 @@ export function Home() {
 
       {/* Cash out, where everyone sees it: to any Nigerian bank (naira), or with Ramp elsewhere. */}
       <Link
-        href={naira?.enabled === false ? '/wallet/cash-out' : '/wallet/cash-out/naira'}
+        href={naira?.enabled === false ? '/wallet/cash-out/world' : '/wallet/cash-out/naira'}
         className="w-cashout"
       >
         <span className="w-cashout-text">
@@ -102,6 +102,12 @@ export function Home() {
           <Icon name="arrow" size={18} />
         </span>
       </Link>
+      {network === 'mainnet' ? (
+        <Link href="/wallet/cash-out/world" className="w-elsewhere">
+          Cash out to another country: US, Canada, UK, Europe, Ghana, Kenya and more
+          <Icon name="arrow" size={14} />
+        </Link>
+      ) : null}
 
       {/* Savings and the dollar card, right under cash-out, where people look for their money. */}
       <MoneyRow />
