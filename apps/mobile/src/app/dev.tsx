@@ -59,7 +59,7 @@ import { booksMessage } from '@/ui/Takings'
 
 /**
  * Development only: `kova://dev?name=Maya&cur=EUR&fund=1&mode=pay&to=/send` sets up a wallet
- * (`fake=1` makes it from a random key, without the passkey sheet)
+ * (`fake=1` makes it from a random key, without the passkey sheet, publishing no keys unless `publish=1`)
  * and jumps to a screen; `pay=<charge>` or `send=<address>&amount=<base units>&payee=<name>` runs the real
  * payment code, so every screen can be reached on a simulator without tapping. `pair=<code>`
  * pairs this phone as a terminal, `unpair=1` forgets it, `rename=<address>:<name>` names a contact,
@@ -201,6 +201,7 @@ export default function Dev() {
     name?: string
     cur?: string
     fake?: string
+    publish?: string
     fund?: string
     mode?: string
     /** Appearance: system, light or dark, as You sets it. */
@@ -343,8 +344,13 @@ export default function Dev() {
           progress.current.created = true
           setStep('creating wallet')
           // fake=1: no passkey sheet, for a simulator nobody is tapping.
+          // It publishes no keys (so it isn't counted as a person) unless `publish=1` asks for them.
           if (params.fake && wallet.createForDev)
-            await wallet.createForDev(params.name, (params.cur as DisplayCurrency) || 'USD')
+            await wallet.createForDev(
+              params.name,
+              (params.cur as DisplayCurrency) || 'USD',
+              params.publish === '1',
+            )
           else await wallet.create(params.name, (params.cur as DisplayCurrency) || 'USD')
           return
         }

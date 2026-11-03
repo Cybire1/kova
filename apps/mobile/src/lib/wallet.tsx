@@ -98,6 +98,11 @@ export interface Profile {
   passkey?: { credentialId: string; transports?: readonly string[] }
   /** The App Review demo account: opened with a username and password, on testnet only. */
   demo?: boolean
+  /**
+   * Development only: a simulator's throwaway wallet that publishes no keys, so testing screens
+   * doesn't add people to Kova's stats (they count wallets that published a key).
+   */
+  quiet?: boolean
   auth?: 'google'
   email?: string
   /** Opened from recovery words rather than a passkey: only the words bring it back. */
@@ -182,7 +187,8 @@ interface Wallet {
    * be tapped through, so the dev link reaches every screen. It keeps no secret: its session is
    * all it has, and it ends with the app.
    */
-  createForDev?: (name: string, currency: DisplayCurrency) => Promise<void>
+  /** Development only. `publish`: give Kova its note and private-receiving keys (off by default). */
+  createForDev?: (name: string, currency: DisplayCurrency, publish?: boolean) => Promise<void>
   /**
    * Opens the App Review demo account (testnet): Kova checks the username and password and gives
    * back the wallet's secret, which this phone keeps instead of a passkey's.
@@ -302,7 +308,12 @@ function passkeyProblem(error: unknown): string {
  * Opens a signing session from the passkey's secret, and checks it is this wallet's. `locked`: the
  * keys made from it are kept behind Face ID (false only for the demo account and dev wallets).
  */
-async function begin(prf: Uint8Array, expected?: Address, locked = true): Promise<LocalAccount> {
+async function begin(
+  prf: Uint8Array,
+  expected?: Address,
+  locked = true,
+  publish = true,
+): Promise<LocalAccount> {
   const { session, account } = await openSigningSession(prf)
   prf.fill(0)
   if (expected && !isAddressEqual(account.address, expected)) {
@@ -310,6 +321,7 @@ async function begin(prf: Uint8Array, expected?: Address, locked = true): Promis
     throw new Error('That passkey belongs to a different Kova wallet.')
   }
   startSession(session, account)
+  if (!publish) return account
   // So people can send this wallet private notes. Quiet: a note key is a nicety, not a payment.
   void ensureNoteKey(account).catch((error) => {
     if (__DEV__)
@@ -657,7 +669,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
       if (__DEV__ && !profile.protected) {
         const dev = await SecureStore.getItemAsync(DEV_PRF).catch(() => null)
-        if (dev) return begin(base64urlnopad.decode(dev), profile.address, false)
+        if (dev) return begin(base64urlnopad.decode(dev), profile.address, false, !profile.quiet)
       }
       const stored = await SecureStore.getItemAsync(PRF, {
         requireAuthentication: true,
@@ -1297,25 +1309,29 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [unlock],
   )
 
-  const createForDev = useCallback(async (name: string, currency: DisplayCurrency) => {
-    if (!__DEV__) throw new Error('Development only')
-    const entropy = crypto.getRandomValues(new Uint8Array(32))
-    await SecureStore.setItemAsync(DEV_PRF, base64urlnopad.encode(entropy))
-    // A stand-in for the passkey's second secret, so private notes work on a simulator too.
-    await keepVaultSecret(crypto.getRandomValues(new Uint8Array(32)))
-    const account = await begin(entropy, undefined, false)
-    const next: Profile = {
-      name: name.trim(),
-      address: account.address,
-      currency,
-      protected: false,
-      createdAt: Date.now(),
-    }
-    await save(PROFILE, next)
-    setProfile(next)
-    setBalance(0n)
-    setStatus('ready')
-  }, [])
+  const createForDev = useCallback(
+    async (name: string, currency: DisplayCurrency, publish = false) => {
+      if (!__DEV__) throw new Error('Development only')
+      const entropy = crypto.getRandomValues(new Uint8Array(32))
+      await SecureStore.setItemAsync(DEV_PRF, base64urlnopad.encode(entropy))
+      // A stand-in for the passkey's second secret, so private notes work on a simulator too.
+      await keepVaultSecret(crypto.getRandomValues(new Uint8Array(32)))
+      const account = await begin(entropy, undefined, false, publish)
+      const next: Profile = {
+        name: name.trim(),
+        address: account.address,
+        currency,
+        protected: false,
+        createdAt: Date.now(),
+        ...(publish ? {} : { quiet: true }),
+      }
+      await save(PROFILE, next)
+      setProfile(next)
+      setBalance(0n)
+      setStatus('ready')
+    },
+    [],
+  )
 
   const signInDemo = useCallback(async (username: string, password: string) => {
     const account = await demoSignIn(username, password)
