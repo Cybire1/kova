@@ -2,31 +2,36 @@ import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { type CardDetails, revealDollarCard } from '@/lib/partners'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { CardBrand } from '@/ui/CardBrand'
 import { Icon } from '@/ui/Icon'
 import { problemOf } from '@/ui/Money'
-import { RoundButton, Screen, Txt } from '@/ui/primitives'
+import { Header, Screen, Txt } from '@/ui/primitives'
 
 const cardArt = require('../../../assets/cards/coral.png')
 // Long enough to copy the number, expiry, CVV, name and each part of the address into a checkout.
 const SHOWN_FOR = 60
 
 /**
- * The card's number, expiry, CVV and billing address, read from Nuvion when you open this and gone
- * a minute later. Kova never stores them; copying puts one value on the clipboard. The address is
- * the card's own (what a checkout asks for with it), shown in the parts a checkout form asks for.
+ * The card's number, expiry, CVV and billing address, read from Nuvion when this opens and gone a
+ * minute later. Kova never stores them. The card shows its last four, as on the card screen; below,
+ * each value is one row: tap it to copy, and a note says what was copied.
+ * The billing address is the card's own (what a checkout asks for with it), in the parts a checkout
+ * form asks for.
  */
 export default function CardDetailsScreen() {
   const { profile, signMessage } = useWallet()
+  const insets = useSafeAreaInsets()
   const [details, setDetails] = useState<CardDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [left, setLeft] = useState(SHOWN_FOR)
   const [copied, setCopied] = useState<string | null>(null)
+  const toast = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
     if (!profile) return
@@ -45,187 +50,228 @@ export default function CardDetailsScreen() {
     if (left <= 0) router.back()
   }, [left])
 
-  const address = details?.billing_address ?? null
-
-  const copy = async (what: string, value: string) => {
+  const copy = async (label: string, value: string) => {
     await Clipboard.setStringAsync(value)
-    setCopied(what)
+    setCopied(label)
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+    toast.stopAnimation()
+    toast.setValue(0)
+    Animated.sequence([
+      Animated.timing(toast, { toValue: 1, duration: 160, useNativeDriver: true }),
+      Animated.delay(1200),
+      Animated.timing(toast, { toValue: 0, duration: 220, useNativeDriver: true }),
+    ]).start()
   }
+
+  const address = details?.billing_address ?? null
+  const street = address ? [address.line1, address.line2].filter(Boolean).join(', ') : ''
+  const expiry = details ? `${details.exp_month}/${details.exp_year.slice(-2)}` : ''
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.head}>
-          <Txt weight="bold" size={28} style={{ letterSpacing: -0.8 }}>
-            Card details
-          </Txt>
-          <RoundButton icon="close" label="Hide details" onPress={() => router.back()} />
-        </View>
+      <Header title="Card details" backIcon="close" onBack={() => router.back()} />
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 72 }]}>
         <View style={styles.cardBox}>
           <Image source={cardArt} style={styles.card} contentFit="contain" />
+          <View style={styles.numberOnCard}>
+            <Txt weight="bold" size={12} color={colors.white} style={{ letterSpacing: 1 }}>
+              •••• {details ? details.number.slice(-4) : '····'}
+            </Txt>
+          </View>
           <View style={styles.brandOnCard}>
-            <CardBrand brand={details?.brand} width={32} />
+            <CardBrand brand={details?.brand} width={36} />
           </View>
         </View>
-        {error ? (
-          <Txt weight="medium" size={15} color={colors.danger} style={{ margin: 20 }}>
-            {error}
-          </Txt>
-        ) : (
-          <View style={styles.section}>
-            <Row
-              label="Card number"
-              value={details ? group(details.number) : 'Opening…'}
-              big
-              copied={copied === 'number'}
-              onCopy={details ? () => void copy('number', details.number) : undefined}
-            />
-            <View style={[styles.split, styles.rule]}>
-              <View style={[styles.half, styles.divider]}>
-                <Row
-                  label="Expires"
-                  value={details ? `${details.exp_month}/${details.exp_year.slice(-2)}` : '··/··'}
-                  big
-                />
-              </View>
-              <View style={styles.half}>
-                <Row
-                  label="CVV"
-                  value={details?.cvv ?? '···'}
-                  big
-                  copied={copied === 'cvv'}
-                  onCopy={details ? () => void copy('cvv', details.cvv) : undefined}
-                />
-              </View>
-            </View>
-            <View style={styles.rule}>
-              <Row
-                label="Name on card"
-                value={details?.name ?? ''}
-                copied={copied === 'name'}
-                onCopy={details ? () => void copy('name', details.name) : undefined}
-              />
-            </View>
-          </View>
-        )}
-        {address && !error ? (
-          <>
-            <View style={styles.billingHead}>
-              <Txt weight="bold" size={17}>
-                Billing address
-              </Txt>
-              <Txt size={13} color={colors.muted} style={{ lineHeight: 18 }}>
-                When a checkout asks for the card’s billing address, use this. It’s the card’s
-                address, not your home.
-              </Txt>
-            </View>
-            <View style={[styles.section, { marginTop: 10 }]}>
-              <Row
-                label="Street"
-                value={[address.line1, address.line2].filter(Boolean).join(', ')}
-                copied={copied === 'street'}
-                onCopy={() =>
-                  void copy('street', [address.line1, address.line2].filter(Boolean).join(', '))
-                }
-              />
-              <View style={[styles.split, styles.rule]}>
-                <View style={[styles.half, styles.divider]}>
-                  <Row
-                    label="City"
-                    value={address.city}
-                    copied={copied === 'city'}
-                    onCopy={() => void copy('city', address.city)}
-                  />
-                </View>
-                <View style={styles.half}>
-                  <Row
-                    label="State"
-                    value={stateName(address.state)}
-                    copied={copied === 'state'}
-                    onCopy={() => void copy('state', stateName(address.state))}
-                  />
-                </View>
-              </View>
-              <View style={[styles.split, styles.rule]}>
-                <View style={[styles.half, styles.divider]}>
-                  <Row
-                    label="ZIP code"
-                    value={address.postal_code}
-                    copied={copied === 'zip'}
-                    onCopy={() => void copy('zip', address.postal_code)}
-                  />
-                </View>
-                <View style={styles.half}>
-                  <Row label="Country" value={countryName(address.country)} />
-                </View>
-              </View>
-            </View>
-          </>
-        ) : null}
+
         {details ? (
           <View style={styles.timer}>
             <View style={styles.track}>
               <View style={[styles.fill, { width: `${(left / SHOWN_FOR) * 100}%` }]} />
             </View>
-            <View style={styles.timerFoot}>
-              <Txt size={13} color={colors.muted}>
-                Hides by itself
-              </Txt>
-              <Txt weight="bold" size={13}>
-                {left} s
-              </Txt>
-            </View>
+            <Txt size={12} color={colors.muted}>
+              Hides in {left} s
+            </Txt>
           </View>
         ) : null}
-        <View style={styles.note}>
-          <Icon name="lock" size={15} color={colors.teal} />
-          <Txt size={13} color={colors.muted} style={{ flex: 1, lineHeight: 19 }}>
-            Only you can see this. It comes straight from Nuvion, and Kova never stores your card
-            number or CVV.
+
+        {error ? (
+          <Txt weight="medium" size={15} color={colors.danger} style={{ marginTop: 18 }}>
+            {error}
           </Txt>
-        </View>
+        ) : (
+          <>
+            <Section title="Card">
+              <Row
+                label="Card number"
+                value={details ? group(details.number) : 'Opening…'}
+                mono
+                rule
+                onCopy={details ? () => void copy('Card number', details.number) : undefined}
+              />
+              <Pair rule>
+                <Row
+                  label="Expires"
+                  value={expiry || '··/··'}
+                  mono
+                  onCopy={details ? () => void copy('Expiry', expiry) : undefined}
+                />
+                <Row
+                  label="CVV"
+                  value={details?.cvv ?? '···'}
+                  mono
+                  onCopy={details ? () => void copy('CVV', details.cvv) : undefined}
+                />
+              </Pair>
+              <Row
+                label="Name on card"
+                value={details?.name ?? ''}
+                onCopy={details ? () => void copy('Name', details.name) : undefined}
+              />
+            </Section>
+
+            {address ? (
+              <Section
+                title="Billing address"
+                note="For checkouts that ask for the card’s address. It’s the card’s, not your home."
+              >
+                <Row
+                  label="Street"
+                  value={street}
+                  rule
+                  onCopy={() => void copy('Street', street)}
+                />
+                <Pair rule>
+                  <Row
+                    label="City"
+                    value={address.city}
+                    onCopy={() => void copy('City', address.city)}
+                  />
+                  <Row
+                    label="State"
+                    value={stateName(address.state)}
+                    onCopy={() => void copy('State', stateName(address.state))}
+                  />
+                </Pair>
+                <Pair>
+                  <Row
+                    label="ZIP code"
+                    value={address.postal_code}
+                    mono
+                    onCopy={() => void copy('ZIP code', address.postal_code)}
+                  />
+                  <Row
+                    label="Country"
+                    value={countryName(address.country)}
+                    onCopy={() => void copy('Country', countryName(address.country))}
+                  />
+                </Pair>
+              </Section>
+            ) : null}
+
+            <View style={styles.note}>
+              <Icon name="lock" size={14} color={colors.teal} />
+              <Txt size={12} color={colors.muted} style={{ flex: 1, lineHeight: 17 }}>
+                Only you can see this. It comes straight from Nuvion, and Kova never stores your
+                card number or CVV.
+              </Txt>
+            </View>
+          </>
+        )}
       </ScrollView>
+
+      <Animated.View
+        pointerEvents="none"
+        accessibilityLiveRegion="polite"
+        style={[
+          styles.toast,
+          {
+            bottom: insets.bottom + 18,
+            opacity: toast,
+            transform: [
+              { translateY: toast.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) },
+            ],
+          },
+        ]}
+      >
+        <Icon name="check" size={16} color={colors.white} />
+        <Txt weight="semi" size={14} color={colors.white}>
+          {copied ? `${copied} copied` : ''}
+        </Txt>
+      </Animated.View>
     </Screen>
   )
 }
 
+function Section({ title, note, children }: { title: string; note?: string; children: ReactNode }) {
+  return (
+    <View style={{ marginTop: 22 }}>
+      <View style={styles.sectionHead}>
+        <Txt weight="bold" size={15}>
+          {title}
+        </Txt>
+        {note ? (
+          <Txt size={12} color={colors.muted} style={{ lineHeight: 17 }}>
+            {note}
+          </Txt>
+        ) : null}
+      </View>
+      <View style={styles.section}>{children}</View>
+    </View>
+  )
+}
+
+/** Two values side by side, split by a hairline. */
+function Pair({ children, rule }: { children: [ReactNode, ReactNode]; rule?: boolean }) {
+  return (
+    <View style={[styles.pair, rule && styles.rule]}>
+      <View style={[styles.half, styles.divider]}>{children[0]}</View>
+      <View style={styles.half}>{children[1]}</View>
+    </View>
+  )
+}
+
+/** One value: tap anywhere on it to copy. */
 function Row({
   label,
   value,
-  big,
-  copied,
+  mono,
+  rule,
   onCopy,
 }: {
   label: string
   value: string
-  big?: boolean
-  copied?: boolean
+  mono?: boolean
+  rule?: boolean
   onCopy?: () => void
 }) {
   return (
-    <View style={styles.row}>
-      <View style={{ flex: 1, gap: 2 }}>
-        <Txt size={13} color={colors.muted}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value}. Copy`}
+      disabled={!onCopy}
+      onPress={onCopy}
+      style={({ pressed }) => [
+        styles.row,
+        rule && styles.rule,
+        pressed && { backgroundColor: colors.sunken },
+      ]}
+    >
+      <View style={{ flex: 1, gap: 3 }}>
+        <Txt size={12} color={colors.muted}>
           {label}
         </Txt>
-        <Txt weight="bold" size={big ? 19 : 17} style={big ? { letterSpacing: 0.6 } : undefined}>
+        <Txt
+          weight="bold"
+          size={mono ? 17 : 16}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          style={mono ? { letterSpacing: 0.8, fontVariant: ['tabular-nums'] } : undefined}
+        >
           {value}
         </Txt>
       </View>
-      {onCopy ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Copy ${label.toLowerCase()}`}
-          onPress={onCopy}
-          style={({ pressed }) => [styles.copy, pressed && { opacity: 0.6 }]}
-        >
-          <Txt weight="semi" size={14}>
-            {copied ? 'Copied' : 'Copy'}
-          </Txt>
-        </Pressable>
-      ) : null}
-    </View>
+      {onCopy ? <Icon name="copy" size={17} color={colors.muted} /> : null}
+    </Pressable>
   )
 }
 
@@ -288,7 +334,7 @@ const US_STATES: Record<string, string> = {
 }
 const stateName = (code: string) => US_STATES[code.trim().toUpperCase()] ?? code
 
-/** "US" → "United States", for the country field of a checkout (React Native has no Intl.DisplayNames). */
+/** "US" → "United States" (React Native has no Intl.DisplayNames). */
 const COUNTRIES: Record<string, string> = {
   US: 'United States',
   GB: 'United Kingdom',
@@ -297,57 +343,61 @@ const COUNTRIES: Record<string, string> = {
 }
 const countryName = (code: string) => COUNTRIES[code.toUpperCase()] ?? code
 
+const CARD_W = 300
+const CARD_H = Math.round(CARD_W * 0.63)
+
 const styles = StyleSheet.create({
-  scroll: { flexGrow: 1, paddingBottom: 12 },
-  billingHead: { marginTop: 22, marginHorizontal: 24, gap: 3 },
-  head: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
+  scroll: { paddingHorizontal: 20, paddingTop: 4 },
+  cardBox: { width: CARD_W, height: CARD_H, alignSelf: 'center', marginTop: 6 },
+  card: { width: CARD_W, height: CARD_H, borderRadius: 16 },
+  numberOnCard: {
+    position: 'absolute',
+    left: 14,
+    top: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: colors.dark,
   },
-  // Smaller than on the card screen: here the numbers and the address are what count.
-  cardBox: { width: 230, height: 145, alignSelf: 'center', marginTop: 14 },
-  card: { width: 230, height: 145, borderRadius: 13 },
-  brandOnCard: { position: 'absolute', right: 10, top: 8 },
+  brandOnCard: { position: 'absolute', right: 12, top: 10 },
+  timer: { width: CARD_W, alignSelf: 'center', marginTop: 12, gap: 6, alignItems: 'center' },
+  track: {
+    width: '100%',
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.sunken,
+    overflow: 'hidden',
+  },
+  fill: { height: 3, borderRadius: 2, backgroundColor: colors.ink },
+  sectionHead: { gap: 2, marginBottom: 8, paddingHorizontal: 4 },
   section: {
-    marginTop: 18,
-    marginHorizontal: 20,
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 2,
     borderColor: colors.line,
     backgroundColor: colors.surface,
+    overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  rule: { borderTopWidth: 2, borderColor: colors.sunken },
-  split: { flexDirection: 'row' },
-  half: { flex: 1 },
-  divider: { borderRightWidth: 2, borderColor: colors.sunken },
-  copy: {
-    height: 36,
-    paddingHorizontal: 14,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timer: { marginTop: 18, marginHorizontal: 24, gap: 8 },
-  track: { height: 6, borderRadius: 3, backgroundColor: colors.sunken, overflow: 'hidden' },
-  fill: { height: 6, borderRadius: 3, backgroundColor: colors.ink },
-  timerFoot: { flexDirection: 'row', justifyContent: 'space-between' },
-  note: {
-    flexDirection: 'row',
     gap: 10,
-    marginTop: 24,
-    marginHorizontal: 24,
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+  },
+  rule: { borderBottomWidth: 1.5, borderColor: colors.sunken },
+  pair: { flexDirection: 'row' },
+  half: { flex: 1 },
+  divider: { borderRightWidth: 1.5, borderColor: colors.sunken },
+  note: { flexDirection: 'row', gap: 8, marginTop: 18, paddingHorizontal: 4 },
+  toast: {
+    position: 'absolute',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: colors.dark,
   },
 })
