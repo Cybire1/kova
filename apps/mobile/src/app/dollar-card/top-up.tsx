@@ -14,7 +14,7 @@ import { PillButton, Txt } from '@/ui/primitives'
 const BLOCKS = 10
 
 /**
- * Top up the dollar card: a sheet over the card. Type an amount, see where it lands in today's $50,
+ * Top up the dollar card: a sheet over the card. Type an amount, see where it lands in today's limit,
  * and approve it with Face ID. One signed transfer to Kova of the amount plus Kova's 0.5% fee; the
  * amount lands on the card.
  */
@@ -25,7 +25,7 @@ export default function TopUpSheet() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const cap = BigInt(data?.daily_topup ?? '50000000')
+  const cap = BigInt(data?.daily_topup ?? '100000000')
   const today = BigInt(data?.topups?.today ?? '0')
   const left = BigInt(data?.topups?.left ?? cap.toString())
   const value = (() => {

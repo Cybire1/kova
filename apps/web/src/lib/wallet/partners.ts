@@ -93,7 +93,6 @@ export interface CardBillingAddress {
   country: string
 }
 
-
 export interface CardCheck {
   first_name: string
   last_name: string
@@ -161,8 +160,15 @@ async function read<T>(response: Response): Promise<T> {
 
 export const getUsAccount = (address: string) =>
   fetch(`${base(address)}/us-account`).then(read<UsAccount>)
+/** The cap the API sets (KOVA_CARD_DAILY_TOPUP), for a server too old to say it. */
+const DEFAULT_DAILY_TOPUP = '100000000'
+
+/** The card, with the daily cap always filled in: an older server leaves it out, and the screens do
+ * arithmetic on it. */
 export const getDollarCard = (address: string) =>
-  fetch(`${base(address)}/dollar-card`).then(read<DollarCard>)
+  fetch(`${base(address)}/dollar-card`)
+    .then(read<DollarCard>)
+    .then((d) => ({ ...d, daily_topup: d.daily_topup ?? DEFAULT_DAILY_TOPUP }))
 export const getSavings = (address: string) => fetch(`${base(address)}/savings`).then(read<Savings>)
 
 type Sign = (message: string) => Promise<Hex>
