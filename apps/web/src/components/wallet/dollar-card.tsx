@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { Icon } from '@/components/brand'
 import { formatUsd, toBase } from '@/lib/wallet/money'
 import {
-  billingLines,
   type CardCheck,
   type CardDetails,
   type DollarCard,
@@ -1121,11 +1120,23 @@ function Withdraw({
   )
 }
 
+const SHOWN_FOR = 60
+
+/** "US" → "United States", for the country field of a checkout. */
+const countryName = (code: string) => {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) ?? code
+  } catch {
+    return code
+  }
+}
+
 function Details({ onClose }: { onClose: () => void }) {
   const { profile, signMessage } = useWallet()
   const [details, setDetails] = useState<CardDetails | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [left, setLeft] = useState(30)
+  // Long enough to copy the number, expiry, CVV, name and each part of the address into a checkout.
+  const [left, setLeft] = useState(SHOWN_FOR)
   const [copied, setCopied] = useState<string | null>(null)
   useEffect(() => {
     if (!profile) return
@@ -1145,7 +1156,8 @@ function Details({ onClose }: { onClose: () => void }) {
     void navigator.clipboard.writeText(value)
     setCopied(what)
   }
-  const address = details?.billing_address ? billingLines(details.billing_address) : null
+  const address = details?.billing_address ?? null
+  const street = address ? [address.line1, address.line2].filter(Boolean).join(', ') : ''
   const row = (label: string, value: string, what?: string, raw?: string) => (
     <div className="dc-row">
       <span>
@@ -1185,26 +1197,33 @@ function Details({ onClose }: { onClose: () => void }) {
               {row('CVV', details?.cvv ?? '···', 'cvv', details?.cvv)}
             </div>
             {row('Name on card', details?.name ?? '', 'name', details?.name)}
-            {address ? (
-              <div className="dc-row dc-row-text">
-                <span>
-                  <small>Billing address</small>
-                  <strong>
-                    {address.street}
-                    <br />
-                    {address.town}
-                  </strong>
-                </span>
-                <button type="button" onClick={() => copy('address', address.oneLine)}>
-                  {copied === 'address' ? 'Copied' : 'Copy'}
-                </button>
-              </div>
-            ) : null}
           </div>
         )}
+        {address && !error ? (
+          <>
+            <div className="dc-billing-head">
+              <strong>Billing address</strong>
+              <small>
+                When a checkout asks for the card’s billing address, use this. It’s the card’s
+                address, not your home.
+              </small>
+            </div>
+            <div className="dc-section dc-billing">
+              {row('Street', street, 'street', street)}
+              <div className="dc-split">
+                {row('City', address.city, 'city', address.city)}
+                {row('State', address.state, 'state', address.state)}
+              </div>
+              <div className="dc-split">
+                {row('ZIP code', address.postal_code, 'zip', address.postal_code)}
+                {row('Country', countryName(address.country))}
+              </div>
+            </div>
+          </>
+        ) : null}
         {details ? (
           <div className="dc-timer">
-            <i style={{ width: `${(left / 30) * 100}%` }} />
+            <i style={{ width: `${(left / SHOWN_FOR) * 100}%` }} />
             <p>
               <span>Hides by itself</span>
               <strong>{left} s</strong>

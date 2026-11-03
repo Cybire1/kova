@@ -3,8 +3,8 @@ import * as Haptics from 'expo-haptics'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { Pressable, StyleSheet, View } from 'react-native'
-import { billingLines, type CardDetails, revealDollarCard } from '@/lib/partners'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { type CardDetails, revealDollarCard } from '@/lib/partners'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { CardBrand } from '@/ui/CardBrand'
@@ -13,11 +13,13 @@ import { problemOf } from '@/ui/Money'
 import { RoundButton, Screen, Txt } from '@/ui/primitives'
 
 const cardArt = require('../../../assets/cards/coral.png')
-const SHOWN_FOR = 30
+// Long enough to copy the number, expiry, CVV, name and each part of the address into a checkout.
+const SHOWN_FOR = 60
 
 /**
- * The card's number, expiry, CVV and billing address, read from Nuvion when you open this and gone 30 seconds later.
- * Kova never stores them; copying puts one value on the clipboard.
+ * The card's number, expiry, CVV and billing address, read from Nuvion when you open this and gone
+ * a minute later. Kova never stores them; copying puts one value on the clipboard. The address is
+ * the card's own (what a checkout asks for with it), shown in the parts a checkout form asks for.
  */
 export default function CardDetailsScreen() {
   const { profile, signMessage } = useWallet()
@@ -43,7 +45,7 @@ export default function CardDetailsScreen() {
     if (left <= 0) router.back()
   }, [left])
 
-  const address = details?.billing_address ? billingLines(details.billing_address) : null
+  const address = details?.billing_address ?? null
 
   const copy = async (what: string, value: string) => {
     await Clipboard.setStringAsync(value)
@@ -53,91 +55,137 @@ export default function CardDetailsScreen() {
 
   return (
     <Screen>
-      <View style={styles.head}>
-        <Txt weight="bold" size={32} style={{ letterSpacing: -1 }}>
-          Card details
-        </Txt>
-        <RoundButton icon="close" label="Hide details" onPress={() => router.back()} />
-      </View>
-      <View style={styles.cardBox}>
-        <Image source={cardArt} style={styles.card} contentFit="contain" />
-        <View style={styles.brandOnCard}>
-          <CardBrand brand={details?.brand} width={42} />
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.head}>
+          <Txt weight="bold" size={32} style={{ letterSpacing: -1 }}>
+            Card details
+          </Txt>
+          <RoundButton icon="close" label="Hide details" onPress={() => router.back()} />
         </View>
-      </View>
-      {error ? (
-        <Txt weight="medium" size={15} color={colors.danger} style={{ margin: 20 }}>
-          {error}
-        </Txt>
-      ) : (
-        <View style={styles.section}>
-          <Row
-            label="Card number"
-            value={details ? group(details.number) : 'Opening…'}
-            big
-            copied={copied === 'number'}
-            onCopy={details ? () => void copy('number', details.number) : undefined}
-          />
-          <View style={[styles.split, styles.rule]}>
-            <View style={[styles.half, styles.divider]}>
-              <Row
-                label="Expires"
-                value={details ? `${details.exp_month}/${details.exp_year.slice(-2)}` : '··/··'}
-                big
-              />
-            </View>
-            <View style={styles.half}>
-              <Row
-                label="CVV"
-                value={details?.cvv ?? '···'}
-                big
-                copied={copied === 'cvv'}
-                onCopy={details ? () => void copy('cvv', details.cvv) : undefined}
-              />
-            </View>
+        <View style={styles.cardBox}>
+          <Image source={cardArt} style={styles.card} contentFit="contain" />
+          <View style={styles.brandOnCard}>
+            <CardBrand brand={details?.brand} width={42} />
           </View>
-          <View style={styles.rule}>
+        </View>
+        {error ? (
+          <Txt weight="medium" size={15} color={colors.danger} style={{ margin: 20 }}>
+            {error}
+          </Txt>
+        ) : (
+          <View style={styles.section}>
             <Row
-              label="Name on card"
-              value={details?.name ?? ''}
-              copied={copied === 'name'}
-              onCopy={details ? () => void copy('name', details.name) : undefined}
+              label="Card number"
+              value={details ? group(details.number) : 'Opening…'}
+              big
+              copied={copied === 'number'}
+              onCopy={details ? () => void copy('number', details.number) : undefined}
             />
-          </View>
-          {address ? (
+            <View style={[styles.split, styles.rule]}>
+              <View style={[styles.half, styles.divider]}>
+                <Row
+                  label="Expires"
+                  value={details ? `${details.exp_month}/${details.exp_year.slice(-2)}` : '··/··'}
+                  big
+                />
+              </View>
+              <View style={styles.half}>
+                <Row
+                  label="CVV"
+                  value={details?.cvv ?? '···'}
+                  big
+                  copied={copied === 'cvv'}
+                  onCopy={details ? () => void copy('cvv', details.cvv) : undefined}
+                />
+              </View>
+            </View>
             <View style={styles.rule}>
               <Row
-                label="Billing address"
-                value={`${address.street}\n${address.town}`}
-                copied={copied === 'address'}
-                onCopy={() => void copy('address', address.oneLine)}
+                label="Name on card"
+                value={details?.name ?? ''}
+                copied={copied === 'name'}
+                onCopy={details ? () => void copy('name', details.name) : undefined}
               />
             </View>
-          ) : null}
-        </View>
-      )}
-      {details ? (
-        <View style={styles.timer}>
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${(left / SHOWN_FOR) * 100}%` }]} />
           </View>
-          <View style={styles.timerFoot}>
-            <Txt size={13} color={colors.muted}>
-              Hides by itself
-            </Txt>
-            <Txt weight="bold" size={13}>
-              {left} s
-            </Txt>
+        )}
+        {address && !error ? (
+          <>
+            <View style={styles.billingHead}>
+              <Txt weight="bold" size={17}>
+                Billing address
+              </Txt>
+              <Txt size={13} color={colors.muted} style={{ lineHeight: 18 }}>
+                When a checkout asks for the card’s billing address, use this. It’s the card’s
+                address, not your home.
+              </Txt>
+            </View>
+            <View style={[styles.section, { marginTop: 10 }]}>
+              <Row
+                label="Street"
+                value={[address.line1, address.line2].filter(Boolean).join(', ')}
+                copied={copied === 'street'}
+                onCopy={() =>
+                  void copy('street', [address.line1, address.line2].filter(Boolean).join(', '))
+                }
+              />
+              <View style={[styles.split, styles.rule]}>
+                <View style={[styles.half, styles.divider]}>
+                  <Row
+                    label="City"
+                    value={address.city}
+                    copied={copied === 'city'}
+                    onCopy={() => void copy('city', address.city)}
+                  />
+                </View>
+                <View style={styles.half}>
+                  <Row
+                    label="State"
+                    value={address.state}
+                    copied={copied === 'state'}
+                    onCopy={() => void copy('state', address.state)}
+                  />
+                </View>
+              </View>
+              <View style={[styles.split, styles.rule]}>
+                <View style={[styles.half, styles.divider]}>
+                  <Row
+                    label="ZIP code"
+                    value={address.postal_code}
+                    copied={copied === 'zip'}
+                    onCopy={() => void copy('zip', address.postal_code)}
+                  />
+                </View>
+                <View style={styles.half}>
+                  <Row label="Country" value={countryName(address.country)} />
+                </View>
+              </View>
+            </View>
+          </>
+        ) : null}
+        {details ? (
+          <View style={styles.timer}>
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${(left / SHOWN_FOR) * 100}%` }]} />
+            </View>
+            <View style={styles.timerFoot}>
+              <Txt size={13} color={colors.muted}>
+                Hides by itself
+              </Txt>
+              <Txt weight="bold" size={13}>
+                {left} s
+              </Txt>
+            </View>
           </View>
+        ) : null}
+        <View style={styles.note}>
+          <Icon name="lock" size={15} color={colors.teal} />
+          <Txt size={13} color={colors.muted} style={{ flex: 1, lineHeight: 19 }}>
+            Only you can see this. It comes straight from Nuvion, and Kova never stores your card
+            number or CVV.
+          </Txt>
         </View>
-      ) : null}
-      <View style={styles.note}>
-        <Icon name="lock" size={15} color={colors.teal} />
-        <Txt size={13} color={colors.muted} style={{ flex: 1, lineHeight: 19 }}>
-          Only you can see this. It comes straight from Nuvion, and Kova never stores your card
-          number or CVV.
-        </Txt>
-      </View>
+      </ScrollView>
     </Screen>
   )
 }
@@ -183,7 +231,18 @@ function Row({
 
 const group = (number: string) => number.replace(/(\d{4})(?=\d)/g, '$1 ')
 
+/** "US" → "United States", for the country field of a checkout. */
+const countryName = (code: string) => {
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) ?? code
+  } catch {
+    return code
+  }
+}
+
 const styles = StyleSheet.create({
+  scroll: { flexGrow: 1, paddingBottom: 12 },
+  billingHead: { marginTop: 22, marginHorizontal: 24, gap: 3 },
   head: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -229,7 +288,7 @@ const styles = StyleSheet.create({
   note: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 'auto',
+    marginTop: 24,
     marginHorizontal: 24,
     marginBottom: 20,
   },

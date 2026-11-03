@@ -93,12 +93,6 @@ export interface CardBillingAddress {
   country: string
 }
 
-/** The billing address on two lines, as it's shown, and on one, as it's copied. */
-export function billingLines(a: CardBillingAddress) {
-  const street = [a.line1, a.line2].filter(Boolean).join(', ')
-  const town = `${[a.city, a.state].filter(Boolean).join(', ')} ${a.postal_code}`.trim()
-  return { street, town, oneLine: [street, town, a.country].filter(Boolean).join(', ') }
-}
 
 export interface CardCheck {
   first_name: string
