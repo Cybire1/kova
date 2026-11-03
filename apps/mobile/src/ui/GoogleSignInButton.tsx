@@ -1,10 +1,11 @@
 import { router } from 'expo-router'
 import { useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native'
+import { View } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
 import { useStall } from '@/lib/stall'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
+import { AuthButton } from './AuthButton'
 import { Txt } from './primitives'
 
 /** The same Google account reopens the same embedded wallet on a replacement phone. */
@@ -17,12 +18,11 @@ export function GoogleSignInButton() {
   const working = busy || googleBusy
   return (
     <View style={{ gap: 8 }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Continue with Google"
-        accessibilityState={{ disabled: working, busy: working }}
-        disabled={working}
-        style={({ pressed }) => [styles.button, (pressed || working) && { opacity: 0.65 }]}
+      <AuthButton
+        tone="outline"
+        label={working ? 'Opening your wallet…' : 'Continue with Google'}
+        mark={<GoogleLogo size={20} />}
+        loading={working}
         onPress={() => {
           setBusy(true)
           setError(null)
@@ -36,14 +36,14 @@ export function GoogleSignInButton() {
             })
             .finally(() => setBusy(false))
         }}
-      >
-        {working ? <ActivityIndicator color={colors.ink} /> : <GoogleLogo size={20} />}
-        <Txt weight="semi" size={16}>
-          {working ? 'Opening your wallet…' : 'Continue with Google'}
-        </Txt>
-      </Pressable>
+      />
       {error ? (
-        <Txt size={13} color={colors.danger} accessibilityLiveRegion="polite">
+        <Txt
+          size={13}
+          color={colors.danger}
+          accessibilityLiveRegion="polite"
+          style={{ textAlign: 'center' }}
+        >
           {error}
         </Txt>
       ) : null}
@@ -74,19 +74,3 @@ function GoogleLogo({ size }: { size: number }) {
     </Svg>
   )
 }
-
-const styles = StyleSheet.create({
-  // The same height and shape as the PillButton it sits beside.
-  button: {
-    minHeight: 48,
-    borderRadius: 24,
-    backgroundColor: colors.surface,
-    borderWidth: 2,
-    borderColor: colors.line,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    paddingHorizontal: 20,
-  },
-})

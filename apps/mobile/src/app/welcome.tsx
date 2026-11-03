@@ -4,12 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '@/lib/theme'
 import { useUnlock } from '@/lib/unlock'
 import { useWallet } from '@/lib/wallet'
+import { AuthButton } from '@/ui/AuthButton'
 import { Flyer, PlanetScene, welcomeScene } from '@/ui/art'
 import { GoogleSignInButton } from '@/ui/GoogleSignInButton'
 import { Icon } from '@/ui/Icon'
 import { LogoMark, Wordmark } from '@/ui/Logo'
 import { Flight } from '@/ui/motion'
-import { PillButton, Rise, TextLink, Txt } from '@/ui/primitives'
+import { Rise, TextLink, Txt } from '@/ui/primitives'
 
 /**
  * The first thing anyone sees: Kovi flies money from a shop to a home, across a little
@@ -60,9 +61,10 @@ export default function Welcome() {
           </Txt>
         </Rise>
         <Rise delay={260} style={styles.actions}>
-          <PillButton
+          <AuthButton
+            tone="ink"
             label={unlock.continueWith}
-            icon={unlock.icon}
+            mark={<Icon name={unlock.icon} size={22} color={colors.white} />}
             disabled={googleBusy}
             onPress={() => router.push('/setup')}
           />

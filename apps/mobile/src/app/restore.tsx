@@ -7,8 +7,10 @@ import { useStall } from '@/lib/stall'
 import { colors } from '@/lib/theme'
 import { useUnlock } from '@/lib/unlock'
 import { useWallet } from '@/lib/wallet'
+import { AuthButton } from '@/ui/AuthButton'
 import { KeyScene } from '@/ui/art'
 import { GoogleSignInButton } from '@/ui/GoogleSignInButton'
+import { Icon } from '@/ui/Icon'
 import { Bob } from '@/ui/motion'
 import { ProfileForm } from '@/ui/ProfileForm'
 import { Header, PillButton, Rise, Screen, TextLink, Txt } from '@/ui/primitives'
@@ -98,9 +100,10 @@ export default function Restore() {
         ) : null}
       </Rise>
       <View style={styles.footer}>
-        <PillButton
+        <AuthButton
+          tone="ink"
           label={unlock.continueWith}
-          icon={unlock.icon}
+          mark={<Icon name={unlock.icon} size={22} color={colors.white} />}
           loading={busy}
           disabled={googleBusy}
           onPress={usePasskey}
