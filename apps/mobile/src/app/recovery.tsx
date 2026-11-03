@@ -174,8 +174,8 @@ export default function RecoveryWords() {
             Your words are saved.
           </Txt>
           <Txt size={16} color={colors.muted} style={styles.doneText}>
-            Keep the paper somewhere safe. If you lose your phone or your passkey, choose “I already
-            have Kova”, then “Use recovery words”.
+            Keep the paper somewhere safe. If you lose your phone or can’t sign in, choose “I
+            already have Kova”, then “Use recovery words”.
           </Txt>
         </View>
         <View style={styles.footer}>
@@ -192,7 +192,7 @@ export default function RecoveryWords() {
           {profile?.wordsSaved ? 'Your words are saved.' : 'Save your recovery words.'}
         </Txt>
         <Txt size={16} color={colors.muted} style={{ marginTop: 10, lineHeight: 23 }}>
-          24 words that bring your wallet back if you ever lose your passkey or your phone. Without
+          24 words that bring your wallet back if you ever lose your phone or can’t sign in. Without
           them, nobody can get it back for you, not even Kova.
         </Txt>
         <View style={styles.rules}>

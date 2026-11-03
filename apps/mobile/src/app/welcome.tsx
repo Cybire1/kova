@@ -2,19 +2,23 @@ import { router } from 'expo-router'
 import { StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '@/lib/theme'
+import { useUnlock } from '@/lib/unlock'
 import { useWallet } from '@/lib/wallet'
 import { Flyer, PlanetScene, welcomeScene } from '@/ui/art'
 import { GoogleSignInButton } from '@/ui/GoogleSignInButton'
+import { Icon } from '@/ui/Icon'
 import { LogoMark, Wordmark } from '@/ui/Logo'
 import { Flight } from '@/ui/motion'
 import { PillButton, Rise, TextLink, Txt } from '@/ui/primitives'
 
 /**
  * The first thing anyone sees: Kovi flies money from a shop to a home, across a little
- * planet, on the same dotted route the scene draws.
+ * planet, on the same dotted route the scene draws. One way in leads (the phone's own Face ID or
+ * fingerprint, which makes the wallet), Google is the other, and nothing says "passkey".
  */
 export default function Welcome() {
   const { googleBusy, googleEnabled } = useWallet()
+  const unlock = useUnlock()
   const { width, height } = useWindowDimensions()
   const insets = useSafeAreaInsets()
   const sceneTop = insets.top + 40
@@ -55,18 +59,25 @@ export default function Welcome() {
             Pay, send and get paid in any currency. It lands in seconds, anywhere in the world.
           </Txt>
         </Rise>
-        <View style={styles.actions}>
-          <GoogleSignInButton />
+        <Rise delay={260} style={styles.actions}>
           <PillButton
-            label="Create with a passkey"
+            label={unlock.continueWith}
+            icon={unlock.icon}
             disabled={googleBusy}
             onPress={() => router.push('/setup')}
           />
+          <GoogleSignInButton />
+          <View style={styles.trust}>
+            <Icon name="lock" size={14} color={colors.onTint} />
+            <Txt weight="semi" size={13} color={colors.onTint}>
+              No password. No seed phrase.
+            </Txt>
+          </View>
           <View style={styles.links}>
             <TextLink label="I already have Kova" onPress={() => router.push('/restore')} />
             <TextLink label="I run a shop" onPress={() => router.push('/terminal/setup')} />
           </View>
-        </View>
+        </Rise>
       </View>
     </View>
   )
@@ -91,6 +102,7 @@ const styles = StyleSheet.create({
   },
   title: { lineHeight: 48, letterSpacing: -1.6 },
   body: { lineHeight: 25, marginTop: 14 },
-  actions: { gap: 18 },
+  actions: { gap: 14 },
+  trust: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   links: { flexDirection: 'row', justifyContent: 'center', gap: 28 },
 })

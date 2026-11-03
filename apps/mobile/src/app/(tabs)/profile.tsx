@@ -22,6 +22,7 @@ import {
 } from '@/lib/session'
 import { useStall } from '@/lib/stall'
 import { colors, pair, palette } from '@/lib/theme'
+import { useUnlock } from '@/lib/unlock'
 import { vaultSavedAt } from '@/lib/vault'
 import { useWallet } from '@/lib/wallet'
 import { Avatar } from '@/ui/art'
@@ -39,6 +40,7 @@ import { Sticker, Txt } from '@/ui/primitives'
  */
 export default function Profile() {
   const { profile, activity, contacts, setCurrency, signOut } = useWallet()
+  const unlock = useUnlock()
   const stall = useStall()
   const insets = useSafeAreaInsets()
   const [confirmRemove, setConfirmRemove] = useState(false)
@@ -295,8 +297,8 @@ export default function Profile() {
                 : profile.auth === 'google'
                   ? 'Your money stays in the wallet. Sign in with the same Google account to reopen it here or on a replacement phone.'
                   : stall.owned
-                    ? `Your money stays in the wallet, and ${stall.owned.name} keeps paying into it. Your passkey brings it back here any time: choose “I already have Kova”.`
-                    : 'Your money stays in the wallet. Your passkey brings it back here, or on any phone, any time: choose “I already have Kova”.'}
+                    ? `Your money stays in the wallet, and ${stall.owned.name} keeps paying into it. ${unlock.keychain} brings it back here any time: choose “I already have Kova”.`
+                    : `Your money stays in the wallet. ${unlock.keychain} brings it back here, or on any phone, any time: choose “I already have Kova”.`}
             </Txt>
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
               <Pressable
@@ -478,6 +480,7 @@ const dollars = (base: bigint) => formatUsd(base).replace(/\.00$/, '')
  */
 function KeysCard() {
   const { profile } = useWallet()
+  const unlock = useUnlock()
   const session = useSessionState()
   const [backedUp, setBackedUp] = useState<number | null>(null)
   useEffect(() => {
@@ -495,12 +498,12 @@ function KeysCard() {
           <Txt weight="bold" size={17}>
             {profile?.auth === 'google'
               ? 'Your wallet opens with Google'
-              : 'Your wallet is a passkey'}
+              : `Your wallet opens with ${unlock.your}`}
           </Txt>
           <Txt size={13} color={colors.muted} style={{ lineHeight: 18 }}>
             {profile?.auth === 'google'
               ? `Sign in with ${profile.email || 'the same Google account'} on a replacement phone to reopen this wallet.`
-              : 'iCloud Keychain keeps it, and it opens this wallet on any phone you sign in on.'}
+              : `${unlock.keychain} keeps it, so it opens this wallet on any phone you sign in on.`}
           </Txt>
         </View>
       </View>

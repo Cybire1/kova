@@ -20,7 +20,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import { AppState } from 'react-native'
+import { AppState, Platform } from 'react-native'
 import {
   type Address,
   getAddress,
@@ -298,10 +298,12 @@ async function keep(prf: Uint8Array) {
 /** What went wrong with a passkey, in words someone can act on. */
 function passkeyProblem(error: unknown): string {
   if (isMeraError(error) && error.code === 'PRF_UNAVAILABLE')
-    return 'This phone’s passkeys can’t hold a wallet yet. Kova needs iOS 18 or later, with iCloud Keychain on.'
+    return Platform.OS === 'ios'
+      ? 'This iPhone can’t hold a Kova wallet yet. Kova needs iOS 18 or later, with iCloud Keychain on.'
+      : 'This phone can’t hold a Kova wallet yet. Kova needs Google Password Manager on, with a screen lock.'
   const message = error instanceof Error ? error.message : ''
   if (/cancel/i.test(message)) return 'Cancelled. Nothing was changed.'
-  return 'The passkey didn’t open. Try again.'
+  return 'Your wallet didn’t open. Try again.'
 }
 
 /**
@@ -318,7 +320,7 @@ async function begin(
   prf.fill(0)
   if (expected && !isAddressEqual(account.address, expected)) {
     session.end()
-    throw new Error('That passkey belongs to a different Kova wallet.')
+    throw new Error('That sign-in opens a different Kova wallet.')
   }
   startSession(session, account)
   if (!publish) return account
@@ -832,7 +834,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     session.end()
     if (!isAddressEqual(account.address, profile.address)) {
       secret.fill(0)
-      throw new Error('That passkey belongs to a different Kova wallet.')
+      throw new Error('That sign-in opens a different Kova wallet.')
     }
     const words = wordsFor(secret)
     secret.fill(0)
@@ -1173,7 +1175,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       if (!profile) throw new Error('No wallet on this phone')
       if (profile.auth === 'google')
         throw new Error(
-          'Offline payments need a passkey wallet. Connect to the internet to pay with Google.',
+          'Offline payments need a Face ID or fingerprint wallet. Connect to the internet to pay with Google.',
         )
       const account = await unlock(amount)
       const signed = await signOfflinePayment(account, to.address, amount, profile.name || null)

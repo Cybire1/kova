@@ -75,7 +75,7 @@ function SaveWordsCard() {
           Save your recovery words
         </Txt>
         <Txt size={13} color={colors.muted} style={{ lineHeight: 18 }}>
-          If you lose your passkey, they’re the only way back to {formatUsd(balance)}.
+          If you lose your phone, they’re the only way back to {formatUsd(balance)}.
         </Txt>
       </View>
       <Icon name="arrow" size={18} />

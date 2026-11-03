@@ -56,9 +56,10 @@ export function GoogleSignInButton() {
 }
 
 const styles = StyleSheet.create({
+  // The same height and shape as the PillButton it sits beside.
   button: {
-    minHeight: 56,
-    borderRadius: 30,
+    minHeight: 48,
+    borderRadius: 24,
     backgroundColor: colors.surface,
     borderWidth: 2,
     borderColor: colors.line,

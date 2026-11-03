@@ -5,6 +5,7 @@ import { isTestnet } from '@/lib/config'
 import { type DisplayCurrency, guessCurrency } from '@/lib/money'
 import { useStall } from '@/lib/stall'
 import { colors } from '@/lib/theme'
+import { useUnlock } from '@/lib/unlock'
 import { useWallet } from '@/lib/wallet'
 import { KeyScene } from '@/ui/art'
 import { GoogleSignInButton } from '@/ui/GoogleSignInButton'
@@ -19,6 +20,7 @@ import { Header, PillButton, Rise, Screen, TextLink, Txt } from '@/ui/primitives
 export default function Restore() {
   const { restore, setName, setCurrency, balance, googleBusy, googleEnabled } = useWallet()
   const stall = useStall()
+  const unlock = useUnlock()
   const [step, setStep] = useState<'passkey' | 'name'>('passkey')
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
@@ -35,7 +37,7 @@ export default function Restore() {
       if (profile.name) router.replace('/(tabs)')
       else setStep('name')
     } catch (error) {
-      setProblem(error instanceof Error ? error.message : 'The passkey didn’t open. Try again.')
+      setProblem(error instanceof Error ? error.message : 'Your wallet didn’t open. Try again.')
     } finally {
       setBusy(false)
     }
@@ -86,8 +88,8 @@ export default function Restore() {
         </Txt>
         <Txt size={17} color={colors.onTint} style={styles.body}>
           {googleEnabled
-            ? 'Sign in the same way you opened your wallet: with Google, or with your saved Kova passkey.'
-            : 'Use your saved Kova passkey. iCloud Keychain brings it to this phone, and your wallet comes with it.'}
+            ? `Sign in the way you opened your wallet: with ${unlock.your} or with Google.`
+            : `${unlock.keychain} brings your wallet to this phone. ${unlock.gesture} opens it.`}
         </Txt>
         {problem ? (
           <Txt weight="medium" size={15} color={colors.danger} style={{ marginTop: 12 }}>
@@ -96,16 +98,16 @@ export default function Restore() {
         ) : null}
       </Rise>
       <View style={styles.footer}>
-        <View style={{ marginBottom: 12 }}>
-          <GoogleSignInButton />
-        </View>
         <PillButton
-          label="Use my passkey"
-          icon="face"
+          label={unlock.continueWith}
+          icon={unlock.icon}
           loading={busy}
           disabled={googleBusy}
           onPress={usePasskey}
         />
+        <View style={{ marginTop: 12 }}>
+          <GoogleSignInButton />
+        </View>
         <View style={{ alignItems: 'center', marginTop: 14 }}>
           <TextLink label="Use recovery words" onPress={() => router.push('/restore-words')} />
         </View>
