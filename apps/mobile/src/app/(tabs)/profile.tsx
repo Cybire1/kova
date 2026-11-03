@@ -169,6 +169,9 @@ export default function Profile() {
         </View>
       </View>
 
+      {/* The way back if the passkey is ever lost: hidden for Google and demo wallets. */}
+      <RecoveryRow />
+
       {/* What you've done */}
       <View style={styles.stats}>
         <Stat value={String(stats.payments)} label="Payments" />
@@ -582,6 +585,34 @@ function PrivateRow() {
 }
 
 /** Keys: who may spend your dollars, and how much. */
+/** Recovery words: saved, or a warning until they are. */
+function RecoveryRow() {
+  const { profile, hasWords } = useWallet()
+  if (!hasWords) return null
+  const saved = !!profile?.wordsSaved
+  return (
+    <Sticker
+      radius={24}
+      accessibilityLabel={saved ? 'Recovery words. Saved' : 'Recovery words. Not saved yet'}
+      onPress={() => router.push('/recovery')}
+      style={{ height: 62, marginTop: 14 }}
+    >
+      <View style={[styles.cashOut, { gap: 14 }]}>
+        <Icon name="pen" size={22} color={saved ? colors.ink : colors.danger} />
+        <View style={{ flex: 1 }}>
+          <Txt weight="semi" size={16}>
+            Recovery words
+          </Txt>
+          <Txt size={13} color={saved ? colors.muted : colors.danger} numberOfLines={1}>
+            {saved ? 'Saved. Your wallet can always come back' : 'Not saved yet. Save them now'}
+          </Txt>
+        </View>
+        <Icon name="arrow" size={20} />
+      </View>
+    </Sticker>
+  )
+}
+
 function KeysRow() {
   return (
     <Sticker

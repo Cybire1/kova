@@ -57,6 +57,7 @@ import { kovaWebAuthnClient, takeVaultOutput } from './passkey'
 import { forgetLink, linkArrival, linkKey, markClaiming, newLinkKey, setLinkId } from './paylinks'
 import { fetchReceivingKey, type PrivateReceipt, UntrustedKey } from './private-core'
 import { ensureReceiving, forgetReceiving, isPrivateAddress, resetScan } from './private-store'
+import { secretFromWords, wordsFor } from './recovery'
 import { endSession, sessionAccount, spend, startSession } from './session'
 import { load, remove, save } from './storage'
 import { forgetTakingsKeys, isTakingsAddress } from './takings-store'
@@ -98,6 +99,10 @@ export interface Profile {
   demo?: boolean
   auth?: 'google'
   email?: string
+  /** Opened from recovery words rather than a passkey: only the words bring it back. */
+  source?: 'words'
+  /** The owner wrote down their recovery words and answered two of them back. */
+  wordsSaved?: boolean
 }
 
 export type EntryKind = 'paid' | 'sent' | 'received' | 'added'
@@ -184,6 +189,14 @@ interface Wallet {
   signInDemo: (username: string, password: string) => Promise<void>
   /** Brings a wallet back from its passkey, on this phone or a new one. The name may be empty. */
   restore: () => Promise<Profile>
+  /** The same wallet back from its 24 recovery words, on any phone, with or without the passkey. */
+  restoreWithWords: (words: string) => Promise<Profile>
+  /** The wallet's 24 recovery words, after Face ID. Passkey and recovery-word wallets only. */
+  revealWords: () => Promise<string[]>
+  /** Whether this wallet has recovery words to show (not a Google or demo wallet). */
+  hasWords: boolean
+  /** Remembers that the words were written down and checked. */
+  markWordsSaved: () => Promise<void>
   signInGoogle: () => Promise<Profile>
   googleEnabled: boolean
   googleBusy: boolean
@@ -650,6 +663,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         throw new Error('Face ID was cancelled. Nothing was paid.')
       })
       if (stored) return begin(base64urlnopad.decode(stored), profile.address)
+      if (profile.source === 'words')
+        throw new Error(
+          'This phone no longer has your wallet’s key. Remove the wallet, then restore it with your recovery words.',
+        )
       // The Keychain copy is gone (a new passcode, a restored phone): ask the passkey itself.
       const asserted = await getPasskeyPrfOutput({
         rpId: passkeyDomain,
@@ -736,6 +753,83 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setStatus('ready')
     return next
   }, [])
+
+  const restoreWithWords = useCallback(async (words: string) => {
+    const secret = secretFromWords(words)
+    // The name-and-contacts backup is sealed with the passkey's second secret, which words can't
+    // give: a wallet opened from words keeps a fresh one, made from its own secret.
+    await keepVaultSecret(hkdf(sha256, secret, undefined, 'kova.words.vault.v1', 32))
+    await keep(secret)
+    const account = await begin(secret)
+    await remove(ACTIVITY, CURSOR, BALANCE)
+    await resetScan()
+    const next: Profile = {
+      name: '',
+      address: account.address,
+      currency: 'USD',
+      protected: true,
+      createdAt: Date.now(),
+      source: 'words',
+      wordsSaved: true,
+    }
+    await save(PROFILE, next)
+    setActivity([])
+    setProfile(next)
+    setBalance(null)
+    setStatus('ready')
+    return next
+  }, [])
+
+  const hasWords = !!profile && profile.auth !== 'google' && !profile.demo
+
+  const revealWords = useCallback(async () => {
+    if (!profile || profile.auth === 'google' || profile.demo)
+      throw new Error('This wallet has no recovery words.')
+    let secret: Uint8Array | null = null
+    if (__DEV__ && !profile.protected) {
+      const dev = await SecureStore.getItemAsync(DEV_PRF).catch(() => null)
+      if (dev) secret = base64urlnopad.decode(dev)
+    }
+    if (!secret) {
+      const stored = await SecureStore.getItemAsync(PRF, {
+        requireAuthentication: true,
+        authenticationPrompt: 'Show your recovery words',
+      }).catch(() => {
+        throw new Error('Face ID was cancelled. Your words stay hidden.')
+      })
+      if (stored) secret = base64urlnopad.decode(stored)
+    }
+    if (!secret) {
+      if (profile.source === 'words')
+        throw new Error('This phone no longer has your wallet’s key. Use the words you wrote down.')
+      const asserted = await getPasskeyPrfOutput({
+        rpId: passkeyDomain,
+        ...(profile.passkey ? { credential: profile.passkey } : {}),
+        webAuthnClient: kovaWebAuthnClient,
+      }).catch((error) => {
+        throw new Error(passkeyProblem(error))
+      })
+      takeVaultOutput()
+      secret = asserted.prfOutput
+    }
+    // Only words for this wallet: a passkey for another one gives words that open nothing here.
+    const { session, account } = await openSigningSession(secret)
+    session.end()
+    if (!isAddressEqual(account.address, profile.address)) {
+      secret.fill(0)
+      throw new Error('That passkey belongs to a different Kova wallet.')
+    }
+    const words = wordsFor(secret)
+    secret.fill(0)
+    return words
+  }, [profile])
+
+  const markWordsSaved = useCallback(async () => {
+    if (!profile) return
+    const next = { ...profile, wordsSaved: true }
+    await save(PROFILE, next)
+    setProfile(next)
+  }, [profile])
 
   const signInGoogle = useCallback(async () => {
     if (profile && profile.auth !== 'google')
@@ -1240,6 +1334,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     ...(__DEV__ ? { createForDev } : {}),
     signInDemo,
     restore,
+    restoreWithWords,
+    revealWords,
+    hasWords,
+    markWordsSaved,
     signInGoogle,
     googleEnabled: googleEnabled,
     googleBusy: googleBusy || googleAdopting,

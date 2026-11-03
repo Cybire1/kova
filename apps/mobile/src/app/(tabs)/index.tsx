@@ -16,6 +16,7 @@ import Svg, { Circle } from 'react-native-svg'
 import { getSummary, naira } from '@/lib/api'
 import { getMonUsd } from '@/lib/chain'
 import { isTestnet, webUrl } from '@/lib/config'
+import { formatUsd } from '@/lib/money'
 import { useOffline } from '@/lib/offline'
 import { usePrefs } from '@/lib/prefs'
 import { usePrivate } from '@/lib/private'
@@ -52,6 +53,36 @@ const BANK_LOGOS = [
   { id: 'gtbank', logo: require('../../../assets/banks/gtbank.png') },
   { id: 'kuda', logo: require('../../../assets/banks/kuda.png') },
 ]
+
+/**
+ * Until the recovery words are saved, once the wallet holds money: the one thing that stops a lost
+ * passkey from meaning lost dollars.
+ */
+function SaveWordsCard() {
+  const { profile, balance, hasWords } = useWallet()
+  if (!hasWords || profile?.wordsSaved || !balance) return null
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Save your recovery words"
+      onPress={() => router.push('/recovery')}
+      style={({ pressed }) => [styles.words, pressed && { transform: [{ scale: 0.98 }] }]}
+    >
+      <View style={styles.wordsIcon}>
+        <Icon name="pen" size={18} color={colors.white} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Txt weight="bold" size={16}>
+          Save your recovery words
+        </Txt>
+        <Txt size={13} color={colors.muted} style={{ lineHeight: 18 }}>
+          If you lose your passkey, they’re the only way back to {formatUsd(balance)}.
+        </Txt>
+      </View>
+      <Icon name="arrow" size={18} />
+    </Pressable>
+  )
+}
 
 export default function Home() {
   const { profile, balance, monBalance, activity, contacts, refresh } = useWallet()
@@ -167,6 +198,8 @@ export default function Home() {
             : null
         }
       />
+
+      <SaveWordsCard />
 
       <MonWalletCard usd={mon?.value ?? null} />
       <OtherTokensCard usdPerMon={monUsd} />
@@ -517,6 +550,26 @@ function ShopCard() {
 }
 
 const styles = StyleSheet.create({
+  words: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 20,
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.danger,
+    backgroundColor: colors.surface,
+  },
+  wordsIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   keysRow: {
     marginTop: 12,
     flexDirection: 'row',

@@ -106,6 +106,9 @@ export default function Restore() {
           disabled={googleBusy}
           onPress={usePasskey}
         />
+        <View style={{ alignItems: 'center', marginTop: 14 }}>
+          <TextLink label="Use recovery words" onPress={() => router.push('/restore-words')} />
+        </View>
         {isTestnet ? (
           <View style={{ alignItems: 'center', marginTop: 14 }}>
             <TextLink label="Sign in with a demo account" onPress={() => router.push('/demo')} />

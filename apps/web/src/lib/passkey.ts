@@ -12,7 +12,7 @@ import { sha256 } from '@noble/hashes/sha2.js'
 import { HDKey } from '@scure/bip32'
 import { entropyToMnemonic, mnemonicToSeed } from '@scure/bip39'
 import { wordlist } from '@scure/bip39/wordlists/english.js'
-import { type LocalAccount, stringToBytes } from 'viem'
+import { type Address, isAddressEqual, type LocalAccount, stringToBytes } from 'viem'
 
 /**
  * Your Kova account on the web: the same passkey, and so the same wallet, as the Kova app.
@@ -200,4 +200,27 @@ export async function openSigningSession(
   const session = createSecp256k1SigningSession({ privateKey: node.privateKey })
   node.wipePrivateData()
   return { session, account: toViemAccount(session) }
+}
+
+/**
+ * The wallet's 24 recovery words: the passkey's secret written as BIP-39 words, the same seed
+ * `openSigningSession` derives the account from. Only for this wallet's passkey: words from another
+ * would open nothing here. Kept in memory by the caller, never stored or sent.
+ */
+export async function recoveryWords(
+  credential: PasskeyCredentialMetadata | undefined,
+  wallet: Address,
+): Promise<string[]> {
+  const asserted = await openKovaPasskey(credential).catch((error) => {
+    throw new Error(passkeyProblem(error))
+  })
+  const { session, account } = await openSigningSession(asserted.prfOutput)
+  session.end()
+  if (!isAddressEqual(account.address, wallet)) {
+    asserted.prfOutput.fill(0)
+    throw new Error('That passkey opens a different Kova wallet. Choose the one for this wallet.')
+  }
+  const words = entropyToMnemonic(asserted.prfOutput, wordlist).split(' ')
+  asserted.prfOutput.fill(0)
+  return words
 }
