@@ -1007,6 +1007,27 @@
   line-height: 1.35;
 }
 
+.dc-row-copy {
+  width: 100%;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dc-row-copy:hover {
+  background: var(--sunken);
+}
+
+.dc-row-copy > svg {
+  color: var(--muted);
+  flex: none;
+}
+
 .dc-row button {
   height: 36px;
   padding: 0 14px;

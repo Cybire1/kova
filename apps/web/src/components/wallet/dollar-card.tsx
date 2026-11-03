@@ -1215,19 +1215,29 @@ function Details({ onClose }: { onClose: () => void }) {
   }
   const address = details?.billing_address ?? null
   const street = address ? [address.line1, address.line2].filter(Boolean).join(', ') : ''
-  const row = (label: string, value: string, what?: string, raw?: string) => (
-    <div className="dc-row">
-      <span>
-        <small>{label}</small>
-        <strong>{value}</strong>
-      </span>
-      {what && raw ? (
-        <button type="button" onClick={() => copy(what, raw)}>
-          {copied === what ? 'Copied' : 'Copy'}
-        </button>
-      ) : null}
-    </div>
-  )
+  // One value per row: the whole row copies it, with a small icon that turns to a tick.
+  const row = (label: string, value: string, what?: string, raw?: string) =>
+    what && raw ? (
+      <button
+        type="button"
+        className="dc-row dc-row-copy"
+        aria-label={`${label}: ${value}. Copy`}
+        onClick={() => copy(what, raw)}
+      >
+        <span>
+          <small>{label}</small>
+          <strong>{value}</strong>
+        </span>
+        <Icon name={copied === what ? 'check' : 'copy'} size={16} />
+      </button>
+    ) : (
+      <div className="dc-row">
+        <span>
+          <small>{label}</small>
+          <strong>{value}</strong>
+        </span>
+      </div>
+    )
   return (
     <div className="w-screen dc">
       <ScreenHead title="Card details" onBack={onClose} />
