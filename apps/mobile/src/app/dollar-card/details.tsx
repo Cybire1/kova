@@ -141,9 +141,9 @@ export default function CardDetailsScreen() {
                 <View style={styles.half}>
                   <Row
                     label="State"
-                    value={address.state}
+                    value={stateName(address.state)}
                     copied={copied === 'state'}
-                    onCopy={() => void copy('state', address.state)}
+                    onCopy={() => void copy('state', stateName(address.state))}
                   />
                 </View>
               </View>
@@ -230,6 +230,63 @@ function Row({
 }
 
 const group = (number: string) => number.replace(/(\d{4})(?=\d)/g, '$1 ')
+
+/** A US state's name from its code ("FL" → "Florida"), as checkout forms list them. */
+const US_STATES: Record<string, string> = {
+  AL: 'Alabama',
+  AK: 'Alaska',
+  AZ: 'Arizona',
+  AR: 'Arkansas',
+  CA: 'California',
+  CO: 'Colorado',
+  CT: 'Connecticut',
+  DE: 'Delaware',
+  DC: 'District of Columbia',
+  FL: 'Florida',
+  GA: 'Georgia',
+  HI: 'Hawaii',
+  ID: 'Idaho',
+  IL: 'Illinois',
+  IN: 'Indiana',
+  IA: 'Iowa',
+  KS: 'Kansas',
+  KY: 'Kentucky',
+  LA: 'Louisiana',
+  ME: 'Maine',
+  MD: 'Maryland',
+  MA: 'Massachusetts',
+  MI: 'Michigan',
+  MN: 'Minnesota',
+  MS: 'Mississippi',
+  MO: 'Missouri',
+  MT: 'Montana',
+  NE: 'Nebraska',
+  NV: 'Nevada',
+  NH: 'New Hampshire',
+  NJ: 'New Jersey',
+  NM: 'New Mexico',
+  NY: 'New York',
+  NC: 'North Carolina',
+  ND: 'North Dakota',
+  OH: 'Ohio',
+  OK: 'Oklahoma',
+  OR: 'Oregon',
+  PA: 'Pennsylvania',
+  RI: 'Rhode Island',
+  SC: 'South Carolina',
+  SD: 'South Dakota',
+  TN: 'Tennessee',
+  TX: 'Texas',
+  UT: 'Utah',
+  VT: 'Vermont',
+  VA: 'Virginia',
+  WA: 'Washington',
+  WV: 'West Virginia',
+  WI: 'Wisconsin',
+  WY: 'Wyoming',
+  PR: 'Puerto Rico',
+}
+const stateName = (code: string) => US_STATES[code.trim().toUpperCase()] ?? code
 
 /** "US" → "United States", for the country field of a checkout (React Native has no Intl.DisplayNames). */
 const COUNTRIES: Record<string, string> = {
