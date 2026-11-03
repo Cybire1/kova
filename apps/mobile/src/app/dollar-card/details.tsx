@@ -46,8 +46,12 @@ export default function CardDetailsScreen() {
     return () => clearInterval(timer)
   }, [details])
 
+  // Opened straight from a link there may be nothing to go back to: the card screen, then.
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/dollar-card'))
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: close only reads the router
   useEffect(() => {
-    if (left <= 0) router.back()
+    if (left <= 0) close()
   }, [left])
 
   const copy = async (label: string, value: string) => {
@@ -69,7 +73,7 @@ export default function CardDetailsScreen() {
 
   return (
     <Screen>
-      <Header title="Card details" backIcon="close" onBack={() => router.back()} />
+      <Header title="Card details" backIcon="close" onBack={close} />
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 72 }]}>
         <View style={styles.cardBox}>
           <Image source={cardArt} style={styles.card} contentFit="contain" />
