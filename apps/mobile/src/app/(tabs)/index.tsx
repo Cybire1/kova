@@ -273,7 +273,7 @@ export default function Home() {
           style={({ pressed }) => [styles.elsewhere, pressed && { opacity: 0.6 }]}
         >
           <Txt weight="semi" size={14} color={colors.muted}>
-            Cash out to another country: US, Canada, UK, Europe, Ghana, Kenya and more
+            Or cash out to another country
           </Txt>
           <Icon name="arrow" size={14} color={colors.muted} />
         </Pressable>
@@ -469,9 +469,15 @@ export default function Home() {
  * shows today's takings and opens the shop; on a phone that's a shop's till it opens the till;
  * with neither, it opens a shop, owned by this wallet.
  */
+/**
+ * The wallet's shop or till, or an invitation to open one. A brand-new wallet doesn't see the
+ * invitation: someone who came to send or receive money meets it only once they've used Kova
+ * (anyone who came to sell has "I run a shop" on the welcome screen and in Profile).
+ */
 function ShopCard() {
   const stall = useStall()
   const terminal = useTerminal()
+  const { activity } = useWallet()
   const { setMode } = usePrefs()
   const { width } = useWindowDimensions()
   const [today, setToday] = useState<{ total: string; count: number } | null>(null)
@@ -490,6 +496,7 @@ function ShopCard() {
   const owned = stall.owned
   const till = !owned ? terminal.paired : null
   const shop = stall.stall
+  const used = activity.length > 0
   const enter = (to: '/terminal' | '/terminal/today') => {
     setMode('terminal')
     router.replace(to)
@@ -528,6 +535,8 @@ function ShopCard() {
               line: 'Take payments into this wallet',
               go: () => router.push('/open-stall'),
             }
+
+  if (!owned && !till && !used) return null
 
   return (
     <Pressable

@@ -104,7 +104,7 @@ export function Home() {
       </Link>
       {network === 'mainnet' ? (
         <Link href="/wallet/cash-out/world" className="w-elsewhere">
-          Cash out to another country: US, Canada, UK, Europe, Ghana, Kenya and more
+          Or cash out to another country
           <Icon name="arrow" size={14} />
         </Link>
       ) : null}
@@ -198,9 +198,14 @@ export function Home() {
  * shop mode. Signed in, it shows today's takings; otherwise the passkey signs you in on the way;
  * with no shop yet, it opens one.
  */
+/**
+ * The wallet's shop, or an invitation to open one: a brand-new wallet doesn't see the invitation
+ * until it has used Kova (selling from day one starts at "I run a shop" or in Profile).
+ */
 function ShopCard() {
-  const { shop, knownShop } = useWallet()
+  const { shop, knownShop, activity } = useWallet()
   const name = shop?.name ?? knownShop
+  if (!name && activity.length === 0) return null
   const today = shop?.today
   const line = shop
     ? today && today.count > 0
