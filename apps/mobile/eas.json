@@ -26,7 +26,8 @@
       "env": {
         "EXPO_PUBLIC_KOVA_NETWORK": "mainnet",
         "EXPO_PUBLIC_KOVA_MONAD_API_URL": "https://api-monad-mainnet.up.railway.app",
-        "EXPO_PUBLIC_KOVA_MONAD_WEB_URL": "https://mykova.app"
+        "EXPO_PUBLIC_KOVA_MONAD_WEB_URL": "https://mykova.app",
+        "EXPO_PUBLIC_PRIVY_CLIENT_ID": "client-WY6dxiFjaN2BVkE8nofYW6CPJA9qQp4kLGhhbCqfYwB74"
       }
     },
     "testflight": {
