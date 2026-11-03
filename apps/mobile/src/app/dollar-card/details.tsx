@@ -57,7 +57,7 @@ export default function CardDetailsScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.head}>
-          <Txt weight="bold" size={32} style={{ letterSpacing: -1 }}>
+          <Txt weight="bold" size={28} style={{ letterSpacing: -0.8 }}>
             Card details
           </Txt>
           <RoundButton icon="close" label="Hide details" onPress={() => router.back()} />
@@ -65,7 +65,7 @@ export default function CardDetailsScreen() {
         <View style={styles.cardBox}>
           <Image source={cardArt} style={styles.card} contentFit="contain" />
           <View style={styles.brandOnCard}>
-            <CardBrand brand={details?.brand} width={42} />
+            <CardBrand brand={details?.brand} width={32} />
           </View>
         </View>
         {error ? (
@@ -231,14 +231,14 @@ function Row({
 
 const group = (number: string) => number.replace(/(\d{4})(?=\d)/g, '$1 ')
 
-/** "US" → "United States", for the country field of a checkout. */
-const countryName = (code: string) => {
-  try {
-    return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) ?? code
-  } catch {
-    return code
-  }
+/** "US" → "United States", for the country field of a checkout (React Native has no Intl.DisplayNames). */
+const COUNTRIES: Record<string, string> = {
+  US: 'United States',
+  GB: 'United Kingdom',
+  CA: 'Canada',
+  NG: 'Nigeria',
 }
+const countryName = (code: string) => COUNTRIES[code.toUpperCase()] ?? code
 
 const styles = StyleSheet.create({
   scroll: { flexGrow: 1, paddingBottom: 12 },
@@ -250,9 +250,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
   },
-  cardBox: { width: 333, height: 210, alignSelf: 'center', marginTop: 20 },
-  card: { width: 333, height: 210, borderRadius: 18 },
-  brandOnCard: { position: 'absolute', right: 14, top: 12 },
+  // Smaller than on the card screen: here the numbers and the address are what count.
+  cardBox: { width: 230, height: 145, alignSelf: 'center', marginTop: 14 },
+  card: { width: 230, height: 145, borderRadius: 13 },
+  brandOnCard: { position: 'absolute', right: 10, top: 8 },
   section: {
     marginTop: 18,
     marginHorizontal: 20,
