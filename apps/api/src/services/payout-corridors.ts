@@ -562,13 +562,14 @@ export const PERSON_FIELDS: Field[] = [
     max: 60,
     placeholder: 'e.g. Lagos',
   },
+  // Nuvion fails a payout to an address with no postal code, a second after taking it.
   {
     key: 'address_postal_code',
     label: 'Postal code',
     kind: 'text',
     min: 2,
     max: 12,
-    optional: true,
+    placeholder: 'e.g. 100001',
   },
   { key: 'address_country', label: 'Country you live in', kind: 'country', placeholder: 'e.g. NG' },
 ]
@@ -654,7 +655,7 @@ export interface RecipientInput {
     lastName: string
     holderName: string
     email: string
-    address: { line1: string; city: string; state: string; postalCode?: string; country: string }
+    address: { line1: string; city: string; state: string; postalCode: string; country: string }
   }
   /** The payment detail Nuvion keeps, without its counterparty. */
   detail: Record<string, unknown>
@@ -783,7 +784,7 @@ export function recipientFor(
         line1: v.address_line1 as string,
         city: v.address_city as string,
         state: v.address_state as string,
-        ...(v.address_postal_code ? { postalCode: v.address_postal_code } : {}),
+        postalCode: v.address_postal_code as string,
         country: v.address_country as string,
       },
     },

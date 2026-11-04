@@ -199,6 +199,7 @@ const person = {
   address_line1: '11 Opebi Road',
   address_city: 'Ikeja',
   address_state: 'Lagos',
+  address_postal_code: '100001',
   address_country: 'NG',
 }
 
@@ -361,7 +362,7 @@ describe('cash-outs through Nuvion', () => {
       profile: {
         first_name: 'Ada',
         last_name: 'Okafor',
-        address: { state_or_province: 'Lagos', country: 'NG' },
+        address: { state_or_province: 'Lagos', postal_code: '100001', country: 'NG' },
       },
     })
     expect(row).toMatchObject({
@@ -504,18 +505,23 @@ describe('cash-outs through Nuvion', () => {
     })
   })
 
-  it('asks for an account saved without a state again, and the new copy replaces the old', async () => {
+  it('asks for an account saved without a state or postal code again, and the new copy replaces the old', async () => {
     const nuvion = fakeNuvion()
     const wallet = newWallet()
     const old = await addRecipient(wallet, 'ca_interac_email', person)
-    // As accounts were saved before Kova asked for the state or region.
     const address = (nuvion.counterparties[0] as { profile: { address: Record<string, unknown> } })
       .profile.address
+    // Saved with a state but no postal code, as accounts were for a while.
+    delete address.postal_code
+    await expect(quotePayout(wallet, old.id, 5_000_000n)).rejects.toMatchObject({
+      code: 'invalid_request',
+      message: expect.stringMatching(/Add this account again/),
+    })
+    // And with neither, as accounts were before that.
     delete address.state_or_province
     delete address.state
     await expect(quotePayout(wallet, old.id, 5_000_000n)).rejects.toMatchObject({
       code: 'invalid_request',
-      message: expect.stringMatching(/Add this account again/),
     })
     expect(relay.relayAuthorization).not.toHaveBeenCalled()
     const again = await addRecipient(wallet, 'ca_interac_email', person)

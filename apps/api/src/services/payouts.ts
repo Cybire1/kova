@@ -15,7 +15,7 @@ import { KovaError } from '../errors.js'
 import { relayAuthorization, relayReady, sendFromRelayer } from '../relay.js'
 import {
   bankCodes,
-  counterpartyHasState,
+  counterpartyAddressReady,
   createRecipient,
   fxQuote,
   type NuvionBank,
@@ -310,11 +310,11 @@ export async function quotePayout(
     throw new KovaError('not_found', 'Pick where to cash out to.')
   const corridor = corridorById(recipient.corridor)
   if (!corridor) throw new KovaError('conflict', 'Kova doesn’t pay out that way any more.')
-  // Accounts saved before Kova asked for it have no state or region, and Nuvion refuses those.
-  if ((await counterpartyHasState(recipient.counterpartyId)) === false)
+  // Accounts saved before Kova asked for them have no state or postal code: Nuvion fails those.
+  if ((await counterpartyAddressReady(recipient.counterpartyId)) === false)
     throw new KovaError(
       'invalid_request',
-      'Add this account again: Kova now needs the state or region in your address.',
+      'Add this account again: Kova now needs your state and postal code.',
     )
   if (amount % CENT !== 0n) throw new KovaError('invalid_request', 'Cash out whole cents.')
   if (amount < MIN_PAYOUT) throw new KovaError('invalid_request', 'Cash out at least $1.')
