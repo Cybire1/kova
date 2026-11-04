@@ -52,9 +52,16 @@ async function nuvion<T>(
   if (!response.ok || !body || body.status === 'error') {
     const said = body?.error?.message ?? body?.message ?? `Nuvion answered ${response.status}.`
     // A 422 lists each missing or wrong field: name them, so the holder knows what to fix.
-    const problems = (body?.validations ?? body?.error?.validations ?? [])
-      .map((p) => (typeof p === 'string' ? p : (p.message ?? p.field ?? p.path ?? p.type)))
-      .filter(Boolean)
+    const problems = (body?.validations ?? body?.error?.validations ?? []).flatMap(problemsOf)
+    if (problems.length || response.status >= 500)
+      console.error(
+        '[nuvion]',
+        init.method ?? 'GET',
+        path.split('?')[0],
+        response.status,
+        said,
+        problems,
+      )
     throw new NuvionRefused(
       response.status,
       body?.error?.code ?? body?.code ?? body?.type,
@@ -64,7 +71,30 @@ async function nuvion<T>(
   return body.data as T
 }
 
-type Problem = string | { field?: string; path?: string; message?: string; type?: string }
+type Problem =
+  | string
+  | { field?: string; path?: string; message?: string; type?: string }
+  | Record<string, { message?: string; type?: string } | string>
+
+/**
+ * One entry of a 422's `validations`. Nuvion keys each entry by the field it is about
+ * (`{ "bank_address.state": { "type": "…", "message": "…" } }`); older answers gave
+ * `{ field, message }` or a plain string. Each comes out as "field: why".
+ */
+function problemsOf(p: Problem): string[] {
+  if (typeof p === 'string') return [p]
+  if (!p || typeof p !== 'object') return []
+  const flat = p as { field?: unknown; path?: unknown; message?: unknown; type?: unknown }
+  if (typeof flat.message === 'string' || typeof flat.field === 'string') {
+    const field = (flat.field ?? flat.path) as string | undefined
+    const why = (flat.message ?? flat.type) as string | undefined
+    return [field && why ? `${field}: ${why}` : ((why ?? field) as string)]
+  }
+  return Object.entries(p).map(([field, v]) => {
+    const why = typeof v === 'string' ? v : (v?.message ?? v?.type)
+    return why ? `${field}: ${why.replace(/\.$/, '')}` : field
+  })
+}
 
 // --- The ID check -------------------------------------------------------------------------------
 

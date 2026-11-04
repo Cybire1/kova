@@ -229,7 +229,11 @@ export function CashOutWorld() {
               ? 'How much?'
               : step === 'review'
                 ? 'Check and approve'
-                : 'On its way'
+                : payout?.status === 'failed'
+                  ? 'Sent back'
+                  : payout?.status === 'paid'
+                    ? 'Arrived'
+                    : 'On its way'
 
   return (
     <div className="w-screen cw">
@@ -512,10 +516,19 @@ export function CashOutWorld() {
                   : payout.recipient?.title}
               </small>
             </li>
-            <li data-state={payout.status === 'paid' ? 'done' : 'pending'}>
-              <strong>Arrived</strong>
-              <small>{payout.status === 'paid' ? 'In the account' : payout.recipient?.speed}</small>
-            </li>
+            {payout.status === 'failed' ? (
+              <li data-state="done">
+                <strong>Back in your wallet</strong>
+                <small>Every cent, the fee too</small>
+              </li>
+            ) : (
+              <li data-state={payout.status === 'paid' ? 'done' : 'pending'}>
+                <strong>Arrived</strong>
+                <small>
+                  {payout.status === 'paid' ? 'In the account' : payout.recipient?.speed}
+                </small>
+              </li>
+            )}
           </ol>
           <button
             type="button"

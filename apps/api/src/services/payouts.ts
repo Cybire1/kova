@@ -497,7 +497,9 @@ async function follow(row: Row, known?: NuvionTransfer): Promise<Row> {
  * Sends a failed payout's dollars back to the wallet, from the relayer. The hash is kept before the
  * transaction can leave, so a refund is checked, never sent twice.
  */
-async function refund(row: Row, why: string): Promise<Row> {
+async function refund(row: Row, reason: string): Promise<Row> {
+  // One sentence, ended, before the next one is put after it.
+  const why = /[.!?]$/.test(reason.trim()) ? reason.trim() : `${reason.trim()}.`
   const from = row.status
   if (from !== 'refunding') {
     const marked = await move(row, from, {

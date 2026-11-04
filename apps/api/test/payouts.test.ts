@@ -140,7 +140,24 @@ function fakeNuvion() {
           state.staleQuoteOnce = false
           return no(422, 'The FX quote has expired', 'error_fx_quote_expired')
         }
-        if (state.refuseTransfer) return no(422, 'Payment detail is not active')
+        // Nuvion's documented 422: the message has no full stop, and each problem is keyed by its field.
+        if (state.refuseTransfer)
+          return new Response(
+            JSON.stringify({
+              status: 'error',
+              message: 'Validation failed for one or more fields',
+              type: 'error_validation_error',
+              validations: [
+                {
+                  'bank_address.state': {
+                    type: 'error_validation_required_field_missing',
+                    message: 'bank_address.state is required.',
+                  },
+                },
+              ],
+            }),
+            { status: 422 },
+          )
         if (state.transfers.some((t) => t.unique_reference === body.unique_reference))
           return no(409, 'Duplicate', 'error_duplicate_resource')
         const t = { ...body, id: `tr_${state.transfers.length + 1}`, status: 'pending' }
@@ -385,7 +402,9 @@ describe('cash-outs through Nuvion', () => {
     const failed = await payPayout(row, signedFor(row))
     expect(failed.status).toBe('failed')
     expect(failed.refundTxHash).toMatch(/^0x/)
-    expect(failed.failure).toMatch(/went back to your wallet/)
+    expect(failed.failure).toBe(
+      'The payout was refused: Validation failed for one or more fields: bank_address.state: bank_address.state is required. Your dollars went back to your wallet.',
+    )
     await settlePayouts()
     expect(relay.sendFromRelayer).toHaveBeenCalledTimes(1)
   })

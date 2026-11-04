@@ -263,7 +263,11 @@ export default function CashOutWorld() {
               ? 'How much?'
               : step === 'review'
                 ? 'Check and approve'
-                : 'On its way'
+                : payout?.status === 'failed'
+                  ? 'Sent back'
+                  : payout?.status === 'paid'
+                    ? 'Arrived'
+                    : 'On its way'
 
   return (
     <Screen>
@@ -543,12 +547,23 @@ export default function CashOutWorld() {
                 payout.status === 'failed' ? 'failed' : payout.status === 'paid' ? 'done' : 'active'
               }
             />
-            <Stage
-              title="Arrived"
-              detail={payout.status === 'paid' ? 'In the account' : (payout.recipient?.speed ?? '')}
-              state={payout.status === 'paid' ? 'done' : 'pending'}
-              last
-            />
+            {payout.status === 'failed' ? (
+              <Stage
+                title="Back in your wallet"
+                detail="Every cent, the fee too"
+                state="done"
+                last
+              />
+            ) : (
+              <Stage
+                title="Arrived"
+                detail={
+                  payout.status === 'paid' ? 'In the account' : (payout.recipient?.speed ?? '')
+                }
+                state={payout.status === 'paid' ? 'done' : 'pending'}
+                last
+              />
+            )}
           </View>
           <View style={{ marginTop: 'auto' }}>
             <PillButton label="Done" onPress={() => router.back()} />
