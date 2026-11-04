@@ -328,7 +328,10 @@ export async function createPayee(person: {
         address: {
           line1: person.address.line1,
           city: person.address.city,
-          ...(person.address.state ? { state_or_province: person.address.state } : {}),
+          // The documented key, and the one its payout check names: unknown keys are ignored.
+          ...(person.address.state
+            ? { state_or_province: person.address.state, state: person.address.state }
+            : {}),
           ...(person.address.postalCode ? { postal_code: person.address.postalCode } : {}),
           country: person.address.country,
         },
@@ -751,6 +754,23 @@ export async function createRecipient(
   const paymentDetailId = made.payment_detail?.id ?? made.id
   if (!paymentDetailId) throw new NuvionRefused(500, undefined, 'No payment detail id came back.')
   return { counterpartyId, paymentDetailId }
+}
+
+/**
+ * Whether a counterparty's address has a state or region, which Nuvion checks only when it pays
+ * out. False only when Nuvion showed an address without one; null when it didn't say, so a
+ * question Nuvion can't answer never stops a cash-out.
+ */
+export async function counterpartyHasState(id: string): Promise<boolean | null> {
+  const d = await nuvion<{ counterparty?: { profile?: { address?: Record<string, unknown> } } }>(
+    `/counterparties/${encodeURIComponent(id)}`,
+  ).catch(() => null)
+  const party = (d?.counterparty ?? d) as { profile?: { address?: Record<string, unknown> } } | null
+  const address = party?.profile?.address
+  if (!address || typeof address !== 'object' || !address.line1) return null
+  return Object.entries(address).some(
+    ([k, v]) => /state|province|region/i.test(k) && typeof v === 'string' && v.trim() !== '',
+  )
 }
 
 export interface NuvionTransfer {

@@ -553,6 +553,15 @@ export const PERSON_FIELDS: Field[] = [
   { key: 'email', label: 'Email', kind: 'email' },
   { key: 'address_line1', label: 'Your street address', kind: 'text', min: 3, max: 120 },
   { key: 'address_city', label: 'City', kind: 'text', min: 2, max: 60 },
+  // Nuvion won't pay out to a person whose address has no state (it says so only at payout).
+  {
+    key: 'address_state',
+    label: 'State or region',
+    kind: 'text',
+    min: 2,
+    max: 60,
+    placeholder: 'e.g. Lagos',
+  },
   {
     key: 'address_postal_code',
     label: 'Postal code',
@@ -645,7 +654,7 @@ export interface RecipientInput {
     lastName: string
     holderName: string
     email: string
-    address: { line1: string; city: string; postalCode?: string; country: string }
+    address: { line1: string; city: string; state: string; postalCode?: string; country: string }
   }
   /** The payment detail Nuvion keeps, without its counterparty. */
   detail: Record<string, unknown>
@@ -773,6 +782,7 @@ export function recipientFor(
       address: {
         line1: v.address_line1 as string,
         city: v.address_city as string,
+        state: v.address_state as string,
         ...(v.address_postal_code ? { postalCode: v.address_postal_code } : {}),
         country: v.address_country as string,
       },

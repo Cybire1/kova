@@ -56,8 +56,15 @@ const { settlementToken } = await import('../src/chain.js')
 const { ibanValid, recipientFor, corridorById } = await import(
   '../src/services/payout-corridors.js'
 )
-const { addRecipient, quotePayout, payPayout, settlePayouts, payoutRow, payoutNonce } =
-  await import('../src/services/payouts.js')
+const {
+  addRecipient,
+  quotePayout,
+  payPayout,
+  settlePayouts,
+  payoutRow,
+  payoutNonce,
+  recipientsOf,
+} = await import('../src/services/payouts.js')
 
 /** Nuvion as far as payouts use it: the pot, counterparties, payment details, quotes, transfers. */
 function fakeNuvion() {
@@ -90,6 +97,11 @@ function fakeNuvion() {
       if (method === 'POST' && path === '/counterparties') {
         state.counterparties.push(body)
         return ok({ id: `cp_${state.counterparties.length}` }, 201)
+      }
+      if (method === 'GET' && path.startsWith('/counterparties/')) {
+        const n = Number(path.split('_')[1])
+        const c = state.counterparties[n - 1] as { profile?: unknown } | undefined
+        return c ? ok({ counterparty: { id: `cp_${n}`, ...c } }) : no(404, 'Not found')
       }
       if (method === 'POST' && path === '/payment-details') {
         if (state.refuseDetail)
@@ -186,6 +198,7 @@ const person = {
   email: 'ada@example.com',
   address_line1: '11 Opebi Road',
   address_city: 'Ikeja',
+  address_state: 'Lagos',
   address_country: 'NG',
 }
 
@@ -345,7 +358,11 @@ describe('cash-outs through Nuvion', () => {
     expect(recipient).toMatchObject({ label: 'Interac a•••@example.com', counterpartyId: 'cp_1' })
     expect(nuvion.counterparties[0]).toMatchObject({
       type: 'individual',
-      profile: { first_name: 'Ada', last_name: 'Okafor', address: { country: 'NG' } },
+      profile: {
+        first_name: 'Ada',
+        last_name: 'Okafor',
+        address: { state_or_province: 'Lagos', country: 'NG' },
+      },
     })
     expect(row).toMatchObject({
       status: 'quoted',
@@ -485,6 +502,26 @@ describe('cash-outs through Nuvion', () => {
     await expect(addRecipient(newWallet(), 'ca_interac_email', person)).rejects.toMatchObject({
       code: 'invalid_request',
     })
+  })
+
+  it('asks for an account saved without a state again, and the new copy replaces the old', async () => {
+    const nuvion = fakeNuvion()
+    const wallet = newWallet()
+    const old = await addRecipient(wallet, 'ca_interac_email', person)
+    // As accounts were saved before Kova asked for the state or region.
+    const address = (nuvion.counterparties[0] as { profile: { address: Record<string, unknown> } })
+      .profile.address
+    delete address.state_or_province
+    delete address.state
+    await expect(quotePayout(wallet, old.id, 5_000_000n)).rejects.toMatchObject({
+      code: 'invalid_request',
+      message: expect.stringMatching(/Add this account again/),
+    })
+    expect(relay.relayAuthorization).not.toHaveBeenCalled()
+    const again = await addRecipient(wallet, 'ca_interac_email', person)
+    const { row } = await quotePayout(wallet, again.id, 5_000_000n)
+    expect(row.status).toBe('quoted')
+    expect((await recipientsOf(wallet)).map((r) => r.id)).toEqual([again.id])
   })
 
   it('fills the bank from Nuvion’s directory', async () => {

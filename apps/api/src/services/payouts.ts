@@ -6,7 +6,7 @@ import {
   formatAmount,
   type TransferAuthorization,
 } from '@kova/monad'
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, ne } from 'drizzle-orm'
 import { type Address, encodeFunctionData, getAddress, type Hex, isAddressEqual } from 'viem'
 import { feePayerAddress, network, publicClient, settlementToken } from '../chain.js'
 import { config } from '../config.js'
@@ -15,6 +15,7 @@ import { KovaError } from '../errors.js'
 import { relayAuthorization, relayReady, sendFromRelayer } from '../relay.js'
 import {
   bankCodes,
+  counterpartyHasState,
   createRecipient,
   fxQuote,
   type NuvionBank,
@@ -176,6 +177,38 @@ export async function addRecipient(
     })
     .returning()
   if (!row) throw new KovaError('internal', 'Kova couldn’t save that. Try again.')
+  // The same account added again (to fix it) replaces the older copy in the list, unless a
+  // payout to the older copy is still moving: that one needs its recipient to finish.
+  const older = await db
+    .select({ id: schema.payoutRecipients.id })
+    .from(schema.payoutRecipients)
+    .where(
+      and(
+        eq(schema.payoutRecipients.wallet, row.wallet),
+        eq(schema.payoutRecipients.network, net),
+        eq(schema.payoutRecipients.corridor, row.corridor),
+        eq(schema.payoutRecipients.label, row.label),
+        ne(schema.payoutRecipients.id, row.id),
+      ),
+    )
+  if (older.length) {
+    const moving = await db
+      .select({ id: schema.payouts.recipientId })
+      .from(schema.payouts)
+      .where(
+        and(
+          inArray(
+            schema.payouts.recipientId,
+            older.map((o) => o.id),
+          ),
+          inArray(schema.payouts.status, ['received', 'sending', 'refunding']),
+        ),
+      )
+    const busy = new Set(moving.map((m) => m.id))
+    const done = older.map((o) => o.id).filter((id) => !busy.has(id))
+    if (done.length)
+      await db.delete(schema.payoutRecipients).where(inArray(schema.payoutRecipients.id, done))
+  }
   return row
 }
 
@@ -277,6 +310,12 @@ export async function quotePayout(
     throw new KovaError('not_found', 'Pick where to cash out to.')
   const corridor = corridorById(recipient.corridor)
   if (!corridor) throw new KovaError('conflict', 'Kova doesn’t pay out that way any more.')
+  // Accounts saved before Kova asked for it have no state or region, and Nuvion refuses those.
+  if ((await counterpartyHasState(recipient.counterpartyId)) === false)
+    throw new KovaError(
+      'invalid_request',
+      'Add this account again: Kova now needs the state or region in your address.',
+    )
   if (amount % CENT !== 0n) throw new KovaError('invalid_request', 'Cash out whole cents.')
   if (amount < MIN_PAYOUT) throw new KovaError('invalid_request', 'Cash out at least $1.')
   if (amount > MAX_PAYOUT) throw new KovaError('invalid_request', 'Cash out up to $500 at a time.')
