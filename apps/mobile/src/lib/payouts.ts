@@ -6,6 +6,14 @@ import {
 } from '@kova/monad'
 import type { Address, Hex, LocalAccount } from 'viem'
 import { apiUrl, network, networkId } from './config'
+import {
+  DEMO_API,
+  demoAddRecipient,
+  demoCashOutOn,
+  demoPayout,
+  demoQuote,
+  demoRecipients,
+} from './demo-cashout'
 
 /**
  * Cash out through Nuvion: to banks, mobile money and wallets in 20+ countries. The API owns the
@@ -98,7 +106,8 @@ export interface Payout {
 type Sign = (message: string) => Promise<Hex>
 
 async function api<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
-  const response = await fetch(`${apiUrl}/v1${path}`, {
+  const base = demoCashOutOn() ? DEMO_API : apiUrl
+  const response = await fetch(`${base}/v1${path}`, {
     method: init?.method ?? (init?.body === undefined ? 'GET' : 'POST'),
     ...(init?.body === undefined
       ? {}
@@ -124,8 +133,11 @@ export const getPayoutBanks = (country: string) =>
 export const getPayoutRate = (currency: string) =>
   api<{ per_dollar: number }>(`/payouts/rates/${currency}`).then((r) => r.per_dollar)
 export const getRecipients = (address: Address) =>
-  api<{ data: Recipient[] }>(`/wallets/${address}/payout-recipients`).then((r) => r.data)
-export const getPayout = (id: string) => api<Payout>(`/payouts/${id}`)
+  demoCashOutOn()
+    ? Promise.resolve(demoRecipients())
+    : api<{ data: Recipient[] }>(`/wallets/${address}/payout-recipients`).then((r) => r.data)
+export const getPayout = (id: string) =>
+  demoCashOutOn() ? Promise.resolve().then(() => demoPayout(id)) : api<Payout>(`/payouts/${id}`)
 
 /** Saves where to cash out to: the details go to Nuvion, signed by the wallet. */
 export async function addRecipient(
@@ -134,6 +146,12 @@ export async function addRecipient(
   corridor: string,
   fields: Record<string, string>,
 ) {
+  if (demoCashOutOn()) {
+    const info = await getPayoutsInfo()
+    const way = info.corridors.find((c) => c.id === corridor)
+    if (!way) throw new Error('Pick where to cash out to.')
+    return demoAddRecipient(way, fields)
+  }
   return api<Recipient>(`/wallets/${address}/payout-recipients`, {
     body: { corridor, fields, ...(await signed(address, sign, 'payout-recipient', corridor)) },
   })
@@ -148,9 +166,11 @@ export async function removeRecipient(address: Address, sign: Sign, id: string) 
 
 /** A quote: the rate locked for a couple of minutes. */
 export const quotePayout = (address: Address, recipientId: string, dollars: string) =>
-  api<Payout>(`/wallets/${address}/payouts`, {
-    body: { recipient_id: recipientId, amount: dollars },
-  })
+  demoCashOutOn()
+    ? demoQuote(recipientId, dollars)
+    : api<Payout>(`/wallets/${address}/payouts`, {
+        body: { recipient_id: recipientId, amount: dollars },
+      })
 
 /** Signs exactly this payout's transfer to Kova and hands it over: Kova relays it and pays out. */
 export async function payPayout(account: LocalAccount, payout: Payout): Promise<Payout> {

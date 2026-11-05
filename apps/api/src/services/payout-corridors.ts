@@ -121,7 +121,7 @@ export const CORRIDORS: Corridor[] = [
     currency: 'USD',
     method: 'bank-transfer',
     scheme: 'rtp',
-    title: 'Bank account, instant (RTP)',
+    title: 'Bank account, instant',
     speed: 'Instant',
     fields: usBank,
   },
@@ -133,7 +133,7 @@ export const CORRIDORS: Corridor[] = [
     currency: 'USD',
     method: 'bank-transfer',
     scheme: 'ach',
-    title: 'Bank account (ACH)',
+    title: 'Bank account',
     speed: 'Same or next day',
     fields: usBank,
   },
@@ -183,7 +183,7 @@ export const CORRIDORS: Corridor[] = [
     currency: 'CAD',
     method: 'bank-transfer',
     scheme: 'eft',
-    title: 'Bank account (EFT)',
+    title: 'Bank account',
     speed: 'Same or next day',
     bankList: { country: 'CA', key: 'bank_institution_number' },
     fields: canadaBank,
@@ -330,7 +330,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇬🇧',
     currency: 'GBP',
     method: 'bank-transfer',
-    title: 'Bank account (Faster Payments)',
+    title: 'Bank account',
     speed: 'Same day',
     fields: [
       {
@@ -348,11 +348,11 @@ export const CORRIDORS: Corridor[] = [
   {
     id: 'eu_sepa',
     country: 'EU',
-    name: 'Europe (SEPA)',
+    name: 'Europe',
     flag: '🇪🇺',
     currency: 'EUR',
     method: 'bank-transfer',
-    title: 'Bank account (SEPA)',
+    title: 'Bank account',
     speed: 'Same day',
     fields: [{ key: 'iban', label: 'IBAN', kind: 'iban' }, bic, bankName],
   },
@@ -394,7 +394,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇸🇬',
     currency: 'SGD',
     method: 'bank-transfer',
-    title: 'Bank account (FAST)',
+    title: 'Bank account',
     speed: 'Instant',
     fields: [bic, accountNumber(6, 17), bankName],
   },
@@ -406,7 +406,7 @@ export const CORRIDORS: Corridor[] = [
     currency: 'PHP',
     method: 'bank-transfer',
     scheme: 'insta_pay',
-    title: 'Bank or e-wallet (InstaPay)',
+    title: 'Bank or e-wallet, instant',
     speed: 'Instant',
     bankList: { country: 'PH', key: 'bank_code' },
     fields: [bank, accountNumber(6, 20)],
@@ -421,7 +421,7 @@ export const CORRIDORS: Corridor[] = [
     currency: 'PHP',
     method: 'bank-transfer',
     scheme: 'pesonet',
-    title: 'Bank account (PESONet)',
+    title: 'Bank account',
     speed: 'Same day',
     bankList: { country: 'PH', key: 'bank_code' },
     fields: [bank, accountNumber(6, 20)],
@@ -464,7 +464,7 @@ export const CORRIDORS: Corridor[] = [
     currency: 'MXN',
     method: 'bank-transfer',
     scheme: 'clabe',
-    title: 'Bank account (CLABE)',
+    title: 'Bank account',
     speed: 'Instant',
     fields: [{ key: 'account_number', label: 'CLABE', kind: 'digits', min: 18, max: 18 }],
   },
@@ -477,7 +477,7 @@ export const CORRIDORS: Corridor[] = [
     currency: 'USD',
     method: 'bank-transfer',
     scheme: 'swift',
-    title: 'SWIFT, to an IBAN',
+    title: 'International transfer, to an IBAN',
     speed: '1–3 business days',
     fields: [
       { key: 'bank_country', label: 'Bank’s country', kind: 'country', placeholder: 'e.g. DE' },
@@ -496,7 +496,7 @@ export const CORRIDORS: Corridor[] = [
     currency: 'USD',
     method: 'bank-transfer',
     scheme: 'swift',
-    title: 'SWIFT, to an account number',
+    title: 'International transfer, to an account number',
     speed: '1–3 business days',
     fields: [
       { key: 'bank_country', label: 'Bank’s country', kind: 'country', placeholder: 'e.g. JP' },
@@ -798,8 +798,11 @@ export function recipientFor(
  * The list as the app and web draw it. Fields come in the order people think of them: whose account,
  * where the money goes, then who they are (Nuvion needs it for every payout).
  */
+/** Ways Kova keeps working for accounts already saved, but no longer offers for new ones. */
+const RETIRED = new Set(['nuvion_direct'])
+
 export function publicCorridors() {
-  return CORRIDORS.map((c) => {
+  return CORRIDORS.filter((c) => !RETIRED.has(c.id)).map((c) => {
     const interac = c.id === 'ca_interac_email'
     const person = (key: string) => PERSON_FIELDS.find((f) => f.key === key) as Field
     const about = PERSON_FIELDS.filter(

@@ -21,14 +21,47 @@ import {
   payPayout,
   quotePayout,
   type Recipient,
-  waysOut,
 } from '@/lib/wallet/payouts'
+import '@/styles/cash-out-world.css'
 import { ScreenHead } from './activity'
 import { useWallet } from './provider'
 import { Keypad } from './ui'
 
 type Step = 'where' | 'country' | 'rail' | 'details' | 'amount' | 'review' | 'tracking'
-const FIRST = ['US', 'CA', 'GB', 'EU', 'GH', 'KE', 'ZA']
+
+/** Countries offered first, after the one the browser is set to. */
+const POPULAR = ['US', 'GB', 'NG', 'KE', 'CA', 'EU', 'GH']
+
+/** The fields about the person (not the account), asked once and kept in this browser. */
+const ABOUT = [
+  'email',
+  'address_line1',
+  'address_city',
+  'address_state',
+  'address_postal_code',
+  'address_country',
+]
+const aboutKey = (address: string) => `kova.cashout.about.${address.toLowerCase()}`
+
+/** Round flags we ship (public/flags); anything else gets the globe. */
+const FLAGS = new Set('AE AU CA CN EU GB GH HK KE MX NG PH SG TZ UG US ZA USDC WW'.split(' '))
+const flagCode = (way: { id?: string; corridor?: string; country: string }) =>
+  (way.id ?? way.corridor) === 'usdc' ? 'USDC' : way.country
+
+function Flag({ code, size = 36 }: { code: string; size?: number }) {
+  const file = FLAGS.has(code) ? code : 'WW'
+  return (
+    // biome-ignore lint/performance/noImgElement: a 36px SVG; next/image adds nothing here
+    <img
+      className="cw-flag"
+      src={`/flags/${file}.svg`}
+      alt=""
+      width={size}
+      height={size}
+      style={{ width: size, height: size }}
+    />
+  )
+}
 
 /** The country the browser is set to (en-NG → NG), as a guess for where someone lives. */
 const homeCountry = () => {
@@ -36,10 +69,99 @@ const homeCountry = () => {
   return /^[A-Z]{2}$/.test(region) ? region : ''
 }
 
+const shortName = (name: string) =>
+  name === 'United States'
+    ? 'USA'
+    : name === 'United Kingdom'
+      ? 'UK'
+      : name === 'United Arab Emirates'
+        ? 'UAE'
+        : name
+
+const clock = (iso: string) => {
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime())
+    ? undefined
+    : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+/** Arrival in a few words, for tight spaces: "Same or next day" → "By tomorrow". */
+const brief = (speed: string) =>
+  speed === 'Same or next day'
+    ? 'By tomorrow'
+    : speed.replace(' business days', ' days').replace('Under a minute', 'In a minute')
+
+/** What to type, when the field is empty: its own example, or the shape it wants. */
+const hint = (f: PayoutField) =>
+  f.placeholder ??
+  (f.kind === 'digits' && f.min && f.max
+    ? f.min === f.max
+      ? `${f.min} digits`
+      : `${f.min} to ${f.max} digits`
+    : f.kind === 'email'
+      ? 'you@example.com'
+      : f.kind === 'iban'
+        ? 'Starts with two letters'
+        : f.kind === 'bic'
+          ? '8 or 11 characters'
+          : f.kind === 'phone'
+            ? 'With the country code'
+            : f.kind === 'country'
+              ? 'Two letters, like NG'
+              : '')
+
+/** Short fields that read as one (a city, its state, its postal code) share a line. */
+const TOGETHER = [
+  ['bank_city', 'bank_state', 'bank_postal_code'],
+  ['address_city', 'address_state'],
+  ['address_postal_code', 'address_country'],
+]
+function rowsOf(fields: PayoutField[]): PayoutField[][] {
+  const rows: PayoutField[][] = []
+  for (const f of fields) {
+    const group = TOGETHER.find((g) => g.includes(f.key))
+    const last = rows[rows.length - 1]
+    if (group && last?.[0] && group.includes(last[0].key)) last.push(f)
+    else rows.push([f])
+  }
+  return rows
+}
+
+/** What went wrong, in a line someone can act on, from Kova's longer note. */
+function plainFailure(failure: string | null): string {
+  const f = (failure ?? '').toLowerCase()
+  if (f.includes('postal')) return 'Your address needs a postal code'
+  if (f.includes('state')) return 'Your address needs a state or region'
+  if (f.includes('account') && f.includes('number')) return 'The account number wasn’t right'
+  if (f.includes('name')) return 'The name didn’t match the account'
+  return 'The bank didn’t accept the details'
+}
+
+/** A country's ways out in a few words: "Interac · Bank account", "M-Pesa · Bank account". */
+const ways = (rails: Corridor[]) =>
+  [
+    ...new Set(
+      rails.map((r) =>
+        r.title.includes('Interac')
+          ? 'Interac'
+          : r.title.startsWith('M-Pesa')
+            ? 'M-Pesa'
+            : r.title.startsWith('Mobile money')
+              ? 'Mobile money'
+              : r.title.startsWith('Wire')
+                ? 'Wire'
+                : r.title.startsWith('Bank or e-wallet')
+                  ? 'Bank or e-wallet'
+                  : 'Bank account',
+      ),
+    ),
+  ].join(' · ') + (rails.some((r) => r.speed === 'Instant') ? ' · instant' : '')
+
 /**
- * Cash out to any country Nuvion pays, as in the app: a saved account or a new one (country, the
- * way, its details), an amount, the rate locked for a couple of minutes, the passkey, then the
- * payout followed until it lands. Nigeria goes to the naira cash-out, whose rate is better.
+ * Cash out to a bank, mobile money or a USDC wallet, almost anywhere, as in the app: a saved account
+ * or a new one (where, how it should arrive, the account), an amount with what lands and when, a
+ * check, the passkey, then the payout followed until it lands. The person's own address is asked
+ * once and kept in this browser. Nigeria goes to the naira cash-out, whose rate is better.
  */
 export function CashOutWorld() {
   const { profile, balance, network, signMessage, signingAccount, refresh } = useWallet()
@@ -48,8 +170,11 @@ export function CashOutWorld() {
   const [recipients, setRecipients] = useState<Recipient[] | null>(null)
   const [step, setStep] = useState<Step>('where')
   const [country, setCountry] = useState<string | null>(null)
+  const [picked, setPicked] = useState<string | null>(null)
   const [corridor, setCorridor] = useState<Corridor | null>(null)
   const [values, setValues] = useState<Record<string, string>>({})
+  const [about, setAbout] = useState<Record<string, string> | null>(null)
+  const [editAbout, setEditAbout] = useState(false)
   const [banks, setBanks] = useState<PayoutBank[] | null>(null)
   const [bankQuery, setBankQuery] = useState('')
   const [bank, setBank] = useState<PayoutBank | null>(null)
@@ -73,27 +198,39 @@ export function CashOutWorld() {
     void getRecipients(profile.address)
       .then(setRecipients)
       .catch(() => setRecipients([]))
+    try {
+      const raw = localStorage.getItem(aboutKey(profile.address))
+      setAbout(raw ? (JSON.parse(raw) as Record<string, string>) : null)
+    } catch {
+      setAbout(null)
+    }
   }, [profile])
 
   const countries = useMemo(() => {
     const by = new Map<string, Corridor[]>()
     for (const c of info?.corridors ?? []) by.set(c.country, [...(by.get(c.country) ?? []), c])
-    const rank = (code: string) => {
-      const i = FIRST.indexOf(code)
-      return i === -1 ? (code === 'WW' ? 999 : 100) : i
-    }
     return [...by.entries()]
-      .map(([code, rails]) => ({ code, rails }))
-      .sort(
-        (a, b) =>
-          rank(a.code) - rank(b.code) ||
-          (a.rails[0]?.name ?? '').localeCompare(b.rails[0]?.name ?? ''),
-      )
+      .map(([code, rails]) => ({ code, rails, name: rails[0]?.name ?? code }))
+      .sort((a, b) => a.name.localeCompare(b.name))
   }, [info])
+  const named = countries.filter((c) => c.code !== 'WW')
+  const elsewhere = (info?.corridors ?? []).filter((c) => c.country === 'WW')
+  const wayOf = (r: Recipient) => info?.corridors.find((c) => c.id === r.corridor)
+  const railsOf = (code: string | null | undefined) =>
+    (info?.corridors ?? []).filter(
+      (c) => c.country === code && (code !== 'WW' || c.id.startsWith('swift')),
+    )
+  const feeOn = (dollars: number) =>
+    Math.ceil((dollars * (info?.fee_bps ?? 0)) / 10_000 / 0.01) * 0.01
 
   const choose = (c: Corridor) => {
     setCorridor(c)
-    setValues({ holder_name: profile?.name ?? '', address_country: homeCountry() })
+    setValues({
+      holder_name: profile?.name ?? '',
+      address_country: homeCountry(),
+      ...(about ?? {}),
+    })
+    setEditAbout(!about)
     setBank(null)
     setBanks(null)
     setBankQuery('')
@@ -110,10 +247,22 @@ export function CashOutWorld() {
       router.push('/wallet/cash-out/naira')
       return
     }
-    const rails = countries.find((c) => c.code === code)?.rails ?? []
+    const rails = railsOf(code)
     setCountry(code)
-    if (rails.length === 1 && rails[0]) choose(rails[0])
-    else setStep('rail')
+    setSearch('')
+    if (rails.length === 1 && rails[0]) {
+      choose(rails[0])
+      return
+    }
+    setPicked(rails[0]?.id ?? null)
+    setRate(null)
+    setStep('rail')
+    const currency = rails[0]?.currency
+    if (currency && currency !== 'USD')
+      void getPayoutRate(currency)
+        .then(setRate)
+        .catch(() => setRate(null))
+    else setRate(1)
   }
 
   const startAmount = (r: Recipient) => {
@@ -121,11 +270,12 @@ export function CashOutWorld() {
     setTyped('')
     setQuote(null)
     setProblem(null)
-    setRate(null)
+    setRate(r.currency === 'USD' ? 1 : null)
     setStep('amount')
-    void getPayoutRate(r.currency === 'USDC' ? 'USC' : r.currency)
-      .then(setRate)
-      .catch(() => setRate(null))
+    if (r.currency !== 'USD')
+      void getPayoutRate(r.currency === 'USDC' ? 'USC' : r.currency)
+        .then(setRate)
+        .catch(() => setRate(null))
   }
 
   const save = async () => {
@@ -137,7 +287,14 @@ export function CashOutWorld() {
         ...values,
         ...(bank ? { bank: bank.code } : {}),
       })
-      setRecipients((list) => [saved, ...(list ?? [])])
+      const kept = Object.fromEntries(ABOUT.filter((k) => values[k]).map((k) => [k, values[k]]))
+      if (Object.keys(kept).length) {
+        setAbout(kept as Record<string, string>)
+        try {
+          localStorage.setItem(aboutKey(profile.address), JSON.stringify(kept))
+        } catch {}
+      }
+      setRecipients((list) => [saved, ...(list ?? []).filter((r) => r.label !== saved.label)])
       startAmount(saved)
     } catch (e) {
       setProblem(e instanceof Error ? e.message : 'Those details weren’t saved. Try again.')
@@ -208,32 +365,47 @@ export function CashOutWorld() {
     setProblem(null)
     if (step === 'country') setStep('where')
     else if (step === 'rail') setStep('country')
-    else if (step === 'details')
-      setStep(
-        (countries.find((c) => c.code === country)?.rails.length ?? 1) > 1 ? 'rail' : 'country',
-      )
+    else if (step === 'details') setStep(railsOf(corridor?.country).length > 1 ? 'rail' : 'country')
     else if (step === 'amount') setStep('where')
     else if (step === 'review') setStep('amount')
   }
 
+  const placeName = (code: string | null) => countries.find((c) => c.code === code)?.name ?? ''
   const title =
     step === 'where'
-      ? 'Cash out to any country'
+      ? 'Cash out'
       : step === 'country'
         ? 'Where to?'
         : step === 'rail'
-          ? (countries.find((c) => c.code === country)?.rails[0]?.name ?? 'How?')
+          ? placeName(country)
           : step === 'details'
             ? (corridor?.title ?? 'Details')
             : step === 'amount'
               ? 'How much?'
               : step === 'review'
-                ? 'Check and approve'
+                ? 'Check and send'
                 : payout?.status === 'failed'
                   ? 'Sent back'
                   : payout?.status === 'paid'
                     ? 'Arrived'
                     : 'On its way'
+  const progress =
+    step === 'country'
+      ? 1
+      : step === 'rail'
+        ? 2
+        : step === 'details'
+          ? 3
+          : step === 'amount' || step === 'review'
+            ? 4
+            : 0
+
+  const fields = corridor?.fields ?? []
+  const split = fields.findIndex((f) => !!f.section)
+  const accountFields = split === -1 ? fields : fields.slice(0, split)
+  const aboutFields = split === -1 ? [] : fields.slice(split)
+  const aboutComplete = aboutFields.every((f) => f.optional || !!values[f.key])
+  const setValue = (key: string) => (v: string) => setValues((prev) => ({ ...prev, [key]: v }))
 
   return (
     <div className="w-screen cw">
@@ -242,6 +414,13 @@ export function CashOutWorld() {
         back="/wallet"
         {...(step === 'where' || step === 'tracking' ? {} : { onBack: back })}
       />
+      {progress > 0 ? (
+        <div className="cw-steps" role="img" aria-label={`Step ${progress} of 4`}>
+          {[1, 2, 3, 4].map((n) => (
+            <i key={n} data-on={n <= progress ? 'yes' : 'no'} />
+          ))}
+        </div>
+      ) : null}
 
       {!info ? (
         <p className="w-quiet">{problem ?? 'Opening…'}</p>
@@ -251,112 +430,233 @@ export function CashOutWorld() {
 
       {info?.live && step === 'where' ? (
         <>
-          <p className="w-lead">
-            Banks, mobile money and Interac in {countries.length - 1}+ places, or a USDC wallet.
+          <p className="cw-balance">
+            <small>From your Kova dollars</small>
+            <strong>{balance === null ? '—' : formatUsd(balance)}</strong>
           </p>
           {recipients && recipients.length > 0 ? (
-            <ul className="cw-list">
-              {recipients.map((r) => (
-                <li key={r.id}>
-                  <button type="button" className="cw-row" onClick={() => startAmount(r)}>
-                    <span className="cw-flag">{r.flag}</span>
-                    <span className="cw-text">
-                      <strong>{r.label}</strong>
-                      <small>
-                        {r.name} · {r.title}
-                      </small>
-                    </span>
-                    {r.speed === 'Instant' ? <span className="cw-chip">Instant</span> : null}
-                    <Icon name="arrow" size={16} />
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <p className="cw-head">
+                <strong>Send to</strong>
+                <small>{recipients.length} saved</small>
+              </p>
+              <ul className="cw-card">
+                {recipients.map((r) => {
+                  const way = wayOf(r)
+                  return (
+                    <li key={r.id}>
+                      <button type="button" className="cw-row" onClick={() => startAmount(r)}>
+                        <Flag code={way ? flagCode(way) : flagCode(r)} />
+                        <span className="cw-text">
+                          <strong>{r.label}</strong>
+                          <small>
+                            {r.title} · {r.currency}
+                          </small>
+                        </span>
+                        <Icon name="arrow" size={16} />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </>
           ) : null}
-          <button
-            type="button"
-            className="pill pill-block cw-gap"
-            data-tone="ink"
-            onClick={() => setStep('country')}
-          >
-            <span className="pill-label">Add an account</span>
-            <span className="pill-cap">
-              <Icon name="plus" size={18} />
+          <button type="button" className="cw-add" onClick={() => setStep('country')}>
+            <span className="cw-add-dot">
+              <Icon name="plus" size={16} />
+            </span>
+            <span className="cw-text">
+              <strong>New account</strong>
+              <small>A bank or mobile money, almost anywhere</small>
             </span>
           </button>
         </>
       ) : null}
 
-      {info?.live && step === 'country' ? (
-        <>
-          <input
-            className="cw-search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search countries"
-            aria-label="Search countries"
-          />
-          <ul className="cw-list">
-            {countries
-              .filter((c) =>
-                (c.rails[0]?.name ?? '').toLowerCase().includes(search.trim().toLowerCase()),
-              )
-              .map((c) => {
-                const first = c.rails[0] as Corridor
-                return (
-                  <li key={c.code}>
-                    <button type="button" className="cw-row" onClick={() => pickCountry(c.code)}>
-                      <span className="cw-flag">{first.flag}</span>
-                      <span className="cw-text">
-                        <strong>{first.name}</strong>
-                        <small>
-                          {c.code === 'NG'
-                            ? 'Naira to any bank, at the best rate'
-                            : waysOut(c.rails)}
-                        </small>
-                      </span>
-                      {c.rails.some((r) => r.speed === 'Instant') ? (
-                        <span className="cw-chip">Instant</span>
-                      ) : null}
-                      <Icon name="arrow" size={16} />
-                    </button>
-                  </li>
-                )
-              })}
-          </ul>
-        </>
-      ) : null}
+      {info?.live && step === 'country'
+        ? (() => {
+            const q = search.trim().toLowerCase()
+            const shown = named.filter((c) =>
+              `${c.name} ${c.rails[0]?.currency ?? ''} ${ways(c.rails)}`.toLowerCase().includes(q),
+            )
+            const home = homeCountry()
+            const suggested = [...new Set([home === 'NG' ? '' : home, ...POPULAR].filter(Boolean))]
+              .map((code) => named.find((c) => c.code === code))
+              .filter((c): c is (typeof named)[number] => !!c)
+              .slice(0, 3)
+            return (
+              <>
+                <label className="cw-search">
+                  <Icon name="search" size={18} />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search a country or currency"
+                    aria-label="Search countries"
+                  />
+                </label>
+                {!q ? (
+                  <>
+                    <p className="cw-label">Where you live, and popular</p>
+                    <div className="cw-tiles">
+                      {suggested.map((c) => (
+                        <button
+                          key={c.code}
+                          type="button"
+                          className="cw-tile"
+                          onClick={() => pickCountry(c.code)}
+                        >
+                          <Flag code={c.code} size={34} />
+                          <strong>{shortName(c.name)}</strong>
+                          <small>
+                            {c.rails[0]?.currency}
+                            {c.rails.some((r) => r.speed === 'Instant') ? ' · Instant' : ''}
+                          </small>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : null}
+                <p className="cw-label">{q ? `${shown.length} found` : 'All countries'}</p>
+                {shown.length ? (
+                  <ul className="cw-card">
+                    {shown.map((c) => (
+                      <li key={c.code}>
+                        <button
+                          type="button"
+                          className="cw-row"
+                          onClick={() => pickCountry(c.code)}
+                        >
+                          <Flag code={c.code} />
+                          <span className="cw-text">
+                            <strong>{c.name}</strong>
+                            <small>
+                              {c.code === 'NG'
+                                ? 'Bank account, at the best naira rate'
+                                : ways(c.rails)}
+                            </small>
+                          </span>
+                          <span className="cw-aside">{c.rails[0]?.currency}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="cw-card cw-empty">
+                    <strong>Not listed by name</strong>
+                    <small>
+                      Most banks still take an international transfer. Pick “Any other country”
+                      below.
+                    </small>
+                  </div>
+                )}
+                <p className="cw-label">Other ways out</p>
+                <ul className="cw-card">
+                  {elsewhere.some((c) => c.id.startsWith('swift')) ? (
+                    <li>
+                      <button type="button" className="cw-row" onClick={() => pickCountry('WW')}>
+                        <Flag code="WW" />
+                        <span className="cw-text">
+                          <strong>Any other country</strong>
+                          <small>International bank transfer</small>
+                        </span>
+                        <Icon name="arrow" size={16} />
+                      </button>
+                    </li>
+                  ) : null}
+                  {elsewhere
+                    .filter((c) => !c.id.startsWith('swift'))
+                    .map((c) => (
+                      <li key={c.id}>
+                        <button type="button" className="cw-row" onClick={() => choose(c)}>
+                          <Flag code={flagCode(c)} />
+                          <span className="cw-text">
+                            <strong>{c.name}</strong>
+                            <small>{c.title.replace(/^USDC on /, '')}</small>
+                          </span>
+                          <Icon name="arrow" size={16} />
+                        </button>
+                      </li>
+                    ))}
+                </ul>
+              </>
+            )
+          })()
+        : null}
 
       {info?.live && step === 'rail' ? (
-        <ul className="cw-list">
-          {(countries.find((c) => c.code === country)?.rails ?? []).map((r) => (
-            <li key={r.id}>
-              <button type="button" className="cw-row" onClick={() => choose(r)}>
-                <span className="cw-flag">{r.flag}</span>
-                <span className="cw-text">
-                  <strong>{r.title}</strong>
-                  <small>
-                    {r.speed} · arrives in {r.currency}
-                  </small>
-                </span>
-                {r.speed === 'Instant' ? <span className="cw-chip">Instant</span> : null}
-                <Icon name="arrow" size={16} />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="cw-flow">
+          <h2 className="cw-ask">
+            <Flag code={country ?? 'WW'} size={28} />
+            How should it arrive?
+          </h2>
+          <p className="cw-sub">Prices are for $100.</p>
+          <div className="cw-ways">
+            {railsOf(country).map((r) => {
+              const net = 100 - feeOn(100)
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  aria-pressed={r.id === picked}
+                  className="cw-way"
+                  onClick={() => setPicked(r.id)}
+                >
+                  <span className="cw-way-head">
+                    <i className="cw-radio" />
+                    <strong>{r.title}</strong>
+                    {r.speed === 'Instant' ? <span className="cw-tag">Fastest</span> : null}
+                  </span>
+                  <span className="cw-way-facts">
+                    <span>
+                      <small>Arrives</small>
+                      <b>{brief(r.speed)}</b>
+                    </span>
+                    <span>
+                      <small>Fees</small>
+                      <b>${feeOn(100).toFixed(2)}</b>
+                    </span>
+                    <span>
+                      <small>They get</small>
+                      <b>
+                        {rate === null
+                          ? '…'
+                          : `${r.currency === 'USD' ? '' : '≈ '}${inCurrency(net * rate, r.currency)}`}
+                      </b>
+                    </span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          <button
+            type="button"
+            className="pill pill-block cw-gap"
+            data-tone="ink"
+            disabled={!picked}
+            onClick={() => {
+              const r = info?.corridors.find((c) => c.id === picked)
+              if (r) choose(r)
+            }}
+          >
+            <span className="pill-label">Continue</span>
+            <span className="pill-cap">
+              <Icon name="arrow" size={18} />
+            </span>
+          </button>
+        </div>
       ) : null}
 
       {info?.live && step === 'details' && corridor ? (
         <form
-          className="cw-form"
+          className="cw-flow"
           onSubmit={(e) => {
             e.preventDefault()
             void save()
           }}
         >
           <div className="cw-rail">
-            <span className="cw-flag">{corridor.flag}</span>
+            <Flag code={flagCode(corridor)} size={30} />
             <span className="cw-text">
               <strong>{corridor.name}</strong>
               <small>
@@ -364,23 +664,81 @@ export function CashOutWorld() {
               </small>
             </span>
           </div>
-          {corridor.fields.map((f) => (
-            <Field
-              key={f.key}
-              field={f}
-              value={values[f.key] ?? ''}
-              onChange={(v) => setValues((prev) => ({ ...prev, [f.key]: v }))}
-              banks={banks}
-              bank={bank}
-              bankQuery={bankQuery}
-              setBankQuery={setBankQuery}
-              onBank={setBank}
-            />
-          ))}
-          <p className="w-fine">Kova keeps only the last digits. The rest stays with Nuvion.</p>
+          <p className="cw-label">The account</p>
+          <div className="cw-card">
+            {rowsOf(accountFields).map((row) => (
+              <div key={row.map((f) => f.key).join()} className="cw-line">
+                {row.map((f) => (
+                  <Field
+                    key={f.key}
+                    field={f}
+                    value={values[f.key] ?? ''}
+                    onChange={setValue(f.key)}
+                    banks={banks}
+                    bank={bank}
+                    bankQuery={bankQuery}
+                    setBankQuery={setBankQuery}
+                    onBank={setBank}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+          {aboutFields.length ? (
+            <>
+              <p className="cw-head">
+                <strong>Your address</strong>
+                <small>Asked once, kept in this browser</small>
+              </p>
+              {!editAbout && aboutComplete ? (
+                <div className="cw-card cw-about">
+                  <span className="cw-home">
+                    <Icon name="home" size={16} />
+                  </span>
+                  <span className="cw-text">
+                    <strong>
+                      {[values.address_line1, values.address_city].filter(Boolean).join(', ')}
+                    </strong>
+                    <small>
+                      {[values.address_state, values.address_postal_code, values.address_country]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </small>
+                  </span>
+                  <button type="button" className="cw-link" onClick={() => setEditAbout(true)}>
+                    Edit
+                  </button>
+                </div>
+              ) : (
+                <div className="cw-card">
+                  {rowsOf(aboutFields).map((row) => (
+                    <div key={row.map((f) => f.key).join()} className="cw-line">
+                      {row.map((f) => (
+                        <Field
+                          key={f.key}
+                          field={f}
+                          value={values[f.key] ?? ''}
+                          onChange={setValue(f.key)}
+                          banks={null}
+                          bank={null}
+                          bankQuery=""
+                          setBankQuery={() => {}}
+                          onBank={() => {}}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="cw-note">
+                <Icon name="lock" size={12} />
+                Banks need it to pay you. Kova keeps only the account’s last digits.
+              </p>
+            </>
+          ) : null}
           {problem ? <p className="form-error">{problem}</p> : null}
-          <button type="submit" className="pill pill-block" data-tone="ink" disabled={busy}>
-            <span className="pill-label">{busy ? 'Saving…' : 'Save and continue'}</span>
+          <button type="submit" className="pill pill-block cw-gap" data-tone="ink" disabled={busy}>
+            <span className="pill-label">{busy ? 'Saving…' : 'Save account'}</span>
             <span className="pill-cap">
               <Icon name="face" size={18} />
             </span>
@@ -390,27 +748,56 @@ export function CashOutWorld() {
 
       {info?.live && step === 'amount' && recipient ? (
         <div className="cw-amount">
-          <span className="cw-to">
-            {recipient.flag} {recipient.label}
-          </span>
+          <button type="button" className="cw-to" onClick={() => setStep('where')}>
+            <Flag
+              code={(() => {
+                const way = wayOf(recipient)
+                return way ? flagCode(way) : flagCode(recipient)
+              })()}
+              size={30}
+            />
+            <span className="cw-text">
+              <strong>{recipient.label}</strong>
+              <small>
+                {recipient.title} · {recipient.speed}
+              </small>
+            </span>
+            <span className="cw-link">Change</span>
+          </button>
           <strong className="cw-typed">
             <small>$</small>
             {typed || '0'}
           </strong>
-          <p className="cw-gets">
-            They get{' '}
-            <strong>
-              {rate === null
-                ? '…'
-                : `≈ ${inCurrency((Number(dollars) / 1e6) * rate, recipient.currency)}`}
-            </strong>
+          <p className="cw-left" data-over={short ? 'yes' : 'no'}>
+            {short
+              ? 'More than you have'
+              : balance === null
+                ? ''
+                : `${formatUsd(balance)} available`}
           </p>
-          <p className="dc-from">
-            <span>From Kova balance</span>
-            <strong data-over={short ? 'yes' : 'no'}>
-              {balance === null ? '—' : formatUsd(balance)}
-            </strong>
-          </p>
+          <div className="cw-sums">
+            <span>
+              <small>Fees</small>
+              <b>{dollars > 0n ? `$${feeOn(Number(dollars) / 1e6).toFixed(2)}` : '—'}</b>
+            </span>
+            <span data-strong="yes">
+              <small>They get</small>
+              <b>
+                {dollars === 0n
+                  ? '—'
+                  : rate === null
+                    ? '…'
+                    : `${recipient.currency === 'USD' ? '' : '≈ '}${inCurrency(
+                        (Number(dollars) / 1e6 - feeOn(Number(dollars) / 1e6)) * rate,
+                        recipient.currency,
+                      )}`}
+              </b>
+            </span>
+            <span>
+              <small>Arrives</small>
+              <b>{brief(recipient.speed)}</b>
+            </span>
+          </div>
           <Keypad onKey={(key) => setTyped((t) => applyKey(t, key))} />
           {problem ? <p className="form-error">{problem}</p> : null}
           <button
@@ -428,8 +815,8 @@ export function CashOutWorld() {
                   : short
                     ? 'Not enough in your balance'
                     : busy
-                      ? 'Getting the rate…'
-                      : 'See the rate'}
+                      ? 'Locking the rate…'
+                      : 'Continue'}
             </span>
             <span className="pill-cap">
               <Icon name="arrow" size={18} />
@@ -439,22 +826,21 @@ export function CashOutWorld() {
       ) : null}
 
       {info?.live && step === 'review' && quote ? (
-        <div className="cw-review">
+        <div className="cw-flow">
           <p className="cw-hero">
             <small>{quote.recipient?.holder_name ?? 'They'} gets</small>
             <strong>{inCurrency(quote.amount_to, quote.currency)}</strong>
+            <small>{quote.recipient?.label}</small>
           </p>
-          <dl className="cw-facts">
+          <dl className="cw-card cw-facts">
             <div>
               <dt>You send</dt>
               <dd>${quote.amount}</dd>
             </div>
-            {Number(quote.fee) > 0 ? (
-              <div>
-                <dt>Kova fee</dt>
-                <dd>${quote.fee}</dd>
-              </div>
-            ) : null}
+            <div>
+              <dt>Fees</dt>
+              <dd>${quote.fee}</dd>
+            </div>
             {quote.currency !== 'USD' ? (
               <div>
                 <dt>Rate</dt>
@@ -462,29 +848,28 @@ export function CashOutWorld() {
               </div>
             ) : null}
             <div>
-              <dt>To</dt>
-              <dd>{quote.recipient?.label}</dd>
-            </div>
-            <div>
               <dt>Arrives</dt>
-              <dd>{quote.recipient?.speed}</dd>
+              <dd data-tone="teal">{quote.recipient?.speed}</dd>
             </div>
           </dl>
-          <p className="cw-held" data-out={left > 0 ? 'no' : 'yes'}>
-            {left > 0
-              ? `Rate held for ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`
-              : 'This rate ran out. Get a fresh one.'}
-          </p>
+          {quote.currency !== 'USD' ? (
+            <p className="cw-held" data-out={left > 0 ? 'no' : 'yes'}>
+              <Icon name="clock" size={14} />
+              {left > 0
+                ? `Rate held for ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`
+                : 'This rate ran out. Get a fresh one.'}
+            </p>
+          ) : null}
           {problem ? <p className="form-error">{problem}</p> : null}
           <button
             type="button"
-            className="pill pill-block"
-            data-tone="ink"
+            className="pill pill-block cw-gap"
+            data-tone={left > 0 ? 'coral' : 'ink'}
             disabled={busy}
             onClick={() => void (left > 0 ? approve() : getQuote())}
           >
             <span className="pill-label">
-              {left <= 0 ? 'Get a fresh rate' : busy ? 'Cashing out…' : `Cash out $${quote.amount}`}
+              {left <= 0 ? 'Get a fresh rate' : busy ? 'Sending…' : `Send $${quote.amount}`}
             </span>
             <span className="pill-cap">
               <Icon name="face" size={18} />
@@ -494,45 +879,81 @@ export function CashOutWorld() {
       ) : null}
 
       {step === 'tracking' && payout ? (
-        <div className="cw-review">
+        <div className="cw-flow">
           <p className="cw-hero">
-            <strong>{inCurrency(payout.amount_to, payout.currency)}</strong>
-            <small>to {payout.recipient?.label}</small>
+            <strong>
+              {payout.status === 'failed'
+                ? `$${payout.amount}`
+                : inCurrency(payout.amount_to, payout.currency)}
+            </strong>
+            <small>
+              {payout.status === 'failed'
+                ? 'back in your Kova wallet'
+                : `to ${payout.recipient?.label ?? ''}`}
+            </small>
           </p>
-          <ol className="cw-stages">
-            <li data-state="done">
-              <strong>Dollars sent to Kova</strong>
-              <small>On Monad, in a second</small>
-            </li>
-            <li
-              data-state={
-                payout.status === 'failed' ? 'failed' : payout.status === 'paid' ? 'done' : 'active'
-              }
-            >
-              <strong>{payout.status === 'failed' ? 'Didn’t go through' : 'Paying out'}</strong>
-              <small>
-                {payout.status === 'failed'
-                  ? (payout.failure ?? 'Your dollars went back to your wallet.')
-                  : payout.recipient?.title}
-              </small>
-            </li>
+          <ol className="cw-card cw-stages">
+            <Stage
+              title="Sent"
+              time={clock(payout.created_at)}
+              detail="From your Kova wallet"
+              state="done"
+            />
             {payout.status === 'failed' ? (
-              <li data-state="done">
-                <strong>Back in your wallet</strong>
-                <small>Every cent, the fee too</small>
-              </li>
+              <>
+                <Stage
+                  title="The bank couldn’t take it"
+                  detail={plainFailure(payout.failure)}
+                  state="failed"
+                />
+                <Stage title="Back in your wallet" detail="Every cent, fees too" state="done" />
+              </>
             ) : (
-              <li data-state={payout.status === 'paid' ? 'done' : 'pending'}>
-                <strong>Arrived</strong>
-                <small>
-                  {payout.status === 'paid' ? 'In the account' : payout.recipient?.speed}
-                </small>
-              </li>
+              <>
+                <Stage
+                  title="Paid out"
+                  detail={`To ${payout.recipient?.label ?? 'the account'}`}
+                  state={
+                    payout.status === 'sending' || payout.status === 'paid' ? 'done' : 'active'
+                  }
+                />
+                <Stage
+                  title="On its way to the bank"
+                  time={payout.status === 'sending' ? 'Now' : undefined}
+                  detail="Banks move money on business days"
+                  state={
+                    payout.status === 'paid'
+                      ? 'done'
+                      : payout.status === 'sending'
+                        ? 'active'
+                        : 'pending'
+                  }
+                />
+                <Stage
+                  title="In the account"
+                  detail={
+                    payout.status === 'paid'
+                      ? 'It’s there'
+                      : `Usually ${(payout.recipient?.speed ?? '').toLowerCase()}`
+                  }
+                  state={payout.status === 'paid' ? 'done' : 'pending'}
+                />
+              </>
             )}
           </ol>
+          <dl className="cw-receipt">
+            <div>
+              <dt>You sent</dt>
+              <dd>${payout.amount}</dd>
+            </div>
+            <div>
+              <dt>Fees</dt>
+              <dd>${payout.fee}</dd>
+            </div>
+          </dl>
           <button
             type="button"
-            className="pill pill-block"
+            className="pill pill-block cw-gap"
             data-tone="ink"
             onClick={() => router.push('/wallet')}
           >
@@ -544,6 +965,28 @@ export function CashOutWorld() {
         </div>
       ) : null}
     </div>
+  )
+}
+
+function Stage({
+  title,
+  detail,
+  time,
+  state,
+}: {
+  title: string
+  detail: string
+  time?: string
+  state: 'done' | 'active' | 'pending' | 'failed'
+}) {
+  return (
+    <li data-state={state}>
+      <span className="cw-stage-top">
+        <strong>{title}</strong>
+        {time ? <small data-now={time === 'Now' ? 'yes' : 'no'}>{time}</small> : null}
+      </span>
+      <small>{detail}</small>
+    </li>
   )
 }
 
@@ -566,18 +1009,13 @@ function Field({
   setBankQuery: (q: string) => void
   onBank: (b: PayoutBank | null) => void
 }) {
-  const heading = field.section ? (
-    <div className="cw-section">
-      <strong>{field.section}</strong>
-      <small>Nuvion, who pays out for Kova, needs this for every payout.</small>
-    </div>
-  ) : null
+  const label = `${field.label}${field.optional ? ' (optional)' : ''}`
   if (field.kind === 'bank') {
     const q = bankQuery.trim().toLowerCase()
     const matches = (banks ?? []).filter((b) => b.name.toLowerCase().includes(q)).slice(0, 8)
     return (
       <div className="cw-field">
-        <span>{field.label}</span>
+        <span>{label}</span>
         {bank ? (
           <button type="button" className="cw-picked" onClick={() => onBank(null)}>
             {bank.name} <small>Change</small>
@@ -609,10 +1047,9 @@ function Field({
   }
   if (field.kind === 'select')
     return (
-      <div className="cw-field">
-        {heading}
-        <span>{field.label}</span>
-        <div className="cw-options">
+      <div className="cw-field cw-field-row">
+        <span>{label}</span>
+        <div className="cw-segment">
           {(field.options ?? []).map((o) => (
             <button
               key={o.value}
@@ -628,15 +1065,11 @@ function Field({
     )
   return (
     <label className="cw-field">
-      {heading}
-      <span>
-        {field.label}
-        {field.optional ? ' (optional)' : ''}
-      </span>
+      <span>{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={field.placeholder ?? ''}
+        placeholder={hint(field)}
         inputMode={
           field.kind === 'digits'
             ? 'numeric'
