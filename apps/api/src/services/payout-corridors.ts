@@ -196,6 +196,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇳🇬',
     currency: 'NGN',
     method: 'bank-transfer',
+    scheme: 'nip',
     title: 'Bank account',
     speed: 'Instant',
     bankList: { country: 'NG', key: 'bank_code' },
@@ -228,6 +229,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇬🇭',
     currency: 'GHS',
     method: 'bank-transfer',
+    scheme: 'gh_eft',
     title: 'Bank account',
     speed: 'Same day',
     bankList: { country: 'GH', key: 'bank_code' },
@@ -260,6 +262,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇰🇪',
     currency: 'KES',
     method: 'bank-transfer',
+    scheme: 'ke_eft',
     title: 'Bank account',
     speed: 'Same day',
     bankList: { country: 'KE', key: 'bank_code' },
@@ -293,6 +296,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇹🇿',
     currency: 'TZS',
     method: 'bank-transfer',
+    scheme: 'tz_eft',
     title: 'Bank account',
     speed: 'Same day',
     bankList: { country: 'TZ', key: 'bank_code' },
@@ -305,6 +309,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇺🇬',
     currency: 'UGX',
     method: 'bank-transfer',
+    scheme: 'ug_eft',
     title: 'Bank account',
     speed: 'Same day',
     bankList: { country: 'UG', key: 'bank_code' },
@@ -330,6 +335,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇬🇧',
     currency: 'GBP',
     method: 'bank-transfer',
+    scheme: 'fps',
     title: 'Bank account',
     speed: 'Same day',
     fields: [
@@ -352,6 +358,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇪🇺',
     currency: 'EUR',
     method: 'bank-transfer',
+    scheme: 'sepa',
     title: 'Bank account',
     speed: 'Same day',
     fields: [{ key: 'iban', label: 'IBAN', kind: 'iban' }, bic, bankName],
@@ -364,6 +371,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇦🇪',
     currency: 'AED',
     method: 'bank-transfer',
+    scheme: 'uae_local',
     title: 'Bank account',
     speed: 'Same or next day',
     fields: [
@@ -379,6 +387,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇦🇺',
     currency: 'AUD',
     method: 'bank-transfer',
+    scheme: 'becs',
     title: 'Bank account',
     speed: '1–2 business days',
     fields: [
@@ -394,6 +403,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇸🇬',
     currency: 'SGD',
     method: 'bank-transfer',
+    scheme: 'fast',
     title: 'Bank account',
     speed: 'Instant',
     fields: [bic, accountNumber(6, 17), bankName],
@@ -434,6 +444,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🇭🇰',
     currency: 'HKD',
     method: 'bank-transfer',
+    scheme: 'hk_chats',
     title: 'Bank account',
     speed: 'Instant',
     bankList: { country: 'HK', key: 'bank_code' },
@@ -486,6 +497,8 @@ export const CORRIDORS: Corridor[] = [
       bankName,
       { key: 'bank_line1', label: 'Bank’s street address', kind: 'text', min: 3, max: 120 },
       { key: 'bank_city', label: 'Bank’s city', kind: 'text', min: 2, max: 60 },
+      { key: 'bank_state', label: 'Bank’s state or region', kind: 'text', min: 2, max: 60 },
+      { key: 'bank_postal_code', label: 'Bank’s postal code', kind: 'text', min: 2, max: 12 },
     ],
   },
   {
@@ -503,6 +516,10 @@ export const CORRIDORS: Corridor[] = [
       { key: 'account_number', label: 'Account number', kind: 'text', min: 4, max: 34 },
       bic,
       bankName,
+      { key: 'bank_line1', label: 'Bank’s street address', kind: 'text', min: 3, max: 120 },
+      { key: 'bank_city', label: 'Bank’s city', kind: 'text', min: 2, max: 60 },
+      { key: 'bank_state', label: 'Bank’s state or region', kind: 'text', min: 2, max: 60 },
+      { key: 'bank_postal_code', label: 'Bank’s postal code', kind: 'text', min: 2, max: 12 },
     ],
   },
   // To a USDC wallet on another chain, or another Nuvion account.
@@ -513,6 +530,7 @@ export const CORRIDORS: Corridor[] = [
     flag: '🪙',
     currency: 'USC',
     method: 'stablecoin-transfer',
+    scheme: 'stablecoin',
     title: 'USDC on Base, Ethereum, Polygon or Solana',
     speed: 'Under a minute',
     fields: [
@@ -750,9 +768,26 @@ export function recipientFor(
       label = `${v.bank_name} ${mask(v.iban as string)}`
       break
     case 'swift_iban':
-      take('iban', 'swift_bic', 'bank_name')
-      detail.bank_address = { line1: v.bank_line1, city: v.bank_city, country }
-      label = `${v.bank_name} ${mask(v.iban as string)}`
+    case 'swift_account': {
+      take('iban', 'account_number', 'swift_bic', 'bank_name')
+      // A USD payout needs the bank's whole address, state and postal code included.
+      detail.bank_address = {
+        line1: v.bank_line1,
+        city: v.bank_city,
+        state: v.bank_state,
+        postal_code: v.bank_postal_code,
+        country,
+      }
+      label = `${v.bank_name} ${mask((v.iban ?? v.account_number) as string)}`
+      break
+    }
+    case 'au_becs':
+      // Nuvion reads the BSB under all three names.
+      take('account_number', 'bank_name')
+      detail.bsb = v.branch_code
+      detail.bank_code = v.branch_code
+      detail.branch_code = v.branch_code
+      label = `${v.bank_name} ${mask(v.account_number as string)}`
       break
     case 'usdc':
       take('blockchain_network', 'wallet_address')

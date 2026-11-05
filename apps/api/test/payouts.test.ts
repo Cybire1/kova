@@ -240,6 +240,14 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+const sepa = () =>
+  recipientFor(corridorById('eu_sepa')!, {
+    ...person,
+    iban: 'DE89 3704 0044 0532 0130 00',
+    swift_bic: 'COBADEFFXXX',
+    bank_name: 'Commerzbank',
+  })
+
 describe('payout rails', () => {
   it('checks IBANs by their check digits', () => {
     expect(ibanValid('DE89 3704 0044 0532 0130 00')).toBe(true)
@@ -311,6 +319,72 @@ describe('payout rails', () => {
       bank_institution_number: '003',
       bank_name: 'Royal Bank of Canada',
     })
+  })
+
+  it('sends what Nuvion’s docs ask of each rail: its scheme, Australia’s BSB, a SWIFT bank’s whole address', () => {
+    expect(sepa().detail).toMatchObject({ scheme: 'sepa' })
+    const fps = recipientFor(corridorById('gb_fps')!, {
+      ...person,
+      sort_code: '04-00-04',
+      account_number: '12345678',
+      bank_name: 'Monzo',
+    })
+    expect(fps.detail).toMatchObject({ scheme: 'fps', sort_code: '040004', country: 'GB' })
+
+    const becs = recipientFor(corridorById('au_becs')!, {
+      ...person,
+      branch_code: '062000',
+      account_number: '12345678',
+      bank_name: 'Commonwealth Bank',
+    })
+    expect(becs.detail).toMatchObject({
+      scheme: 'becs',
+      bsb: '062000',
+      bank_code: '062000',
+      branch_code: '062000',
+      account_number: '12345678',
+    })
+
+    const bank = {
+      bank_line1: '1 Chome-1-2 Oshiage',
+      bank_city: 'Tokyo',
+      bank_state: 'Tokyo',
+      bank_postal_code: '131-0045',
+      swift_bic: 'BOTKJPJT',
+      bank_name: 'MUFG Bank',
+    }
+    const swift = recipientFor(corridorById('swift_account')!, {
+      ...person,
+      ...bank,
+      bank_country: 'JP',
+      account_number: '1234567',
+    })
+    expect(swift.detail).toMatchObject({
+      scheme: 'swift',
+      account_number: '1234567',
+      swift_bic: 'BOTKJPJT',
+      country: 'JP',
+      bank_address: {
+        line1: '1 Chome-1-2 Oshiage',
+        city: 'Tokyo',
+        state: 'Tokyo',
+        postal_code: '131-0045',
+        country: 'JP',
+      },
+    })
+    expect(swift.label).toBe('MUFG Bank •••• 4567')
+
+    const usdc = recipientFor(corridorById('usdc')!, {
+      ...person,
+      blockchain_network: 'BASE_MAINNET',
+      wallet_address: '0x67d185427d896aaf1d8781E094f1Bad16f7fa967',
+    })
+    expect(usdc.detail).toMatchObject({
+      payment_method: 'stablecoin-transfer',
+      scheme: 'stablecoin',
+      blockchain_network: 'BASE_MAINNET',
+    })
+    expect(usdc.detail.country).toBeUndefined()
   })
 
   it('refuses details that can’t be right, naming the field', () => {
