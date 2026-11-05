@@ -148,10 +148,12 @@ export default function CashOutWorld() {
       approve: () => Promise<void>
     },
   )
+  const filmed = useRef(false)
   // biome-ignore lint/correctness/useExhaustiveDependencies: once the rails and accounts arrive
   useEffect(() => {
-    if (!__DEV__ || !dev.film || !demoCashOutOn() || !info || !recipients) return
-    let stopped = false
+    if (!__DEV__ || !dev.film || !demoCashOutOn() || !info || !recipients || filmed.current) return
+    filmed.current = true
+    const stopped = false
     const wait = (ms: number) => new Promise((done) => setTimeout(done, ms))
     const type = async (text: string, each: number, put: (t: string) => void) => {
       for (let i = 1; i <= text.length && !stopped; i++) {
@@ -167,6 +169,7 @@ export default function CashOutWorld() {
       address_postal_code: '00100',
       address_country: 'KE',
     })
+    void getPayoutRate('KES').catch(() => {})
     void (async () => {
       await wait(2600)
       setStep('country')
@@ -202,9 +205,6 @@ export default function CashOutWorld() {
       await wait(2300)
       await live.current.approve()
     })()
-    return () => {
-      stopped = true
-    }
   }, [info, recipients])
 
   /** Every country with its ways out; "any other country" and USDC kept apart. */

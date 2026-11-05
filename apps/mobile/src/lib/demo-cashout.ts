@@ -86,14 +86,18 @@ export function demoAddRecipient(
     name: string
     title: string
     speed: string
+    fields: { key: string; options?: { value: string; label: string }[] }[]
   },
   fields: Record<string, string>,
 ): Recipient {
-  const digits = Object.entries(fields)
-    .filter(([k]) => /account_number|iban|phone|email/.test(k))
-    .map(([, v]) => v.replace(/\s/g, ''))
+  // The account's own number: an account, IBAN or phone; an email only for Interac.
+  const own = ['account_number', 'iban', 'phone_number', 'email']
+    .map((k) => fields[k]?.replace(/\s/g, ''))
     .find(Boolean)
-  const bank = fields.bank_name || corridor.title
+  const network = corridor.fields
+    .find((f) => f.key === 'scheme')
+    ?.options?.find((o) => o.value === fields.scheme)?.label
+  const name = fields.bank_name || network || corridor.title
   const r = recipient(
     corridor.id,
     corridor.country,
@@ -101,7 +105,7 @@ export function demoAddRecipient(
     corridor.name,
     corridor.title,
     corridor.speed,
-    `${bank} •••• ${(digits ?? '0000').slice(-4)}`,
+    `${name} •••• ${(own ?? '0000').slice(-4)}`,
   )
   r.holder_name = fields.holder_name || 'Ada Okafor'
   saved = [r, ...saved.filter((s) => s.label !== r.label)]
@@ -147,7 +151,10 @@ export async function demoQuote(recipientId: string, dollars: string): Promise<P
 
 /** Sends a quoted demo payout: on its way at once, in the account a few seconds later. */
 export function demoSend(quote: Payout): Payout {
-  const payout: Payout = { ...quote, status: 'sending', created_at: new Date().toISOString() }
+  // Sent "at 09:41", the time the simulator's status bar is pinned to for recordings.
+  const at = new Date()
+  at.setHours(9, 41, 0, 0)
+  const payout: Payout = { ...quote, status: 'sending', created_at: at.toISOString() }
   payouts.set(payout.id, { payout, at: Date.now() })
   return payout
 }

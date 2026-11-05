@@ -130,8 +130,16 @@ async function signed(address: Address, sign: Sign, action: string, detail = '')
 export const getPayoutsInfo = () => api<PayoutsInfo>('/payouts')
 export const getPayoutBanks = (country: string) =>
   api<{ data: PayoutBank[] }>(`/payouts/banks/${country}`).then((r) => r.data)
-export const getPayoutRate = (currency: string) =>
-  api<{ per_dollar: number }>(`/payouts/rates/${currency}`).then((r) => r.per_dollar)
+/** Rates, kept a minute: the ways out, the amount and the check all show the same one. */
+const rates = new Map<string, { at: number; rate: Promise<number> }>()
+export function getPayoutRate(currency: string): Promise<number> {
+  const kept = rates.get(currency)
+  if (kept && Date.now() - kept.at < 60_000) return kept.rate
+  const rate = api<{ per_dollar: number }>(`/payouts/rates/${currency}`).then((r) => r.per_dollar)
+  rates.set(currency, { at: Date.now(), rate })
+  rate.catch(() => rates.delete(currency))
+  return rate
+}
 export const getRecipients = (address: Address) =>
   demoCashOutOn()
     ? Promise.resolve(demoRecipients())
