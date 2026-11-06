@@ -12,7 +12,8 @@ import {
   View,
 } from 'react-native'
 import { FadeIn, FadeInLeft, FadeInRight } from 'react-native-reanimated'
-import { type Address, getAddress, isAddressEqual } from 'viem'
+import { type Address, getAddress, isAddress, isAddressEqual } from 'viem'
+import { crossChainOn, type Detected, detectAddress, shortAddress } from '@/lib/crosschain'
 import { parseScanned } from '@/lib/links'
 import {
   applyKey,
@@ -52,6 +53,8 @@ import {
 import { PillButton, TextLink, Txt } from '../primitives'
 import { Stage as KoviStage } from '../Stage'
 import { ArcRoute, type Leg } from './ArcRoute'
+import { NetworkBelt } from './anywhere/Belt'
+import { ChainLogo } from './anywhere/ChainLogo'
 import { SlideToSend } from './SlideToSend'
 
 /** Development only: dev-link sends already made this run. */
@@ -698,6 +701,8 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
       )
     : people
   const direct = query ? parseScanned(text) : null
+  /** What the text is as an address on another network, when Send can go there. */
+  const anywhere = query && crossChainOn() ? detectAddress(text) : null
   // Names need Monad: offline, only your people and codes.
   const nad = useNadName(direct || phoneInput(text) || offline ? '' : text)
 
@@ -718,6 +723,20 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
     const phone = phoneInput(value)
     if (phone) return router.replace({ pathname: '/send/phone', params: { phone } })
     const scanned = parseScanned(value)
+    // A bare address could be on any network, so Kova asks which (Monad included). A Kova link,
+    // or a code that names Monad, stays an ordinary Kova send.
+    const other = crossChainOn() ? detectAddress(value) : null
+    if (other && (!scanned || (scanned.kind === 'person' && isAddress(value.trim())))) {
+      if (other.kind === 'evm' && other.hint === 'monad')
+        return onPick({ address: getAddress(other.address) })
+      return router.replace({
+        pathname: '/send/anywhere',
+        params: {
+          address: other.address,
+          ...(other.kind === 'evm' && other.hint ? { network: other.hint } : {}),
+        },
+      })
+    }
     if (!scanned) return setProblem('That isn’t a Kova link or a wallet address.')
     if (scanned.kind === 'offline')
       return router.replace({ pathname: '/o', params: { code: scanned.code } })
@@ -748,7 +767,8 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
     const clip = (await Clipboard.getStringAsync()).trim()
     if (!clip) return setProblem('Nothing to paste. Ask them for their Kova link.')
     setText(clip)
-    setProblem(parseScanned(clip) ? null : 'That isn’t a Kova link or a wallet address.')
+    const readable = parseScanned(clip) || (crossChainOn() && detectAddress(clip))
+    setProblem(readable ? null : 'That isn’t a Kova link or a wallet address.')
   }
 
   return (
@@ -809,6 +829,9 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
           {problem}
         </Txt>
       ) : null}
+
+      {!query && !offline && crossChainOn() ? <NetworkBelt /> : null}
+      {anywhere && !direct ? <OtherNetwork found={anywhere} onPress={() => go(text)} /> : null}
 
       {phoneInput(text) ? (
         <Pressable accessibilityRole="button" onPress={() => go(text)} style={styles.direct}>
@@ -876,7 +899,11 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
               Send to {direct.name || short(direct.address)}
             </Txt>
             <Txt size={13} color={colors.onInk}>
-              {direct.amount ? `They asked for $${direct.amount}` : 'Wallet address, ready to pay'}
+              {direct.amount
+                ? `They asked for $${direct.amount}`
+                : anywhere?.kind === 'evm' && isAddress(text.trim())
+                  ? 'Pick its network next'
+                  : 'Wallet address, ready to pay'}
             </Txt>
           </View>
           <View style={styles.directGo}>
@@ -1136,6 +1163,46 @@ function Round({
       ]}
     >
       <Icon name={icon} size={20} />
+    </Pressable>
+  )
+}
+
+/** An address on another network, as Kova read it: where it can go, or that it can't yet. */
+function OtherNetwork({ found, onPress }: { found: Detected; onPress: () => void }) {
+  const what =
+    found.kind === 'solana'
+      ? 'Solana address'
+      : found.kind === 'move'
+        ? 'Sui or Aptos address'
+        : found.kind === 'evm'
+          ? 'Wallet address, pick its network next'
+          : `${found.family} address: not yet`
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.direct, pressed && { transform: [{ scale: 0.98 }] }]}
+    >
+      {found.kind === 'solana' ? (
+        <ChainLogo name="solana" size={48} />
+      ) : (
+        <View style={styles.directBadge}>
+          <Txt weight="bold" size={15}>
+            {found.kind === 'unsupported' ? found.family.charAt(0) : '0x'}
+          </Txt>
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Txt weight="semi" size={16} color={colors.white}>
+          Send to {shortAddress(found.address)}
+        </Txt>
+        <Txt size={13} color={colors.onInk}>
+          {what}
+        </Txt>
+      </View>
+      <View style={styles.directGo}>
+        <Icon name="arrow" size={20} />
+      </View>
     </Pressable>
   )
 }

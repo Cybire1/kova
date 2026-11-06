@@ -268,6 +268,13 @@ export default function RootLayout() {
                               }}
                             />
                             <Stack.Screen
+                              name="send/anywhere"
+                              options={{
+                                presentation: 'fullScreenModal',
+                                animation: 'slide_from_bottom',
+                              }}
+                            />
+                            <Stack.Screen
                               name="phone/[id]"
                               options={{
                                 presentation: 'fullScreenModal',

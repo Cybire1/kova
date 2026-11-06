@@ -1,9 +1,12 @@
 import { type ColorValue, StyleSheet, View } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
+import { crossChainOn } from '@/lib/crosschain'
 import { colors } from '@/lib/theme'
 import { Coin, Plane } from './art'
 import { Icon, type IconName } from './Icon'
 import { Sticker, Txt } from './primitives'
+import { reachableNetworks } from './send/anywhere/Belt'
+import { ChainStack } from './send/anywhere/ChainLogo'
 
 /**
  * A small action tile that tells its own story: an icon in a solid disc, a dotted path, and
@@ -73,15 +76,47 @@ export function ActionTile({ kind, onPress }: { kind: 'send' | 'request'; onPres
         <View style={[styles.disc, { backgroundColor: tone.disc }]}>
           <Icon name={tone.icon} size={18} color={colors.white} strokeWidth={2.2} />
         </View>
-        <Txt weight="bold" size={17} style={{ letterSpacing: -0.3 }}>
-          {tone.label}
-        </Txt>
+        <View style={styles.foot}>
+          <Txt weight="bold" size={17} style={{ letterSpacing: -0.3 }}>
+            {tone.label}
+          </Txt>
+          {send && crossChainOn() ? <AnyNetwork /> : null}
+        </View>
       </View>
     </Sticker>
   )
 }
 
+/** On Send: a few network marks and how many more, since Send now reaches every one of them. */
+function AnyNetwork() {
+  const count = reachableNetworks().length
+  return (
+    <View
+      style={{ flexDirection: 'row', alignItems: 'center' }}
+      accessibilityLabel={`To ${count} networks`}
+    >
+      <ChainStack names={['base', 'solana']} size={16} overlap={5} />
+      <View style={styles.more}>
+        <Txt weight="bold" size={8} color={colors.white} exact>
+          +{count - 2}
+        </Txt>
+      </View>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
+  foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
+  more: {
+    height: 16,
+    minWidth: 16,
+    marginLeft: -5,
+    paddingHorizontal: 3,
+    borderRadius: 8,
+    backgroundColor: colors.fill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   body: { flex: 1, padding: 12, paddingHorizontal: 14, justifyContent: 'space-between' },
   disc: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   plane: { position: 'absolute', right: -4, top: -8, transform: [{ rotate: '-8deg' }] },

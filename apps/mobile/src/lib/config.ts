@@ -43,5 +43,8 @@ export const chainName = 'Monad'
 /** Relay quotes deposits into AUSD on mainnet. Set 0 to hide the entry. */
 export const chainDeposits = !isTestnet && process.env.EXPO_PUBLIC_KOVA_CHAIN_DEPOSITS !== '0'
 
+/** Send to other networks through Setsuna's sponsored bridge, on mainnet. Set 0 to turn it off. */
+export const bridgeOut = !isTestnet && process.env.EXPO_PUBLIC_KOVA_BRIDGE !== '0'
+
 /** The dollar Kova settles in on Monad: AUSD, Agora's dollar, on mainnet and testnet alike. */
 export const settlementToken = getToken(networkId, 'AUSD')
