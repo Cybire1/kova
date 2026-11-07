@@ -43,7 +43,7 @@ import { Header, Screen, Txt } from '@/ui/primitives'
  * through Kova's card contract on Monad, which caps its day and stops it while frozen.
  */
 
-type Kind = 'allowance' | 'team' | 'agent'
+type Kind = 'allowance' | 'team' | 'agent' | 'site'
 const groups: {
   kind: Kind
   title: string
@@ -76,12 +76,20 @@ const groups: {
     empty: 'Let Claude or any AI agent pay, within limits you set.',
     add: 'New agent key',
   },
+  {
+    kind: 'site',
+    title: 'Websites',
+    icon: 'web',
+    tone: colors.coralSoft,
+    empty: 'Sites you connect with Kova for Chrome get a budget of their own, shown here.',
+    add: '',
+  },
 ]
 
 const statusLine = (key: SpendKey) => {
   if (key.status === 'invited') return 'Invite sent. Waiting for them to accept.'
   if (key.status === 'accepted')
-    return key.kind === 'agent'
+    return key.kind === 'agent' || key.kind === 'site'
       ? 'Ready to switch on.'
       : `${key.holder_name ?? 'They'} accepted. Switch it on.`
   if (key.status === 'frozen') return `Frozen · ${limitLine(key)}`
@@ -216,12 +224,14 @@ export default function Keys() {
                 <Txt weight="bold" size={20}>
                   {group.title}
                 </Txt>
-                <Mini
-                  label={group.add}
-                  icon="plus"
-                  ink
-                  onPress={() => setMaking(making === group.kind ? null : group.kind)}
-                />
+                {group.kind === 'site' ? null : (
+                  <Mini
+                    label={group.add}
+                    icon="plus"
+                    ink
+                    onPress={() => setMaking(making === group.kind ? null : group.kind)}
+                  />
+                )}
               </View>
               {making === group.kind ? (
                 group.kind === 'agent' ? (
@@ -232,7 +242,7 @@ export default function Keys() {
                       void turnOn(made)
                     }}
                   />
-                ) : (
+                ) : group.kind === 'site' ? null : (
                   <InviteForm
                     owner={owner}
                     ownerName={profile.name}

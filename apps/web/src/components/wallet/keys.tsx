@@ -31,7 +31,7 @@ import { CopyButton, ShareButton } from './ui'
  */
 
 const kinds: {
-  kind: 'allowance' | 'team' | 'agent'
+  kind: 'allowance' | 'team' | 'agent' | 'site'
   title: string
   icon: IconName
   empty: string
@@ -54,12 +54,18 @@ const kinds: {
     icon: 'bolt',
     empty: 'Let Claude or any AI agent pay, within limits you set.',
   },
+  {
+    kind: 'site',
+    title: 'Websites',
+    icon: 'globe',
+    empty: 'Sites you connect with Kova for Chrome get a budget of their own, shown here.',
+  },
 ]
 
 const statusLine = (key: SpendKey) => {
   if (key.status === 'invited') return 'Invite sent. Waiting for them to accept.'
   if (key.status === 'accepted')
-    return key.kind === 'agent'
+    return key.kind === 'agent' || key.kind === 'site'
       ? 'Ready to switch on.'
       : `${key.holder_name ?? 'They'} accepted. Switch it on.`
   if (key.status === 'frozen') return `Frozen · ${limitLine(key)}`
@@ -90,7 +96,7 @@ export function useKeys() {
 export function KeysScreen({ api }: { api: string }) {
   const { profile, signTypedData, signMessage } = useWallet()
   const { list, problem, load } = useKeys()
-  const [making, setMaking] = useState<'allowance' | 'team' | 'agent' | null>(null)
+  const [making, setMaking] = useState<'allowance' | 'team' | 'agent' | 'site' | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [token, setToken] = useState<{ name: string; token: string } | null>(null)
@@ -149,18 +155,20 @@ export function KeysScreen({ api }: { api: string }) {
           <section key={group.kind} className="w-keys">
             <div className="w-section-row">
               <h2 className="w-section">{group.title}</h2>
-              <button
-                type="button"
-                className="mini mini-ink"
-                onClick={() => setMaking(making === group.kind ? null : group.kind)}
-              >
-                <Icon name="plus" size={14} />{' '}
-                {group.kind === 'agent'
-                  ? 'New agent key'
-                  : group.kind === 'team'
-                    ? 'Add someone'
-                    : 'Give one'}
-              </button>
+              {group.kind === 'site' ? null : (
+                <button
+                  type="button"
+                  className="mini mini-ink"
+                  onClick={() => setMaking(making === group.kind ? null : group.kind)}
+                >
+                  <Icon name="plus" size={14} />{' '}
+                  {group.kind === 'agent'
+                    ? 'New agent key'
+                    : group.kind === 'team'
+                      ? 'Add someone'
+                      : 'Give one'}
+                </button>
+              )}
             </div>
             {making === group.kind ? (
               group.kind === 'agent' ? (
@@ -174,7 +182,7 @@ export function KeysScreen({ api }: { api: string }) {
                     })
                   }}
                 />
-              ) : (
+              ) : group.kind === 'site' ? null : (
                 <InviteForm
                   owner={owner}
                   ownerName={profile.name}

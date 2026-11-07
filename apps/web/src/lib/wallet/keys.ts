@@ -18,7 +18,7 @@ import { privateKeyToAccount } from 'viem/accounts'
  * the same passkey makes it again on any device.
  */
 
-export type KeyKind = 'allowance' | 'team' | 'agent'
+export type KeyKind = 'allowance' | 'team' | 'agent' | 'site'
 
 export interface SpendKey {
   id: string
