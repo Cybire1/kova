@@ -3081,54 +3081,6 @@ html:has(.kl) {
   transition-delay: 0.7s;
 }
 
-/* Hero phones: fanned and tipped at the top, straight as you scroll */
-.kl.loaded .kdev.l {
-  transform: translateY(calc(var(--sy, 0px) * 0.55)) translateX(calc(var(--sp, 0) * -26px))
-    rotate(calc(-7deg + var(--sp, 0) * 7deg));
-}
-.kl.loaded .kdev.r {
-  transform: translateY(calc(var(--sy, 0px) * 0.55)) translateX(calc(var(--sp, 0) * 26px))
-    rotate(calc(7deg - var(--sp, 0) * 7deg));
-}
-.kl.loaded .kdev.c {
-  transform: translateY(var(--sy, 0px)) scale(calc(0.95 + var(--sp, 0) * 0.05));
-}
-.kl.loaded .kdev {
-  transition: transform 0.9s var(--ease);
-}
-
-/* The pinned sentence: each word lights as you scroll through it */
-.kl .stmt {
-  position: relative;
-  height: 230vh;
-}
-.kl .stmt-in {
-  position: sticky;
-  top: 0;
-  height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: 0 var(--gut);
-}
-.kl .stmt-text {
-  max-width: 19ch;
-  margin: 0;
-  text-align: center;
-  font-size: clamp(36px, 5.6vw, 80px);
-  line-height: 1.06;
-  letter-spacing: -0.045em;
-  font-weight: 600;
-  text-wrap: balance;
-}
-.kl .stmt .stw {
-  opacity: clamp(0.13, calc(var(--p, 0) * (var(--n) + 6) - var(--i)), 1);
-  transition: opacity 0.25s var(--ease);
-}
-.kl .stmt .stw.lit {
-  color: var(--coral);
-  white-space: nowrap;
-}
-
 /* Business: the dark block grows to full size as it arrives, and a glow follows the pointer */
 .kl .dark {
   transform: scale(calc(0.93 + var(--bp) * 0.07));
@@ -3154,30 +3106,6 @@ html:has(.kl) {
 }
 .kl .dark.lit .spot {
   opacity: 1;
-}
-
-/* Counters */
-.kl .stats {
-  display: flex;
-  justify-content: center;
-  gap: 64px;
-  margin-top: 44px;
-}
-.kl .stats > div {
-  display: grid;
-  gap: 4px;
-  justify-items: center;
-}
-.kl .stats b {
-  font-size: clamp(40px, 4.6vw, 64px);
-  line-height: 1;
-  font-weight: 600;
-  letter-spacing: -0.045em;
-  font-variant-numeric: tabular-nums;
-}
-.kl .stats span {
-  font-size: 14px;
-  color: var(--muted);
 }
 
 /* Places cascade in, one after another */
@@ -3398,41 +3326,11 @@ html:has(.kl) {
 }
 
 @media (max-width: 760px) {
-  .kl .stmt {
-    height: 200vh;
-  }
-  .kl .stmt-text {
-    font-size: clamp(32px, 9.4vw, 44px);
-    max-width: 15ch;
-  }
-  .kl .stats {
-    gap: 22px;
-    margin-top: 32px;
-  }
-  .kl .stats b {
-    font-size: 36px;
-  }
-  .kl .stats span {
-    font-size: 12px;
-    max-width: 9em;
-    text-align: center;
-  }
   .kl .dark {
     transform: scale(calc(0.96 + var(--bp) * 0.04));
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .kl .stmt {
-    height: auto;
-    padding: 120px 0;
-  }
-  .kl .stmt-in {
-    position: static;
-    height: auto;
-  }
-  .kl .stmt .stw {
-    opacity: 1;
-  }
   .kl .places .pc,
   .kl .hero-copy > * {
     opacity: 1;

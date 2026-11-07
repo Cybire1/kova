@@ -125,7 +125,7 @@ export function HomeMotion() {
       el.classList.add('wsplit')
     }
     if (!reduce) {
-      for (const h of all('h2')) if (!h.closest('.gc,.gd,.stmt')) splitWords(h)
+      for (const h of all('h2')) if (!h.closest('.gc,.gd')) splitWords(h)
       const h1 = root.querySelector<HTMLElement>('.hero h1, .ad-copy h1')
       if (h1) {
         splitWords(h1)
@@ -168,7 +168,6 @@ export function HomeMotion() {
     const stage = $('stageIn')
     const pars = all('[data-par]')
     const prog = root.querySelector<HTMLElement>('.kprog')
-    const stmt = $('stmt')
     const band = root.querySelector<HTMLElement>('.dark')
     let lastY = 0
     let ticking = false
@@ -194,14 +193,7 @@ export function HomeMotion() {
             '--sy',
             `${Math.max(-90, Math.min(0, (r.top - h * 0.55) * 0.22))}px`,
           )
-          // The side phones straighten and the middle one settles as the stage rises.
-          stage.style.setProperty('--sp', String(clamp01(1 - (r.top - h * 0.3) / (h * 0.6))))
         }
-      }
-      if (stmt && !reduce) {
-        const r = stmt.getBoundingClientRect()
-        if (r.top < h && r.bottom > 0)
-          stmt.style.setProperty('--p', String(clamp01(-r.top / (r.height - h))))
       }
       if (band && !reduce) {
         const r = band.getBoundingClientRect()
@@ -613,34 +605,6 @@ export function HomeMotion() {
     )
     for (const el of all('.rv,.s-visual,.wsplit,.places')) io.observe(el)
     observers.push(io)
-
-    // Counters tick up to their number the first time they're seen
-    const count = (el: HTMLElement) => {
-      const to = Number(el.dataset.count)
-      const suffix = el.dataset.suffix ?? ''
-      if (reduce || !to) return
-      const start = performance.now()
-      const step = (now: number) => {
-        if (signal.aborted) return
-        const k = Math.min(1, (now - start) / 1400)
-        el.textContent = `${Math.round(to * (1 - (1 - k) ** 3))}${suffix}`
-        if (k < 1) requestAnimationFrame(step)
-      }
-      el.textContent = `0${suffix}`
-      requestAnimationFrame(step)
-    }
-    const cio = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue
-          cio.unobserve(e.target)
-          count(e.target as HTMLElement)
-        }
-      },
-      { threshold: 0.6 },
-    )
-    for (const el of all('[data-count]')) cio.observe(el)
-    observers.push(cio)
 
     // Buttons lean toward the pointer, a few pixels at most
     if (hover && !reduce)
