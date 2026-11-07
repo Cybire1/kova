@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "Kova",
+  "short_name": "Kova",
+  "description": "Give every site a budget, not your wallet. Pay with your Kova dollars on Monad.",
+  "version": "0.1.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAp0D2iAPTteKyTBCOzj0x4iteqLh92gUlGuqvDSUMxVFtI89Y1tAKCqSutKHzSruN3WzYQMTPV9ssA0Qh31NWguZpNbgbnRq6Wgv+ocWQwP8dZ4BKkChZayXwNjeTbPzNhUfTLrCg9IaYYb0ElEdJ2OKsqkAOHYKeaJ/k995sHgiIKu2xppBoLsfFmQWXvLDLtWgY3w4JgR/+d6CGUD0w9Ql7AEedawzkiL6dBWPjwBWkpyde6UY4UgdfYcuVDZWjlto4rN5wu03u9SLo02NFMVzsC6+t04YquPkUewcnxaWSnA1qT4Ummm3uEDctEJQrBeQLxItdvD8rjtRgWW82ZQIDAQAB",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/kova-16.png",
+    "32": "icons/kova-32.png",
+    "48": "icons/kova-48.png",
+    "128": "icons/kova-128.png"
+  },
+  "action": {
+    "default_title": "Kova",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/kova-16.png",
+      "32": "icons/kova-32.png"
+    }
+  },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "permissions": ["storage", "webRequest", "declarativeNetRequestWithHostAccess"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["inpage.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "externally_connectable": { "matches": ["__KOVA_WEB_MATCH__"] },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}

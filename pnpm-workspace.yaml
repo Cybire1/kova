@@ -1,6 +1,7 @@
 packages:
   - "apps/api"
   - "apps/web"
+  - "apps/extension"
   - "packages/*"
 # apps/mobile is deliberately outside this workspace: React Native needs a hoisted
 # node_modules, and forcing that layout on the whole repo made every install re-link

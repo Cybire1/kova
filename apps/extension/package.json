@@ -1,0 +1,28 @@
+{
+  "name": "@kova/extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kova for Chrome: give every site a budget, not your wallet",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@kova/monad": "workspace:*",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "viem": "2.56.8"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.0.268",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.3.0",
+    "esbuild": "0.28.2",
+    "typescript": "6.0.3",
+    "vitest": "5.0.1"
+  }
+}
