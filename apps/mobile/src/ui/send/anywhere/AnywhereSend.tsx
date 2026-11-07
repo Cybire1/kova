@@ -24,6 +24,7 @@ import { useWallet } from '@/lib/wallet'
 import Animated from '@/ui/animated'
 import { Header, PillButton, Screen, Txt } from '../../primitives'
 import { SlideToSend } from '../SlideToSend'
+import { AddressEntry } from './AddressEntry'
 import { AmountStep } from './AmountStep'
 import { BoardingPass } from './BoardingPass'
 import { duration, FlightStep, finished, LandedStep, type Timeline } from './FlightStep'
@@ -53,14 +54,19 @@ export function AnywhereSend({
   /** Development only: slide by itself, so every state can be screenshotted on a simulator. */
   autoSend?: boolean
 }) {
-  const found = useMemo(() => detectAddress(address), [address])
+  // Opened from its row in Send there's no address yet: ask for it first.
+  const [entered, setEntered] = useState(address)
+  const found = useMemo(() => detectAddress(entered), [entered])
+  if (!entered) return <AddressEntry onAddress={setEntered} onClose={leave} />
   if (!found) return <Unreadable />
   return (
     <Flow
+      key={entered}
       found={found}
       preset={preset ? network(preset) : null}
       amount={amount}
       autoSend={autoSend}
+      onChangeAddress={address ? undefined : () => setEntered('')}
     />
   )
 }
@@ -70,12 +76,16 @@ function Flow({
   preset,
   amount: startAmount,
   autoSend,
+  onChangeAddress,
 }: {
   found: Detected
   preset: Network | null
   amount?: string
   autoSend?: boolean
+  /** Back to the address field, when the address was typed here rather than handed in. */
+  onChangeAddress?: () => void
 }) {
+  const change = onChangeAddress ?? leave
   const { balance, refresh, approve, profile } = useWallet()
   const wrong =
     preset && (found.kind === 'unsupported' || preset.family !== found.kind) ? preset : null
@@ -127,6 +137,7 @@ function Flow({
   const onBack = () => {
     if (step === 'review') return go('amount')
     if (step === 'amount' && !startsPicked) return go('network')
+    if (step === 'network') return change()
     leave()
   }
 
@@ -225,7 +236,7 @@ function Flow({
       <Header
         title={title}
         onBack={step === 'flight' && !finished(stage) ? leave : step === 'landed' ? null : onBack}
-        backIcon={step === 'network' || step === 'flight' ? 'close' : 'back'}
+        backIcon={(step === 'network' && !onChangeAddress) || step === 'flight' ? 'close' : 'back'}
       />
       <Animated.View
         key={step}
@@ -233,7 +244,7 @@ function Flow({
         style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8 }}
       >
         {step === 'network' ? (
-          <NetworkStep found={found} wrong={wrong} onPick={pick} onChange={leave} />
+          <NetworkStep found={found} wrong={wrong} onPick={pick} onChange={change} />
         ) : null}
         {step === 'amount' && to ? (
           <AmountStep

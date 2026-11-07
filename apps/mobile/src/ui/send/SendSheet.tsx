@@ -53,7 +53,7 @@ import {
 import { PillButton, TextLink, Txt } from '../primitives'
 import { Stage as KoviStage } from '../Stage'
 import { ArcRoute, type Leg } from './ArcRoute'
-import { NetworkBelt } from './anywhere/Belt'
+import { AnyNetworkRow } from './anywhere/Belt'
 import { ChainLogo } from './anywhere/ChainLogo'
 import { SlideToSend } from './SlideToSend'
 
@@ -830,7 +830,6 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
         </Txt>
       ) : null}
 
-      {!query && !offline && crossChainOn() ? <NetworkBelt /> : null}
       {anywhere && !direct ? <OtherNetwork found={anywhere} onPress={() => go(text)} /> : null}
 
       {phoneInput(text) ? (
@@ -956,6 +955,10 @@ function Who({ onPick }: { onPick: (p: Payee) => void }) {
             <Icon name="arrow" size={20} />
           </View>
         </Pressable>
+      ) : null}
+
+      {!query && !offline && crossChainOn() ? (
+        <AnyNetworkRow onPress={() => router.replace('/send/anywhere')} />
       ) : null}
 
       {!query && !offline ? (

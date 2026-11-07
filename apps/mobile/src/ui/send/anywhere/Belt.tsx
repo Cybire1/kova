@@ -1,8 +1,9 @@
-import { StyleSheet, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
 import { crossChainSender, NETWORKS } from '@/lib/crosschain'
 import { colors } from '@/lib/theme'
+import { Icon } from '../../Icon'
 import { Txt } from '../../primitives'
-import { ChainStack } from './ChainLogo'
+import { ChainLogo } from './ChainLogo'
 
 /** Every network Send reaches: Monad (an ordinary Kova send) and the bridge's. */
 export function reachableNetworks() {
@@ -10,39 +11,73 @@ export function reachableNetworks() {
   return NETWORKS.filter((n) => n.id === 'monad' || reach.includes(n.id))
 }
 
-/** Under Send's field: every network a send can reach, in one belt of marks. */
-export function NetworkBelt() {
-  const all = reachableNetworks()
+/**
+ * In Send, beside "Send as a link": one row that says what it does and opens it, rather than a
+ * block of every network's mark that looked like a button and wasn't one.
+ */
+export function AnyNetworkRow({ onPress }: { onPress: () => void }) {
+  const others = reachableNetworks().filter((n) => n.id !== 'monad')
+  const more = Math.max(0, others.length - 3)
   return (
-    <View
-      style={styles.belt}
-      accessibilityLabel={`Goes to ${all.length} networks: ${all.map((n) => n.name).join(', ')}`}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Send to another network: Base, Solana, Ethereum and ${more} more`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && { transform: [{ scale: 0.98 }] }]}
     >
-      <View style={styles.top}>
-        <Txt weight="bold" size={15} color={colors.onFill}>
-          Goes to {all.length} networks
+      <View style={styles.badge}>
+        <ChainLogo name="base" size={22} edge={1.5} style={[styles.mini, { left: 0, top: 0 }]} />
+        <ChainLogo name="solana" size={22} edge={1.5} style={[styles.mini, { right: 0, top: 0 }]} />
+        <ChainLogo
+          name="ethereum"
+          size={22}
+          edge={1.5}
+          style={[styles.mini, { left: 0, bottom: 0 }]}
+        />
+        <ChainLogo
+          name="arbitrum"
+          size={22}
+          edge={1.5}
+          style={[styles.mini, { right: 0, bottom: 0 }]}
+        />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Txt weight="semi" size={16}>
+          Send to another network
         </Txt>
-        <Txt weight="semi" size={12} color={colors.onInk}>
-          No gas, one signature
+        <Txt size={13} color={colors.muted} numberOfLines={1}>
+          Base, Solana, Ethereum and {more} more
         </Txt>
       </View>
-      <ChainStack names={all.map((n) => n.id)} size={22} overlap={9} edge={2} />
-      <Txt size={13} color={colors.onInk} style={{ lineHeight: 18 }}>
-        Paste an address. Kova spots the network, and asks when it can’t tell.
-      </Txt>
-    </View>
+      <View style={styles.go}>
+        <Icon name="arrow" size={16} />
+      </View>
+    </Pressable>
   )
 }
 
 const styles = StyleSheet.create({
-  belt: {
+  row: {
     marginTop: 12,
-    borderRadius: 24,
-    backgroundColor: colors.fill,
-    paddingTop: 14,
-    paddingBottom: 14,
-    paddingHorizontal: 16,
-    gap: 10,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingVertical: 10,
+    paddingLeft: 12,
+    paddingRight: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  top: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  badge: { width: 40, height: 40 },
+  mini: { position: 'absolute' },
+  go: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.sunken,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })
