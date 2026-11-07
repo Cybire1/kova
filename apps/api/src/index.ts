@@ -45,6 +45,7 @@ import { recoverPhonePayments } from './services/phone-payments.js'
 import { reconcilePendingPockets } from './services/pockets.js'
 import { collectDueRepeats, releaseSplitters } from './services/programs.js'
 import { rateBook } from './services/rates.js'
+import { refundUncollectedX402 } from './services/spend-keys.js'
 import { popularStocks } from './services/stocks.js'
 import { expireTrips } from './services/travel.js'
 import { redactCallbackLog } from './services/ussd-callback.js'
@@ -136,6 +137,11 @@ if (process.argv[1]?.endsWith('index.ts') || process.argv[1]?.endsWith('index.js
   setInterval(
     () => void closeOldDemos().catch((error) => console.error('[ussd-demo]', error)),
     5 * 60_000,
+  )
+  // A pay-per-use payment a site never collected goes back to its owner once it has expired.
+  setInterval(
+    () => void refundUncollectedX402().catch((error) => console.error('[x402]', error)),
+    60_000,
   )
   // A card top-up paid on Monad but not yet moved onto the card is tried again until it is.
   setInterval(

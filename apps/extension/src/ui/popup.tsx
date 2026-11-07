@@ -470,9 +470,11 @@ function Site({
                 <b className={p.status === 'paid' ? '' : 'dim'}>
                   {p.status === 'paid'
                     ? `−${money(p.amount)}`
-                    : p.status === 'denied'
-                      ? 'Refused'
-                      : p.status}
+                    : p.status === 'refunded'
+                      ? 'Refunded'
+                      : p.status === 'denied'
+                        ? 'Refused'
+                        : p.status}
                   <small>
                     {new Date(p.created_at).toLocaleString('en-US', {
                       month: 'short',

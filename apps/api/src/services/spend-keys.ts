@@ -8,6 +8,7 @@ import {
 import { schema, uuidv7 } from '@kova/db'
 import {
   claimTypedData,
+  eip3009Abi,
   formatAmount,
   KEY_DAY,
   KEY_WEEK,
@@ -40,6 +41,7 @@ import {
   getAddress,
   type Hex,
   isAddressEqual,
+  keccak256,
   maxUint256,
   recoverMessageAddress,
   recoverTypedDataAddress,
@@ -51,6 +53,7 @@ import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
 import { decodeId } from '../ids.js'
+import { relayAuthorization } from '../relay.js'
 import {
   cardContract,
   cardsReady,
@@ -1258,6 +1261,94 @@ async function payTheSite(payment: KeyPaymentRow): Promise<KeyPaymentRow> {
       valid_before: authorization.validBefore.toString(),
     },
   })
+}
+
+/**
+ * Pay-per-use payments a site never collected. Kova's signed payment to the site stops working at
+ * its validBefore (EIP-3009 checks it), so once that has passed, Monad says for certain whether the
+ * site collected it: if it did, it's marked collected; if not, the owner's dollars go back from the
+ * float, in AUSD. The refund's nonce comes from the payment's id, so it can never be paid twice,
+ * even if this runs again after a crash. Runs every minute.
+ */
+export async function refundUncollectedX402(): Promise<number> {
+  if (!x402Ready()) return 0
+  const payer = x402Payer()
+  const ausd = tokens[network.id].AUSD
+  if (!ausd) return 0
+  const rows = await db
+    .select()
+    .from(schema.keyPayments)
+    .where(
+      and(
+        eq(schema.keyPayments.kind, 'x402'),
+        eq(schema.keyPayments.status, 'paid'),
+        sql`${schema.keyPayments.request}->>'valid_before' is not null`,
+        sql`(${schema.keyPayments.request}->>'valid_before')::bigint < ${nowS() - 30}`,
+        sql`${schema.keyPayments.request}->>'outcome' is null`,
+      ),
+    )
+    .limit(20)
+  let refunded = 0
+  for (const row of rows) {
+    const request = row.request as Record<string, unknown> & {
+      requirement?: X402Requirement
+      nonce?: Hex
+    }
+    const token = request.requirement ? x402Token(getAddress(request.requirement.asset)) : null
+    if (!token || !request.nonce) continue
+    const collected = await publicClient
+      .readContract({
+        address: token.address,
+        abi: eip3009Abi,
+        functionName: 'authorizationState',
+        args: [payer.address, request.nonce],
+      })
+      .catch(() => null)
+    if (collected === null) continue // Monad didn't answer: next time.
+    if (collected) {
+      await settle(row, { request: { ...request, outcome: 'collected' } })
+      continue
+    }
+    const key = await keyRow(row.walletKeyId)
+    if (!key) continue
+    const owner = getAddress(key.ownerAddress)
+    const nonce = keccak256(toHex(`kova-x402-refund:${row.id}`))
+    const authorization = {
+      from: payer.address,
+      to: owner,
+      value: row.amount,
+      validAfter: 0n,
+      validBefore: BigInt(nowS() + 600),
+      nonce,
+    }
+    const done = (tx: Hex | null) =>
+      settle(row, {
+        status: 'refunded',
+        reason: 'The site never collected it, so Kova sent it back.',
+        request: { ...request, outcome: 'refunded', refund_tx: tx },
+      })
+    try {
+      const signature = await payer.signTypedData(
+        transferAuthorizationTypedData(ausd, network.chainId, authorization),
+      )
+      const relayed = await relayAuthorization(ausd, authorization, signature)
+      await done(relayed.receipt.transactionHash)
+      refunded += 1
+    } catch (error) {
+      // Paid by an earlier run whose answer was lost: the nonce says so.
+      const already = await publicClient
+        .readContract({
+          address: ausd.address,
+          abi: eip3009Abi,
+          functionName: 'authorizationState',
+          args: [payer.address, nonce],
+        })
+        .catch(() => false)
+      if (already) await done(null)
+      else console.error('[x402] refund failed, will retry', why(error))
+    }
+  }
+  return refunded
 }
 
 // ── Agents paying ───────────────────────────────────────────────────────────────────────────

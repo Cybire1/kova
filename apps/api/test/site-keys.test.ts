@@ -1,10 +1,13 @@
-import { runMigrations } from '@kova/db'
+import { runMigrations, schema } from '@kova/db'
 import { claimTypedData, keySelfFreezeMessage } from '@kova/monad'
+import { eq } from 'drizzle-orm'
 import { type Address, getAddress } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { config } from '../src/config.js'
+import { db } from '../src/db.js'
 import { app } from '../src/index.js'
+import { refundUncollectedX402 } from '../src/services/spend-keys.js'
 
 /**
  * Websites' budgets (Kova for Chrome), without the chain's writes: the extension makes a key and
@@ -196,5 +199,65 @@ describe.runIf(ready)('a website’s budget', () => {
     expect(frozen.status).toBe(200)
     expect(frozen.body.status).toBe('frozen')
     expect(frozen.body.frozen).toBe(true)
+  })
+})
+
+describe.runIf(ready)('a pay-per-use payment the site never collected', () => {
+  it('is picked up once it has expired, and stays to be tried again when the refund can’t be sent', async () => {
+    const owner = privateKeyToAccount(generatePrivateKey()).address
+    const [key] = await db
+      .insert(schema.walletKeys)
+      .values({
+        id: crypto.randomUUID(),
+        network: 'testnet',
+        ownerAddress: owner.toLowerCase(),
+        kind: 'site',
+        label: 'lumen.news',
+        keyAddress: privateKeyToAccount(generatePrivateKey()).address.toLowerCase(),
+        holderAddress: owner.toLowerCase(),
+        spendLimit: 2_000_000n,
+        period: 604_800,
+        expiresAt: new Date(Date.now() + 86_400_000),
+        status: 'active',
+      })
+      .returning()
+    const usdc = '0x534b2f3A21130d7a60830c2Df862319e593943A3'
+    const past = Math.floor(Date.now() / 1000) - 600
+    const payment = (outcome?: string) => ({
+      id: crypto.randomUUID(),
+      walletKeyId: key?.id as string,
+      kind: 'x402',
+      recipient: privateKeyToAccount(generatePrivateKey()).address.toLowerCase(),
+      amount: 100_000n,
+      status: 'paid',
+      request: {
+        requirement: {
+          scheme: 'exact',
+          network: 'eip155:10143',
+          amount: '100000',
+          asset: usdc,
+          payTo: owner,
+          maxTimeoutSeconds: 300,
+        },
+        nonce: `0x${'ab'.repeat(32)}`,
+        valid_before: String(past),
+        ...(outcome ? { outcome } : {}),
+      },
+    })
+    const waiting = payment()
+    const settled = payment('collected')
+    await db.insert(schema.keyPayments).values([waiting, settled])
+
+    // This test's relayer holds no MON, so the refund can't be sent: nothing is marked done.
+    expect(await refundUncollectedX402()).toBe(0)
+    const after = await db.query.keyPayments.findFirst({
+      where: eq(schema.keyPayments.id, waiting.id),
+    })
+    expect(after?.status).toBe('paid')
+    expect((after?.request as { outcome?: string }).outcome).toBeUndefined()
+    const untouched = await db.query.keyPayments.findFirst({
+      where: eq(schema.keyPayments.id, settled.id),
+    })
+    expect((untouched?.request as { outcome?: string }).outcome).toBe('collected')
   })
 })
