@@ -1,5 +1,5 @@
 import { router } from 'expo-router'
-import { StyleSheet, useWindowDimensions, View } from 'react-native'
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { colors } from '@/lib/theme'
 import { useUnlock } from '@/lib/unlock'
@@ -23,7 +23,17 @@ export default function Welcome() {
   const { width, height } = useWindowDimensions()
   const insets = useSafeAreaInsets()
   const sceneTop = insets.top + 40
-  const sceneH = Math.min(width * welcomeScene.aspect, height * (googleEnabled ? 0.32 : 0.42))
+  // The panel's words and buttons need about this much room; on a short phone the scene shrinks so
+  // they all fit, Continue with Google included, and the panel scrolls if text is set larger still.
+  const panelNeeds = (googleEnabled ? 480 : 410) + insets.bottom
+  const sceneH = Math.max(
+    96,
+    Math.min(
+      width * welcomeScene.aspect,
+      height * (googleEnabled ? 0.32 : 0.42),
+      height - panelNeeds - sceneTop + 24,
+    ),
+  )
   const sceneW = sceneH / welcomeScene.aspect
   const sceneLeft = (width - sceneW) / 2
   const panelTop = sceneTop + sceneH - 24
@@ -51,35 +61,41 @@ export default function Welcome() {
         <Flyer size={130} />
       </Flight>
 
-      <View style={[styles.panel, { top: panelTop, paddingBottom: insets.bottom + 24 }]}>
-        <Rise delay={120}>
-          <Txt weight="bold" size={46} style={styles.title}>
-            Tap. Paid.{'\n'}Anywhere.
-          </Txt>
-          <Txt size={17} color={colors.onTint} style={styles.body}>
-            Pay, send and get paid in any currency. It lands in seconds, anywhere in the world.
-          </Txt>
-        </Rise>
-        <Rise delay={260} style={styles.actions}>
-          <AuthButton
-            tone="ink"
-            label={unlock.continueWith}
-            mark={<Icon name={unlock.icon} size={22} color={colors.white} />}
-            disabled={googleBusy}
-            onPress={() => router.push('/setup')}
-          />
-          <GoogleSignInButton />
-          <View style={styles.trust}>
-            <Icon name="lock" size={14} color={colors.onTint} />
-            <Txt weight="semi" size={13} color={colors.onTint}>
-              No password. No seed phrase.
+      <View style={[styles.panel, { top: panelTop }]}>
+        <ScrollView
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.panelBody, { paddingBottom: insets.bottom + 24 }]}
+        >
+          <Rise delay={120}>
+            <Txt weight="bold" size={46} style={styles.title}>
+              Tap. Paid.{'\n'}Anywhere.
             </Txt>
-          </View>
-          <View style={styles.links}>
-            <TextLink label="I already have Kova" onPress={() => router.push('/restore')} />
-            <TextLink label="I run a shop" onPress={() => router.push('/terminal/setup')} />
-          </View>
-        </Rise>
+            <Txt size={17} color={colors.onTint} style={styles.body}>
+              Pay, send and get paid in any currency. It lands in seconds, anywhere in the world.
+            </Txt>
+          </Rise>
+          <Rise delay={260} style={styles.actions}>
+            <AuthButton
+              tone="ink"
+              label={unlock.continueWith}
+              mark={<Icon name={unlock.icon} size={22} color={colors.white} />}
+              disabled={googleBusy}
+              onPress={() => router.push('/setup')}
+            />
+            <GoogleSignInButton />
+            <View style={styles.trust}>
+              <Icon name="lock" size={14} color={colors.onTint} />
+              <Txt weight="semi" size={13} color={colors.onTint}>
+                No password. No seed phrase.
+              </Txt>
+            </View>
+            <View style={styles.links}>
+              <TextLink label="I already have Kova" onPress={() => router.push('/restore')} />
+              <TextLink label="I run a shop" onPress={() => router.push('/terminal/setup')} />
+            </View>
+          </Rise>
+        </ScrollView>
       </View>
     </View>
   )
@@ -100,8 +116,9 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     paddingHorizontal: 28,
     paddingTop: 36,
-    justifyContent: 'space-between',
+    overflow: 'hidden',
   },
+  panelBody: { flexGrow: 1, justifyContent: 'space-between', gap: 24 },
   title: { lineHeight: 48, letterSpacing: -1.6 },
   body: { lineHeight: 25, marginTop: 14 },
   actions: { gap: 14 },
