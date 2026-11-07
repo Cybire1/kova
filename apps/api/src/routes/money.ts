@@ -5,8 +5,10 @@ import { z } from 'zod'
 import { KovaError } from '../errors.js'
 import { clientIp, limit } from '../limits.js'
 import {
+  deleteDollarCard,
   dollarCardFor,
   idNumberFor,
+  newDollarCard,
   revealDollarCard,
   setDollarCard,
   startCheck,
@@ -273,6 +275,18 @@ export const moneyRoutes = new Hono()
       b.frozen ? 'freeze' : 'unfreeze',
     )
     return c.json(await setDollarCard(wallet, b.frozen))
+  })
+  .post('/wallets/:address/dollar-card/delete', async (c) => {
+    const wallet = walletAddress(c)
+    const b = await body(c, plainSigned, '{ signed_at, signature }')
+    await requireWalletSignature(wallet, 'dollar-card-delete', b.signed_at, b.signature)
+    return c.json(await deleteDollarCard(wallet))
+  })
+  .post('/wallets/:address/dollar-card/new', async (c) => {
+    const wallet = walletAddress(c)
+    const b = await body(c, plainSigned, '{ signed_at, signature }')
+    await requireWalletSignature(wallet, 'dollar-card-new', b.signed_at, b.signature)
+    return c.json(await newDollarCard(wallet))
   })
   .post('/wallets/:address/dollar-card/reveal', async (c) => {
     const wallet = walletAddress(c)

@@ -17,6 +17,7 @@ import { type DollarCard, getDollarCard, setDollarCard } from '@/lib/partners'
 import { colors } from '@/lib/theme'
 import { useWallet } from '@/lib/wallet'
 import { CardBrand } from '@/ui/CardBrand'
+import { CardClosed, DeleteCardLink } from '@/ui/CardDelete'
 import { Icon, type IconName } from '@/ui/Icon'
 import { NotYet, problemOf, SandboxNote, useMoney } from '@/ui/Money'
 import { Header, PillButton, Screen, Txt } from '@/ui/primitives'
@@ -29,7 +30,8 @@ const koviPeek = require('../../../assets/art/kovi-peek.png')
  * The dollar card (Nuvion): a virtual USD card, topped up from the wallet, up to a daily cap.
  *
  * Where you are decides the screen: no card yet (what it is, then the ID check), the check with the
- * issuer, a check that didn't pass, or the card itself (balance, top up, details, freeze).
+ * issuer, a check that didn't pass, the card itself (balance, top up, details, freeze, delete), or a
+ * deleted card (its money still yours, and a way to a new one).
  */
 export default function DollarCardScreen() {
   const { data, setData, problem, reload } = useMoney<DollarCard>(getDollarCard, {
@@ -99,9 +101,17 @@ export default function DollarCardScreen() {
     )
   if (data.stage === 'intro') return <Intro sandbox={data.sandbox} cap={data.daily_topup} />
   if (data.stage === 'checking')
-    return <Checking approved={!!data.approved} problem={problem} onRefresh={reload} />
+    return (
+      <Checking
+        approved={!!data.approved}
+        stuck={!!data.card_problem}
+        problem={problem}
+        onRefresh={reload}
+      />
+    )
   if (data.stage === 'fix')
     return <TryAgain reason={data.reason ?? null} unfinished={!!data.unfinished} />
+  if (data.stage === 'closed') return <CardClosed data={data} onChange={setData} />
   return <CardHome data={data} onChange={setData} onRefresh={reload} />
 }
 
@@ -157,10 +167,13 @@ function Sticker({ label, fill, tilt = 0 }: { label: string; fill?: ColorValue; 
 
 function Checking({
   approved,
+  stuck,
   problem,
   onRefresh,
 }: {
   approved: boolean
+  /** Approved, but the issuer keeps refusing to make the card: say so, plainly. */
+  stuck: boolean
   problem: string | null
   onRefresh: () => Promise<void>
 }) {
@@ -188,9 +201,11 @@ function Checking({
           {approved ? 'Your ID is approved' : 'Checking your ID'}
         </Txt>
         <Txt size={15} color={colors.muted} style={styles.lead}>
-          {approved
-            ? 'We’re preparing your card. It appears here as soon as it’s ready.'
-            : 'You can close Kova. We’ll check again automatically when you come back.'}
+          {approved && stuck
+            ? 'The card issuer is taking longer than usual to make your card. We keep trying, and it appears here as soon as it’s ready. Nothing is charged until then.'
+            : approved
+              ? 'We’re preparing your card. It appears here as soon as it’s ready.'
+              : 'You can close Kova. We’ll check again automatically when you come back.'}
         </Txt>
         <View style={styles.section}>
           <Step done label="Details sent" />
@@ -336,6 +351,7 @@ function CardHome({
               onPress={() => void freeze(false)}
             />
           </View>
+          <DeleteCardLink balance={card.balance} onDeleted={onChange} />
         </ScrollView>
       </Screen>
     )
@@ -486,6 +502,7 @@ function CardHome({
             ))
           )}
         </View>
+        <DeleteCardLink balance={card.balance} onDeleted={onChange} />
       </ScrollView>
     </Screen>
   )

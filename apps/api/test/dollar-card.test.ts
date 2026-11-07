@@ -42,8 +42,10 @@ const { sendFromRelayer } = await import('../src/relay.js')
 const { db } = await import('../src/db.js')
 const {
   creditTopups,
+  deleteDollarCard,
   dollarCardFor,
   idNumberFor,
+  newDollarCard,
   revealDollarCard,
   setDollarCard,
   settleWithdrawals,
@@ -77,6 +79,7 @@ function fakeNuvion() {
     failNextTransfer: false,
     failNextCardDetails: false,
     cardsIssued: 0,
+    deleted: false,
     calls: [] as string[],
   }
   const ok = (data: unknown, status = 200) =>
@@ -98,7 +101,10 @@ function fakeNuvion() {
             path.startsWith('/card-transactions/') ||
             path.startsWith('/card-creation-fee/')) &&
           url.searchParams.get('entity_id') !== 'ent_1') ||
-        (method === 'PATCH' && path.startsWith('/card-details/') && body.entity_id !== 'ent_1')
+        (method === 'PATCH' && path.startsWith('/card-details/') && body.entity_id !== 'ent_1') ||
+        (method === 'DELETE' &&
+          path.startsWith('/card-details/') &&
+          url.searchParams.get('entity_id') !== 'ent_1')
       )
         return new Response(JSON.stringify({ status: 'error', message: 'Wrong entity' }), {
           status: 404,
@@ -167,9 +173,15 @@ function fakeNuvion() {
       if (method === 'GET' && path === '/card-creation-fee/acc_1') return ok({ fee: 50 })
       if (method === 'GET' && path === '/cards') {
         expect(url.searchParams.get('account_id')).toBe('acc_1')
-        return ok({
-          cards: state.cardsIssued ? [{ id: card, type: 'virtual', status: 'active' }] : [],
-        })
+        // Like Nuvion, the list leaves out deleted cards.
+        const live = state.deleted
+          ? state.cardsIssued > 1
+            ? [{ id: `${card}_2`, type: 'virtual', status: 'active' }]
+            : []
+          : state.cardsIssued
+            ? [{ id: card, type: 'virtual', status: 'active' }]
+            : []
+        return ok({ cards: live })
       }
       if (method === 'POST' && path === '/transfers') {
         if (state.failNextTransfer) {
@@ -210,9 +222,21 @@ function fakeNuvion() {
       if (method === 'POST' && path === '/virtual-cards') {
         state.cardsIssued++
         state.balance -= 50
-        return ok({ id: card, status: 'active' }, 201)
+        // A card made after one was deleted is a new card with its own id.
+        return ok({ id: state.deleted ? `${card}_2` : card, status: 'active' }, 201)
       }
-      if (method === 'GET' && path === `/card-details/${card}`) {
+      if (method === 'DELETE' && path === `/card-details/${card}`) {
+        if (state.deleted)
+          return new Response(JSON.stringify({ status: 'error', message: 'Not found' }), {
+            status: 404,
+          })
+        state.deleted = true
+        return ok({})
+      }
+      if (
+        method === 'GET' &&
+        (path === `/card-details/${card}` || path === `/card-details/${card}_2`)
+      ) {
         if (state.failNextCardDetails) {
           state.failNextCardDetails = false
           return new Response(JSON.stringify({ status: 'error', message: 'Try later' }), {
@@ -628,6 +652,31 @@ describe('dollar card (Nuvion)', () => {
       },
     })
   })
+  it('deletes the card at Nuvion for good, keeps its money on the account, and never makes another by itself', async () => {
+    const { nuvion, wallet } = await cardHolder()
+    nuvion.balance = 2_000
+    const after = await deleteDollarCard(wallet)
+    expect(nuvion.calls).toContain(`DELETE /card-details/${nuvion.card}`)
+    expect(after).toMatchObject({ stage: 'closed', balance: (2_000n * 10_000n).toString() })
+    // Asking again, as the app does on every refresh, makes no new card.
+    expect(await dollarCardFor(wallet)).toMatchObject({ stage: 'closed' })
+    expect(nuvion.cardsIssued).toBe(1)
+    // A retry after Nuvion already deleted it doesn't fail, and there's nothing left to delete.
+    await expect(deleteDollarCard(wallet)).rejects.toThrow('no dollar card to delete')
+  })
+
+  it('makes a new card only when asked, on the same account', async () => {
+    const { nuvion, wallet } = await cardHolder()
+    await deleteDollarCard(wallet)
+    const fresh = await newDollarCard(wallet)
+    expect(fresh).toMatchObject({ stage: 'card' })
+    expect(nuvion.cardsIssued).toBe(2)
+    // Kova paid each card's fee, so none of it came out of the holder's money.
+    const fees = nuvion.transfers.filter((t) => t.reference.startsWith('kova-card-fee-'))
+    expect(fees).toHaveLength(2)
+    expect(new Set(fees.map((t) => t.reference)).size).toBe(2)
+  })
+
   describe('moving money off the card', () => {
     /** The relayer's sends: each one's hash is kept before it "leaves", like the real one. */
     const sends: Array<{ to: string; data: string }> = []

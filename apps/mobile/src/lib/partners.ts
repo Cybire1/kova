@@ -42,12 +42,19 @@ export interface DollarCard {
   sandbox: boolean
   provider: string
   requested: boolean
-  /** intro: no card yet. checking: the ID check is with the issuer. fix: it didn't pass. card: ready. */
-  stage: 'intro' | 'checking' | 'fix' | 'card'
+  /**
+   * intro: no card yet. checking: the ID check is with the issuer. fix: it didn't pass. card: ready.
+   * closed: they deleted their card; its money is still theirs (`balance`).
+   */
+  stage: 'intro' | 'checking' | 'fix' | 'card' | 'closed'
   /** With fix: the check stopped before the issuer could review it (to finish), not refused. */
   unfinished?: boolean
   /** The ID check passed, but the issuer is still preparing the card. */
   approved?: boolean
+  /** Approved, but the issuer refused to make the card when Kova last asked, in its words. */
+  card_problem?: string | null
+  /** With closed: what's still on the deleted card's account, base units; null if unknown. */
+  balance?: string | null
   /** The most a wallet puts on its card in a day, base units. */
   daily_topup: string
   /** Kova's fee on a top-up, in basis points (50 = 0.5%), paid on top. */
@@ -242,6 +249,22 @@ export async function withdrawFromCard(address: Address, sign: Sign, amount: big
     amount: amount.toString(),
     ...(await signed(address, sign, 'dollar-card-withdraw', amount.toString())),
   })
+}
+
+/** Deletes the card for good. Its money stays on its account, to move to Kova any time. */
+export async function deleteDollarCard(address: Address, sign: Sign) {
+  return call<DollarCard>(
+    `${address}/dollar-card/delete`,
+    await signed(address, sign, 'dollar-card-delete'),
+  )
+}
+
+/** A new card after deleting one, on the same account. */
+export async function newDollarCard(address: Address, sign: Sign) {
+  return call<DollarCard>(
+    `${address}/dollar-card/new`,
+    await signed(address, sign, 'dollar-card-new'),
+  )
 }
 
 /** The card's number, expiry and CVV, straight from the issuer. Shown, never stored. */

@@ -608,6 +608,17 @@ export async function cardSecrets(cardId: string, entityId: string): Promise<Car
   }
 }
 
+/**
+ * Deletes a card for good: Nuvion blocks it at once and can't bring it back. The card holds no
+ * money of its own, so its account and that account's balance stay as they were.
+ */
+export async function deleteVirtualCard(cardId: string, entityId: string) {
+  await nuvion(
+    `/card-details/${encodeURIComponent(cardId)}?entity_id=${encodeURIComponent(entityId)}`,
+    { method: 'DELETE' },
+  )
+}
+
 export async function setCardFrozen(cardId: string, frozen: boolean, entityId: string) {
   await nuvion(`/card-details/${encodeURIComponent(cardId)}/${frozen ? 'freeze' : 'unfreeze'}`, {
     method: 'PATCH',

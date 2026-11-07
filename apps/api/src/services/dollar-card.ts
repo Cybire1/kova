@@ -20,6 +20,7 @@ import {
   createIndividual,
   createKovaPayee,
   createPayee,
+  deleteVirtualCard,
   entityStatus,
   findBookDetail,
   findVirtualCard,
@@ -205,9 +206,35 @@ async function advance(holder: Holder): Promise<Holder> {
         )[0] ?? row
     }
   }
-  if (row.status === PASSED && !(await cardOf(row.wallet as Address))) row = await issueOnce(row)
+  // A holder who deleted their card asks for the next one: it costs a fee, so it's never automatic.
+  if (
+    row.status === PASSED &&
+    !(await cardOf(row.wallet as Address)) &&
+    !(await deletedCardOf(row.wallet as Address))
+  )
+    row = await issueOnce(row)
   return row
 }
+
+/** The newest card this wallet deleted, if any. */
+async function deletedCardOf(wallet: Address): Promise<Card | null> {
+  const [row] = await db
+    .select()
+    .from(schema.dollarCards)
+    .where(
+      and(
+        eq(schema.dollarCards.wallet, wallet.toLowerCase()),
+        eq(schema.dollarCards.network, net),
+        eq(schema.dollarCards.state, 'closed'),
+      ),
+    )
+    .orderBy(desc(schema.dollarCards.createdAt))
+    .limit(1)
+  return row ?? null
+}
+
+/** Why the last try at making a holder's card failed, kept while it keeps failing. */
+const issueProblems = new Map<string, string>()
 
 /** Focus and foreground refreshes can arrive together; share the same issuance attempt. */
 const issuing = new Map<string, Promise<Holder>>()
@@ -216,7 +243,20 @@ function issueOnce(holder: Holder): Promise<Holder> {
   if (running) return running
   const job = (async () => {
     const fresh = (await holderOf(holder.wallet as Address)) ?? holder
-    return (await cardOf(holder.wallet as Address)) ? fresh : issue(fresh)
+    if (await cardOf(holder.wallet as Address)) return fresh
+    try {
+      const made = await issue(fresh)
+      issueProblems.delete(holder.id)
+      return made
+    } catch (error) {
+      issueProblems.set(
+        holder.id,
+        error instanceof NuvionRefused || error instanceof KovaError
+          ? error.message
+          : 'The card issuer didn’t answer.',
+      )
+      throw error
+    }
   })().finally(() => issuing.delete(holder.id))
   issuing.set(holder.id, job)
   return job
@@ -302,7 +342,10 @@ async function issue(holder: Holder): Promise<Holder> {
       )[0] ?? row
   }
   const accountId = row.accountId as string
-  const existingCard = await findVirtualCard(row.entityId, accountId)
+  const found = await findVirtualCard(row.entityId, accountId)
+  // Nuvion leaves deleted cards out of its list, but never take back one this holder deleted.
+  const deleted = await deletedCardOf(row.wallet as Address)
+  const existingCard = found && found !== deleted?.providerCardToken ? found : null
   const fee = existingCard ? 0 : await cardFee(accountId, row.entityId)
   if (fee > 0) {
     // Kova pays the issuer's card fee; the reference makes sure it's paid once per holder.
@@ -312,7 +355,10 @@ async function issue(holder: Holder): Promise<Holder> {
         paymentDetailId: row.paymentDetailId as string,
       },
       fee,
-      `kova-card-fee-${row.id}`,
+      // Once per card: a card made after a deleted one pays its own fee, never the holder's money.
+      deleted
+        ? `kova-card-fee-${row.id}-${deleted.id.replace(/-/g, '')}`
+        : `kova-card-fee-${row.id}`,
       'Kova card fee',
     ).catch((e) => {
       if (!(e instanceof NuvionRefused && e.status === 409)) throw e
@@ -382,10 +428,25 @@ export async function dollarCardFor(wallet: Address) {
       card = { ...card, brand }
     }
   }
+  if (holder && !card && holder.status === PASSED && (await deletedCardOf(wallet))) {
+    // They deleted their card. Whatever was on its account is still theirs to move to Kova.
+    const cents = holder.accountId
+      ? await accountBalance(holder.accountId, holder.entityId).catch(() => null)
+      : null
+    return {
+      ...base,
+      requested: false,
+      stage: 'closed' as const,
+      approved: true,
+      balance: cents === null ? null : (BigInt(cents) * CENT).toString(),
+    }
+  }
   if (!holder || !card)
     return {
       ...base,
       requested: false,
+      // Approved, but the issuer wouldn't make the card yet: say so rather than wait in silence.
+      card_problem: holder ? (issueProblems.get(holder.id) ?? null) : null,
       stage: !holder
         ? ('intro' as const)
         : holder.status === PASSED || holder.status === REVIEWING
@@ -695,7 +756,8 @@ export async function withdraw(wallet: Address, amount: bigint) {
     if (!dollarCardLive() || !relayReady() || !feePayerAddress)
       throw new KovaError('conflict', 'The dollar card isn’t switched on for this server yet.')
     const holder = await holderOf(wallet)
-    const card = await cardOf(wallet)
+    // The money sits on the card's account, not the card: it moves even after the card is deleted.
+    const card = (await cardOf(wallet)) ?? (await deletedCardOf(wallet))
     if (!holder?.accountId || !card)
       throw new KovaError('not_found', 'This wallet has no dollar card yet.')
     if (amount % CENT !== 0n)
@@ -968,6 +1030,49 @@ export async function setDollarCard(wallet: Address, frozen: boolean) {
     .set({ state: frozen ? 'paused' : 'open', updatedAt: new Date() })
     .where(eq(schema.dollarCards.id, card.id))
   return dollarCardFor(wallet)
+}
+
+/**
+ * Deletes the holder's card for good. Nuvion can't bring a deleted card back, but the money was
+ * never on the card itself: it stays on the card's account, and moves to Kova as before.
+ */
+export async function deleteDollarCard(wallet: Address) {
+  const holder = await holderOf(wallet)
+  const card = await cardOf(wallet)
+  if (!card || !holder)
+    throw new KovaError('not_found', 'This wallet has no dollar card to delete.')
+  await deleteVirtualCard(card.providerCardToken, holder.entityId).catch((error) => {
+    // Already deleted at Nuvion (a retry, or deleted there): finish the job here.
+    if (error instanceof NuvionRefused && error.status === 404) return
+    throw error
+  })
+  await db
+    .update(schema.dollarCards)
+    .set({ state: 'closed', updatedAt: new Date() })
+    .where(eq(schema.dollarCards.id, card.id))
+  return dollarCardFor(wallet)
+}
+
+/** A new card for a holder who deleted theirs, on the same account (Nuvion charges for each card). */
+export async function newDollarCard(wallet: Address) {
+  const holder = await holderOf(wallet)
+  if (!holder || holder.status !== PASSED)
+    throw new KovaError('not_found', 'Pass the ID check before getting a card.')
+  if (await cardOf(wallet)) return dollarCardFor(wallet)
+  limitNewCards(wallet)
+  await issueOnce(holder)
+  return dollarCardFor(wallet)
+}
+
+/** At most two new cards a day per wallet: each one costs Kova Nuvion's card fee. */
+const newCards = new Map<string, number[]>()
+function limitNewCards(wallet: Address) {
+  const key = wallet.toLowerCase()
+  const day = Date.now() - 86_400_000
+  const recent = (newCards.get(key) ?? []).filter((t) => t > day)
+  if (recent.length >= 2)
+    throw new KovaError('rate_limited', 'That’s two new cards today. Try again tomorrow.')
+  newCards.set(key, [...recent, Date.now()])
 }
 
 /** The card's number, expiry, CVV and billing address, read from Nuvion for the holder and never kept. */

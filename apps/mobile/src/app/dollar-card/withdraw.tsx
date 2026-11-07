@@ -25,7 +25,9 @@ export default function WithdrawSheet() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const onCard = data?.card?.balance ? BigInt(data.card.balance) : null
+  // After the card is deleted its money is still on its account (`balance` at the top level).
+  const left = data?.card?.balance ?? data?.balance ?? null
+  const onCard = left ? BigInt(left) : null
   // Whole cents only: what's on the card, rounded down to the cent.
   const all = onCard === null ? null : (onCard / 10_000n) * 10_000n
   const value = (() => {
