@@ -240,6 +240,16 @@ const schema = z.object({
     .regex(/^0x[0-9a-fA-F]{64}$/)
     .optional(),
   /**
+   * Pay-per-use websites (x402): the key of Kova's small float of USDC and AUSD. A site's budget pays
+   * Kova in AUSD through its spending key; this key then signs the site's payment from the float, so
+   * a site that only takes USDC is still paid (Kova swaps the AUSD back to USDC in batches). Never
+   * the relayer's key. Without it, x402 payments are off.
+   */
+  KOVA_X402_PAYER_KEY: z
+    .string()
+    .regex(/^0x[0-9a-fA-F]{64}$/)
+    .optional(),
+  /**
    * Kova's team, for the few routes only it uses (the iPhone beta's list): sent as x-kova-admin.
    * Without it those routes don't exist (404).
    */

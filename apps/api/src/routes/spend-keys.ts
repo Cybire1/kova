@@ -20,6 +20,7 @@ import {
   completePayment,
   createAgent,
   createInvite,
+  createSiteKey,
   describeAgent,
   inviteFor,
   keyRow,
@@ -30,12 +31,16 @@ import {
   paymentRow,
   paymentsOf,
   preparePayment,
+  prepareX402,
   removeKey,
   removePlan,
+  selfFreezeKey,
   serializeKey,
   serializePayment,
   setFrozen,
   updatePlan,
+  x402PayerAddress,
+  x402Ready,
 } from '../services/spend-keys.js'
 
 /**
@@ -47,6 +52,7 @@ import {
  *   GET  /wallets/:address/keys?kind=      keys the wallet gave (data), and was given (received)
  *   POST /wallets/:address/key-invites     an allowance or team budget: returns the invite link
  *   POST /wallets/:address/agents          an AI agent's key (switched on with /activate)
+ *   POST /wallets/:address/sites           a website's budget, its key made by Kova for Chrome
  *   GET  /wallets/:address/keys/:id/link   what the owner signs to switch a key on
  *   POST /wallets/:address/keys/:id/activate
  *   GET  /wallets/:address/keys/:id/freeze?frozen=true   what to sign
@@ -61,6 +67,8 @@ import {
  *   POST /key-invites/:code/accept         the key made on their device, and its Claim signature
  *   POST /keys/:id/payments                prepare a payment from an allowance or budget
  *   POST /key-payments/:id/complete        the key's signature: Kova cosigns and pays
+ *   POST /keys/:id/x402                    a website's key pays a site that asked (HTTP 402)
+ *   POST /keys/:id/self-freeze             a key freezes itself; only the owner switches it back on
  * An agent's side takes its Bearer token (and /mcp does the same over MCP):
  *   GET  /agent/status   POST /agent/pay   POST /agent/pay_charge   GET /agent/payments/:id   GET /agent/history
  */
@@ -104,6 +112,18 @@ const agentBody = z.object({
   owner_name: z.string().max(40).optional(),
 })
 
+const siteBody = z.object({
+  site: z.string().url().max(300),
+  limit: money,
+  period: z.enum(['day', 'week']),
+  ask_above: money,
+  days: z.coerce.number().int().min(1).max(366),
+  key: addr,
+  claim_signature: hex,
+  claim_deadline: z.coerce.number().int().positive(),
+  owner_name: z.string().max(40).optional(),
+})
+
 const permitBody = z
   .object({
     value: z.string().regex(/^\d+$/),
@@ -123,6 +143,8 @@ export const spendKeyRoutes = new Hono()
       object: 'keys_config',
       ready: keysReady(),
       agents_ready: agentsReady(),
+      x402_ready: x402Ready(),
+      x402_payer: x402PayerAddress(),
       contract: cardContract,
       chain_id: network.chainId,
       token: {
@@ -195,6 +217,35 @@ export const spendKeyRoutes = new Hono()
       approveAbove: parseAmount(body.ask_above),
       payees: body.payees === 'anyone' ? 'anyone' : body.payees.map((p) => getAddress(p)),
       days: body.days,
+      ownerName: body.owner_name,
+    })
+    return c.json({ ...(await serializeKey(row)), link: await linkPlan(row) }, 201)
+  })
+  .post('/wallets/:address/sites', async (c) => {
+    const owner = wallet(c.req.param('address'))
+    const body = await bodyOf(c, siteBody)
+    limit(
+      `key-site:${owner.toLowerCase()}`,
+      30,
+      3_600_000,
+      'That’s a lot of new sites in an hour. Try again later.',
+    )
+    limit(
+      `key-site-ip:${clientIp(c)}`,
+      60,
+      3_600_000,
+      'That’s a lot of new sites from here. Try again later.',
+    )
+    const row = await createSiteKey(owner, {
+      label: body.site,
+      site: body.site,
+      limit: parseAmount(body.limit),
+      period: body.period,
+      askAbove: parseAmount(body.ask_above),
+      days: body.days,
+      key: getAddress(body.key),
+      claimSignature: body.claim_signature as Hex,
+      claimDeadline: BigInt(body.claim_deadline),
       ownerName: body.owner_name,
     })
     return c.json({ ...(await serializeKey(row)), link: await linkPlan(row) }, 201)
@@ -360,6 +411,50 @@ export const spendKeyRoutes = new Hono()
       },
       201,
     )
+  })
+  .post('/keys/:id/x402', async (c) => {
+    const row = await keyRow(c.req.param('id'))
+    if (!row) throw new KovaError('not_found', 'No such key.')
+    const body = await bodyOf(
+      c,
+      z.object({
+        holder: addr,
+        requirement: z.record(z.string(), z.unknown()),
+        resource: z
+          .object({
+            url: z.string().max(500).optional(),
+            description: z.string().max(200).optional(),
+            mimeType: z.string().max(80).optional(),
+          })
+          .optional(),
+      }),
+    )
+    limit(`key-pay:${row.id}`, 30, 60_000, 'Too many payments this minute.')
+    const { payment, typedData } = await prepareX402(row, {
+      holder: getAddress(body.holder),
+      requirement: body.requirement,
+      resource: body.resource,
+    })
+    return c.json(
+      {
+        ...serializePayment(payment, row),
+        typed_data: JSON.parse(
+          JSON.stringify(typedData, (_k, v) => (typeof v === 'bigint' ? v.toString() : v)),
+        ),
+      },
+      201,
+    )
+  })
+  .post('/keys/:id/self-freeze', async (c) => {
+    const row = await keyRow(c.req.param('id'))
+    if (!row) throw new KovaError('not_found', 'No such key.')
+    const body = await bodyOf(
+      c,
+      z.object({ at: z.coerce.number().int().positive(), signature: hex }),
+    )
+    limit(`key-freeze:${row.id}`, 20, 60_000, 'Too many tries this minute.')
+    const updated = await selfFreezeKey(row, { at: body.at, signature: body.signature as Hex })
+    return c.json(await serializeKey(updated))
   })
   .post('/key-payments/:id/complete', async (c) => {
     const payment = await paymentRow(c.req.param('id'))

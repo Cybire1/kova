@@ -14,18 +14,29 @@ import {
   type KeyKind,
   keyApprovalMessage,
   keyRemoveMessage,
+  keySelfFreezeMessage,
   kovaCardAbi,
   linkTypedData,
   NO_PERMIT,
+  paymentSignatureHeader,
   paymentTypedData,
+  randomNonce,
+  readRequirement,
+  siteName,
   splitPermit,
+  type Token,
+  tokens,
+  transferAuthorizationTypedData,
   unlinkTypedData,
   updateTypedData,
+  type X402Requirement,
+  type X402Resource,
 } from '@kova/monad'
 import { and, desc, eq, gte, inArray, lt, or, sql } from 'drizzle-orm'
 import {
   type Address,
   encodeFunctionData,
+  erc20Abi,
   getAddress,
   type Hex,
   isAddressEqual,
@@ -35,7 +46,7 @@ import {
   toHex,
 } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-import { network, settlementToken } from '../chain.js'
+import { network, publicClient, settlementToken } from '../chain.js'
 import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
@@ -254,6 +265,10 @@ export function serializePayment(row: KeyPaymentRow, key?: KeyRow) {
     status: row.status,
     reason: row.reason,
     tx_hash: row.txHash,
+    // A paid x402 payment: the header that pays the site, for the browser to send it again with.
+    ...(row.kind === 'x402' && row.status === 'paid' && typeof row.request?.header === 'string'
+      ? { x402: { header: row.request.header, resource: row.request.resource ?? null } }
+      : {}),
     created_at: row.createdAt.toISOString(),
   }
 }
@@ -485,6 +500,116 @@ export async function agentForToken(token: string | undefined): Promise<KeyRow> 
 // ── Switching a key on: the owner's link, relayed ───────────────────────────────────────────
 
 /** What the owner signs to switch a key on, and whether a permit is still needed. */
+// ── Websites: a key Kova for Chrome holds for one site ──────────────────────────────────────
+
+/** How long a website's key may wait to be switched on: its Claim (and so its Link) deadline. */
+const SITE_CLAIM_MIN_S = 600
+
+export interface SiteTerms extends Terms {
+  /** The site's origin, as the browser saw it: https://orbit.trade */
+  site: string
+  /** Pay-per-use payments up to this go through without asking (the extension's own line). */
+  askAbove: bigint
+}
+
+/**
+ * A website asks Kova for Chrome to connect, and the owner gives it a budget: the extension made
+ * the key and signed KovaCard's Claim for this wallet, so the key is ready to link. Like an
+ * allowance it spends nothing until the owner's wallet switches it on, and even then only up to the
+ * limit, which Monad enforces. The holder is the owner: the key spends their own dollars, for them.
+ */
+export async function createSiteKey(
+  owner: Address,
+  input: SiteTerms & {
+    key: Address
+    claimSignature: Hex
+    claimDeadline: bigint
+    ownerName?: string | undefined
+  },
+): Promise<KeyRow> {
+  const { contract } = requireKeys('site')
+  const name = siteName(input.site)
+  if (!name) throw new KovaError('invalid_request', 'That isn’t a website Kova can give a budget.')
+  checkTerms({ ...input, label: name })
+  if (input.askAbove < 0n || input.askAbove > input.limit)
+    throw new KovaError('invalid_request', 'The line to ask above has to be within the budget.')
+  const deadline = Number(input.claimDeadline)
+  if (deadline < nowS() + SITE_CLAIM_MIN_S || deadline > nowS() + CLAIM_MAX_S)
+    throw new KovaError('invalid_request', 'That approval’s time is off. Try again.')
+  if (isAddressEqual(input.key, owner))
+    throw new KovaError('invalid_request', 'A site’s key can’t be the wallet itself.')
+  const signer = await recoverTypedDataAddress({
+    ...claimTypedData(network.chainId, contract, {
+      card: input.key,
+      holder: owner,
+      deadline: input.claimDeadline,
+    }),
+    signature: input.claimSignature,
+  }).catch(() => null)
+  if (!signer || !isAddressEqual(signer, input.key))
+    throw new KovaError('invalid_request', 'The key’s signature doesn’t match. Try again.')
+  const taken = await db.query.walletKeys.findFirst({
+    where: eq(schema.walletKeys.keyAddress, input.key.toLowerCase()),
+  })
+  if (taken) throw new KovaError('conflict', 'That key is already in use.')
+  const [row] = await db
+    .insert(schema.walletKeys)
+    .values({
+      id: uuidv7(),
+      network: network.id,
+      ownerAddress: owner.toLowerCase(),
+      ownerName: input.ownerName?.trim().slice(0, 40) || null,
+      kind: 'site',
+      label: name.slice(0, 40),
+      keyAddress: input.key.toLowerCase(),
+      holderAddress: owner.toLowerCase(),
+      holderName: 'Kova for Chrome',
+      spendLimit: input.limit,
+      period: input.period === 'week' ? KEY_WEEK : KEY_DAY,
+      expiresAt: new Date(Date.now() + input.days * 86_400_000),
+      rules: {
+        perPayment: input.limit.toString(),
+        approveAbove: input.askAbove.toString(),
+        payees: 'anyone',
+        site: new URL(input.site).origin,
+      },
+      claimSignature: input.claimSignature,
+      claimDeadline: deadline,
+      status: 'accepted',
+    })
+    .returning()
+  if (!row) throw new KovaError('internal', 'The site’s budget wasn’t saved.')
+  return row
+}
+
+/**
+ * A key freezes itself: Kova for Chrome's switch, and its Freeze all. Kova stops cosigning at once,
+ * so the key can't spend; Monad's link stays as it was, and only the owner's wallet can switch it
+ * back on (the freeze route, frozen: false). Freezing only ever takes power away, so the key's own
+ * signature is enough.
+ */
+export async function selfFreezeKey(
+  row: KeyRow,
+  input: { at: number; signature: Hex },
+): Promise<KeyRow> {
+  if (!row.keyAddress) throw new KovaError('conflict', 'This key isn’t made yet.')
+  if (Math.abs(input.at - nowS()) > 300)
+    throw new KovaError('invalid_request', 'That freeze is too old. Try again.')
+  const signer = await recoverMessageAddress({
+    message: keySelfFreezeMessage({ keyId: row.id, at: input.at }),
+    signature: input.signature,
+  }).catch(() => null)
+  if (!signer || !isAddressEqual(signer, row.keyAddress as Address))
+    throw new KovaError('invalid_request', 'The key’s signature doesn’t match.')
+  if (row.status === 'frozen' || row.status === 'removed') return row
+  const [updated] = await db
+    .update(schema.walletKeys)
+    .set({ status: 'frozen', updatedAt: new Date() })
+    .where(eq(schema.walletKeys.id, row.id))
+    .returning()
+  return updated as KeyRow
+}
+
 export async function linkPlan(row: KeyRow) {
   const { contract } = requireKeys(row.kind as KeyKind)
   if (row.status !== 'accepted' || !row.keyAddress)
@@ -989,7 +1114,150 @@ export async function completePayment(
   // A prepared payment isn't counted yet, so the rules see what's already been paid, plus this.
   const verdict = await judge(row, payment.amount, getAddress(payment.recipient), true)
   if (verdict.kind === 'deny') return settle(payment, { status: 'denied', reason: verdict.reason })
-  return cosignAndSend(row, payment, signature)
+  const paid = await cosignAndSend(row, payment, signature)
+  return paid.kind === 'x402' && paid.status === 'paid' ? payTheSite(paid) : paid
+}
+
+// ── Pay-per-use websites (x402) ─────────────────────────────────────────────────────────────
+
+export const x402Ready = () => keysReady() && Boolean(config.KOVA_X402_PAYER_KEY)
+
+/** Where a website's budget pays Kova for an x402 payment: the float's address, or null when off. */
+export const x402PayerAddress = (): Address | null =>
+  config.KOVA_X402_PAYER_KEY ? privateKeyToAccount(config.KOVA_X402_PAYER_KEY as Hex).address : null
+
+function x402Payer() {
+  if (!config.KOVA_X402_PAYER_KEY)
+    throw new KovaError('conflict', 'Pay-per-use websites aren’t switched on for this server yet.')
+  return privateKeyToAccount(config.KOVA_X402_PAYER_KEY as Hex)
+}
+
+/** The dollars Kova pays sites in, on this network. */
+function x402Token(asset: Address): Token | null {
+  const known = [tokens[network.id].AUSD, tokens[network.id].USDC]
+  return known.find((t) => t && isAddressEqual(t.address, asset)) ?? null
+}
+
+/** The most one pay-per-use payment can be: they're meant for articles and API calls. */
+const X402_MAX = 25_000_000n
+
+/**
+ * A website asked to be paid (HTTP 402) and its key's owner said yes, or it's under their line:
+ * check what it asks for, then give back the KovaCard payment for the key to sign. It moves the
+ * amount in AUSD from the owner's wallet to Kova's x402 float, within the key's budget; once that's
+ * paid, Kova signs the site's own payment from the float (payTheSite), in AUSD or USDC, one for one.
+ */
+export async function prepareX402(
+  row: KeyRow,
+  input: { holder: Address; requirement: unknown; resource?: X402Resource | undefined },
+): Promise<{ payment: KeyPaymentRow; typedData: ReturnType<typeof paymentTypedData> }> {
+  const { contract } = requireKeys()
+  const payer = x402Payer()
+  if (
+    row.kind !== 'site' ||
+    !row.holderAddress ||
+    !isAddressEqual(row.holderAddress as Address, input.holder)
+  )
+    throw new KovaError('forbidden', 'Only a website’s own key pays it.')
+  const requirement = readRequirement(input.requirement)
+  if (!requirement || requirement.network !== `eip155:${network.chainId}`)
+    throw new KovaError('invalid_request', 'Kova pays websites on Monad only.')
+  const token = x402Token(requirement.asset)
+  if (!token) throw new KovaError('invalid_request', 'Kova pays websites in AUSD or USDC only.')
+  const amount = BigInt(requirement.amount)
+  if (amount > X402_MAX)
+    throw new KovaError(
+      'invalid_request',
+      `That’s more than Kova pays a website per use ($${formatAmount(X402_MAX)}).`,
+    )
+  const payTo = getAddress(requirement.payTo)
+  if (isAddressEqual(payTo, row.ownerAddress as Address) || isAddressEqual(payTo, payer.address))
+    throw new KovaError('invalid_request', 'That payment would go nowhere.')
+  // Kova only takes the owner's dollars when its float can pay the site right away.
+  const float = await publicClient
+    .readContract({
+      address: token.address,
+      abi: erc20Abi,
+      functionName: 'balanceOf',
+      args: [payer.address],
+    })
+    .catch(() => 0n)
+  if (float < amount)
+    throw new KovaError(
+      'conflict',
+      `Kova can’t pay websites in ${token.symbol} right now. Nothing moved.`,
+    )
+  const verdict = await judge(row, amount, payer.address, true)
+  if (verdict.kind === 'deny') throw new KovaError('policy_declined', verdict.reason)
+  const resource = input.resource
+    ? {
+        ...(typeof input.resource.url === 'string'
+          ? { url: input.resource.url.slice(0, 500) }
+          : {}),
+        ...(typeof input.resource.description === 'string'
+          ? { description: input.resource.description.slice(0, 200) }
+          : {}),
+        ...(typeof input.resource.mimeType === 'string'
+          ? { mimeType: input.resource.mimeType.slice(0, 80) }
+          : {}),
+      }
+    : null
+  const where = resource?.url ? siteName(resource.url) : null
+  const payment = await record(row, {
+    kind: 'x402',
+    recipient: payer.address.toLowerCase(),
+    amount,
+    description: where ?? row.label,
+    status: 'prepared',
+    memo: randomMemo(),
+    deadline: nowS() + PAYMENT_TTL_S,
+    request: { requirement, resource, token: token.currency },
+  })
+  return { payment, typedData: paymentData(contract, row, payment) }
+}
+
+/**
+ * The owner's AUSD reached Kova's float: sign the site's payment from the float, exactly what the
+ * site asked for, and keep the header with the payment so the browser can send it.
+ */
+async function payTheSite(payment: KeyPaymentRow): Promise<KeyPaymentRow> {
+  const request = payment.request as {
+    requirement?: X402Requirement
+    resource?: X402Resource | null
+  } | null
+  const requirement = request?.requirement ? readRequirement(request.requirement) : null
+  const token = requirement ? x402Token(requirement.asset) : null
+  if (!requirement || !token)
+    return settle(payment, {
+      reason: 'Paid Kova, but the site’s request was lost. Kova refunds it.',
+    })
+  const payer = x402Payer()
+  const now = BigInt(nowS())
+  const authorization = {
+    from: payer.address,
+    to: getAddress(requirement.payTo),
+    value: BigInt(requirement.amount),
+    validAfter: now - 60n,
+    validBefore: now + BigInt(requirement.maxTimeoutSeconds),
+    nonce: randomNonce(),
+  }
+  const signature = await payer.signTypedData(
+    transferAuthorizationTypedData(token, network.chainId, authorization),
+  )
+  const header = paymentSignatureHeader({
+    requirement,
+    resource: request?.resource ?? undefined,
+    authorization,
+    signature,
+  })
+  return settle(payment, {
+    request: {
+      ...(payment.request ?? {}),
+      header,
+      nonce: authorization.nonce,
+      valid_before: authorization.validBefore.toString(),
+    },
+  })
 }
 
 // ── Agents paying ───────────────────────────────────────────────────────────────────────────

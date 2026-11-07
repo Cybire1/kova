@@ -1625,7 +1625,7 @@ export const walletKeys = pgTable(
     /** The wallet whose dollars the key spends: the KovaCard holder. Lowercase. */
     ownerAddress: address('owner_address').notNull(),
     ownerName: text('owner_name'),
-    /** allowance | team | agent */
+    /** allowance | team | agent | site (a website's budget, held by Kova for Chrome) */
     kind: text('kind').notNull(),
     /** Who it's for, as the owner wrote it: "Mum", "Tobi at the till", "Claude". */
     label: text('label').notNull(),
@@ -1644,6 +1644,8 @@ export const walletKeys = pgTable(
       perPayment: string
       approveAbove: string
       payees: 'anyone' | string[]
+      /** A website's key (kind site): the site it was made for, as its origin. */
+      site?: string
     }>(),
     /** An agent's private key, sealed under KOVA_KEYS_MASTER_KEY. */
     sealedKey: text('sealed_key'),

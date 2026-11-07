@@ -10,7 +10,11 @@ import { type Address, getAddress, type Hex, hexToBigInt, keccak256, toHex } fro
 export const KEY_DAY = 86_400
 export const KEY_WEEK = 604_800
 
-export type KeyKind = 'allowance' | 'team' | 'agent'
+/**
+ * allowance and team: a key on someone's own device; agent: a key Kova holds for an AI agent;
+ * site: a key Kova for Chrome holds for one website, so the site gets a budget, never the wallet.
+ */
+export type KeyKind = 'allowance' | 'team' | 'agent' | 'site'
 
 /**
  * What the recipient's wallet signs to make an allowance's (or a team member's) key. The key is
@@ -59,5 +63,38 @@ export function keyRemoveMessage(input: { owner: Address; keyId: string }): stri
     'Kova: remove this key',
     `Key: ${input.keyId}`,
     `Wallet: ${getAddress(input.owner)}`,
+  ].join('\n')
+}
+
+/**
+ * What a key signs to freeze itself (Kova for Chrome's freeze switch): Kova stops cosigning for it at
+ * once. Only the owner's wallet can switch it back on. `at` is unix seconds, so an old one can't be
+ * replayed later.
+ */
+export function keySelfFreezeMessage(input: { keyId: string; at: number }): string {
+  return ['Kova: freeze this key', `Key: ${input.keyId}`, `At: ${input.at}`].join('\n')
+}
+
+/** A website as a budget is named: its host, lowercase, without a port's default or a path. */
+export function siteName(origin: string): string | null {
+  try {
+    const url = new URL(origin)
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null
+    return url.host.toLowerCase().slice(0, 80)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * What the wallet signs to connect Kova for Chrome (mykova.app/extension): proof this wallet said
+ * yes to this browser. It moves no money; each website still needs a budget the wallet approves.
+ */
+export function extensionConnectMessage(input: { wallet: Address; at: number }): string {
+  return [
+    'Kova for Chrome: connect this browser',
+    `Wallet: ${getAddress(input.wallet)}`,
+    `At: ${input.at}`,
+    'This moves no money. Each website still needs a budget you approve.',
   ].join('\n')
 }
