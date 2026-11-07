@@ -173,6 +173,7 @@ export default function Profile() {
 
       {/* The way back if the passkey is ever lost: hidden for Google and demo wallets. */}
       <RecoveryRow />
+      <PrivateKeyRow />
 
       {/* What you've done */}
       <View style={styles.stats}>
@@ -631,6 +632,33 @@ function RecoveryRow() {
           </Txt>
           <Txt size={13} color={saved ? colors.muted : colors.danger} numberOfLines={1}>
             {saved ? 'Saved. Your wallet can always come back' : 'Not saved yet. Save them now'}
+          </Txt>
+        </View>
+        <Icon name="arrow" size={20} />
+      </View>
+    </Sticker>
+  )
+}
+
+/** Private key: the same wallet in another app. Shown for the wallets that have recovery words. */
+function PrivateKeyRow() {
+  const { hasWords } = useWallet()
+  if (!hasWords) return null
+  return (
+    <Sticker
+      radius={24}
+      accessibilityLabel="Private key. Use this wallet in another app"
+      onPress={() => router.push('/private-key')}
+      style={{ height: 62, marginTop: 14 }}
+    >
+      <View style={[styles.cashOut, { gap: 14 }]}>
+        <Icon name="lock" size={22} />
+        <View style={{ flex: 1 }}>
+          <Txt weight="semi" size={16}>
+            Private key
+          </Txt>
+          <Txt size={13} color={colors.muted} numberOfLines={1}>
+            Use this wallet in another app
           </Txt>
         </View>
         <Icon name="arrow" size={20} />
