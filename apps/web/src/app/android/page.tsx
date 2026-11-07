@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { Brand, Icon, Pill } from '@/components/brand'
-import { PhoneShot } from '@/components/iphone-beta'
+import { HomeMotion } from '@/components/home-motion'
+import { SiteFooter, SiteNav, SiteSprite } from '@/components/site'
 import { ANDROID } from '@/lib/android'
+import { network } from '@/lib/network'
+import '../../styles/home.css'
 
 const TITLE = 'Kova for Android · Download'
 const DESCRIPTION =
-  'A dollar account you open with your fingerprint. Get paid, pay, run a shop and cash out to any Nigerian bank. Download Kova for Android.'
+  'A dollar wallet you open with your fingerprint. Spend with a dollar card, send to 20 networks and cash out to banks in 35+ countries. Download Kova for Android.'
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -15,112 +16,104 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
 }
 
+const STEPS = [
+  ['Download on your phone', 'Open this page on your Android phone and tap Download.'],
+  [
+    'Allow the install',
+    'Open the file. If Android asks, let your browser install apps, then tap Install. Play Protect may ask you to confirm: Kova is new and isn’t on Play yet.',
+  ],
+  [
+    'Open Kova',
+    'Make your wallet with your fingerprint. Google Password Manager keeps your passkey. No seed phrase, and no gas to buy.',
+  ],
+] as const
+
 /**
  * Kova for Android, straight from Kova while it waits for Google Play: the APK, how to install it,
- * and its SHA-256 so anyone can check the file. Laid out like the iOS page (styles/iphone.css).
+ * and its SHA-256 so anyone can check the file. Built like the home page (styles/home.css).
  */
 export default function AndroidPage() {
+  const mainnet = network === 'mainnet'
   return (
-    <div className="lp ip">
-      <header className="lp-nav">
-        <Brand />
-        <div className="lp-nav-actions">
-          <Link href="/try?ref=android" className="lp-signin">
-            Try it on the web
-          </Link>
-          <Pill href="/android/download" icon="download">
-            Download
-          </Pill>
-        </div>
-      </header>
-
-      <section className="ip-hero">
-        <div className="ip-copy">
-          <p className="ip-kicker">
-            <span className="ip-live" aria-hidden="true" /> Kova for Android · Version{' '}
-            {ANDROID.version}
-          </p>
-          <h1 className="ip-title">
-            Your dollars,
-            <br />
-            <span>on Android</span>
-            <span className="lp-coin" aria-hidden="true" />
-          </h1>
-          <p className="ip-lead">
-            A dollar account you open with your fingerprint. Get paid by link, run a shop, pay
-            anyone, and cash out to any Nigerian bank in seconds. Every payment settles on Monad,
-            and Kova pays the gas.
-          </p>
-          <div className="ip-form">
-            <Pill href="/android/download" icon="download">
-              Download Kova for Android ({ANDROID.sizeMb} MB)
-            </Pill>
+    <div className="kl" id="kl">
+      <SiteSprite />
+      <SiteNav login="Log in" />
+      <main>
+        <section className="ad-hero">
+          <div className="wrap ad-grid">
+            <div className="ad-copy">
+              <span className="ktag">Kova for Android · Version {ANDROID.version}</span>
+              <h1>
+                Kova for
+                <br />
+                Android.
+              </h1>
+              <p className="lede">
+                A dollar wallet you open with your fingerprint. Spend with a dollar card, send to 20
+                networks, and cash out to banks in 35+ countries.
+              </p>
+              <div className="ctas">
+                <a className="btn b-ink" href="/android/download">
+                  Download · {ANDROID.sizeMb} MB
+                  <span className="o">
+                    <svg aria-hidden="true" className="i" style={{ transform: 'rotate(90deg)' }}>
+                      <use href="#i-arrow" />
+                    </svg>
+                  </span>
+                </a>
+                <a className="btn b-soft" href="/wallet">
+                  Open on the web
+                </a>
+              </div>
+              <p className="ad-note">
+                <svg aria-hidden="true" className="i">
+                  <use href="#i-lock" />
+                </svg>
+                Signed by Kova. Google Play is coming; until then, it installs straight from here.
+                Android 9 or newer.
+              </p>
+            </div>
+            <div className="s-visual" data-par>
+              <div className="ph">
+                <img
+                  className="lt"
+                  src="/site/home.webp"
+                  alt="Kova home screen: available balance, Pay, Send and Request"
+                />
+                <img
+                  className="dk"
+                  src="/site/card-dark.webp"
+                  alt="The dollar card in dark mode: $144.02 ready to spend"
+                />
+              </div>
+              <img className="card-float" src="/site/card-coral.webp" alt="" />
+            </div>
           </div>
-          <p className="ip-keep">
-            <Icon name="shield" size={16} /> Signed by Kova. Google Play is coming; until then, it
-            installs straight from here.
-          </p>
-        </div>
+        </section>
 
-        <div className="ip-stage">
-          <PhoneShot
-            name="send"
-            alt="Send to anyone, in their own currency"
-            className="ip-stage-left"
-          />
-          <PhoneShot
-            name="home"
-            alt="Kova’s Home: your dollars, ready to spend"
-            className="ip-stage-center"
-            priority
-          />
-          <PhoneShot name="card" alt="A Kova Card with a daily limit" className="ip-stage-right" />
-        </div>
-      </section>
-
-      <section className="ip-how" aria-labelledby="ad-how-title">
-        <h2 className="lp-h2" id="ad-how-title">
-          How to install it
-        </h2>
-        <ol className="ip-steps">
-          <li>
-            <span className="ip-step-n">1</span>
-            <h3>Download on your phone</h3>
-            <p>Open this page on your Android phone and tap Download. Android 9 or newer.</p>
-          </li>
-          <li>
-            <span className="ip-step-n">2</span>
-            <h3>Allow the install</h3>
-            <p>
-              Open the file. If Android asks, allow your browser to install apps, then tap Install.
-              Play Protect may ask you to confirm: it’s a new app, not on Play yet.
-            </p>
-          </li>
-          <li>
-            <span className="ip-step-n">3</span>
-            <h3>Open Kova</h3>
-            <p>
-              Make your wallet with your fingerprint. Your passkey is kept by Google Password
-              Manager. No seed phrase, and no gas token to buy.
-            </p>
-          </li>
-        </ol>
-        <p className="ip-web">
-          SHA-256 of the file: <code style={{ wordBreak: 'break-all' }}>{ANDROID.sha256}</code>
-        </p>
-      </section>
-
-      <footer className="lp-foot">
-        <Brand />
-        <p>Kova for Android, straight from Kova. Built on Monad.</p>
-        <nav aria-label="Footer">
-          <Link href="/">Kova</Link>
-          <Link href="/waitlist">Kova for iOS</Link>
-          <Link href="/stats">Kova, live</Link>
-          <Link href="/privacy">Privacy</Link>
-          <Link href="/terms">Terms</Link>
-        </nav>
-      </footer>
+        <section className="sec ad-how" aria-labelledby="ad-how">
+          <div className="wrap">
+            <span className="ktag">How to install it</span>
+            <h2 id="ad-how">Three steps, about a minute.</h2>
+            <ol className="ad-steps">
+              {STEPS.map(([title, body], i) => (
+                <li key={title}>
+                  <span className="num">0{i + 1}</span>
+                  <h3>{title}</h3>
+                  <p>{body}</p>
+                </li>
+              ))}
+            </ol>
+            <div className="ad-sum">
+              <b>Check the file</b>
+              <span>SHA-256 of {ANDROID.url.split('/').pop()}</span>
+              <code>{ANDROID.sha256}</code>
+            </div>
+          </div>
+        </section>
+      </main>
+      <SiteFooter mainnet={mainnet} />
+      <HomeMotion />
     </div>
   )
 }
