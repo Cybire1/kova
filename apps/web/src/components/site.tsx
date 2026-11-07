@@ -29,6 +29,7 @@ export function SiteSprite() {
 export function SiteNav({ login }: { login: string }) {
   return (
     <>
+      <div className="kprog" aria-hidden="true" />
       <header className="nav" id="nav">
         <div className="nav-in">
           <a className="kbrand" href="/">
@@ -40,6 +41,7 @@ export function SiteNav({ login }: { login: string }) {
             </svg>
           </a>
           <nav className="kpill" aria-label="Main">
+            <span className="pl-ind" aria-hidden="true" />
             <div>
               <button type="button" className="pl" aria-expanded="false" data-drop="dp">
                 Personal{' '}

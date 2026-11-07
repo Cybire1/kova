@@ -58,6 +58,21 @@ const NETWORKS = [
   ['edge', 'Edge'],
 ] as const
 
+/** The pinned sentence after the hero: each word lights as you scroll; *starred* phrases in coral. */
+const STATEMENT =
+  'Kova is a dollar wallet that opens with *Face ID.* Spend with a *dollar card,* send to *20 networks* and cash out in *35+ countries.* Kova pays the gas.'
+    .split(/(\*[^*]+\*)/)
+    .filter(Boolean)
+    .flatMap((part) =>
+      // A starred phrase stays whole, so it lights at once and never breaks across lines.
+      part.startsWith('*')
+        ? [{ word: part.replace(/\*/g, ''), lit: true }]
+        : part
+            .split(' ')
+            .filter(Boolean)
+            .map((word) => ({ word, lit: false })),
+    )
+
 /** Flags circling the naira coin on the cash-out card: [code, size, x, y] on a 160px ring. */
 const ORBIT = ['US', 'GB', 'EU', 'GH', 'KE', 'ZA', 'CA', 'PH', 'AE', 'AU'].map((code, i, list) => {
   const t = (i / list.length) * Math.PI * 2
@@ -487,6 +502,22 @@ export default async function Home() {
                 </span>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="stmt" id="stmt" aria-label="Kova in one sentence">
+          <div className="stmt-in">
+            <p className="stmt-text" style={{ '--n': STATEMENT.length } as CSSProperties}>
+              {STATEMENT.map(({ word, lit }, i) => (
+                <span
+                  key={`${i}-${word}`}
+                  className={lit ? 'stw lit' : 'stw'}
+                  style={{ '--i': i } as CSSProperties}
+                >
+                  {word}{' '}
+                </span>
+              ))}
+            </p>
           </div>
         </section>
 
@@ -1052,6 +1083,22 @@ export default async function Home() {
               Cash out to banks and mobile money in local currency, or send dollars to 19 other
               networks.
             </p>
+            <div className="stats">
+              <div>
+                <b data-count="35" data-suffix="+">
+                  35+
+                </b>
+                <span>countries to cash out to</span>
+              </div>
+              <div>
+                <b data-count="17">17</b>
+                <span>local currencies</span>
+              </div>
+              <div>
+                <b data-count="20">20</b>
+                <span>networks to send to</span>
+              </div>
+            </div>
             <div className="tabs rv d3" role="tablist">
               <button
                 type="button"
@@ -1073,8 +1120,8 @@ export default async function Home() {
               </button>
             </div>
             <div className="places" id="countries">
-              {PLACES.map(([code, name, how]) => (
-                <div className="pc" key={code}>
+              {PLACES.map(([code, name, how], i) => (
+                <div className="pc" key={code} style={{ '--i': i } as CSSProperties}>
                   <img src={`/flags/${code}.svg`} alt="" loading="lazy" />
                   <span>
                     {name}
@@ -1084,8 +1131,8 @@ export default async function Home() {
               ))}
             </div>
             <div className="places" id="networks" hidden>
-              {NETWORKS.map(([id, name]) => (
-                <div className="pc" key={id}>
+              {NETWORKS.map(([id, name], i) => (
+                <div className="pc" key={id} style={{ '--i': i } as CSSProperties}>
                   <Mark id={id} className="lg" />
                   <span>
                     {name}
@@ -1093,7 +1140,7 @@ export default async function Home() {
                   </span>
                 </div>
               ))}
-              <div className="pc">
+              <div className="pc" style={{ '--i': NETWORKS.length } as CSSProperties}>
                 <span className="lg" style={{ background: '#836EF9' }}>
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <use href="#i-monad" />
@@ -1214,6 +1261,7 @@ export default async function Home() {
         </section>
 
         <section className="dark" id="business">
+          <div className="spot" aria-hidden="true" />
           <div className="sec">
             <div className="wrap">
               <div className="biz-top">

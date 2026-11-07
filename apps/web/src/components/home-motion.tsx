@@ -77,6 +77,62 @@ export function HomeMotion() {
     const all = <T extends Element = HTMLElement>(sel: string) =>
       Array.from(root.querySelectorAll<T>(sel) as NodeListOf<T>)
 
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const hover = window.matchMedia('(hover:hover)').matches
+    const clamp01 = (n: number) => Math.min(1, Math.max(0, n))
+    /** A grid's chips come in one after another; once they're in, hovers answer at once. */
+    const cascade = (grid: HTMLElement) => {
+      grid.classList.remove('in', 'done')
+      void grid.offsetWidth
+      grid.classList.add('in')
+      timers.push(window.setTimeout(() => grid.classList.add('done'), 1300))
+    }
+
+    // Headlines rise out of a mask, word by word: each word (and the odd inline picture) gets
+    // its own clipped span, numbered for the stagger. Line breaks and inline spans are kept.
+    const splitWords = (el: HTMLElement) => {
+      if (el.dataset.split) return
+      el.dataset.split = '1'
+      let n = 0
+      const masked = (content: Node) => {
+        const w = document.createElement('span')
+        w.className = 'w'
+        const inner = document.createElement('span')
+        inner.style.setProperty('--wi', String(n++))
+        inner.append(content)
+        w.append(inner)
+        return w
+      }
+      const walk = (node: Node) => {
+        for (const child of Array.from(node.childNodes)) {
+          if (child.nodeType === Node.TEXT_NODE) {
+            const frag = document.createDocumentFragment()
+            for (const part of (child.textContent ?? '').split(/(\s+)/)) {
+              if (!part) continue
+              frag.append(/^\s+$/.test(part) ? part : masked(document.createTextNode(part)))
+            }
+            child.replaceWith(frag)
+          } else if (child instanceof HTMLElement && child.tagName !== 'BR') {
+            if (child.tagName === 'IMG') {
+              const holder = document.createComment('')
+              child.replaceWith(holder)
+              holder.replaceWith(masked(child))
+            } else walk(child)
+          }
+        }
+      }
+      walk(el)
+      el.classList.add('wsplit')
+    }
+    if (!reduce) {
+      for (const h of all('h2')) if (!h.closest('.gc,.gd,.stmt')) splitWords(h)
+      const h1 = root.querySelector<HTMLElement>('.hero h1, .ad-copy h1')
+      if (h1) {
+        splitWords(h1)
+        timers.push(window.setTimeout(() => h1.classList.add('in'), 90))
+      }
+    }
+
     // Load-in
     timers.push(window.setTimeout(() => root.classList.add('loaded'), 60))
 
@@ -111,6 +167,9 @@ export function HomeMotion() {
     const nav = $('nav')
     const stage = $('stageIn')
     const pars = all('[data-par]')
+    const prog = root.querySelector<HTMLElement>('.kprog')
+    const stmt = $('stmt')
+    const band = root.querySelector<HTMLElement>('.dark')
     let lastY = 0
     let ticking = false
     const onScroll = () => {
@@ -126,13 +185,28 @@ export function HomeMotion() {
       }
       lastY = y
       const h = window.innerHeight
+      const docH = document.documentElement.scrollHeight - h
+      prog?.style.setProperty('--page', String(docH > 0 ? clamp01(y / docH) : 0))
       if (stage) {
         const r = stage.getBoundingClientRect()
-        if (r.bottom > 0 && r.top < h)
+        if (r.bottom > 0 && r.top < h) {
           stage.style.setProperty(
             '--sy',
             `${Math.max(-90, Math.min(0, (r.top - h * 0.55) * 0.22))}px`,
           )
+          // The side phones straighten and the middle one settles as the stage rises.
+          stage.style.setProperty('--sp', String(clamp01(1 - (r.top - h * 0.3) / (h * 0.6))))
+        }
+      }
+      if (stmt && !reduce) {
+        const r = stmt.getBoundingClientRect()
+        if (r.top < h && r.bottom > 0)
+          stmt.style.setProperty('--p', String(clamp01(-r.top / (r.height - h))))
+      }
+      if (band && !reduce) {
+        const r = band.getBoundingClientRect()
+        if (r.top < h * 1.2 && r.bottom > 0)
+          band.style.setProperty('--bp', String(clamp01(1 - (r.top - h * 0.15) / (h * 0.75))))
       }
       for (const p of pars) {
         const b = p.getBoundingClientRect()
@@ -154,9 +228,8 @@ export function HomeMotion() {
     onScroll()
 
     // Hero art leans a little toward the pointer
-    const hover = window.matchMedia('(hover:hover)').matches
     const art = all('.art-desk .a')
-    if (hover)
+    if (hover && !reduce)
       window.addEventListener(
         'pointermove',
         (e) => {
@@ -285,6 +358,8 @@ export function HomeMotion() {
           for (const x of tabs) x.setAttribute('aria-selected', String(x === t))
           if (countries) countries.hidden = pane !== 'countries'
           if (networks) networks.hidden = pane !== 'networks'
+          const shown = pane === 'countries' ? countries : networks
+          if (shown) cascade(shown)
           const label = placesMore?.querySelector('span')
           if (label) label.textContent = pane === 'countries' ? 'Show all 18' : 'Show all 20'
           if (placesNote)
@@ -409,6 +484,35 @@ export function HomeMotion() {
         { capture: true, signal },
       )
 
+      // Each card leans toward the pointer, with a sheen where it is
+      if (hover && !reduce)
+        for (const c of cards) {
+          c.addEventListener(
+            'pointermove',
+            (e) => {
+              if (rail.classList.contains('dragging') || !c.classList.contains('in')) return
+              const r = c.getBoundingClientRect()
+              const px = (e.clientX - r.left) / r.width
+              const py = (e.clientY - r.top) / r.height
+              c.style.setProperty('--ry', `${(px - 0.5) * 9}deg`)
+              c.style.setProperty('--rx', `${(0.5 - py) * 7}deg`)
+              c.style.setProperty('--gx', `${px * 100}%`)
+              c.style.setProperty('--gy', `${py * 100}%`)
+              c.classList.add('tilt')
+            },
+            { signal },
+          )
+          c.addEventListener(
+            'pointerleave',
+            () => {
+              c.classList.remove('tilt')
+              c.style.setProperty('--rx', '0deg')
+              c.style.setProperty('--ry', '0deg')
+            },
+            { signal },
+          )
+        }
+
       // Cards slide in one after another
       const gio = new IntersectionObserver(
         ([e]) => {
@@ -495,19 +599,144 @@ export function HomeMotion() {
       }
     }
 
-    // Reveal on scroll
+    // Reveal on scroll; a grid of places cascades in, then answers hovers at once
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
           if (!e.isIntersecting) continue
-          e.target.classList.add('in')
+          if (e.target.classList.contains('places')) cascade(e.target as HTMLElement)
+          else e.target.classList.add('in')
           io.unobserve(e.target)
         }
       },
       { rootMargin: '0px 0px -10% 0px', threshold: 0.06 },
     )
-    for (const el of all('.rv,.s-visual')) io.observe(el)
+    for (const el of all('.rv,.s-visual,.wsplit,.places')) io.observe(el)
     observers.push(io)
+
+    // Counters tick up to their number the first time they're seen
+    const count = (el: HTMLElement) => {
+      const to = Number(el.dataset.count)
+      const suffix = el.dataset.suffix ?? ''
+      if (reduce || !to) return
+      const start = performance.now()
+      const step = (now: number) => {
+        if (signal.aborted) return
+        const k = Math.min(1, (now - start) / 1400)
+        el.textContent = `${Math.round(to * (1 - (1 - k) ** 3))}${suffix}`
+        if (k < 1) requestAnimationFrame(step)
+      }
+      el.textContent = `0${suffix}`
+      requestAnimationFrame(step)
+    }
+    const cio = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue
+          cio.unobserve(e.target)
+          count(e.target as HTMLElement)
+        }
+      },
+      { threshold: 0.6 },
+    )
+    for (const el of all('[data-count]')) cio.observe(el)
+    observers.push(cio)
+
+    // Buttons lean toward the pointer, a few pixels at most
+    if (hover && !reduce)
+      for (const el of all('.btn.b-ink, .btn.b-light, .btn.b-coral, .kstore, .arr')) {
+        el.addEventListener(
+          'pointermove',
+          (e) => {
+            const r = el.getBoundingClientRect()
+            const dx = e.clientX - (r.left + r.width / 2)
+            const dy = e.clientY - (r.top + r.height / 2)
+            el.style.setProperty('--mx', `${Math.max(-8, Math.min(8, dx * 0.18))}px`)
+            el.style.setProperty('--my', `${Math.max(-6, Math.min(6, dy * 0.3))}px`)
+          },
+          { signal },
+        )
+        el.addEventListener(
+          'pointerleave',
+          () => {
+            el.style.setProperty('--mx', '0px')
+            el.style.setProperty('--my', '0px')
+          },
+          { signal },
+        )
+      }
+
+    // Nav: one highlight slides to whatever you point at, and stays on an open menu
+    const pill = root.querySelector<HTMLElement>('.kpill')
+    const ind = pill?.querySelector<HTMLElement>('.pl-ind')
+    if (pill && ind && hover) {
+      const moveTo = (el: HTMLElement) => {
+        const pr = pill.getBoundingClientRect()
+        const r = el.getBoundingClientRect()
+        const first = !pill.classList.contains('ind')
+        if (first) ind.style.transition = 'none'
+        ind.style.setProperty('--ix', `${r.left - pr.left}px`)
+        ind.style.setProperty('--iy', `${r.top - pr.top}px`)
+        ind.style.setProperty('--iw', `${r.width}px`)
+        if (first) {
+          void ind.offsetWidth
+          ind.style.transition = ''
+        }
+        pill.classList.add('ind')
+      }
+      for (const pl of Array.from(pill.querySelectorAll<HTMLElement>('.pl')))
+        pl.addEventListener('pointerenter', () => moveTo(pl), { signal })
+      pill.addEventListener(
+        'pointerleave',
+        () => {
+          timers.push(
+            window.setTimeout(() => {
+              if (pill.matches(':hover')) return
+              const open = pill.querySelector<HTMLElement>('.pl[aria-expanded="true"]')
+              if (open) moveTo(open)
+              else pill.classList.remove('ind')
+            }, 230),
+          )
+        },
+        { signal },
+      )
+    }
+
+    // Business: a soft glow follows the pointer across the dark block
+    const spot = band?.querySelector<HTMLElement>('.spot')
+    if (band && spot && hover && !reduce) {
+      band.addEventListener(
+        'pointermove',
+        (e) => {
+          const r = band.getBoundingClientRect()
+          spot.style.setProperty('--lx', `${e.clientX - r.left}px`)
+          spot.style.setProperty('--ly', `${e.clientY - r.top}px`)
+          band.classList.add('lit')
+        },
+        { passive: true, signal },
+      )
+      band.addEventListener('pointerleave', () => band.classList.remove('lit'), { signal })
+    }
+
+    // Copy buttons (the Android page's checksum)
+    for (const b of all<HTMLButtonElement>('[data-copy]'))
+      b.addEventListener(
+        'click',
+        () => {
+          void navigator.clipboard?.writeText(b.dataset.copy ?? '').then(() => {
+            const label = b.querySelector('span')
+            b.classList.add('done')
+            if (label) label.textContent = 'Copied'
+            timers.push(
+              window.setTimeout(() => {
+                b.classList.remove('done')
+                if (label) label.textContent = 'Copy'
+              }, 1800),
+            )
+          })
+        },
+        { signal },
+      )
 
     return () => {
       ac.abort()

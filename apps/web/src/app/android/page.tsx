@@ -56,7 +56,7 @@ export default function AndroidPage() {
                 <a className="btn b-ink" href="/android/download">
                   Download · {ANDROID.sizeMb} MB
                   <span className="o">
-                    <svg aria-hidden="true" className="i" style={{ transform: 'rotate(90deg)' }}>
+                    <svg aria-hidden="true" className="i" style={{ rotate: '90deg' }}>
                       <use href="#i-arrow" />
                     </svg>
                   </span>
@@ -105,7 +105,15 @@ export default function AndroidPage() {
               ))}
             </ol>
             <div className="ad-sum">
-              <b>Check the file</b>
+              <div className="ad-sum-top">
+                <b>Check the file</b>
+                <button type="button" className="ad-copybtn" data-copy={ANDROID.sha256}>
+                  <svg aria-hidden="true" className="i">
+                    <use href="#i-check" />
+                  </svg>
+                  <span>Copy</span>
+                </button>
+              </div>
               <span>SHA-256 of {ANDROID.url.split('/').pop()}</span>
               <code>{ANDROID.sha256}</code>
             </div>
