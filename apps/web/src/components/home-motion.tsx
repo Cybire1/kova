@@ -167,7 +167,6 @@ export function HomeMotion() {
     const nav = $('nav')
     const stage = $('stageIn')
     const pars = all('[data-par]')
-    const prog = root.querySelector<HTMLElement>('.kprog')
     const band = root.querySelector<HTMLElement>('.dark')
     let lastY = 0
     let ticking = false
@@ -184,8 +183,6 @@ export function HomeMotion() {
       }
       lastY = y
       const h = window.innerHeight
-      const docH = document.documentElement.scrollHeight - h
-      prog?.style.setProperty('--page', String(docH > 0 ? clamp01(y / docH) : 0))
       if (stage) {
         const r = stage.getBoundingClientRect()
         if (r.bottom > 0 && r.top < h) {

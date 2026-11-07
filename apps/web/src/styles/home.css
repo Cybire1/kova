@@ -3012,25 +3012,6 @@ html:has(.kl) {
   inherits: false;
   initial-value: 1;
 }
-@property --page {
-  syntax: "<number>";
-  inherits: false;
-  initial-value: 0;
-}
-
-/* Scroll progress, a hairline above everything */
-.kl .kprog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  z-index: 41;
-  background: var(--coral);
-  transform-origin: 0 50%;
-  transform: scaleX(var(--page));
-  pointer-events: none;
-}
 
 /* Headlines rise out of a mask, word by word */
 .kl .wsplit .w {

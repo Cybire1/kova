@@ -29,7 +29,6 @@ export function SiteSprite() {
 export function SiteNav({ login }: { login: string }) {
   return (
     <>
-      <div className="kprog" aria-hidden="true" />
       <header className="nav" id="nav">
         <div className="nav-in">
           <a className="kbrand" href="/">
