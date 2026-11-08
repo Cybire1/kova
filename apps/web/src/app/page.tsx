@@ -637,7 +637,7 @@ export default async function Home() {
                   </svg>
                   Private payments
                 </span>
-                <h3>Pay privately. Only they can see it.</h3>
+                <h3>Pay privately. Strangers can’t link it to your wallet.</h3>
               </div>
               <div className="vis">
                 <div className="ph">
@@ -839,82 +839,6 @@ export default async function Home() {
                 </span>
               </div>
               <button type="button" className="plus" aria-label="More about limits on every key">
-                <svg aria-hidden="true" className="i">
-                  <use href="#i-plus" />
-                </svg>
-              </button>
-            </article>
-            <article
-              className="gc light"
-              data-g="stocks"
-              style={
-                {
-                  '--c': 'linear-gradient(165deg,#F5D27A 0%,#EDB948 100%)',
-                  '--c-solid': '#EDB948',
-                } as CSSProperties
-              }
-            >
-              <div className="gc-txt">
-                <span className="eb">
-                  <svg aria-hidden="true" className="i">
-                    <use href="#i-chart" />
-                  </svg>
-                  Stocks
-                </span>
-                <h3>Own a slice of Tesla.</h3>
-              </div>
-              <div className="vis">
-                <div className="sr s1">
-                  <span className="tk" style={{ background: '#C8102E' } as CSSProperties}>
-                    TSLA
-                  </span>
-                  <span>
-                    <b>Tesla</b>
-                    <small>TSLAx</small>
-                  </span>
-                  <span className="v">
-                    1/20<small>of a share</small>
-                  </span>
-                </div>
-                <div className="sr s2">
-                  <span className="tk" style={{ background: '#4D8A22' } as CSSProperties}>
-                    NVDA
-                  </span>
-                  <span>
-                    <b>Nvidia</b>
-                    <small>NVDAx</small>
-                  </span>
-                  <span className="v">
-                    0.37<small>of a share</small>
-                  </span>
-                </div>
-                <div className="sr s3">
-                  <span className="tk" style={{ background: '#0B1A1D' } as CSSProperties}>
-                    SPY
-                  </span>
-                  <span>
-                    <b>S&amp;P 500</b>
-                    <small>SPYx</small>
-                  </span>
-                  <span className="v">
-                    1<small>share</small>
-                  </span>
-                </div>
-                <span
-                  className="stk"
-                  style={
-                    {
-                      width: '104px',
-                      right: '14px',
-                      top: '-26px',
-                      animationDelay: '-2s',
-                    } as CSSProperties
-                  }
-                >
-                  <img src="/site/coin-usd.webp" alt="" />
-                </span>
-              </div>
-              <button type="button" className="plus" aria-label="More about stocks">
                 <svg aria-hidden="true" className="i">
                   <use href="#i-plus" />
                 </svg>

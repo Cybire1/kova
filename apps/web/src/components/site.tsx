@@ -93,17 +93,6 @@ export function SiteNav({ login }: { login: string }) {
                 <a className="mi" href="/#more">
                   <span className="ic">
                     <svg aria-hidden="true" className="i">
-                      <use href="#i-chart" />
-                    </svg>
-                  </span>
-                  <span>
-                    <b>Stocks</b>
-                    <span>Tesla, Nvidia, the S&amp;P 500</span>
-                  </span>
-                </a>
-                <a className="mi" href="/#more">
-                  <span className="ic">
-                    <svg aria-hidden="true" className="i">
                       <use href="#i-eye" />
                     </svg>
                   </span>
@@ -393,9 +382,6 @@ export function SiteFooter({ mainnet }: { mainnet: boolean }) {
               </li>
               <li>
                 <a href="/#places">Cash out</a>
-              </li>
-              <li>
-                <a href="/#more">Stocks</a>
               </li>
               <li>
                 <a href="/#more">Private payments</a>

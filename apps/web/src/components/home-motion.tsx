@@ -6,7 +6,7 @@ import { THEME_KEY } from '@/lib/theme'
 /** What each gallery card's + opens: three plain points, and a note where one is owed. */
 const DETAILS: Record<string, { title: string; points: string[]; note?: string }> = {
   private: {
-    title: 'Pay privately. Only they can see it.',
+    title: 'Pay privately. Strangers can’t link it to your wallet.',
     points: [
       'Every private payment goes to a brand-new address that only the receiver can open.',
       'Add a note. It’s sealed, so only the two of you can read it.',
@@ -28,15 +28,6 @@ const DETAILS: Record<string, { title: string; points: string[]; note?: string }
       'The limit is enforced on Monad, so the key can’t spend a cent more.',
       'Allowances and teammates work the same way. Freeze any key in a tap.',
     ],
-  },
-  stocks: {
-    title: 'Own a slice of Tesla.',
-    points: [
-      'Buy tokenized stocks and funds on Monad: Tesla, Nvidia, the S&P 500, gold and more.',
-      'Start with a fraction of a share.',
-      'They sit next to your dollars, and you can sell back to dollars in the app.',
-    ],
-    note: 'Stocks can lose value. Kova doesn’t give investment advice.',
   },
   cashout: {
     title: 'Cash out to your bank, in your currency.',

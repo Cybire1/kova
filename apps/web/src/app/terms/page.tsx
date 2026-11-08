@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 }
 
 const CONTACT = 'hello@mykova.app'
-const UPDATED = '28 October 2026'
+const UPDATED = '8 November 2026'
 
 const SHORT: { icon: IconName; title: string; body: string }[] = [
   {
@@ -67,11 +67,19 @@ const TERMS: { what: string; body: string }[] = [
   },
   {
     what: 'Partners',
-    body: 'Some parts of Kova are run by partners: MoonPay and Ramp Network for buying with a card or bank, PAJ and Paystack for naira in and out, and Relay for deposits from other networks. They may ask for your ID or other details, under their own terms and privacy policies. We aren’t responsible for their services, but tell us if something goes wrong and we’ll help.',
+    body: 'Some parts of Kova are run by licensed partners: MoonPay and Ramp Network for buying with a card or bank, PAJ and Paystack for naira in and out, Nuvion for cash-outs to banks abroad and the dollar card, and Relay for deposits from other networks. They may ask for your ID or other details, under their own terms and privacy policies. We aren’t responsible for their services, but tell us if something goes wrong and we’ll help.',
+  },
+  {
+    what: 'Identity checks and limits',
+    body: 'Cashing out to a bank abroad and the dollar card need a one-time ID check by Nuvion, and a cash-out abroad goes out from your own verified account there, in your name. Kova and its partners may ask who you are, set limits, or pause or refuse a payment or cash-out where the law asks us to. Some services aren’t open in some countries, including countries under sanctions.',
   },
   {
     what: 'Keys you share',
     body: 'An allowance, an AI agent or a teammate can pay from a key you make, up to the limits you set. You’re responsible for what those keys pay within their limits; Monad stops each key at its limit.',
+  },
+  {
+    what: 'Kova for Chrome',
+    body: 'The browser extension gives each website you choose its own budget, a key with a limit you approve with your passkey or Google. A site can pay from its budget and never from the rest of your balance. You’re responsible for what you let a site pay; freeze or remove a site any time.',
   },
   {
     what: 'Shops',
@@ -83,7 +91,7 @@ const TERMS: { what: string; body: string }[] = [
   },
   {
     what: 'Stocks',
-    body: 'Where it’s allowed, Kova lets you swap your dollars for xStocks, tokens issued by Backed that track a company’s share price, and back. They aren’t shares, their price can fall, and they aren’t for beginners. They aren’t available to US citizens, residents or taxpayers, or in the UK, Canada, Australia, the EU and EEA, Switzerland or sanctioned countries, and you confirm that before your first swap. Kova doesn’t issue, sell or recommend them, and nothing in Kova is investment, tax or legal advice.',
+    body: 'Buying stock tokens in Kova is paused. If you hold xStocks (tokens issued by Backed that track a company’s share price), you can still swap them back to dollars where it’s allowed. They aren’t shares and their price can fall. They aren’t available to US citizens, residents or taxpayers, or in the UK, Canada, Australia, the EU and EEA, Switzerland or sanctioned countries. Kova doesn’t issue, sell or recommend them, and nothing in Kova is investment, tax or legal advice.',
   },
   {
     what: 'Test dollars and betas',
@@ -94,6 +102,7 @@ const TERMS: { what: string; body: string }[] = [
 const NOT_ALLOWED = [
   'Anything illegal where you or the other person are, including fraud, scams and money laundering.',
   'Getting around sanctions, or paying people or places under sanctions.',
+  'Breaking your country’s rules on moving money in or out of it, or using Kova to get around a bank’s or a partner’s checks.',
   'Pretending to be someone else, or using someone else’s wallet or card without permission.',
   'Abusing free test dollars, or trying to break, overload or get around Kova’s limits and security.',
 ]

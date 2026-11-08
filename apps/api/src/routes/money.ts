@@ -24,6 +24,7 @@ import {
   savingsFor,
   usAccountFor,
 } from '../services/money.js'
+import { refuseSanctioned } from '../services/sanctions.js'
 
 /**
  * Money in, the dollar card and savings.
@@ -175,6 +176,7 @@ export const moneyRoutes = new Hono()
   })
   .get('/wallets/:address/dollar-card', async (c) => c.json(await dollarCardFor(walletAddress(c))))
   .post('/wallets/:address/dollar-card/check', async (c) => {
+    refuseSanctioned(clientIp(c), 'The dollar card')
     const wallet = walletAddress(c)
     const b = await body(c, checkBody, '{ your details, document, signed_at, signature }')
     await requireWalletSignature(wallet, 'dollar-card-check', b.signed_at, b.signature)
@@ -223,6 +225,7 @@ export const moneyRoutes = new Hono()
     )
   })
   .post('/wallets/:address/dollar-card/top-up', async (c) => {
+    refuseSanctioned(clientIp(c), 'The dollar card')
     const wallet = walletAddress(c)
     const b = await body(
       c,

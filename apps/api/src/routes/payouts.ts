@@ -25,6 +25,7 @@ import {
   serializePayout,
   serializeRecipient,
 } from '../services/payouts.js'
+import { refuseSanctioned } from '../services/sanctions.js'
 
 /**
  * Cash-outs through Nuvion, to banks, mobile money and wallets in 20+ countries.
@@ -123,6 +124,7 @@ export const payoutRoutes = new Hono()
   })
   .post('/wallets/:address/payout-recipients', async (c) => {
     needLive()
+    refuseSanctioned(clientIp(c), 'Cashing out abroad')
     const wallet = walletAddress(c)
     const b = await body(c, recipientBody, '{ corridor, fields, signed_at, signature }')
     await requireWalletSignature(wallet, 'payout-recipient', b.signed_at, b.signature, b.corridor)
@@ -149,6 +151,7 @@ export const payoutRoutes = new Hono()
   })
   .post('/wallets/:address/payouts', async (c) => {
     needLive()
+    refuseSanctioned(clientIp(c), 'Cashing out abroad')
     const wallet = walletAddress(c)
     const b = await body(c, quoteBody, '{ recipient_id, amount }')
     limit(
@@ -162,6 +165,7 @@ export const payoutRoutes = new Hono()
   })
   .post('/payouts/:id/pay', async (c) => {
     needLive()
+    refuseSanctioned(clientIp(c), 'Cashing out abroad')
     const row = await payoutRow(c.req.param('id'))
     if (!row) throw notFound('cash out', c.req.param('id'))
     const signedTransfer = parseSignedAuthorization(await c.req.json().catch(() => null))
