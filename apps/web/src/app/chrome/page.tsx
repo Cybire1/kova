@@ -1,5 +1,6 @@
 import { tokens } from '@kova/monad'
 import type { Metadata } from 'next'
+import type { CSSProperties } from 'react'
 import { HomeMotion } from '@/components/home-motion'
 import { SiteFooter, SiteNav, SiteSprite } from '@/components/site'
 import { TryChrome } from '@/components/try-chrome'
@@ -23,22 +24,32 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
 }
 
-const WHY = [
+/** Kova for Chrome against the usual wallet, row by row: what happens, and who carries the risk. */
+const VERSUS = [
   [
-    'A budget per site, not your wallet',
-    'Every site that wants to be paid gets its own key with a daily or weekly limit. Monad enforces it, so even a hacked site can only spend what you gave it.',
+    'A site wants your money',
+    'You approve a token allowance, often with no limit at all.',
+    'It gets a budget you choose: $5, $20 or $50, a day or a week.',
   ],
   [
-    'Pages that cost a cent',
-    'When a page answers “402 Payment Required”, Kova pays it from that site’s budget and the page opens. Small amounts under your line never ask.',
+    'The site turns bad',
+    'It can take everything you approved.',
+    'It can spend its budget. Monad refuses the rest.',
   ],
   [
-    'One switch stops it',
-    'Freeze a site, or every site at once, from the toolbar. Only your passkey or Google sign-in turns it back on.',
+    'You want it stopped',
+    'Revoke each approval on-chain, token by token, paying gas each time.',
+    'One switch. Or Freeze all.',
   ],
   [
-    'No approvals that never end',
-    'Kova refuses the open-ended token approvals and blind signatures most wallet drains start with. A site can only spend its budget.',
+    'A page costs a cent',
+    'There’s no way to pay it without a checkout.',
+    'Paid from the site’s budget by itself, and the page opens.',
+  ],
+  [
+    'Getting in',
+    'A seed phrase to write down and guard.',
+    'Your passkey or Google: the same wallet as the Kova app.',
   ],
 ] as const
 
@@ -103,26 +114,86 @@ export default function ChromePage() {
                 minute.
               </p>
             </div>
-            <div className="s-visual ch-visual" data-par>
-              <div className="ch-win">
-                <img
-                  className="lt"
-                  src="/site/chrome-budget-light.webp"
-                  alt="Kova for Chrome asking for a budget: orbit.trade asks $4.99, with $5, $20 and $50 limits, a day or a week"
-                />
-                <img
-                  className="dk"
-                  src="/site/chrome-budget-dark.webp"
-                  alt="Kova for Chrome asking for a budget, in dark mode"
-                />
-              </div>
-              <div className="ch-list">
-                <img
-                  className="lt"
-                  src="/site/chrome-sites-light.webp"
-                  alt="Four sites with budgets: northline.air, railgo.example (frozen), atlas.market and pixel.news"
-                />
-                <img className="dk" src="/site/chrome-sites-dark.webp" alt="" />
+            <div
+              className="s-visual ch-visual"
+              data-par
+              role="img"
+              aria-label="orbit.trade asks for $4.99. Kova asks for its budget, $20 a day, and pays. Then orbit.trade asks for $40, and Kova refuses: it’s over the budget, and nothing moves."
+            >
+              <div className="ch-browser" aria-hidden="true">
+                <div className="ch-bar">
+                  <span className="ch-dots">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span className="ch-url">
+                    <svg aria-hidden="true" className="i">
+                      <use href="#i-lock" />
+                    </svg>
+                    orbit.trade
+                  </span>
+                  <span className="ch-ext">
+                    <svg aria-hidden="true" viewBox="0 0 200 200" className="ch-ext-mark">
+                      <path d="M62 46 V154" />
+                      <path d="M92.6 74.3 A40 40 0 0 1 92.6 125.7" />
+                      <path d="M115.6 55 A70 70 0 0 1 115.6 145" />
+                      <path d="M138.6 35.7 A100 100 0 0 1 138.6 164.3" />
+                    </svg>
+                  </span>
+                </div>
+                <div className="ch-site">
+                  <div className="ch-site-top">
+                    <b>orbit</b>
+                    <span />
+                    <span />
+                  </div>
+                  <div className="ch-art">
+                    <span className="ch-orb" />
+                  </div>
+                  <span className="ch-l w70" />
+                  <span className="ch-l w45" />
+                  <div className="ch-buys">
+                    <span className="ch-buy b1">Buy for $4.99</span>
+                    <span className="ch-buy b2">Buy for $40</span>
+                  </div>
+                </div>
+                <div className="ch-pop">
+                  <img className="lt" src="/site/chrome-budget-light.webp" alt="" />
+                  <img className="dk" src="/site/chrome-budget-dark.webp" alt="" />
+                </div>
+                <div className="ch-meter">
+                  <span className="ch-meter-top">
+                    <b>orbit.trade</b>
+                    <small className="m-a">$20 a day</small>
+                    <small className="m-b">$15.01 left today</small>
+                  </span>
+                  <span className="ch-meter-bar">
+                    <i />
+                  </span>
+                </div>
+                <div className="ch-toast t-ok">
+                  <span className="ch-tdot">
+                    <svg aria-hidden="true" className="i">
+                      <use href="#i-check" />
+                    </svg>
+                  </span>
+                  <span>
+                    <b>Paid $4.99</b>
+                    <small>From orbit.trade’s budget</small>
+                  </span>
+                </div>
+                <div className="ch-toast t-no">
+                  <span className="ch-tdot">
+                    <svg aria-hidden="true" className="i">
+                      <use href="#i-x" />
+                    </svg>
+                  </span>
+                  <span>
+                    <b>Not paid</b>
+                    <small>$40 is over its budget. Nothing moved.</small>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -147,20 +218,45 @@ export default function ChromePage() {
           </div>
         </section>
 
-        <section className="sec ch-why" aria-labelledby="ch-why">
-          <div className="wrap ch-why-grid">
-            <div>
-              <span className="ktag">Why it’s different</span>
-              <h2 id="ch-why">Most wallets hand every site the keys. Kova hands it a budget.</h2>
-            </div>
-            <ul className="ch-why-list">
-              {WHY.map(([title, body]) => (
-                <li key={title} className="rv">
-                  <h3>{title}</h3>
-                  <p>{body}</p>
-                </li>
-              ))}
-            </ul>
+        <section className="sec ch-vs" aria-labelledby="ch-vs">
+          <div className="wrap">
+            <span className="ktag">Why it’s different</span>
+            <h2 id="ch-vs">Most wallets hand a site the keys. Kova hands it a budget.</h2>
+            <table className="ch-vs-table rv">
+              <caption className="ch-vs-cap">The usual wallet against Kova for Chrome</caption>
+              <thead>
+                <tr className="ch-vs-head">
+                  <th scope="col" className="ch-vs-when">
+                    When
+                  </th>
+                  <th scope="col">The usual wallet</th>
+                  <th scope="col" className="ch-vs-kova">
+                    Kova for Chrome
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {VERSUS.map(([when, usual, kova], i) => (
+                  <tr className="ch-vs-row" key={when} style={{ '--i': i } as CSSProperties}>
+                    <th scope="row" className="ch-vs-when">
+                      {when}
+                    </th>
+                    <td className="ch-vs-usual">
+                      <svg aria-hidden="true" className="i">
+                        <use href="#i-x" />
+                      </svg>
+                      {usual}
+                    </td>
+                    <td className="ch-vs-kova">
+                      <svg aria-hidden="true" className="i">
+                        <use href="#i-check" />
+                      </svg>
+                      {kova}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
 

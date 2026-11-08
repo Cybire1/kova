@@ -1,7 +1,7 @@
 'use client'
 
 import { explorerTxUrl, type NetworkId, networks } from '@kova/monad'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react'
 import { type Address, encodeFunctionData, erc20Abi, type Hex } from 'viem'
 
 interface Eip1193 {
@@ -43,7 +43,13 @@ export function TryChrome({
   const [connect, setConnect] = useState<Phase>({ state: 'idle' })
   const [pay, setPay] = useState<Phase>({ state: 'idle' })
   const [paid, setPaid] = useState<Hex | null>(null)
+  // Back from the paid article (it links here with ?read=1): the third step is done.
+  const [read, setRead] = useState(false)
   const found = useRef<Eip1193 | null>(null)
+
+  useEffect(() => {
+    setRead(new URLSearchParams(window.location.search).has('read'))
+  }, [])
 
   useEffect(() => {
     const announce = (event: Event) => {
@@ -117,6 +123,7 @@ export function TryChrome({
   }, [kova, account, payTo, ausd, tip])
 
   const off = !payTo
+  const done = [account, paid, read].filter(Boolean).length
   return (
     <div className="ch-live">
       <div className={`ch-status ${kova ? 'on' : kova === null ? 'off' : ''}`} aria-live="polite">
@@ -133,6 +140,15 @@ export function TryChrome({
             Get it
           </a>
         ) : null}
+      </div>
+
+      <div className="ch-progress" aria-live="polite">
+        <span className="ch-rail" style={{ '--p': done / 3 } as CSSProperties}>
+          <i />
+        </span>
+        <small>
+          {done === 3 ? 'All three done. That’s Kova for Chrome.' : `${done} of 3 done`}
+        </small>
       </div>
 
       <ol className="ch-steps">
@@ -188,7 +204,7 @@ export function TryChrome({
           {pay.state === 'error' ? <p className="ch-err">{pay.message}</p> : null}
         </li>
 
-        <li>
+        <li className={read ? 'done' : ''}>
           <span className="num">03</span>
           <h3>Read a 1¢ article</h3>
           <p>
@@ -196,7 +212,11 @@ export function TryChrome({
             the article opens. No checkout.
           </p>
           <div className="ch-act">
-            {off ? (
+            {read ? (
+              <a className="ch-ok" href="/chrome/article">
+                Paid 1¢ · Read it again
+              </a>
+            ) : off ? (
               <button type="button" className="btn b-ink ch-btn" disabled>
                 Open the article
               </button>
