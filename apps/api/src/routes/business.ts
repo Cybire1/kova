@@ -19,6 +19,27 @@ import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
 import { decodeId, encodeId } from '../ids.js'
+import {
+  actorOf,
+  addBranch,
+  addMember,
+  archiveBranch,
+  audit,
+  auditTrail,
+  branchesOf,
+  branchFigures,
+  isRole,
+  membersOf,
+  ROLE_INFO,
+  ROLES,
+  removeMember,
+  roleMay,
+  serializeAudit,
+  serializeBranch,
+  serializeMember,
+  updateBranch,
+  updateMember,
+} from '../services/business-team.js'
 
 /**
  * Kova for Business: the shop's payroll, its suppliers, and what its team spends.
@@ -300,7 +321,134 @@ const supplierPaymentBody = z.object({
   note: z.string().trim().max(140).nullish(),
 })
 
+const branchBody = z.object({
+  name: z.string().trim().min(2).max(60),
+  address: z.string().trim().max(160).nullish(),
+})
+const branchPatch = z.object({
+  name: z.string().trim().min(2).max(60).optional(),
+  address: z.string().trim().max(160).nullish(),
+})
+const memberBody = z.object({
+  wallet: z.string().trim(),
+  name: z.string().trim().min(2).max(60),
+  role: z.enum(ROLES),
+  branch_ids: z.array(z.string().uuid()).max(50).nullish(),
+})
+const memberPatch = z.object({
+  name: z.string().trim().min(2).max(60).optional(),
+  role: z.enum(ROLES).optional(),
+  branch_ids: z.array(z.string().uuid()).max(50).nullish(),
+})
+
+/** What each role may do, as yes or no, for the app to show only what someone can use. */
+function powersOf(role: 'owner' | (typeof ROLES)[number]) {
+  const may = (method: string, path: string) => role === 'owner' || roleMay(role, method, path)
+  return {
+    take_payments: may('POST', '/payment_intents'),
+    see_everything: may('GET', '/business/payroll'),
+    menu: may('POST', '/catalog/items'),
+    tills: may('POST', '/terminals/pairings'),
+    books: may('POST', '/business/payroll'),
+    team: may('POST', '/business/members'),
+    settings: may('PATCH', '/account'),
+    audit: may('GET', '/business/audit'),
+  }
+}
+
 export const businessRoutes = new Hono()
+  /** Who's signed in to this business, their role, and what it lets them do. */
+  .get('/business/me', requireApiKey, requireMerchantKey, async (c) => {
+    const member = c.get('member')
+    const branches = await branchesOf(c.get('merchant').id)
+    const role = member && isRole(member.role) ? member.role : 'owner'
+    return c.json({
+      object: 'business_me',
+      role,
+      role_name: role === 'owner' ? 'Owner' : ROLE_INFO[role].name,
+      member: member ? serializeMember(member, branches) : null,
+      can: powersOf(role),
+      roles: ROLES.map((r) => ({ role: r, ...ROLE_INFO[r] })),
+    })
+  })
+
+  // ── Branches ────────────────────────────────────────────────────────────────────────────────
+  .get('/business/branches', requireApiKey, requireMerchantKey, async (c) => {
+    const merchant = c.get('merchant')
+    const branches = await branchesOf(merchant.id)
+    const figures = await branchFigures(merchant.id, branches)
+    return c.json({
+      object: 'list',
+      data: branches.map((b) => serializeBranch(b, figures.get(b.id))),
+    })
+  })
+  .post('/business/branches', requireApiKey, requireMerchantKey, async (c) => {
+    const merchant = c.get('merchant')
+    const input = await body(c, branchBody)
+    const row = await addBranch(merchant, { name: input.name, address: input.address ?? undefined })
+    await audit(merchant.id, actorOf(c), 'branch.added', row.name)
+    return c.json(serializeBranch(row), 201)
+  })
+  .patch('/business/branches/:id', requireApiKey, requireMerchantKey, async (c) => {
+    const merchant = c.get('merchant')
+    const input = await body(c, branchPatch)
+    const row = await updateBranch(merchant, c.req.param('id'), input)
+    await audit(merchant.id, actorOf(c), 'branch.updated', row.name)
+    return c.json(serializeBranch(row))
+  })
+  .delete('/business/branches/:id', requireApiKey, requireMerchantKey, async (c) => {
+    const merchant = c.get('merchant')
+    const row = await archiveBranch(merchant, c.req.param('id'))
+    await audit(merchant.id, actorOf(c), 'branch.closed', row.name)
+    return c.json({ object: 'business_branch', id: row.id, closed: true })
+  })
+
+  // ── The team ────────────────────────────────────────────────────────────────────────────────
+  .get('/business/members', requireApiKey, requireMerchantKey, async (c) => {
+    const merchant = c.get('merchant')
+    const [members, branches] = await Promise.all([membersOf(merchant.id), branchesOf(merchant.id)])
+    return c.json({ object: 'list', data: members.map((m) => serializeMember(m, branches)) })
+  })
+  .post('/business/members', requireApiKey, requireMerchantKey, async (c) => {
+    const merchant = c.get('merchant')
+    const input = await body(c, memberBody)
+    const actor = actorOf(c)
+    const row = await addMember(merchant, actor, input)
+    await audit(merchant.id, actor, 'member.added', row.name, {
+      role: row.role,
+      wallet: getAddress(row.wallet),
+    })
+    return c.json(serializeMember(row, await branchesOf(merchant.id)), 201)
+  })
+  .patch('/business/members/:id', requireApiKey, requireMerchantKey, async (c) => {
+    const merchant = c.get('merchant')
+    const input = await body(c, memberPatch)
+    const actor = actorOf(c)
+    const { before, after } = await updateMember(merchant, actor, c.req.param('id'), input)
+    await audit(merchant.id, actor, 'member.updated', after.name, {
+      ...(before.role !== after.role ? { role: `${before.role} → ${after.role}` } : {}),
+      ...(input.branch_ids !== undefined ? { branches: after.branchIds?.length ?? 'all' } : {}),
+    })
+    return c.json(serializeMember(after, await branchesOf(merchant.id)))
+  })
+  .delete('/business/members/:id', requireApiKey, requireMerchantKey, async (c) => {
+    const merchant = c.get('merchant')
+    const actor = actorOf(c)
+    const row = await removeMember(merchant, actor, c.req.param('id'))
+    await audit(merchant.id, actor, 'member.removed', row.name, { role: row.role })
+    return c.json({ object: 'business_member', id: row.id, removed: true })
+  })
+
+  // ── The audit trail ─────────────────────────────────────────────────────────────────────────
+  .get('/business/audit', requireApiKey, requireMerchantKey, async (c) => {
+    const limitParam = Number(c.req.query('limit') ?? 100)
+    const rows = await auditTrail(
+      c.get('merchant').id,
+      Number.isFinite(limitParam) ? limitParam : 100,
+    )
+    return c.json({ object: 'list', data: rows.map(serializeAudit) })
+  })
+
   /** The business at a glance: this month's payroll and suppliers, and who pays for it. */
   .get('/business', requireApiKey, requireMerchantKey, async (c) => {
     const merchant = c.get('merchant')
@@ -402,6 +550,9 @@ export const businessRoutes = new Hono()
         set: { name: input.name, amount, updatedAt: new Date() },
       })
       .returning()
+    await audit(merchant.id, actorOf(c), 'payroll.person.saved', input.name, {
+      amount: amount ? formatAmount(amount) : null,
+    })
     return c.json(person(row as typeof schema.payrollPeople.$inferSelect), 201)
   })
 
@@ -426,6 +577,7 @@ export const businessRoutes = new Hono()
       .where(eq(schema.payrollPeople.id, mine.id))
       .returning({ id: schema.payrollPeople.id })
     if (!gone.length) throw new KovaError('not_found', 'No such person.')
+    await audit(merchant.id, actorOf(c), 'payroll.person.removed', mine.name)
     return c.json({ deleted: true })
   })
 
@@ -484,6 +636,10 @@ export const businessRoutes = new Hono()
         .returning()
       return { r: r as typeof schema.payrollRuns.$inferSelect, payments }
     })
+    await audit(merchant.id, actorOf(c), 'payroll.run.prepared', null, {
+      people: created.payments.length,
+      total: formatAmount(created.payments.reduce((sum, p) => sum + p.amount, 0n)),
+    })
     return c.json(run(created.r, created.payments), 201)
   })
 
@@ -530,6 +686,10 @@ export const businessRoutes = new Hono()
       })
       .where(eq(schema.payrollPayments.id, row.id))
       .returning()
+    await audit(c.get('merchant').id, actorOf(c), 'payroll.payment.paid', row.name, {
+      amount: formatAmount(row.amount),
+      tx_hash: input.tx_hash,
+    })
     return c.json(payment(paid as typeof schema.payrollPayments.$inferSelect))
   })
 
@@ -596,6 +756,7 @@ export const businessRoutes = new Hono()
         },
       })
       .returning()
+    await audit(merchant.id, actorOf(c), 'supplier.saved', (row as { name: string }).name)
     return c.json(supplier(row as typeof schema.suppliers.$inferSelect), 201)
   })
 
@@ -611,6 +772,7 @@ export const businessRoutes = new Hono()
         'This supplier has payments in your book, so they stay. Rename them instead.',
       )
     await db.delete(schema.suppliers).where(eq(schema.suppliers.id, found.id))
+    await audit(merchant.id, actorOf(c), 'supplier.removed', found.name)
     return c.json({ deleted: true })
   })
 
@@ -665,6 +827,10 @@ export const businessRoutes = new Hono()
         txHash: input.tx_hash,
       })
       .returning()
+    await audit(merchant.id, actorOf(c), 'supplier.payment.paid', found.name, {
+      amount: formatAmount(amount),
+      tx_hash: input.tx_hash,
+    })
     return c.json(
       supplierPayment(row as typeof schema.supplierPayments.$inferSelect, found.name),
       201,

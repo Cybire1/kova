@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { createMiddleware } from 'hono/factory'
 import { db } from './db.js'
 import { KovaError } from './errors.js'
+import { activeMember, isRole, ROLE_INFO, roleMay } from './services/business-roles.js'
 
 type Merchant = typeof schema.merchants.$inferSelect
 type ApiKey = typeof schema.apiKeys.$inferSelect
@@ -12,6 +13,8 @@ declare module 'hono' {
   interface ContextVariableMap {
     merchant: Merchant
     apiKey: ApiKey
+    /** Set when a team member's session made the request (Kova for Business). */
+    member: typeof schema.businessMembers.$inferSelect
   }
 }
 
@@ -69,6 +72,18 @@ export const requireApiKey = createMiddleware(async (c, next) => {
 
   c.set('apiKey', key)
   c.set('merchant', merchant)
+
+  // A team member's session: still on the team, and only what their role allows.
+  if (key.memberId) {
+    const member = await activeMember(key.memberId, merchant.id)
+    const role = isRole(member.role) ? member.role : null
+    if (!role || !roleMay(role, c.req.method, c.req.path))
+      throw new KovaError(
+        'forbidden',
+        `As ${role ? ROLE_INFO[role].name.toLowerCase() : 'a team member'}, you can’t do that here. Ask the owner.`,
+      )
+    c.set('member', member)
+  }
 
   // Fire-and-forget: last-used is for support, and must never slow down a payment.
   const now = new Date()

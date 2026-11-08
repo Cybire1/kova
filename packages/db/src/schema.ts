@@ -107,6 +107,8 @@ export const terminals = pgTable(
     device: jsonb('device').$type<Record<string, unknown>>(),
     status: text('status').notNull().default('active'), // active | disabled
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+    /** The business branch this till works at (business_branches); null: no branch. */
+    branchId: uuid('branch_id'),
     createdAt: createdAt(),
   },
   (t) => [index('terminals_merchant_idx').on(t.merchantId)],
@@ -317,6 +319,8 @@ export const apiKeys = pgTable(
     scopes: jsonb('scopes').$type<string[]>().notNull(),
     /** Set on a paired phone's device key: it can take payments, never manage the shop. */
     terminalId: uuid('terminal_id').references(() => terminals.id),
+    /** Set on a team member's signed-in session: it can do only what their role allows. */
+    memberId: uuid('member_id'),
     isTest: boolean('is_test').notNull().default(true),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
@@ -1877,5 +1881,55 @@ export const repeatPlans = pgTable(
     index('repeat_plans_payer_idx').on(t.payer),
     index('repeat_plans_payee_idx').on(t.payee),
     index('repeat_plans_due_idx').on(t.status, t.nextAt),
+  ],
+)
+
+// --- Kova for Business: branches and the team's roles (their audit trail is audit_logs) ---------
+
+/** A business's branch: a shop or location, with its own tills and takings. */
+export const businessBranches = pgTable(
+  'business_branches',
+  {
+    id: id(),
+    merchantId: uuid('merchant_id')
+      .notNull()
+      .references(() => merchants.id),
+    name: text('name').notNull(),
+    address: text('address'),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('business_branches_merchant_idx').on(t.merchantId)],
+)
+
+/**
+ * Someone on a business's team: their own Kova wallet, signing in to the business with it, and a
+ * role that says what they may do (admin, manager, accountant, cashier, viewer). Managers and
+ * cashiers work at the branches listed; null means every branch. The owner is the shop's own
+ * owner_address, never a member row.
+ */
+export const businessMembers = pgTable(
+  'business_members',
+  {
+    id: id(),
+    merchantId: uuid('merchant_id')
+      .notNull()
+      .references(() => merchants.id),
+    /** Lowercase. */
+    wallet: address('wallet').notNull(),
+    name: text('name').notNull(),
+    role: text('role').notNull(),
+    branchIds: jsonb('branch_ids').$type<string[]>(),
+    /** active | removed */
+    status: text('status').notNull().default('active'),
+    addedBy: text('added_by'),
+    removedAt: timestamp('removed_at', { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index('business_members_merchant_idx').on(t.merchantId),
+    index('business_members_wallet_idx').on(t.wallet),
   ],
 )

@@ -7,6 +7,7 @@ import { generateApiKey, requireApiKey, requireMerchantKey } from '../auth.js'
 import { db } from '../db.js'
 import { KovaError, notFound } from '../errors.js'
 import { decodeId, encodeId } from '../ids.js'
+import { actorOf, assignTill, audit } from '../services/business-team.js'
 
 /**
  * Pairing a phone as a merchant's terminal.
@@ -63,6 +64,7 @@ export const terminalRoutes = new Hono()
     await db
       .insert(schema.terminalPairings)
       .values({ id: uuidv7(), merchantId: merchant.id, codeHash: hash(code), expiresAt })
+    await audit(merchant.id, actorOf(c), 'till.pairing_code.made')
     return c.json(
       {
         object: 'terminal_pairing',
@@ -83,15 +85,45 @@ export const terminalRoutes = new Hono()
       ),
       orderBy: (t, { asc }) => [asc(t.createdAt)],
     })
+    // A team member who works at some branches sees those branches' tills, and tills with none.
+    const mine = c.get('member')?.branchIds
+    const shown = mine ? rows.filter((t) => !t.branchId || mine.includes(t.branchId)) : rows
     return c.json({
       object: 'list',
-      data: rows.map((t) => ({
+      data: shown.map((t) => ({
         id: encodeId('terminal', t.id),
         name: t.name,
         status: t.status,
+        branch_id: t.branchId,
         last_seen_at: t.lastSeenAt?.toISOString() ?? null,
         created_at: t.createdAt.toISOString(),
       })),
+    })
+  })
+  /** Merchant: move a till to a branch (Kova for Business), or to none. */
+  .patch('/:id', requireApiKey, requireMerchantKey, async (c) => {
+    const id = c.req.param('id')
+    const uuid = decodeId('terminal', id)
+    if (!uuid) throw notFound('terminal', id)
+    const input = (await c.req.json().catch(() => ({}))) as { branch_id?: unknown }
+    const branchId = typeof input.branch_id === 'string' && input.branch_id ? input.branch_id : null
+    const merchant = c.get('merchant')
+    const mine = c.get('member')?.branchIds
+    if (mine) {
+      const till = await db.query.terminals.findFirst({
+        where: and(eq(schema.terminals.id, uuid), eq(schema.terminals.merchantId, merchant.id)),
+      })
+      const allowed = (b: string | null) => !b || mine.includes(b)
+      if (!till || !allowed(till.branchId) || !branchId || !mine.includes(branchId))
+        throw new KovaError('forbidden', 'You can move tills only to and from your own branches.')
+    }
+    const till = await assignTill(merchant, uuid, branchId)
+    await audit(merchant.id, actorOf(c), 'till.moved', till.name, { branch_id: branchId })
+    return c.json({
+      object: 'terminal',
+      id,
+      name: till.name,
+      branch_id: till.branchId,
     })
   })
   /** Phone: unpair itself. Its own key is revoked, so a forgotten phone holds nothing useful. */
@@ -105,8 +137,25 @@ export const terminalRoutes = new Hono()
   .delete('/:id', requireApiKey, requireMerchantKey, async (c) => {
     const id = c.req.param('id')
     const uuid = decodeId('terminal', id)
+    const mine = c.get('member')?.branchIds
+    if (mine && uuid) {
+      const till = await db.query.terminals.findFirst({
+        where: and(
+          eq(schema.terminals.id, uuid),
+          eq(schema.terminals.merchantId, c.get('merchant').id),
+        ),
+      })
+      if (till?.branchId && !mine.includes(till.branchId))
+        throw new KovaError('forbidden', 'That till works at a branch that isn’t yours.')
+    }
     const terminal = uuid ? await retire(c.get('merchant').id, uuid) : null
     if (!terminal) throw notFound('terminal', id)
+    await audit(
+      c.get('merchant').id,
+      actorOf(c),
+      'till.removed',
+      (terminal as { name?: string }).name ?? null,
+    )
     return c.json({ object: 'terminal', id, status: 'disabled' })
   })
   /** Phone: redeem a code for this device's own key. No key needed: the code is the proof. */

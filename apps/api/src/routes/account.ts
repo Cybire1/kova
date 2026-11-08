@@ -12,6 +12,13 @@ import { KovaError, notFound } from '../errors.js'
 import { decodeId, encodeId } from '../ids.js'
 import { clientIp, limit } from '../limits.js'
 import {
+  actorOf,
+  audit,
+  type Member,
+  membershipsOf,
+  openMemberSession,
+} from '../services/business-team.js'
+import {
   createChallenge,
   openSession,
   spendChallenge,
@@ -110,26 +117,6 @@ const slugify = (name: string) =>
       .replace(/^-|-$/g, '')
       .slice(0, 32) || 'shop'
   }-${randomBytes(3).toString('hex')}`
-
-async function audit(
-  merchantId: string,
-  keyId: string,
-  action: string,
-  metadata?: Record<string, unknown>,
-) {
-  await db
-    .insert(schema.auditLogs)
-    .values({
-      id: uuidv7(),
-      actorType: 'api_key',
-      actorId: keyId,
-      action,
-      targetType: 'merchant',
-      targetId: merchantId,
-      metadata: metadata ?? null,
-    })
-    .catch(() => {})
-}
 
 export const accountRoutes = new Hono()
   /** Public: open a shop. Returns its first secret key, shown once. */
@@ -260,44 +247,63 @@ export const accountRoutes = new Hono()
       purpose: 'sign_in',
     })
 
-    const shops = await db.query.merchants.findMany({
+    const owned = await db.query.merchants.findMany({
       where: and(
         eq(schema.merchants.ownerAddress, owner.toLowerCase()),
         eq(schema.merchants.status, 'active'),
       ),
       orderBy: desc(schema.merchants.createdAt),
     })
-    if (shops.length === 0)
+    // Businesses this wallet is on the team of (Kova for Business): it signs in as that member.
+    const memberships = await membershipsOf(owner)
+    const choices = [
+      ...owned.map((shop) => ({ shop, member: null as Member | null })),
+      ...memberships
+        .filter((m) => !owned.some((o) => o.id === m.merchant.id))
+        .map((m) => ({ shop: m.merchant, member: m.member as Member | null })),
+    ]
+    if (choices.length === 0)
       throw new KovaError('not_found', 'No shop signs in with this wallet yet.', {
         reason: 'no_shop',
       })
     const chosen = parsed.data.merchant ? decodeId('merchant', parsed.data.merchant) : null
-    const shop = chosen
-      ? shops.find((s) => s.id === chosen)
-      : shops.length === 1 || parsed.data.newest
-        ? shops[0]
+    const pick = chosen
+      ? choices.find((x) => x.shop.id === chosen)
+      : choices.length === 1 || (parsed.data.newest && owned.length > 0)
+        ? choices[0]
         : undefined
-    if (!shop) {
+    if (!pick) {
       if (chosen) throw notFound('shop', parsed.data.merchant ?? '')
       throw new KovaError('conflict', 'This wallet signs in to more than one shop. Choose one.', {
         reason: 'choose_shop',
-        shops: shops.map((s) => ({
-          id: encodeId('merchant', s.id),
-          name: s.name,
-          created_at: s.createdAt.toISOString(),
+        shops: choices.map(({ shop, member }) => ({
+          id: encodeId('merchant', shop.id),
+          name: shop.name,
+          role: member?.role ?? 'owner',
+          created_at: shop.createdAt.toISOString(),
         })),
       })
     }
 
     await spendChallenge(nonce)
-    const session = await openSession(shop)
-    await audit(shop.id, session.id, 'session.opened', { wallet: owner })
+    const { shop, member } = pick
+    const session = member ? await openMemberSession(shop, member) : await openSession(shop)
+    await audit(
+      shop.id,
+      member
+        ? { kind: 'member', id: member.id, name: `${member.name} (${member.role})`, member }
+        : { kind: 'owner', id: session.id, name: 'Owner' },
+      'session.opened',
+      null,
+      { wallet: owner },
+    )
     return c.json(
       {
         object: 'session',
         key: session.secret,
         expires_at: session.expiresAt.toISOString(),
         merchant: serializeMerchant(shop),
+        role: member?.role ?? 'owner',
       },
       201,
     )
@@ -340,7 +346,7 @@ export const accountRoutes = new Hono()
       .returning()
     if (!merchant) throw notFound('merchant', encodeId('merchant', before.id))
     // Who can sign in to a shop is as sensitive as where its money goes: keep a record.
-    await audit(before.id, c.get('apiKey').id, 'merchant.owner.updated', {
+    await audit(before.id, actorOf(c), 'merchant.owner.updated', null, {
       from: before.ownerAddress,
       to: owner,
     })
@@ -369,7 +375,7 @@ export const accountRoutes = new Hono()
       parsed.data.settlement_address !== before.settlementAddress
     )
       // Where money goes is the most sensitive setting a shop has: keep a record of every change.
-      await audit(before.id, c.get('apiKey').id, 'merchant.settlement_address.updated', {
+      await audit(before.id, actorOf(c), 'merchant.settlement_address.updated', null, {
         from: before.settlementAddress,
         to: parsed.data.settlement_address,
       })
@@ -408,7 +414,7 @@ export const accountRoutes = new Hono()
       })
       .returning()
     if (!row) throw new KovaError('internal', 'Could not create the key')
-    await audit(merchant.id, c.get('apiKey').id, 'api_key.created', {
+    await audit(merchant.id, actorOf(c), 'api_key.created', row.name, {
       key: encodeId('apiKey', row.id),
     })
     return c.json({ ...serializeKey(row), secret: key.secret }, 201)
@@ -438,6 +444,6 @@ export const accountRoutes = new Hono()
           .returning()
       : []
     if (!row) throw notFound('api key', id)
-    await audit(c.get('merchant').id, c.get('apiKey').id, 'api_key.revoked', { key: id })
+    await audit(c.get('merchant').id, actorOf(c), 'api_key.revoked', row.name, { key: id })
     return c.json({ object: 'api_key', id, revoked: true })
   })
