@@ -198,6 +198,9 @@
   background: var(--kx-coral);
   color: #fff;
 }
+.kx-google {
+  gap: 10px;
+}
 .kx-done {
   width: 64px;
   height: 64px;

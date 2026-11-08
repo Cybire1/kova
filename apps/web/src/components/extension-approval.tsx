@@ -10,17 +10,41 @@ import {
   type ExtensionRequest,
   readExtensionRequest,
 } from '@/lib/extension'
+import { returningFromPrivy } from '@/lib/privy-return'
 import { freeze, listKeys, removeKey, type SpendKey, switchOn } from '@/lib/wallet/keys'
 
 type Phase = 'ready' | 'busy' | 'done'
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`
+
+/**
+ * Google sign-in leaves this page for Google and comes back without the request in the address.
+ * The request is kept in this window's session for ten minutes, and read back on the way in.
+ */
+const KEPT = 'kova.extension.request'
+function requestHash(): string {
+  const hash = window.location.hash
+  try {
+    if (hash.length > 1) sessionStorage.setItem(KEPT, JSON.stringify({ hash, at: Date.now() }))
+    else if (returningFromPrivy()) {
+      const kept = JSON.parse(sessionStorage.getItem(KEPT) ?? 'null') as {
+        hash?: string
+        at?: number
+      } | null
+      if (kept?.hash && typeof kept.at === 'number' && Date.now() - kept.at < 10 * 60_000)
+        return kept.hash
+    }
+  } catch {
+    // No session storage: Google sign-in can't bring the request back, the passkey still works.
+  }
+  return hash
+}
 const dollars = (v: string) => `$${v.replace(/\.00$/, '')}`
 
 /**
- * mykova.app/extension: the one place Kova for Chrome borrows the wallet's passkey. It shows what
- * the extension asked for in plain words (amounts read from Kova, never from the request), asks for
- * Face ID or Touch ID, does it, and hands the answer back to the extension.
+ * mykova.app/extension: the one place Kova for Chrome borrows the wallet. It shows what the
+ * extension asked for in plain words (amounts read from Kova, never from the request), asks the
+ * wallet's passkey (Face ID, Touch ID) or Google, does it, and hands the answer back.
  */
 export function ExtensionApproval() {
   const wallet = useWallet()
@@ -32,7 +56,7 @@ export function ExtensionApproval() {
   const [unreachable, setUnreachable] = useState(false)
 
   useEffect(() => {
-    setRequest(readExtensionRequest(window.location.hash))
+    setRequest(readExtensionRequest(requestHash()))
   }, [])
 
   const owner = request && request.action !== 'connect' ? request.owner : null
@@ -115,6 +139,8 @@ export function ExtensionApproval() {
     }
   }
 
+  const google = wallet.profile?.auth === 'google'
+
   if (request === undefined || wallet.status === 'loading') return <Frame busy />
 
   if (request === null)
@@ -130,13 +156,17 @@ export function ExtensionApproval() {
       <Frame>
         <h1>Open your Kova wallet</h1>
         <p className="kx-lead">
-          Kova for Chrome uses the same wallet as the Kova app. Open it with your passkey.
+          Kova for Chrome uses the same wallet as the Kova app. Open it the way you open the app:
+          with your passkey, or with Google.
         </p>
-        {error ? <p className="kx-error">{error}</p> : null}
+        {(error ?? wallet.googleError) ? (
+          <p className="kx-error">{error ?? wallet.googleError}</p>
+        ) : null}
         <div className="kx-actions">
           <button
             type="button"
             className="kx-btn kx-ink"
+            disabled={wallet.googleBusy}
             onClick={() => {
               setError(null)
               wallet.open().catch((e: Error) => setError(e.message))
@@ -144,6 +174,20 @@ export function ExtensionApproval() {
           >
             Open with passkey
           </button>
+          {wallet.googleEnabled ? (
+            <button
+              type="button"
+              className="kx-btn kx-soft kx-google"
+              disabled={wallet.googleBusy}
+              onClick={() => {
+                setError(null)
+                wallet.signInGoogle().catch((e: Error) => setError(e.message))
+              }}
+            >
+              <GoogleMark />
+              {wallet.googleBusy ? 'Opening your wallet…' : 'Continue with Google'}
+            </button>
+          ) : null}
           <a className="kx-btn kx-soft" href="/wallet" target="_blank" rel="noopener">
             New to Kova? Make a wallet
           </a>
@@ -200,10 +244,11 @@ export function ExtensionApproval() {
 
   const site = key?.name ?? (request.action === 'sign' ? request.site : null)
   const busy = phase === 'busy'
-  const faceLabel = (verb: string) => (busy ? 'One moment…' : `${verb} with your passkey`)
+  const faceLabel = (verb: string) =>
+    busy ? 'One moment…' : `${verb} with ${google ? 'Google' : 'your passkey'}`
 
   return (
-    <Frame>
+    <Frame google={google}>
       {request.action === 'connect' ? (
         <>
           <span className="kx-tag">Kova for Chrome</span>
@@ -294,7 +339,15 @@ export function ExtensionApproval() {
   )
 }
 
-function Frame({ children, busy }: { children?: React.ReactNode; busy?: boolean }) {
+function Frame({
+  children,
+  busy,
+  google,
+}: {
+  children?: React.ReactNode
+  busy?: boolean
+  google?: boolean
+}) {
   return (
     <main className="kx">
       <header className="kx-head">
@@ -302,7 +355,34 @@ function Frame({ children, busy }: { children?: React.ReactNode; busy?: boolean 
         <Wordmark height={16} />
       </header>
       <section className="kx-body">{busy ? <div className="kx-spin" /> : children}</section>
-      <footer className="kx-foot">Your passkey never leaves this device.</footer>
+      <footer className="kx-foot">
+        {google
+          ? 'Kova never sees your Google password.'
+          : 'Your passkey never leaves this device.'}
+      </footer>
     </main>
+  )
+}
+
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.24 1.06-3.71 1.06-2.87 0-5.3-1.94-6.17-4.54H2.15v2.84C3.96 20.53 7.69 23 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.83 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.15A10.9 10.9 0 001 12c0 1.78.43 3.45 1.15 4.93l3.68-2.84z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.16-3.16C17.45 2.08 14.97 1 12 1 7.69 1 3.96 3.47 2.15 7.07l3.68 2.84c.87-2.6 3.3-4.53 6.17-4.53z"
+      />
+    </svg>
   )
 }
