@@ -1,7 +1,9 @@
-// Builds Kova for Chrome into dist/ (load it unpacked from chrome://extensions) and a zip for the
-// Chrome Web Store. Defaults to Kova on Monad mainnet; for the test network and a local mykova.app:
+// Builds Kova for Chrome into dist/ (load it unpacked from chrome://extensions) and a zip.
+// Defaults to Kova on Monad mainnet; for the test network and a local mykova.app:
 //   KOVA_NETWORK=testnet KOVA_WEB=http://localhost:3014 node build.mjs
-// `--watch` rebuilds on every change.
+// For the Chrome Web Store, `--store`: the manifest's `key` (which fixes the unpacked ID) is left
+// out, since the store refuses it and assigns its own ID; add that ID to the web app's
+// NEXT_PUBLIC_KOVA_EXTENSION_IDS. `--watch` rebuilds on every change.
 import { execFileSync } from 'node:child_process'
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -11,6 +13,7 @@ import * as esbuild from 'esbuild'
 const here = dirname(fileURLToPath(import.meta.url))
 const out = join(here, 'dist')
 const watch = process.argv.includes('--watch')
+const store = process.argv.includes('--store')
 
 const network = process.env.KOVA_NETWORK === 'testnet' ? 'testnet' : 'mainnet'
 const web = (
@@ -32,6 +35,7 @@ const manifest = JSON.parse(readFileSync(join(here, 'manifest.json'), 'utf8'))
 // externally_connectable takes no port: localhost:3014 is matched as localhost.
 manifest.externally_connectable.matches = [`${webUrl.protocol}//${webUrl.hostname}/*`]
 if (network !== 'mainnet') manifest.name = 'Kova (test network)'
+if (store) delete manifest.key
 writeFileSync(join(out, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 
 const options = {
@@ -80,9 +84,11 @@ if (watch) {
   await Promise.all(contexts.map((c) => c.dispose()))
   const zip = join(
     here,
-    `kova-chrome-${manifest.version}${network === 'mainnet' ? '' : '-testnet'}.zip`,
+    `kova-chrome-${manifest.version}${network === 'mainnet' ? '' : '-testnet'}${store ? '-store' : ''}.zip`,
   )
   rmSync(zip, { force: true })
   execFileSync('zip', ['-qr', zip, '.'], { cwd: out })
-  console.log(`Built dist/ and ${zip.split('/').pop()} · ${network} · ${web} · ${api}`)
+  console.log(
+    `Built dist/ and ${zip.split('/').pop()} · ${network} · ${web} · ${api}${store ? ' · for the Chrome Web Store' : ''}`,
+  )
 }

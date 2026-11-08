@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 }
 
 const CONTACT = 'hello@mykova.app'
-const UPDATED = '15 October 2026'
+const UPDATED = '8 November 2026'
 
 const SHORT: { icon: IconName; title: string; body: string }[] = [
   {
@@ -138,6 +138,26 @@ const ASKS: { what: string; body: string }[] = [
   },
 ]
 
+/** Kova for Chrome (apps/extension): what it keeps in the browser, what reaches Kova, what it reads. */
+const CHROME: { what: string; body: string }[] = [
+  {
+    what: 'In your browser',
+    body: 'Your wallet’s address and name, the sites you connect, and each paying site’s own key and limits. They stay in the extension’s storage on your computer. Your wallet’s own key is never there: it stays behind your passkey or Google sign-in.',
+  },
+  {
+    what: 'What reaches Kova',
+    body: 'When a site gets a budget: the site’s address, its limit and its key’s public address. When a site is paid: the amount, who it went to, and for a pay-per-use page, that page’s address. Kova keeps these as your wallet’s payments.',
+  },
+  {
+    what: 'What it reads',
+    body: 'Only the reply headers of pages you open, to notice a page asking for a payment (“402 Payment Required”). It doesn’t record the pages you visit, read what’s on them, or send your browsing anywhere.',
+  },
+  {
+    what: 'What sites see',
+    body: 'A site you connect sees your wallet’s address and balance, like with any wallet. It can only spend the budget you give it, and only after you approve it.',
+  },
+]
+
 export default function PrivacyPage() {
   return (
     <div className="lp pv">
@@ -229,6 +249,24 @@ export default function PrivacyPage() {
               <div className="pv-row" key={a.what}>
                 <dt>{a.what}</dt>
                 <dd>{a.body}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section className="pv-section" aria-labelledby="pv-chrome-title">
+          <h2 className="pv-h2" id="pv-chrome-title">
+            Kova for Chrome
+          </h2>
+          <p className="pv-intro">
+            The browser extension that gives each website its own budget. Everything above applies,
+            and this is what’s particular to it.
+          </p>
+          <dl className="pv-list">
+            {CHROME.map((c) => (
+              <div className="pv-row" key={c.what}>
+                <dt>{c.what}</dt>
+                <dd>{c.body}</dd>
               </div>
             ))}
           </dl>
