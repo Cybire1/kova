@@ -80,6 +80,10 @@ function fakeNuvion() {
     silentOnce: false,
     staleQuoteOnce: false,
     quotes: 0,
+    /** A verified person's own USD account (Ada's), for payouts in their own name. */
+    ada: 0,
+    /** Nuvion's fee on a payout. */
+    fee: 50,
   }
   const ok = (data: unknown, status = 200) =>
     new Response(JSON.stringify({ status: 'success', data }), { status })
@@ -119,7 +123,10 @@ function fakeNuvion() {
         ])
       if (method === 'POST' && path === '/fx-quotes') {
         state.quotes++
-        expect(body.account_id).toBe('acc_pot')
+        // From Kova's pot, or from the person's own account, acting for their entity.
+        if (body.entity_id)
+          expect(body).toMatchObject({ account_id: 'acc_ada', entity_id: 'ent_ada' })
+        else expect(body.account_id).toBe('acc_pot')
         return ok(
           {
             id: `fxq_${state.quotes}`,
@@ -172,10 +179,33 @@ function fakeNuvion() {
           )
         if (state.transfers.some((t) => t.unique_reference === body.unique_reference))
           return no(409, 'Duplicate', 'error_duplicate_resource')
+        const fromAda = body.account_id === 'acc_ada'
+        if (fromAda) expect(body.entity_id).toBe('ent_ada')
+        if (body.payment_type === 'book-transfer') {
+          // Inside Nuvion, straight away: Kova's pot ⇄ Ada's account.
+          const toAda = body.payment_detail_id === 'pd_to_ada'
+          expect(toAda || body.payment_detail_id === 'pd_to_pot').toBe(true)
+          if ((fromAda ? state.ada : state.pot) < body.amount)
+            return no(400, 'Insufficient funds', 'error_transfer_insufficient_funds')
+          if (fromAda) state.ada -= body.amount
+          else state.pot -= body.amount
+          if (toAda) state.ada += body.amount
+          else state.pot += body.amount
+          const t = { ...body, id: `tr_${state.transfers.length + 1}`, status: 'successful' }
+          state.transfers.push(t)
+          return ok({ ...t, applicable_fee: 0 }, 201)
+        }
+        if (fromAda && state.ada < body.amount + state.fee)
+          return no(
+            400,
+            `Insufficient funds. Available balance: ${state.ada}`,
+            'error_transfer_insufficient_funds',
+          )
         const t = { ...body, id: `tr_${state.transfers.length + 1}`, status: 'pending' }
         state.transfers.push(t)
-        state.pot -= body.amount
-        return ok({ ...t, applicable_fee: 50 }, 201)
+        if (fromAda) state.ada -= body.amount + state.fee
+        else state.pot -= body.amount
+        return ok({ ...t, applicable_fee: state.fee }, 201)
       }
       if (method === 'GET' && path === '/transfers') {
         const ref = url.searchParams.get('unique_reference')
@@ -614,5 +644,154 @@ describe('cash-outs through Nuvion', () => {
     })
     expect(r.label).toBe('Royal Bank of Canada •••• 4567')
     expect(nuvion.details[0]).toMatchObject({ bank_institution_number: '003', scheme: 'eft' })
+  })
+})
+
+describe('cash-outs in the person’s own name', () => {
+  /** Ada after the dollar card's ID check: her own entity and USD account, both ways to Kova's pot. */
+  async function verified(wallet: `0x${string}`, status = 'approved') {
+    await db.insert(schema.cardHolders).values({
+      id: crypto.randomUUID(),
+      wallet: wallet.toLowerCase(),
+      network: 'testnet',
+      provider: 'nuvion',
+      entityId: 'ent_ada',
+      status,
+      firstName: 'Ada',
+      lastName: 'Okafor',
+      accountId: status === 'approved' ? 'acc_ada' : null,
+      accountNumber: status === 'approved' ? '0011223344' : null,
+      counterpartyId: status === 'approved' ? 'cp_to_ada' : null,
+      paymentDetailId: status === 'approved' ? 'pd_to_ada' : null,
+      returnCounterpartyId: status === 'approved' ? 'cp_to_pot' : null,
+      returnPaymentDetailId: status === 'approved' ? 'pd_to_pot' : null,
+    })
+  }
+  const ref = (step: string, id: string) => `kova-out-${step}-${id.replace(/-/g, '')}`
+
+  beforeEach(() => {
+    config.KOVA_PAYOUTS_OWN_NAME = '1'
+  })
+
+  it('asks for the ID check before a first cash-out abroad, and says where it stands', async () => {
+    fakeNuvion()
+    const nobody = newWallet()
+    await expect(addRecipient(nobody, 'ca_interac_email', person)).rejects.toMatchObject({
+      code: 'forbidden',
+      details: { verification: 'needed' },
+    })
+    const waiting = newWallet()
+    await verified(waiting, 'pending')
+    await expect(addRecipient(waiting, 'ca_interac_email', person)).rejects.toMatchObject({
+      code: 'forbidden',
+      details: { verification: 'checking' },
+    })
+  })
+
+  it('pays from the person’s own account, in their name, and sends the unused fee room back', async () => {
+    const nuvion = fakeNuvion()
+    const wallet = newWallet()
+    await verified(wallet)
+    const recipient = await addRecipient(wallet, 'ca_interac_email', person)
+    expect(recipient.entityId).toBe('ent_ada')
+    expect(nuvion.counterparties[0]).toMatchObject({ entity_id: 'ent_ada' })
+    expect(nuvion.details[0]).toMatchObject({ entity_id: 'ent_ada' })
+
+    const { row } = await quotePayout(wallet, recipient.id, 20_000_000n)
+    expect(row).toMatchObject({ entityId: 'ent_ada', fxQuoteId: 'fxq_1', amountTo: 2740n })
+    const sent = await payPayout(row, signedFor(row))
+    expect(sent).toMatchObject({ status: 'sending', fundedCents: 2500n, providerFee: 50n })
+
+    // 1. Kova's pot funds Ada's account: the $20 and $5 of room for Nuvion's fee.
+    expect(nuvion.transfers[0]).toMatchObject({
+      account_id: 'acc_pot',
+      payment_type: 'book-transfer',
+      payment_detail_id: 'pd_to_ada',
+      amount: 2500,
+      unique_reference: ref('in', row.id),
+    })
+    // 2. Ada's own account pays the bank, Kova acting for her entity.
+    expect(nuvion.transfers[1]).toMatchObject({
+      account_id: 'acc_ada',
+      entity_id: 'ent_ada',
+      amount: 2000,
+      fx_quote_id: 'fxq_1',
+      unique_reference: `kova-out-${row.id.replace(/-/g, '')}`,
+    })
+    // 3. The $4.50 of room Nuvion didn't use goes back to the pot, and her account is as it was.
+    expect(nuvion.transfers[2]).toMatchObject({
+      account_id: 'acc_ada',
+      entity_id: 'ent_ada',
+      payment_detail_id: 'pd_to_pot',
+      amount: 450,
+      unique_reference: ref('rest', row.id),
+    })
+    expect(nuvion.ada).toBe(0)
+    expect(nuvion.pot).toBe(50_000 - 2050)
+
+    ;(nuvion.transfers[1] as { status: string }).status = 'successful'
+    await settlePayouts()
+    expect(await payoutRow(row.id)).toMatchObject({ status: 'paid' })
+    expect(nuvion.transfers).toHaveLength(3)
+  })
+
+  it('funds the room once more when Nuvion’s fee is bigger than it', async () => {
+    const nuvion = fakeNuvion()
+    nuvion.fee = 700
+    const wallet = newWallet()
+    await verified(wallet)
+    const recipient = await addRecipient(wallet, 'ca_interac_email', person)
+    const { row } = await quotePayout(wallet, recipient.id, 20_000_000n)
+    const sent = await payPayout(row, signedFor(row))
+    expect(sent).toMatchObject({ status: 'sending', fundedCents: 3000n, providerFee: 700n })
+    expect(nuvion.transfers.map((t) => t.unique_reference)).toEqual([
+      ref('in', row.id),
+      ref('more', row.id),
+      `kova-out-${row.id.replace(/-/g, '')}`,
+      ref('rest', row.id),
+    ])
+    expect(nuvion.ada).toBe(0)
+  })
+
+  it('brings a payout the bank fails back to the pot before the dollars go back to the wallet', async () => {
+    const nuvion = fakeNuvion()
+    const wallet = newWallet()
+    await verified(wallet)
+    const recipient = await addRecipient(wallet, 'ca_interac_email', person)
+    const { row } = await quotePayout(wallet, recipient.id, 20_000_000n)
+    await payPayout(row, signedFor(row))
+    // The bank sends it back: Nuvion returns the $20 to Ada's account.
+    Object.assign(nuvion.transfers[1] as object, {
+      status: 'failed',
+      status_reason: 'account_closed',
+    })
+    nuvion.ada += 2000
+    await settlePayouts()
+    await settlePayouts()
+    const done = (await payoutRow(row.id))!
+    expect(done.status).toBe('failed')
+    expect(done.pulledBackAt).not.toBeNull()
+    expect(nuvion.transfers.at(-1)).toMatchObject({
+      account_id: 'acc_ada',
+      payment_detail_id: 'pd_to_pot',
+      amount: 2000,
+      unique_reference: ref('back', row.id),
+    })
+    expect(nuvion.ada).toBe(0)
+    expect(relay.sendFromRelayer).toHaveBeenCalledTimes(1)
+  })
+
+  it('asks for an account saved before, under Kova’s own name, to be added again', async () => {
+    fakeNuvion()
+    const wallet = newWallet()
+    config.KOVA_PAYOUTS_OWN_NAME = '0'
+    const old = await addRecipient(wallet, 'ca_interac_email', person)
+    expect(old.entityId).toBeNull()
+    config.KOVA_PAYOUTS_OWN_NAME = '1'
+    await verified(wallet)
+    await expect(quotePayout(wallet, old.id, 20_000_000n)).rejects.toMatchObject({
+      code: 'invalid_request',
+      message: expect.stringMatching(/Add this account again/),
+    })
   })
 })

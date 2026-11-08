@@ -13,6 +13,7 @@ import {
   MIN_PAYOUT,
   payoutBanks,
   payoutRate,
+  payoutReadiness,
   payoutRow,
   payoutsLive,
   payoutsOf,
@@ -114,8 +115,11 @@ export const payoutRoutes = new Hono()
     return c.json({ object: 'payout_rate', currency, per_dollar: await payoutRate(currency) })
   })
   .get('/wallets/:address/payout-recipients', async (c) => {
-    const list = await recipientsOf(walletAddress(c))
-    return c.json({ data: list.map(serializeRecipient) })
+    const wallet = walletAddress(c)
+    const [list, ready] = await Promise.all([recipientsOf(wallet), payoutReadiness(wallet)])
+    // In the person's own name, accounts saved under Kova's own entity before can't be paid now.
+    const usable = ready.verification_required ? list.filter((r) => r.entityId) : list
+    return c.json({ data: usable.map(serializeRecipient), ...ready })
   })
   .post('/wallets/:address/payout-recipients', async (c) => {
     needLive()

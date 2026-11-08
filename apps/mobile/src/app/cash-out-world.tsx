@@ -18,19 +18,22 @@ import { DEMO_BALANCE, demoCashOutOn, demoSend } from '@/lib/demo-cashout'
 import { applyKey, formatUsd } from '@/lib/money'
 import {
   addRecipient,
+  type CashOutAccess,
   type Corridor,
+  getCashOutAccounts,
   getPayout,
   getPayoutBanks,
   getPayoutRate,
   getPayoutsInfo,
-  getRecipients,
   inCurrency,
   type Payout,
   type PayoutBank,
+  PayoutError,
   type PayoutField,
   type PayoutsInfo,
   quotePayout,
   type Recipient,
+  type Verification,
 } from '@/lib/payouts'
 import { load, save as store } from '@/lib/storage'
 import { colors, fonts, pair } from '@/lib/theme'
@@ -78,6 +81,7 @@ export default function CashOutWorld() {
   const list = useRef<ScrollView>(null)
   const [info, setInfo] = useState<PayoutsInfo | null>(null)
   const [recipients, setRecipients] = useState<Recipient[] | null>(null)
+  const [access, setAccess] = useState<CashOutAccess | null>(null)
   const [step, setStep] = useState<Step>('where')
   const [country, setCountry] = useState<string | null>(null)
   const [picked, setPicked] = useState<string | null>(null)
@@ -105,8 +109,11 @@ export default function CashOutWorld() {
   }, [])
   useEffect(() => {
     if (!profile) return
-    void getRecipients(profile.address)
-      .then(setRecipients)
+    void getCashOutAccounts(profile.address)
+      .then((r) => {
+        setRecipients(r.recipients)
+        setAccess(r.access)
+      })
       .catch(() => setRecipients([]))
     void load<Record<string, string> | null>(aboutKey(profile.address), null).then(setAbout)
   }, [profile])
@@ -268,6 +275,15 @@ export default function CashOutWorld() {
     else setRate(1)
   }
 
+  /** Kova said the ID check comes first: back to the first step, which shows where it stands. */
+  const needsCheck = (e: unknown) => {
+    if (!(e instanceof PayoutError) || !e.verification) return false
+    setAccess({ required: true, verification: e.verification })
+    setStep('where')
+    return true
+  }
+  const mustVerify = !!access?.required && access.verification !== 'verified'
+
   const saveAccount = async () => {
     if (!profile || !corridor) return
     setBusy(true)
@@ -285,6 +301,7 @@ export default function CashOutWorld() {
       setRecipients((list) => [saved, ...(list ?? []).filter((r) => r.label !== saved.label)])
       await startAmount(saved)
     } catch (e) {
+      if (needsCheck(e)) return
       setProblem(e instanceof Error ? e.message : 'Those details weren’t saved. Try again.')
     } finally {
       setBusy(false)
@@ -323,6 +340,7 @@ export default function CashOutWorld() {
       setQuote(await quotePayout(profile.address, recipient.id, typed))
       setStep('review')
     } catch (e) {
+      if (needsCheck(e)) return
       setProblem(e instanceof Error ? e.message : 'Kova couldn’t get a rate. Try again.')
     } finally {
       setBusy(false)
@@ -453,7 +471,9 @@ export default function CashOutWorld() {
             {balance === null ? '—' : formatUsd(balance)}
           </Txt>
 
-          {recipients && recipients.length > 0 ? (
+          {mustVerify ? <VerifyFirst verification={access?.verification ?? 'needed'} /> : null}
+
+          {!mustVerify && recipients && recipients.length > 0 ? (
             <>
               <View style={styles.groupHead}>
                 <Txt weight="bold" size={13}>
@@ -481,26 +501,28 @@ export default function CashOutWorld() {
             </>
           ) : null}
 
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              void Haptics.selectionAsync()
-              setStep('country')
-            }}
-            style={({ pressed }) => [styles.addRow, pressed && { opacity: 0.7 }]}
-          >
-            <View style={styles.addDot}>
-              <Icon name="plus" size={16} color={colors.dark} />
-            </View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Txt weight="bold" size={15}>
-                New account
-              </Txt>
-              <Txt size={12} color={colors.muted}>
-                A bank or mobile money, almost anywhere
-              </Txt>
-            </View>
-          </Pressable>
+          {mustVerify ? null : (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                void Haptics.selectionAsync()
+                setStep('country')
+              }}
+              style={({ pressed }) => [styles.addRow, pressed && { opacity: 0.7 }]}
+            >
+              <View style={styles.addDot}>
+                <Icon name="plus" size={16} color={colors.dark} />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Txt weight="bold" size={15}>
+                  New account
+                </Txt>
+                <Txt size={12} color={colors.muted}>
+                  A bank or mobile money, almost anywhere
+                </Txt>
+              </View>
+            </Pressable>
+          )}
         </ScrollView>
       ) : null}
 
@@ -1543,6 +1565,55 @@ function Stage({
   )
 }
 
+const VERIFY_COPY: Record<
+  Exclude<Verification, 'verified'>,
+  { title: string; body: string; cta: string }
+> = {
+  needed: {
+    title: 'Verify your ID first',
+    body: 'A cash-out abroad goes out in your own name, so Kova’s banking partner checks your ID once. It’s the same check as the dollar card.',
+    cta: 'Verify my ID',
+  },
+  checking: {
+    title: 'Your ID is being checked',
+    body: 'You can cash out abroad as soon as it passes. It usually takes a few minutes.',
+    cta: 'See the check',
+  },
+  failed: {
+    title: 'Your ID check didn’t pass',
+    body: 'Cashing out abroad isn’t open to you. If you think that’s wrong, write to Kova.',
+    cta: 'See why',
+  },
+}
+
+/** The first step while the ID check is needed: what's left to do, and the way to the check. */
+function VerifyFirst({ verification }: { verification: Verification }) {
+  const copy = VERIFY_COPY[verification === 'verified' ? 'checking' : verification]
+  return (
+    <View style={styles.verify}>
+      <View style={styles.verifyIcon}>
+        <Icon name={verification === 'checking' ? 'clock' : 'user'} size={20} color={colors.dark} />
+      </View>
+      <Txt weight="bold" size={20} style={{ letterSpacing: -0.4 }}>
+        {copy.title}
+      </Txt>
+      <Txt size={15} color={colors.muted} style={{ lineHeight: 21 }}>
+        {copy.body}
+      </Txt>
+      <View style={{ marginTop: 8 }}>
+        <PillButton
+          label={copy.cta}
+          icon="arrow"
+          onPress={() => {
+            void Haptics.selectionAsync()
+            router.push('/dollar-card')
+          }}
+        />
+      </View>
+    </View>
+  )
+}
+
 function Problem({ text }: { text: string }) {
   return (
     <Txt weight="medium" size={14} color={colors.danger} style={{ marginTop: 12, lineHeight: 20 }}>
@@ -1553,6 +1624,24 @@ function Problem({ text }: { text: string }) {
 
 const styles = StyleSheet.create({
   pad: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32 },
+  verify: {
+    marginTop: 20,
+    gap: 8,
+    padding: 18,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+  },
+  verifyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.tealSoft,
+    marginBottom: 4,
+  },
   flow: { flex: 1, paddingHorizontal: 20, paddingTop: 4 },
   center: {
     flex: 1,

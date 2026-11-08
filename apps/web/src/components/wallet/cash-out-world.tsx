@@ -7,20 +7,23 @@ import { Icon } from '@/components/brand'
 import { applyKey, formatUsd } from '@/lib/wallet/money'
 import {
   addRecipient,
+  type CashOutAccess,
   type Corridor,
+  getCashOutAccounts,
   getPayout,
   getPayoutBanks,
   getPayoutRate,
   getPayoutsInfo,
-  getRecipients,
   inCurrency,
   type Payout,
   type PayoutBank,
+  PayoutError,
   type PayoutField,
   type PayoutsInfo,
   payPayout,
   quotePayout,
   type Recipient,
+  type Verification,
 } from '@/lib/wallet/payouts'
 import '@/styles/cash-out-world.css'
 import { ScreenHead } from './activity'
@@ -168,6 +171,7 @@ export function CashOutWorld() {
   const router = useRouter()
   const [info, setInfo] = useState<PayoutsInfo | null>(null)
   const [recipients, setRecipients] = useState<Recipient[] | null>(null)
+  const [access, setAccess] = useState<CashOutAccess | null>(null)
   const [step, setStep] = useState<Step>('where')
   const [country, setCountry] = useState<string | null>(null)
   const [picked, setPicked] = useState<string | null>(null)
@@ -195,8 +199,11 @@ export function CashOutWorld() {
   }, [])
   useEffect(() => {
     if (!profile) return
-    void getRecipients(profile.address)
-      .then(setRecipients)
+    void getCashOutAccounts(profile.address)
+      .then((r) => {
+        setRecipients(r.recipients)
+        setAccess(r.access)
+      })
       .catch(() => setRecipients([]))
     try {
       const raw = localStorage.getItem(aboutKey(profile.address))
@@ -278,6 +285,15 @@ export function CashOutWorld() {
         .catch(() => setRate(null))
   }
 
+  /** Kova said the ID check comes first: back to the first step, which shows where it stands. */
+  const needsCheck = (e: unknown) => {
+    if (!(e instanceof PayoutError) || !e.verification) return false
+    setAccess({ required: true, verification: e.verification })
+    setStep('where')
+    return true
+  }
+  const mustVerify = !!access?.required && access.verification !== 'verified'
+
   const save = async () => {
     if (!profile || !corridor) return
     setBusy(true)
@@ -297,6 +313,7 @@ export function CashOutWorld() {
       setRecipients((list) => [saved, ...(list ?? []).filter((r) => r.label !== saved.label)])
       startAmount(saved)
     } catch (e) {
+      if (needsCheck(e)) return
       setProblem(e instanceof Error ? e.message : 'Those details weren’t saved. Try again.')
     } finally {
       setBusy(false)
@@ -322,6 +339,7 @@ export function CashOutWorld() {
       setQuote(await quotePayout(profile.address, recipient.id, typed))
       setStep('review')
     } catch (e) {
+      if (needsCheck(e)) return
       setProblem(e instanceof Error ? e.message : 'Kova couldn’t get a rate. Try again.')
     } finally {
       setBusy(false)
@@ -434,7 +452,13 @@ export function CashOutWorld() {
             <small>From your Kova dollars</small>
             <strong>{balance === null ? '—' : formatUsd(balance)}</strong>
           </p>
-          {recipients && recipients.length > 0 ? (
+          {mustVerify ? (
+            <VerifyFirst
+              verification={access?.verification ?? 'needed'}
+              onGo={() => router.push('/wallet/card')}
+            />
+          ) : null}
+          {!mustVerify && recipients && recipients.length > 0 ? (
             <>
               <p className="cw-head">
                 <strong>Send to</strong>
@@ -461,15 +485,17 @@ export function CashOutWorld() {
               </ul>
             </>
           ) : null}
-          <button type="button" className="cw-add" onClick={() => setStep('country')}>
-            <span className="cw-add-dot">
-              <Icon name="plus" size={16} />
-            </span>
-            <span className="cw-text">
-              <strong>New account</strong>
-              <small>A bank or mobile money, almost anywhere</small>
-            </span>
-          </button>
+          {mustVerify ? null : (
+            <button type="button" className="cw-add" onClick={() => setStep('country')}>
+              <span className="cw-add-dot">
+                <Icon name="plus" size={16} />
+              </span>
+              <span className="cw-text">
+                <strong>New account</strong>
+                <small>A bank or mobile money, almost anywhere</small>
+              </span>
+            </button>
+          )}
         </>
       ) : null}
 
@@ -964,6 +990,44 @@ export function CashOutWorld() {
           </button>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+const VERIFY_COPY: Record<
+  Exclude<Verification, 'verified'>,
+  { title: string; body: string; cta: string }
+> = {
+  needed: {
+    title: 'Verify your ID first',
+    body: 'A cash-out abroad goes out in your own name, so Kova’s banking partner checks your ID once. It’s the same check as the dollar card.',
+    cta: 'Verify my ID',
+  },
+  checking: {
+    title: 'Your ID is being checked',
+    body: 'You can cash out abroad as soon as it passes. It usually takes a few minutes.',
+    cta: 'See the check',
+  },
+  failed: {
+    title: 'Your ID check didn’t pass',
+    body: 'Cashing out abroad isn’t open to you. If you think that’s wrong, write to Kova.',
+    cta: 'See why',
+  },
+}
+
+/** The first step while the ID check is needed: what's left to do, and the way to the check. */
+function VerifyFirst({ verification, onGo }: { verification: Verification; onGo: () => void }) {
+  const copy = VERIFY_COPY[verification === 'verified' ? 'checking' : verification]
+  return (
+    <div className="cw-verify">
+      <strong>{copy.title}</strong>
+      <p>{copy.body}</p>
+      <button type="button" className="pill" data-tone="ink" onClick={onGo}>
+        <span className="pill-label">{copy.cta}</span>
+        <span className="pill-cap">
+          <Icon name="arrow" size={18} />
+        </span>
+      </button>
     </div>
   )
 }

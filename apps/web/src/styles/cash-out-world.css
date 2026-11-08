@@ -157,6 +157,28 @@
   font-weight: 700;
 }
 
+/* The ID check comes first (cash-outs in the person's own name). */
+.cw-verify {
+  margin-top: 18px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 18px;
+  border: 2px solid var(--ink);
+  border-radius: 22px;
+  background: var(--surface, transparent);
+}
+.cw-verify strong {
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+.cw-verify p {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
 .cw-add {
   margin-top: 12px;
   min-height: 66px;

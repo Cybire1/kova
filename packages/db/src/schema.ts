@@ -1434,6 +1434,11 @@ export const payoutRecipients = pgTable(
     label: text('label').notNull(),
     counterpartyId: text('counterparty_id').notNull(),
     paymentDetailId: text('payment_detail_id').notNull(),
+    /**
+     * The Nuvion entity the counterparty belongs to: the wallet's own verified entity, whose account
+     * pays it. Null for accounts saved before cash-outs went out in the wallet's own name (Kova's).
+     */
+    entityId: text('entity_id'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -1442,8 +1447,10 @@ export const payoutRecipients = pgTable(
 
 /**
  * A cash-out through Nuvion: quoted (a rate locked for a few minutes), received (the wallet's AUSD
- * reached Kova on Monad), sending (Nuvion is paying it out of Kova's pot), then paid, or refunding
- * and failed (the dollars went back to the wallet). Paid out once: its reference is unique at Nuvion.
+ * reached Kova on Monad), sending (Nuvion is paying it out), then paid, or refunding and failed (the
+ * dollars went back to the wallet). Paid out once: its reference is unique at Nuvion. With entityId,
+ * it's paid in the wallet's own name: Kova's pot funds the person's own verified account, and that
+ * account pays the bank.
  */
 export const payouts = pgTable(
   'payouts',
@@ -1469,6 +1476,14 @@ export const payouts = pgTable(
     transferId: text('transfer_id'),
     /** Nuvion's fee on the transfer, in cents, when it says. */
     providerFee: bigint('provider_fee', { mode: 'bigint' }),
+    /** The person's verified Nuvion entity whose account pays it; null when Kova's pot paid. */
+    entityId: text('entity_id'),
+    /** Cents Kova's pot moved into that account for this payout: the payout and room for its fee. */
+    fundedCents: bigint('funded_cents', { mode: 'bigint' }),
+    /** When the room left over after Nuvion's fee went back to Kova's pot. */
+    restReturnedAt: timestamp('rest_returned_at', { withTimezone: true }),
+    /** When a failed payout's money went back from the person's account to Kova's pot. */
+    pulledBackAt: timestamp('pulled_back_at', { withTimezone: true }),
     refundTxHash: text('refund_tx_hash'),
     failure: text('failure'),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),

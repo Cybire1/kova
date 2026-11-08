@@ -97,6 +97,25 @@ export interface Payout {
 
 type Sign = (message: string) => Promise<Hex>
 
+/** Where a wallet stands on the ID check cashing out abroad needs (the dollar card's check). */
+export type Verification = 'verified' | 'checking' | 'needed' | 'failed'
+
+export interface CashOutAccess {
+  /** Cash-outs go out in the person's own name, so the ID check comes first. */
+  required: boolean
+  verification: Verification | null
+}
+
+/** An error from Kova, with the ID check's status when that's what stopped it. */
+export class PayoutError extends Error {
+  constructor(
+    message: string,
+    readonly verification?: Verification,
+  ) {
+    super(message)
+  }
+}
+
 async function call<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
   const response = await fetch(`/api/payouts/${path}`, {
     method: init?.method ?? (init?.body === undefined ? 'GET' : 'POST'),
@@ -104,8 +123,14 @@ async function call<T>(path: string, init?: { method?: string; body?: unknown })
       ? {}
       : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(init.body) }),
   })
-  const json = (await response.json().catch(() => null)) as (T & { error?: string }) | null
-  if (!response.ok || !json) throw new Error(json?.error ?? 'Kova didn’t answer. Try again.')
+  const json = (await response.json().catch(() => null)) as
+    | (T & { error?: string; verification?: Verification | null })
+    | null
+  if (!response.ok || !json)
+    throw new PayoutError(
+      json?.error ?? 'Kova didn’t answer. Try again.',
+      json?.verification ?? undefined,
+    )
   return json
 }
 
@@ -123,7 +148,22 @@ export const getPayoutBanks = (country: string) =>
 export const getPayoutRate = (currency: string) =>
   call<{ per_dollar: number }>(`payouts/rates/${currency}`).then((r) => r.per_dollar)
 export const getRecipients = (address: Address) =>
-  call<{ data: Recipient[] }>(`wallets/${address}/payout-recipients`).then((r) => r.data)
+  getCashOutAccounts(address).then((r) => r.recipients)
+
+/** The wallet's saved accounts, and whether it needs the ID check before cashing out. */
+export async function getCashOutAccounts(
+  address: Address,
+): Promise<{ recipients: Recipient[]; access: CashOutAccess }> {
+  const r = await call<{
+    data: Recipient[]
+    verification_required?: boolean
+    verification?: Verification | null
+  }>(`wallets/${address}/payout-recipients`)
+  return {
+    recipients: r.data,
+    access: { required: r.verification_required ?? false, verification: r.verification ?? null },
+  }
+}
 export const getPayout = (id: string) => call<Payout>(`payouts/${id}`)
 
 export async function addRecipient(

@@ -685,6 +685,18 @@ export async function bankCodes(country: string): Promise<NuvionBank[]> {
   return Array.isArray(data) ? data : []
 }
 
+/**
+ * The account a payout leaves from: Kova's pot (left out), or a verified person's own account, with
+ * Kova acting for their entity, so the payout goes in their name.
+ */
+export interface PayingAccount {
+  accountId: string
+  entityId: string
+}
+
+const forEntity = (entityId?: string | null) =>
+  entityId ? `entity_id=${encodeURIComponent(entityId)}` : ''
+
 export interface FxQuote {
   id: string
   rate: number
@@ -693,8 +705,8 @@ export interface FxQuote {
   expiresAt: Date
 }
 
-/** A rate locked for a few minutes, from Kova's pot (its own margin applies) into `to`. */
-export async function fxQuote(to: string, cents: number): Promise<FxQuote> {
+/** A rate locked for a few minutes into `to`, from Kova's pot or the account that will pay. */
+export async function fxQuote(to: string, cents: number, from?: PayingAccount): Promise<FxQuote> {
   if (!config.NUVION_POT_ACCOUNT)
     throw new KovaError('conflict', 'Cashing out isn’t switched on for this server yet.')
   const data = await nuvion<{
@@ -708,7 +720,8 @@ export async function fxQuote(to: string, cents: number): Promise<FxQuote> {
       from_currency: 'USD',
       to_currency: to,
       amount_from: cents,
-      account_id: config.NUVION_POT_ACCOUNT,
+      account_id: from?.accountId ?? config.NUVION_POT_ACCOUNT,
+      ...(from ? { entity_id: from.entityId } : {}),
     },
   })
   const expires =
@@ -727,17 +740,20 @@ export async function potCents(): Promise<number> {
 }
 
 /**
- * Someone Kova pays out to: a counterparty of Kova's own entity, with their name, email and address
- * (Nuvion needs all three), then the one payment detail that says where the money goes.
+ * Someone a wallet pays out to: a counterparty, with their name, email and address (Nuvion needs
+ * all three), then the one payment detail that says where the money goes. With `entityId`, both
+ * belong to the wallet's own verified entity, whose account pays them; without, to Kova's.
  */
 export async function createRecipient(
   person: { firstName: string; lastName: string; email: string; address: PayeeAddress },
   detail: Record<string, unknown>,
+  entityId?: string,
 ): Promise<{ counterpartyId: string; paymentDetailId: string }> {
   const party = await nuvion<{ id?: string; counterparty?: { id: string } }>('/counterparties', {
     method: 'POST',
     body: {
       type: 'individual',
+      ...(entityId ? { entity_id: entityId } : {}),
       profile: {
         first_name: person.firstName,
         last_name: person.lastName,
@@ -757,7 +773,11 @@ export async function createRecipient(
   if (!counterpartyId) throw new NuvionRefused(500, undefined, 'No counterparty id came back.')
   const made = await nuvion<{ id?: string; payment_detail?: { id: string } }>('/payment-details', {
     method: 'POST',
-    body: { ...detail, counterparty_id: counterpartyId },
+    body: {
+      ...detail,
+      counterparty_id: counterpartyId,
+      ...(entityId ? { entity_id: entityId } : {}),
+    },
   })
   const paymentDetailId = made.payment_detail?.id ?? made.id
   if (!paymentDetailId) throw new NuvionRefused(500, undefined, 'No payment detail id came back.')
@@ -769,9 +789,13 @@ export async function createRecipient(
  * only when it pays out. False only when Nuvion showed an address without them; null when it
  * didn't say, so a question Nuvion can't answer never stops a cash-out.
  */
-export async function counterpartyAddressReady(id: string): Promise<boolean | null> {
+export async function counterpartyAddressReady(
+  id: string,
+  entityId?: string | null,
+): Promise<boolean | null> {
+  const q = forEntity(entityId)
   const d = await nuvion<{ counterparty?: { profile?: { address?: Record<string, unknown> } } }>(
-    `/counterparties/${encodeURIComponent(id)}`,
+    `/counterparties/${encodeURIComponent(id)}${q ? `?${q}` : ''}`,
   ).catch(() => null)
   const party = (d?.counterparty ?? d) as { profile?: { address?: Record<string, unknown> } } | null
   const address = party?.profile?.address
@@ -811,8 +835,9 @@ const transferOf = (d: TransferReply): NuvionTransfer => {
 }
 
 /**
- * Pays `cents` out of Kova's pot to a recipient, converted at `fxQuoteId` when it isn't USD.
- * `reference` is unique per payout: a second try with it is refused (409), never paid twice.
+ * Pays `cents` to a recipient, converted at `fxQuoteId` when it isn't USD: out of Kova's pot, or
+ * out of the person's own account in their name (`from`). `reference` is unique per payout: a
+ * second try with it is refused (409), never paid twice.
  */
 export async function sendPayout(input: {
   counterpartyId: string
@@ -821,13 +846,15 @@ export async function sendPayout(input: {
   cents: number
   reference: string
   fxQuoteId?: string | null
+  from?: PayingAccount
 }): Promise<NuvionTransfer> {
   if (!config.NUVION_POT_ACCOUNT)
     throw new KovaError('conflict', 'Cashing out isn’t switched on for this server yet.')
   const data = await nuvion<TransferReply>('/transfers', {
     method: 'POST',
     body: {
-      account_id: config.NUVION_POT_ACCOUNT,
+      account_id: input.from?.accountId ?? config.NUVION_POT_ACCOUNT,
+      ...(input.from ? { entity_id: input.from.entityId } : {}),
       counterparty_id: input.counterpartyId,
       payment_detail_id: input.paymentDetailId,
       payment_type: input.paymentType,
@@ -841,14 +868,24 @@ export async function sendPayout(input: {
   return transferOf(data)
 }
 
-export async function payoutTransfer(id: string): Promise<NuvionTransfer> {
-  return transferOf(await nuvion<TransferReply>(`/transfers/${encodeURIComponent(id)}`))
+export async function payoutTransfer(
+  id: string,
+  entityId?: string | null,
+): Promise<NuvionTransfer> {
+  const q = forEntity(entityId)
+  return transferOf(
+    await nuvion<TransferReply>(`/transfers/${encodeURIComponent(id)}${q ? `?${q}` : ''}`),
+  )
 }
 
 /** The transfer made with `reference`, for a retry Nuvion refused as a duplicate (it says no more). */
-export async function payoutByReference(reference: string): Promise<NuvionTransfer | null> {
+export async function payoutByReference(
+  reference: string,
+  entityId?: string | null,
+): Promise<NuvionTransfer | null> {
+  const q = forEntity(entityId)
   const page = await nuvion<{ data?: TransferReply[] } | TransferReply[]>(
-    `/transfers?unique_reference=${encodeURIComponent(reference)}&type=outflow&limit=5`,
+    `/transfers?unique_reference=${encodeURIComponent(reference)}&type=outflow&limit=5${q ? `&${q}` : ''}`,
   )
   const list = Array.isArray(page) ? page : (page.data ?? [])
   return list[0] ? transferOf(list[0]) : null

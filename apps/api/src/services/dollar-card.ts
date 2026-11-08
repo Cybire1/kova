@@ -876,6 +876,46 @@ async function wayBack(holder: Holder) {
   }
 }
 
+// ── Cash-outs in the person's own name ─────────────────────────────────────────────────────
+
+/** Where a wallet stands on the ID check that cash-outs abroad need (the same as the card's). */
+export type PayoutVerification = 'verified' | 'checking' | 'needed' | 'failed'
+
+export async function payoutVerification(wallet: Address): Promise<PayoutVerification> {
+  const holder = await holderOf(wallet)
+  if (!holder || holder.status === UNSENT) return 'needed'
+  if (holder.status === PASSED)
+    return holder.accountId && holder.paymentDetailId ? 'verified' : 'checking'
+  if (holder.status === REVIEWING) return 'checking'
+  return 'failed'
+}
+
+/**
+ * The wallet's verified person at Nuvion, for a cash-out in their own name: passed the ID check,
+ * with their own USD account open and both ways set up between it and Kova's pot. Null until then.
+ */
+export async function payoutHolder(wallet: Address) {
+  const holder = await holderOf(wallet)
+  if (
+    !holder ||
+    holder.status !== PASSED ||
+    !holder.accountId ||
+    !holder.counterpartyId ||
+    !holder.paymentDetailId
+  )
+    return null
+  return {
+    entityId: holder.entityId,
+    accountId: holder.accountId,
+    /** Kova's pot pays their account through this. */
+    toAccount: { counterpartyId: holder.counterpartyId, paymentDetailId: holder.paymentDetailId },
+    /** Their account pays Kova's pot back through this, made the first time it's needed. */
+    toPot: () => wayBack(holder),
+  }
+}
+
+export type PayoutHolder = NonNullable<Awaited<ReturnType<typeof payoutHolder>>>
+
 type Withdrawal = typeof schema.cardWithdrawals.$inferSelect
 
 /**

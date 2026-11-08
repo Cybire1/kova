@@ -37,7 +37,12 @@ async function pass(request: Request, method: 'GET' | 'POST' | 'DELETE', segment
   } catch (error) {
     if (error instanceof ApiError)
       return Response.json(
-        { error: error.message, code: error.code ?? null },
+        {
+          error: error.message,
+          code: error.code ?? null,
+          // The ID check's status, when that's what stopped a cash-out.
+          verification: error.details?.verification ?? null,
+        },
         { status: error.status >= 500 ? 502 : error.status },
       )
     return Response.json({ error: 'Kova is unreachable. Nothing moved.' }, { status: 502 })

@@ -6,7 +6,7 @@ import {
   formatAmount,
   type TransferAuthorization,
 } from '@kova/monad'
-import { and, desc, eq, inArray, ne } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm'
 import { type Address, encodeFunctionData, getAddress, type Hex, isAddressEqual } from 'viem'
 import { feePayerAddress, network, publicClient, settlementToken } from '../chain.js'
 import { config } from '../config.js'
@@ -14,13 +14,22 @@ import { db } from '../db.js'
 import { KovaError } from '../errors.js'
 import { relayAuthorization, relayReady, sendFromRelayer } from '../relay.js'
 import {
+  type PayoutHolder,
+  type PayoutVerification,
+  payoutHolder,
+  payoutVerification,
+} from './dollar-card.js'
+import {
   bankCodes,
+  bookTransfer,
+  bookTransferToPot,
   counterpartyAddressReady,
   createRecipient,
   fxQuote,
   type NuvionBank,
   NuvionRefused,
   type NuvionTransfer,
+  type PayingAccount,
   payoutByReference,
   payoutTransfer,
   potCents,
@@ -38,6 +47,12 @@ import { type Corridor, corridorById, recipientFor } from './payout-corridors.js
  *    relays it, then pays the account out of its USD pot at Nuvion, converted at the quote.
  * 4. Nuvion pays asynchronously: `settlePayouts` follows each transfer to paid, and if Nuvion refuses
  *    or fails it, sends the dollars back to the wallet.
+ *
+ * In the person's own name (KOVA_PAYOUTS_OWN_NAME): a first cash-out needs the ID check the dollar
+ * card uses, the account is saved under the person's own verified Nuvion entity, and the payout
+ * leaves from their own USD account. Kova's pot funds that account for each payout (the payout and
+ * room for Nuvion's fee, book-transferred inside Nuvion), the room left over goes back to the pot,
+ * and a payout that fails comes back to the pot before the dollars go back to the wallet.
  *
  * Paid once: the transfer's reference is the payout's id, and Nuvion refuses a second transfer with
  * it. Refunded once: the refund's hash is kept before it's sent. Nothing leaves a wallet unless Kova's
@@ -72,6 +87,112 @@ function treasury(): Address {
 }
 
 const txUrl = (hash: string | null) => (hash ? explorerTxUrl(network, hash as Hex) : null)
+
+// --- In the person's own name -----------------------------------------------------------------------
+
+const ownName = () => config.KOVA_PAYOUTS_OWN_NAME === '1'
+
+const VERIFY: Record<Exclude<PayoutVerification, 'verified'>, string> = {
+  needed: 'Cashing out to a bank abroad needs your ID, once. Verify it, then come back.',
+  checking: 'Your ID is still being checked. You can cash out as soon as it passes.',
+  failed: 'Your ID check didn’t pass, so cashing out abroad isn’t open to you.',
+}
+
+/** The wallet's verified person, or why it can't cash out in its own name yet. */
+async function verifiedHolder(wallet: Address): Promise<PayoutHolder> {
+  const holder = await payoutHolder(wallet)
+  if (holder) return holder
+  const found = await payoutVerification(wallet)
+  // Passed, but the account isn't open yet: still being set up.
+  const status = found === 'verified' ? 'checking' : found
+  throw new KovaError('forbidden', VERIFY[status], { verification: status })
+}
+
+/** What a wallet needs before it can cash out: nothing, or the ID check, and where it stands. */
+export async function payoutReadiness(wallet: Address) {
+  if (!ownName()) return { verification_required: false, verification: null }
+  return { verification_required: true, verification: await payoutVerification(wallet) }
+}
+
+const payingAccount = (h: PayoutHolder): PayingAccount => ({
+  accountId: h.accountId,
+  entityId: h.entityId,
+})
+
+/**
+ * Room for Nuvion's fee on a payout from a person's own account, in cents. Nuvion takes its fee on
+ * top of the amount and says it only once the transfer exists; whatever isn't used goes back.
+ */
+const feeRoom = (corridor: Corridor) => (corridor.scheme === 'swift' ? 3_000 : 500)
+/** The most room any payout takes, for checking the pot before a wallet's dollars move. */
+const MAX_FEE_ROOM = 3_000
+
+const tag = (row: Pick<Row, 'id'>, step: string) => `kova-out-${step}-${row.id.replace(/-/g, '')}`
+
+type Moved = 'done' | 'refused' | 'unsure'
+
+/** Nuvion's answer to a move between Kova's pot and a person's account: 409 means it already happened. */
+function moved(e: unknown): Moved {
+  if (e instanceof NuvionRefused && e.status === 409) return 'done'
+  if (refusedForGood(e)) return 'refused'
+  return 'unsure'
+}
+
+/** Kova's pot into the person's account, once per `step` (its reference is unique at Nuvion). */
+async function toAccount(row: Row, holder: PayoutHolder, cents: number, step: string) {
+  try {
+    await bookTransfer(holder.toAccount, cents, tag(row, step), 'Kova cash out')
+    return 'done' as Moved
+  } catch (e) {
+    console.error('[payouts] funding the account:', row.id, step, (e as Error).message)
+    return moved(e)
+  }
+}
+
+/** The person's account back into Kova's pot, once per `step`. */
+async function toPot(row: Row, holder: PayoutHolder, cents: number, step: string) {
+  try {
+    await bookTransferToPot(
+      payingAccount(holder),
+      await holder.toPot(),
+      cents,
+      tag(row, step),
+      'Kova cash out',
+    )
+    return 'done' as Moved
+  } catch (e) {
+    console.error('[payouts] back to the pot:', row.id, step, (e as Error).message)
+    return e instanceof KovaError && !(e instanceof NuvionRefused) ? 'unsure' : moved(e)
+  }
+}
+
+/** Sets fields on a payout whatever its status (only for bookkeeping that never moves it). */
+async function note(row: Row, values: Partial<typeof schema.payouts.$inferInsert>) {
+  const [next] = await db
+    .update(schema.payouts)
+    .set({ ...values, updatedAt: new Date() })
+    .where(eq(schema.payouts.id, row.id))
+    .returning()
+  return next ?? row
+}
+
+/** Sends the fee room Nuvion didn't use back to Kova's pot, once it knows its fee. */
+async function returnRest(row: Row, holder?: PayoutHolder | null): Promise<Row> {
+  if (!row.entityId || row.restReturnedAt || row.fundedCents === null || row.providerFee === null)
+    return row
+  const cents = Number((row.amount - row.fee) / CENT)
+  const rest = Number(row.fundedCents) - cents - Number(row.providerFee)
+  if (rest <= 0) return note(row, { restReturnedAt: new Date() })
+  const who = holder ?? (await payoutHolder(row.wallet as Address))
+  if (!who) return row
+  return (await toPot(row, who, rest, 'rest')) === 'done'
+    ? note(row, { restReturnedAt: new Date() })
+    : row
+}
+
+/** Nuvion's word that the paying account couldn't cover the amount and its fee. */
+const shortOfFunds = (e: unknown) =>
+  e instanceof NuvionRefused && /insufficient/i.test(`${e.code ?? ''} ${e.message}`)
 export const payoutNonce = (row: Pick<Row, 'id'>) => encodeMemo({ kind: 'cashout', id: row.id })
 const referenceOf = (row: Pick<Row, 'id'>) => `kova-out-${row.id.replace(/-/g, '')}`
 
@@ -143,6 +264,8 @@ export async function addRecipient(
   values: Record<string, unknown>,
 ): Promise<Recipient> {
   requireLive()
+  // In the person's own name: only once their ID has passed, and saved under their own entity.
+  const holder = ownName() ? await verifiedHolder(wallet) : null
   const corridor = corridorById(corridorId)
   if (!corridor) throw new KovaError('invalid_request', 'Pick where to cash out to.')
   let bank: { bank_name: string; code: string } | undefined
@@ -156,7 +279,7 @@ export async function addRecipient(
   const input = recipientFor(corridor, values, bank)
   let ids: { counterpartyId: string; paymentDetailId: string }
   try {
-    ids = await createRecipient(input.person, input.detail)
+    ids = await createRecipient(input.person, input.detail, holder?.entityId)
   } catch (e) {
     if (!(e instanceof NuvionRefused)) throw e
     console.error('[payouts] recipient refused:', e.status, e.code ?? '', e.message)
@@ -174,6 +297,7 @@ export async function addRecipient(
       holderName: input.person.holderName,
       label: input.label,
       ...ids,
+      entityId: holder?.entityId ?? null,
     })
     .returning()
   if (!row) throw new KovaError('internal', 'Kova couldn’t save that. Try again.')
@@ -265,7 +389,11 @@ export function serializePayout(row: Row, recipient?: Recipient | null) {
     rate: row.rate,
     recipient: recipient ? serializeRecipient(recipient) : null,
     // 'refunding' is internal: to the wallet it has failed, and its dollars are on their way back.
-    status: expired ? 'expired' : row.status === 'refunding' ? 'failed' : row.status,
+    status: expired
+      ? 'expired'
+      : row.status === 'refunding' || row.status === 'held'
+        ? 'failed'
+        : row.status,
     pay: {
       token: getAddress(settlementToken.address),
       to: feePayerAddress ? getAddress(feePayerAddress) : null,
@@ -310,8 +438,18 @@ export async function quotePayout(
     throw new KovaError('not_found', 'Pick where to cash out to.')
   const corridor = corridorById(recipient.corridor)
   if (!corridor) throw new KovaError('conflict', 'Kova doesn’t pay out that way any more.')
+  // In the person's own name: their verified account pays, so the account must be saved under it.
+  let holder: PayoutHolder | null = null
+  if (ownName() || recipient.entityId) {
+    holder = await verifiedHolder(wallet)
+    if (recipient.entityId !== holder.entityId)
+      throw new KovaError(
+        'invalid_request',
+        'Add this account again: cash-outs now go out from your own verified account.',
+      )
+  }
   // Accounts saved before Kova asked for them have no state or postal code: Nuvion fails those.
-  if ((await counterpartyAddressReady(recipient.counterpartyId)) === false)
+  if ((await counterpartyAddressReady(recipient.counterpartyId, recipient.entityId)) === false)
     throw new KovaError(
       'invalid_request',
       'Add this account again: Kova now needs your state and postal code.',
@@ -329,7 +467,7 @@ export async function quotePayout(
     amountTo = BigInt(cents)
     rate = 1
   } else {
-    const q = await fxQuote(corridor.currency, cents)
+    const q = await fxQuote(corridor.currency, cents, holder ? payingAccount(holder) : undefined)
     amountTo = BigInt(q.amountTo)
     rate = q.rate
     fxQuoteId = q.id
@@ -350,6 +488,7 @@ export async function quotePayout(
       rate: rate.toString(),
       fxQuoteId,
       expiresAt,
+      entityId: holder?.entityId ?? null,
     })
     .returning()
   if (!row) throw new KovaError('internal', 'Kova couldn’t save that quote. Try again.')
@@ -412,7 +551,7 @@ export async function payPayout(
     throw new KovaError('invalid_request', 'The approval can’t outlast the quote.')
 
   // Kova pays the account from its pot: it must hold this, and every payout still on its way.
-  const cents = Number((row.amount - row.fee) / CENT)
+  const cents = Number((row.amount - row.fee) / CENT) + (row.entityId ? MAX_FEE_ROOM : 0)
   const [held, owed] = await Promise.all([potCents(), centsOwed()])
   if (held < owed + cents) {
     console.error('[payouts] the pot is short', { held, owed, cents })
@@ -460,6 +599,24 @@ async function send(row: Row): Promise<Row> {
   if (!recipient || !corridor) return refund(row, 'Kova lost where this was going.')
   const reference = referenceOf(row)
   const cents = Number((row.amount - row.fee) / CENT)
+
+  // In the person's own name: Kova's pot funds their verified account, then that account pays.
+  let holder: PayoutHolder | null = null
+  if (row.entityId) {
+    holder = await payoutHolder(row.wallet as Address)
+    if (!holder || holder.entityId !== row.entityId)
+      return refund(row, 'Your verified account isn’t ready to pay out.')
+    if (row.fundedCents === null) {
+      const room = feeRoom(corridor)
+      const funded = await toAccount(row, holder, cents + room, 'in')
+      if (funded === 'refused') return refund(row, 'Kova couldn’t fund your account to pay it.')
+      if (funded === 'unsure') return row
+      const next = await move(row, 'received', { fundedCents: BigInt(cents + room) })
+      if (!next) return (await payoutRow(row.id)) as Row
+      row = next
+    }
+  }
+  const from = holder ? payingAccount(holder) : undefined
   const pay = (fxQuoteId: string | null) =>
     sendPayout({
       counterpartyId: recipient.counterpartyId,
@@ -468,6 +625,7 @@ async function send(row: Row): Promise<Row> {
       cents,
       reference,
       fxQuoteId,
+      ...(from ? { from } : {}),
     })
   let transfer: NuvionTransfer
   try {
@@ -475,13 +633,27 @@ async function send(row: Row): Promise<Row> {
   } catch (e) {
     if (e instanceof NuvionRefused && e.status === 409) {
       // Sent before (a retry after no answer): find it by its reference.
-      const found = await payoutByReference(reference)
+      const found = await payoutByReference(reference, row.entityId)
       if (!found) return row
       transfer = found
+    } else if (
+      holder &&
+      shortOfFunds(e) &&
+      row.fundedCents !== null &&
+      Number(row.fundedCents) <= cents + feeRoom(corridor)
+    ) {
+      // Nuvion's fee was more than the room: fund the same room once more, then pay.
+      const room = feeRoom(corridor)
+      const more = await toAccount(row, holder, room, 'more')
+      if (more === 'refused') return refund(row, 'Kova couldn’t cover the payout’s fee.')
+      if (more === 'unsure') return row
+      const next = await move(row, 'received', { fundedCents: row.fundedCents + BigInt(room) })
+      if (!next) return (await payoutRow(row.id)) as Row
+      return send(next)
     } else if (staleQuote(e) && row.currency !== 'USD') {
       // The locked rate ran out between Monad and Nuvion: pay at today's rate, and say so.
       try {
-        const q = await fxQuote(row.currency, cents)
+        const q = await fxQuote(row.currency, cents, from)
         const updated = await move(row, 'received', {
           fxQuoteId: q.id,
           amountTo: BigInt(q.amountTo),
@@ -510,17 +682,17 @@ async function send(row: Row): Promise<Row> {
     ...(transfer.fee !== null ? { providerFee: BigInt(transfer.fee) } : {}),
   })
   if (!sending) return (await payoutRow(row.id)) as Row
-  return follow(sending, transfer)
+  return follow(await returnRest(sending, holder), transfer)
 }
 
 /** Reads where Nuvion has the transfer, and moves the payout to paid, or back to the wallet. */
 async function follow(row: Row, known?: NuvionTransfer): Promise<Row> {
   if (!row.transferId) return row
-  const transfer = known ?? (await payoutTransfer(row.transferId).catch(() => null))
+  const transfer = known ?? (await payoutTransfer(row.transferId, row.entityId).catch(() => null))
   if (!transfer) return row
   if (transfer.status === 'successful')
-    return (
-      (await move(row, 'sending', { status: 'paid', paidAt: new Date(), failure: null })) ?? row
+    return returnRest(
+      (await move(row, 'sending', { status: 'paid', paidAt: new Date(), failure: null })) ?? row,
     )
   if (transfer.status === 'failed' || transfer.status === 'reversed')
     return refund(
@@ -547,6 +719,29 @@ async function refund(row: Row, reason: string): Promise<Row> {
     })
     if (!marked) return (await payoutRow(row.id)) as Row
     row = marked
+  }
+  // Paid in the person's own name: what's in their account for it goes back to Kova's pot first,
+  // so the dollars going back to the wallet are never paid twice.
+  if (row.entityId && row.fundedCents !== null && !row.pulledBackAt) {
+    const holder = await payoutHolder(row.wallet as Address)
+    if (!holder) return row
+    const cents = Number((row.amount - row.fee) / CENT)
+    const funded = Number(row.fundedCents)
+    // No payout made: all of it. A payout the bank sent back: the payout, and any room not returned.
+    const back = row.transferId
+      ? cents +
+        (row.restReturnedAt ? 0 : Math.max(0, funded - cents - Number(row.providerFee ?? 0)))
+      : funded
+    const done = await toPot(row, holder, back, 'back')
+    if (done === 'refused') {
+      console.error('[payouts] a failed payout couldn’t come back to the pot:', row.id)
+      return note(row, {
+        status: 'held',
+        failure: `${why} Kova couldn’t send your dollars back by itself, so it’s sorting it out by hand.`,
+      })
+    }
+    if (done === 'unsure') return row
+    row = await note(row, { pulledBackAt: new Date() })
   }
   if (row.refundTxHash) {
     const sent = await publicClient
@@ -631,4 +826,19 @@ export async function settlePayouts() {
       console.error('[payouts] settling', row.id, (e as Error).message)
     }
   }
+  // Paid in a person's own name, with fee room still to go back to the pot.
+  const owing = await db
+    .select()
+    .from(schema.payouts)
+    .where(
+      and(
+        eq(schema.payouts.network, net),
+        eq(schema.payouts.status, 'paid'),
+        isNotNull(schema.payouts.entityId),
+        isNull(schema.payouts.restReturnedAt),
+        isNotNull(schema.payouts.providerFee),
+      ),
+    )
+    .limit(25)
+  for (const row of owing) await returnRest(row).catch(() => {})
 }
