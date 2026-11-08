@@ -120,3 +120,38 @@ export async function swapPrice(tokenIn: Address, tokenOut: Address): Promise<nu
   }
   return reading.get(key) as Promise<number>
 }
+
+/** KovaCashOut's one entry: a signed AUSD transfer in, a swap, and exactly `pay` USDC out (apps/card/contracts). */
+export const cashOutAbi = [
+  {
+    type: 'function',
+    name: 'cashOut',
+    stateMutability: 'nonpayable',
+    inputs: [
+      {
+        name: 'auth',
+        type: 'tuple',
+        components: [
+          { name: 'owner', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'validAfter', type: 'uint256' },
+          { name: 'validBefore', type: 'uint256' },
+          { name: 'v', type: 'uint8' },
+          { name: 'r', type: 'bytes32' },
+          { name: 's', type: 'bytes32' },
+        ],
+      },
+      {
+        name: 'payout',
+        type: 'tuple',
+        components: [
+          { name: 'payTo', type: 'address' },
+          { name: 'pay', type: 'uint256' },
+          { name: 'ref', type: 'bytes32' },
+        ],
+      },
+      { name: 'swap', type: 'bytes' },
+    ],
+    outputs: [],
+  },
+] as const

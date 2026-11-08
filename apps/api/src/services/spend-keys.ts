@@ -37,6 +37,7 @@ import {
 import { and, desc, eq, gte, inArray, lt, or, sql } from 'drizzle-orm'
 import {
   type Address,
+  encodeAbiParameters,
   encodeFunctionData,
   erc20Abi,
   getAddress,
@@ -44,6 +45,7 @@ import {
   isAddressEqual,
   keccak256,
   maxUint256,
+  parseSignature,
   recoverMessageAddress,
   recoverTypedDataAddress,
   toHex,
@@ -54,7 +56,7 @@ import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
 import { decodeId } from '../ids.js'
-import { relayAuthorization } from '../relay.js'
+import { OverFeeCap, relayAuthorization, sendFromRelayer } from '../relay.js'
 import {
   cardContract,
   cardsReady,
@@ -65,6 +67,7 @@ import {
   sendCard,
 } from './cards.js'
 import { settleFromReceipt } from './settle.js'
+import { buildSwap, cashOutAbi, routeSources, swapPrice, swapRoute } from './swap.js'
 
 /**
  * Spending keys on Monad: who may spend a wallet's dollars, short of the wallet itself.
@@ -1168,8 +1171,9 @@ export async function prepareX402(
     throw new KovaError('invalid_request', 'Kova pays websites on Monad only.')
   const token = x402Token(requirement.asset)
   if (!token) throw new KovaError('invalid_request', 'Kova pays websites in AUSD or USDC only.')
-  const amount = BigInt(requirement.amount)
-  if (amount > X402_MAX)
+  /** What the site gets, in its token. */
+  const pay = BigInt(requirement.amount)
+  if (pay > X402_MAX)
     throw new KovaError(
       'invalid_request',
       `That’s more than Kova pays a website per use ($${formatAmount(X402_MAX)}).`,
@@ -1177,20 +1181,29 @@ export async function prepareX402(
   const payTo = getAddress(requirement.payTo)
   if (isAddressEqual(payTo, row.ownerAddress as Address) || isAddressEqual(payTo, payer.address))
     throw new KovaError('invalid_request', 'That payment would go nowhere.')
-  // Kova only takes the owner's dollars when its float can pay the site right away.
-  const float = await publicClient
-    .readContract({
-      address: token.address,
-      abi: erc20Abi,
-      functionName: 'balanceOf',
-      args: [payer.address],
-    })
-    .catch(() => 0n)
-  if (float < amount)
-    throw new KovaError(
-      'conflict',
-      `Kova can’t pay websites in ${token.symbol} right now. Nothing moved.`,
-    )
+  // What the budget pays Kova, in AUSD. A site paid in AUSD gets the same dollars back out of the
+  // float, so the float needs nothing of its own. A site paid in USDC gets the budget's AUSD swapped
+  // as it arrives (swapForSite), which costs a sliver more; without the swap contract, the float
+  // pays from USDC it already holds.
+  let amount = pay
+  let swap: { pay: string } | null = null
+  if (token.currency === 'USDC') {
+    if (cashOutContract()) {
+      amount = await swapCharge(pay)
+      swap = { pay: pay.toString() }
+    } else {
+      const stock = await publicClient
+        .readContract({
+          address: token.address,
+          abi: erc20Abi,
+          functionName: 'balanceOf',
+          args: [payer.address],
+        })
+        .catch(() => 0n)
+      if (stock < pay)
+        throw new KovaError('conflict', 'Kova can’t pay websites in USDC right now. Nothing moved.')
+    }
+  }
   const verdict = await judge(row, amount, payer.address, true)
   if (verdict.kind === 'deny') throw new KovaError('policy_declined', verdict.reason)
   const resource = input.resource
@@ -1215,19 +1228,127 @@ export async function prepareX402(
     status: 'prepared',
     memo: randomMemo(),
     deadline: nowS() + PAYMENT_TTL_S,
-    request: { requirement, resource, token: token.currency },
+    request: { requirement, resource, token: token.currency, ...(swap ? { swap } : {}) },
   })
   return { payment, typedData: paymentData(contract, row, payment) }
+}
+
+// A site paid in USDC: the budget's AUSD is swapped for it as it reaches the float, through
+// KovaCashOut (apps/card/contracts), which Kova's relayer carries out and pays the gas for.
+
+const cashOutContract = (): Address | null =>
+  config.KOVA_CASH_OUT ? getAddress(config.KOVA_CASH_OUT) : null
+
+/** The most gas Kova pays for one swap: the signed transfer, the swap and the payout. */
+const X402_SWAP_MAX_GAS = 5_000_000n
+
+/**
+ * The AUSD a USDC payment of `pay` costs: at the kept AUSD→USDC price and a sliver over, checked
+ * against a live route so the swap is known to cover it before the budget pays anything.
+ */
+async function swapCharge(pay: bigint): Promise<bigint> {
+  const ausd = tokens[network.id].AUSD
+  const usdc = tokens[network.id].USDC
+  if (!ausd || !usdc) throw new KovaError('invalid_request', 'Kova pays websites in AUSD here.')
+  const price = await swapPrice(ausd.address, usdc.address).catch(() => 0)
+  if (!(price > 0.9))
+    throw new KovaError('conflict', 'Kova can’t swap to pay this site in USDC right now.')
+  const charge = BigInt(Math.ceil((Number(pay) / price) * 1.0005)) + 1n
+  const route = await swapRoute(ausd.address, usdc.address, charge).catch(() => null)
+  if (!route || route.amountOut < pay)
+    throw new KovaError(
+      'conflict',
+      'Kova can’t swap to pay this site in USDC right now. Nothing moved.',
+    )
+  return charge
+}
+
+/**
+ * Turns the AUSD a budget just paid the float into the USDC the site asked for, in the float: the
+ * float signs its AUSD to KovaCashOut with a nonce naming itself and `pay`, the contract swaps and
+ * pays exactly `pay` back to it, and anything over comes back too. The nonce comes from the
+ * payment's id, so a payment is swapped once.
+ */
+async function swapForSite(payment: KeyPaymentRow, pay: bigint): Promise<Hex> {
+  const contract = cashOutContract()
+  const ausd = tokens[network.id].AUSD
+  const usdc = tokens[network.id].USDC
+  if (!contract || !ausd || !usdc)
+    throw new KovaError('conflict', 'Kova can’t swap to pay websites in USDC here.')
+  const payer = x402Payer()
+  const ref = keccak256(toHex(`kova-x402-swap:${payment.id}`))
+  const nonce = keccak256(
+    encodeAbiParameters(
+      [{ type: 'address' }, { type: 'uint256' }, { type: 'bytes32' }],
+      [payer.address, pay, ref],
+    ),
+  )
+  const validBefore = BigInt(nowS() + 600)
+  const signature = parseSignature(
+    await payer.signTypedData(
+      transferAuthorizationTypedData(ausd, network.chainId, {
+        from: payer.address,
+        to: contract,
+        value: payment.amount,
+        validAfter: 0n,
+        validBefore,
+        nonce,
+      }),
+    ),
+  )
+  const call = (swap: Hex) =>
+    encodeFunctionData({
+      abi: cashOutAbi,
+      functionName: 'cashOut',
+      args: [
+        {
+          owner: payer.address,
+          value: payment.amount,
+          validAfter: 0n,
+          validBefore,
+          v: Number(signature.v ?? BigInt(signature.yParity + 27)),
+          r: signature.r,
+          s: signature.s,
+        },
+        { payTo: payer.address, pay, ref },
+        swap,
+      ],
+    })
+  // A pool too costly to carry out on Monad is left out and the next best tried, up to twice.
+  const skipped: string[] = []
+  for (let attempt = 0; ; attempt++) {
+    const route = await swapRoute(ausd.address, usdc.address, payment.amount, skipped)
+    if (route.amountOut < pay)
+      throw new KovaError('conflict', 'The dollar swap moved, so nothing was swapped.')
+    const built = await buildSwap(route, contract, 30)
+    try {
+      const receipt = await sendFromRelayer(contract, call(built.data), {
+        maxGas: X402_SWAP_MAX_GAS,
+      })
+      if (receipt.status !== 'success')
+        throw new KovaError('chain_error', 'The swap didn’t go through.')
+      return receipt.transactionHash
+    } catch (error) {
+      const costly = routeSources(route).filter((source) => !skipped.includes(source))
+      if (error instanceof OverFeeCap && attempt < 2 && costly.length > 0) {
+        skipped.push(...costly)
+        continue
+      }
+      throw error
+    }
+  }
 }
 
 /**
  * The owner's AUSD reached Kova's float: sign the site's payment from the float, exactly what the
  * site asked for, and keep the header with the payment so the browser can send it.
  */
-async function payTheSite(payment: KeyPaymentRow): Promise<KeyPaymentRow> {
+async function payTheSite(paid: KeyPaymentRow): Promise<KeyPaymentRow> {
+  let payment = paid
   const request = payment.request as {
     requirement?: X402Requirement
     resource?: X402Resource | null
+    swap?: { pay?: string; tx?: string }
   } | null
   const requirement = request?.requirement ? readRequirement(request.requirement) : null
   const token = requirement ? x402Token(requirement.asset) : null
@@ -1235,6 +1356,22 @@ async function payTheSite(payment: KeyPaymentRow): Promise<KeyPaymentRow> {
     return settle(payment, {
       reason: 'Paid Kova, but the site’s request was lost. Kova refunds it.',
     })
+  // A site paid in USDC: swap the AUSD that just arrived. If that fails, the payment is set to
+  // lapse at once, so the refund job sends the AUSD back within a minute.
+  if (request?.swap?.pay && !request.swap.tx) {
+    try {
+      const tx = await swapForSite(payment, BigInt(request.swap.pay))
+      payment = await settle(payment, {
+        request: { ...(payment.request ?? {}), swap: { pay: request.swap.pay, tx } },
+      })
+    } catch (error) {
+      console.error('[x402] swap failed, the dollars go back', why(error))
+      return settle(payment, {
+        reason: 'Kova couldn’t swap to pay this site, so it sends the dollars back.',
+        request: { ...(payment.request ?? {}), nonce: randomNonce(), valid_before: String(nowS()) },
+      })
+    }
+  }
   const payer = x402Payer()
   const now = BigInt(nowS())
   const authorization = {
@@ -1268,7 +1405,7 @@ async function payTheSite(payment: KeyPaymentRow): Promise<KeyPaymentRow> {
  * Pay-per-use payments a site never collected. Kova's signed payment to the site stops working at
  * its validBefore (EIP-3009 checks it), so once that has passed, Monad says for certain whether the
  * site collected it: if it did, it's marked collected; if not, the owner's dollars go back from the
- * float, in AUSD. The refund's nonce comes from the payment's id, so it can never be paid twice,
+ * float: in AUSD, or in USDC when the budget's AUSD was already swapped for a site paid in USDC. The refund's nonce comes from the payment's id, so it can never be paid twice,
  * even if this runs again after a crash. Runs every minute.
  */
 export async function refundUncollectedX402(): Promise<number> {
@@ -1294,6 +1431,7 @@ export async function refundUncollectedX402(): Promise<number> {
     const request = row.request as Record<string, unknown> & {
       requirement?: X402Requirement
       nonce?: Hex
+      swap?: { pay?: string; tx?: string }
     }
     const token = request.requirement ? x402Token(getAddress(request.requirement.asset)) : null
     if (!token || !request.nonce) continue
@@ -1313,11 +1451,15 @@ export async function refundUncollectedX402(): Promise<number> {
     const key = await keyRow(row.walletKeyId)
     if (!key) continue
     const owner = getAddress(key.ownerAddress)
+    // Swapped to USDC already: the float holds the site's USDC, so that is what goes back.
+    const usdc = tokens[network.id].USDC
+    const swapped = Boolean(request.swap?.tx && request.swap.pay && usdc)
+    const back = swapped && usdc ? usdc : ausd
     const nonce = keccak256(toHex(`kova-x402-refund:${row.id}`))
     const authorization = {
       from: payer.address,
       to: owner,
-      value: row.amount,
+      value: swapped ? BigInt(request.swap?.pay ?? '0') : row.amount,
       validAfter: 0n,
       validBefore: BigInt(nowS() + 600),
       nonce,
@@ -1330,16 +1472,16 @@ export async function refundUncollectedX402(): Promise<number> {
       })
     try {
       const signature = await payer.signTypedData(
-        transferAuthorizationTypedData(ausd, network.chainId, authorization),
+        transferAuthorizationTypedData(back, network.chainId, authorization),
       )
-      const relayed = await relayAuthorization(ausd, authorization, signature)
+      const relayed = await relayAuthorization(back, authorization, signature)
       await done(relayed.receipt.transactionHash)
       refunded += 1
     } catch (error) {
       // Paid by an earlier run whose answer was lost: the nonce says so.
       const already = await publicClient
         .readContract({
-          address: ausd.address,
+          address: back.address,
           abi: eip3009Abi,
           functionName: 'authorizationState',
           args: [payer.address, nonce],

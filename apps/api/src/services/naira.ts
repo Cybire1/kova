@@ -56,7 +56,14 @@ import {
   transferStatus,
 } from './paystack.js'
 import { rateBook } from './rates.js'
-import { buildSwap, routeSources, type SwapRoute, swapPrice, swapRoute } from './swap.js'
+import {
+  buildSwap,
+  cashOutAbi,
+  routeSources,
+  type SwapRoute,
+  swapPrice,
+  swapRoute,
+} from './swap.js'
 
 /**
  * Naira, in and out. Through PAJ where it's set up (Monad mainnet), else through Paystack.
@@ -590,40 +597,6 @@ async function payOut(row: CashOutRow): Promise<CashOutRow> {
 }
 
 // ── Cashing out through PAJ ─────────────────────────────────────────────────────────────────
-
-const cashOutAbi = [
-  {
-    type: 'function',
-    name: 'cashOut',
-    stateMutability: 'nonpayable',
-    inputs: [
-      {
-        name: 'auth',
-        type: 'tuple',
-        components: [
-          { name: 'owner', type: 'address' },
-          { name: 'value', type: 'uint256' },
-          { name: 'validAfter', type: 'uint256' },
-          { name: 'validBefore', type: 'uint256' },
-          { name: 'v', type: 'uint8' },
-          { name: 'r', type: 'bytes32' },
-          { name: 's', type: 'bytes32' },
-        ],
-      },
-      {
-        name: 'payout',
-        type: 'tuple',
-        components: [
-          { name: 'payTo', type: 'address' },
-          { name: 'pay', type: 'uint256' },
-          { name: 'ref', type: 'bytes32' },
-        ],
-      },
-      { name: 'swap', type: 'bytes' },
-    ],
-    outputs: [],
-  },
-] as const
 
 /** Where PAJ posts order updates: this API's own public address. */
 function pajWebhookUrl(): string | undefined {

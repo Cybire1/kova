@@ -46,12 +46,21 @@ export interface Expected {
   card: Address
   to: Address
   amount: bigint
+  /**
+   * The most Kova may ask instead, when a swap sits between (a site paid in USDC from the budget's
+   * AUSD). Unset: exactly `amount`.
+   */
+  upTo?: bigint
 }
+
+/** A site paid in USDC costs the budget a sliver more AUSD for the swap: never more than 0.5% and 2 base units. */
+export const swapCeiling = (amount: bigint) => amount + amount / 200n + 2n
 
 /**
  * Before a site's key signs anything Kova sends back, rebuild the payment here from what the person
  * approved, and refuse if Kova's version differs in any field: the network, the KovaCard contract,
- * the key, who's paid, how much, or a deadline more than ten minutes away. The key signs the
+ * the key, who's paid, how much (to the unit, or within the swap's ceiling for a site paid in USDC),
+ * or a deadline more than ten minutes away. The key signs the
  * rebuilt one, never Kova's object.
  */
 export function checkedPayment(prepared: Prepared, expected: Expected, nowS: number) {
@@ -66,14 +75,20 @@ export function checkedPayment(prepared: Prepared, expected: Expected, nowS: num
   if (d.name !== 'Kova Card' || d.version !== '1') throw problem('domain')
   if (!isAddressEqual(m.card, expected.card)) throw problem('key')
   if (!isAddressEqual(m.to, expected.to)) throw problem('recipient')
-  if (BigInt(m.amount) !== expected.amount) throw problem('amount')
+  const asked = BigInt(m.amount)
+  if (
+    expected.upTo === undefined
+      ? asked !== expected.amount
+      : asked < expected.amount || asked > expected.upTo
+  )
+    throw problem('amount')
   const deadline = BigInt(m.deadline)
   if (deadline <= BigInt(nowS) || deadline > BigInt(nowS + 600)) throw problem('deadline')
   if (!/^0x[0-9a-fA-F]{64}$/.test(m.memo)) throw problem('memo')
   return paymentTypedData(chainId, contract, {
     card: getAddress(m.card),
     to: getAddress(m.to),
-    amount: expected.amount,
+    amount: asked,
     memo: m.memo,
     deadline,
   })

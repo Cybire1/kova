@@ -178,10 +178,17 @@ describe.runIf(ready)('a website’s budget', () => {
     expect((await pay(requirement, privateKeyToAccount(generatePrivateKey()).address)).status).toBe(
       403,
     )
-    // A fresh float holds no USDC, so Kova says so instead of taking the owner's dollars.
+    // Without the swap contract, a fresh float holds no USDC, so Kova says so instead of taking
+    // the owner's dollars.
     const empty = await pay(requirement)
     expect(empty.status).toBe(409)
     expect(empty.body.error?.message).toMatch(/can’t pay websites in USDC/)
+    // A site paid in AUSD needs nothing in the float: the budget's own AUSD pays it. This key isn't
+    // switched on yet, so that is what stops it, not the float.
+    const ausd = tokens.testnet.AUSD?.address as Address
+    const inAusd = await pay({ ...requirement, asset: ausd, extra: { name: 'AUSD', version: '1' } })
+    expect(inAusd.body.error?.message ?? '').not.toMatch(/can’t pay websites/)
+    expect(inAusd.status).toBe(422)
   })
 
   it('freezes itself with its own signature, never with someone else’s or an old one', async () => {

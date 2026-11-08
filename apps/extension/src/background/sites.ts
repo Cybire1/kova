@@ -6,13 +6,28 @@ import {
   networks,
   parseAmount,
   siteName,
+  tokens,
   type X402Requirement,
   type X402Resource,
 } from '@kova/monad'
-import { type Address, formatUnits, getAddress, isAddress, recoverMessageAddress } from 'viem'
+import {
+  type Address,
+  formatUnits,
+  getAddress,
+  isAddress,
+  isAddressEqual,
+  recoverMessageAddress,
+} from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { NETWORK } from '../shared/config.js'
-import { checkedPayment, type KeysConfig, keysOf, kova, type Prepared } from '../shared/kova.js'
+import {
+  checkedPayment,
+  type KeysConfig,
+  keysOf,
+  kova,
+  type Prepared,
+  swapCeiling,
+} from '../shared/kova.js'
 import type {
   ApiKey,
   ApiPayment,
@@ -206,9 +221,17 @@ export async function payX402(
     requirement,
     ...(resource ? { resource } : {}),
   })
+  const amount = BigInt(requirement.amount)
+  const usdc = tokens[NETWORK].USDC
+  const swapped = !!usdc && isAddressEqual(requirement.asset, usdc.address)
   const typed = checkedPayment(
     prepared,
-    { card: site.keyAddress, to: config.x402_payer, amount: BigInt(requirement.amount) },
+    {
+      card: site.keyAddress,
+      to: config.x402_payer,
+      amount,
+      ...(swapped ? { upTo: swapCeiling(amount) } : {}),
+    },
     nowS(),
   )
   const signature = await account.signTypedData(typed)

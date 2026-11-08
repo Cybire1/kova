@@ -3,7 +3,7 @@ import { encodeFunctionData, erc20Abi, type Hex, recoverTypedDataAddress } from 
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { describe, expect, it } from 'vitest'
 import { dollarTransfer } from '../src/background/provider.js'
-import { checkedPayment, type Prepared } from '../src/shared/kova.js'
+import { checkedPayment, type Prepared, swapCeiling } from '../src/shared/kova.js'
 
 /**
  * The two checks that stand between a website and a site key's signature: a transaction is only
@@ -89,6 +89,18 @@ describe('checking what Kova asks the key to sign', () => {
       /contract/,
     )
     expect(() => checkedPayment(prepared({}, { name: 'Evil' }), expected, now)).toThrow(/domain/)
+  })
+
+  it('lets a site paid in USDC cost the swap’s sliver more, and no more', () => {
+    const swapped = { ...expected, upTo: swapCeiling(expected.amount) }
+    // $4.99 plus 0.5% and 2 units at most: $5.014952.
+    expect(swapCeiling(4_990_000n)).toBe(5_014_952n)
+    const typed = checkedPayment(prepared({ amount: '4992497' }), swapped, now)
+    expect(typed.message.amount).toBe(4_992_497n)
+    expect(() => checkedPayment(prepared({ amount: '5014953' }), swapped, now)).toThrow(/amount/)
+    expect(() => checkedPayment(prepared({ amount: '4989999' }), swapped, now)).toThrow(/amount/)
+    // Without a swap, not a unit over.
+    expect(() => checkedPayment(prepared({ amount: '4990001' }), expected, now)).toThrow(/amount/)
   })
 })
 

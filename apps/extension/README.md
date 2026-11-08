@@ -21,8 +21,10 @@ KovaCard contract. A bad site can spend its budget, never the balance.
   person approved, the key signs, Kova cosigns and sends it.
 - **Pay per use (x402).** A page that answers `402` with a `PAYMENT-REQUIRED` header is paid from
   the site's budget: under the site's line without asking, above it after a click. The page loads
-  again with `PAYMENT-SIGNATURE`. Kova pays the site from its float (the API's `KOVA_X402_PAYER_KEY`),
-  in AUSD or USDC, and the budget pays Kova in AUSD. A site paid in AUSD can have Kova collect the
+  again with `PAYMENT-SIGNATURE`. The budget pays Kova's float (the API's `KOVA_X402_PAYER_KEY`) in
+  AUSD first, and the float signs the site's payment: the same AUSD for a site paid in AUSD, or USDC
+  swapped from it on the spot (KovaCashOut, the API's `KOVA_CASH_OUT`) for a site paid in USDC, which
+  costs the budget at most 0.5% more. The float needs no money of its own. A site paid in AUSD can have Kova collect the
   payment on Monad (`POST /v1/x402/collect`), since Monad's x402 facilitator takes USDC only. Monad
   only: x402 sites on other networks aren't paid yet.
 - **Freeze.** Each site's switch freezes it with its own key, at once; Freeze all stops every site.
@@ -66,7 +68,8 @@ payment, so the budget window), and a 1¢ x402 article (`/chrome/article`). Both
 ## Before it's live
 
 - Deploy the API (site keys, `self-freeze`, `x402`) and the web app (`/extension`).
-- For x402: set `KOVA_X402_PAYER_KEY` on the API and fund that address with a little USDC and AUSD.
+- For x402: set `KOVA_X402_PAYER_KEY` on the API. Nothing needs funding; USDC sites also need
+  `KOVA_CASH_OUT` (the swap contract naira cash-outs use).
 - For the try page: set `KOVA_TRY_PAY_TO` on the web app, to a Kova wallet that isn't the one testing.
   Kova refills its USDC by swapping the AUSD it's paid, in batches.
 - The Chrome Web Store assigns its own ID: add it to the web app's `NEXT_PUBLIC_KOVA_EXTENSION_IDS`.
