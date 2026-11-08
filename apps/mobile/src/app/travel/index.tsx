@@ -16,6 +16,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { type Place, travelStatus, understandTrip } from '@/lib/api'
 import { colors, fonts } from '@/lib/theme'
 import { addDays, day, today, useTravel } from '@/lib/travel'
+import {
+  exampleTrip,
+  homeCity,
+  loadTravelPrefs,
+  saveTravelPrefs,
+  tripIdeas,
+} from '@/lib/travel-home'
 import { CitiesScene, Flyer, sendScene } from '@/ui/art'
 import { Icon, type IconName } from '@/ui/Icon'
 import { Flight } from '@/ui/motion'
@@ -30,6 +37,7 @@ type Picking = 'from' | 'to' | 'city' | 'dates' | 'people' | null
 /**
  * Kova Travel: where to, when, and who. Type the trip the way you'd say it and Kova fills the
  * form in, or fill it yourself. Nothing is searched until you've seen what Kova understood.
+ * It starts from where the phone is (lib/travel-home), then from the last search.
  */
 export default function Travel() {
   const { width } = useWindowDimensions()
@@ -41,7 +49,8 @@ export default function Travel() {
     understands: boolean
   } | null>(null)
   const [kind, setKind] = useState<Kind>('flight')
-  const [from, setFrom] = useState<Place | null>(null)
+  const [from, setFrom] = useState<Place | null>(homeCity)
+  const [example] = useState(() => exampleTrip(homeCity()))
   const [to, setTo] = useState<Place | null>(null)
   const [city, setCity] = useState<Place | null>(null)
   const [start, setStart] = useState<string | null>(addDays(today(), 14))
@@ -65,7 +74,22 @@ export default function Travel() {
     travelStatus()
       .then(setStatus)
       .catch(() => setStatus({ ready: false, test_mode: true, understands: false }))
+    // Last time's "From", cabin and party win over the guess from the phone.
+    void loadTravelPrefs().then((prefs) => {
+      if (!prefs) return
+      if (prefs.from) setFrom(prefs.from)
+      setPeople({
+        adults: prefs.adults,
+        children: prefs.children,
+        infants: prefs.infants,
+        cabin: prefs.cabin,
+        rooms: prefs.rooms,
+      })
+    })
   }, [])
+
+  const ideas = tripIdeas(from)
+  const showIdeas = kind === 'flight' ? !to : !city
 
   const read = async () => {
     const text = sentence.trim()
@@ -123,6 +147,7 @@ export default function Travel() {
       : Boolean(city && start && end)
   const search = () => {
     if (!canSearch) return
+    void saveTravelPrefs({ from, ...people })
     if (kind === 'flight' && from && to && start)
       router.push({
         pathname: '/travel/flights',
@@ -203,7 +228,7 @@ export default function Travel() {
               <TextInput
                 value={sentence}
                 onChangeText={setSentence}
-                placeholder="Lisbon to London next Friday, back Sunday"
+                placeholder={example}
                 placeholderTextColor="#8C9799"
                 multiline
                 returnKeyType="go"
@@ -338,6 +363,46 @@ export default function Travel() {
               </>
             )}
           </View>
+
+          {showIdeas && ideas.length ? (
+            <View style={{ marginTop: 14 }}>
+              <Txt size={13} color={colors.muted} style={{ marginLeft: 6, marginBottom: 8 }}>
+                {kind === 'flight' && from ? `Ideas from ${from.city}` : 'Ideas'}
+              </Txt>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginHorizontal: -20 }}
+                contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
+              >
+                {ideas.map((p) => (
+                  <Pressable
+                    key={p.iata}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      kind === 'flight' ? `Fly to ${p.city}` : `Stay in ${p.city}`
+                    }
+                    onPress={() => {
+                      void Haptics.selectionAsync()
+                      setUnderstood(null)
+                      if (kind === 'flight') setTo(p)
+                      else setCity(p)
+                    }}
+                    style={({ pressed }) => [styles.idea, pressed && { opacity: 0.7 }]}
+                  >
+                    <Txt weight="semi" size={15}>
+                      {p.city}
+                    </Txt>
+                    {kind === 'flight' ? (
+                      <Txt weight="medium" size={13} color={colors.muted}>
+                        {p.iata}
+                      </Txt>
+                    ) : null}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
 
           <View style={styles.wishes}>
             <Icon name="sparkle" size={18} color={colors.muted} />
@@ -618,6 +683,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.paper,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  idea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
   },
   wishes: {
     marginTop: 12,

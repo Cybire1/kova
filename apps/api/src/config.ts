@@ -53,8 +53,13 @@ const schema = z.object({
   KOVA_MENU_PROVIDER: z.enum(['anthropic', 'deepseek']).optional(),
   /** Defaults to claude-sonnet-5 on Anthropic and deepseek-flash (its vision model) on DeepSeek. */
   KOVA_MENU_MODEL: z.string().optional(),
-  /** Kova Travel: flights and hotels through Duffel. A duffel_test_ token runs in Duffel's test mode. */
+  /**
+   * Kova Travel: flights and hotels through Duffel. A duffel_test_ token runs in Duffel's test
+   * mode and only works on testnet; mainnet takes only a duffel_live_ token.
+   */
   DUFFEL_API_KEY: z.string().optional(),
+  /** Kova Travel's margin on each fare and stay, in basis points (300 = 3%). 0: sold at cost. */
+  KOVA_TRAVEL_MARKUP_BPS: z.coerce.number().int().min(0).max(2000).default(0),
   /** Stock charts: a CoinGecko demo key lifts the keyless rate limit. Charts work without one. */
   COINGECKO_API_KEY: z.string().optional(),
   /**

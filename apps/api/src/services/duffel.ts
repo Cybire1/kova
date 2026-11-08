@@ -16,10 +16,27 @@ import { toUsd } from './ai.js'
  * it, and shapes what comes back into what the app shows. Duffel's raw payloads never leave the
  * API: the app gets plain, dollar-priced objects.
  */
-export const duffel = config.DUFFEL_API_KEY ? new Duffel({ token: config.DUFFEL_API_KEY }) : null
-export const travelReady = () => duffel !== null
+const key = config.DUFFEL_API_KEY
 /** Duffel test tokens start duffel_test_: sandbox airlines and hotels, nothing real is booked. */
-export const travelTestMode = !config.DUFFEL_API_KEY?.startsWith('duffel_live_')
+export const travelTestMode = !key?.startsWith('duffel_live_')
+
+/**
+ * The key must match the network. A live key on testnet would buy actual tickets with test
+ * dollars, and a test key on mainnet would take dollars for bookings that don't exist. Either
+ * way, Kova Travel stays off and says why.
+ */
+export function duffelKeyFits(token: string | undefined, network: 'mainnet' | 'testnet') {
+  if (!token) return false
+  return network === 'mainnet' ? token.startsWith('duffel_live_') : token.startsWith('duffel_test_')
+}
+
+const fits = duffelKeyFits(key, config.KOVA_NETWORK)
+if (key && !fits)
+  console.error(
+    `[travel] DUFFEL_API_KEY is a ${travelTestMode ? 'test' : 'live'} key on ${config.KOVA_NETWORK}: Kova Travel is off. Use a ${config.KOVA_NETWORK === 'mainnet' ? 'duffel_live_' : 'duffel_test_'} key.`,
+  )
+export const duffel = key && fits ? new Duffel({ token: key }) : null
+export const travelReady = () => duffel !== null
 
 /** Duffel's test hotels all sit here; in test mode every hotel search looks here. */
 export const TEST_HOTELS = { latitude: -24.38, longitude: -128.32, radius: 2 }
@@ -32,8 +49,15 @@ export interface Money {
   currency: string
 }
 
+/**
+ * A supplier price, and what Kova Travel charges for it: the price plus Kova's margin
+ * (KOVA_TRAVEL_MARKUP_BPS), in dollars, rounded up to the cent. Kova pays the supplier `amount`
+ * from its Duffel balance and keeps the difference. Open the Duffel account with a USD balance
+ * and every price arrives in dollars, so no exchange rate is involved.
+ */
 export function money(amount: string, currency: string): Money | null {
-  const usd = toUsd(Number(amount), currency)
+  const marked = Number(amount) * (1 + config.KOVA_TRAVEL_MARKUP_BPS / 10_000)
+  const usd = toUsd(marked, currency)
   return usd ? { usd, amount, currency } : null
 }
 
