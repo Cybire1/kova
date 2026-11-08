@@ -13,10 +13,25 @@ import { type Address, formatUnits, getAddress, isAddress, recoverMessageAddress
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { NETWORK } from '../shared/config.js'
 import { checkedPayment, type KeysConfig, keysOf, kova, type Prepared } from '../shared/kova.js'
-import type { ApiKey, ApiPayment, LocalSite, Owner, SiteView } from '../shared/types.js'
+import type {
+  ApiKey,
+  ApiPayment,
+  LocalSite,
+  Owner,
+  PromptAnswer,
+  SiteView,
+} from '../shared/types.js'
 import { askWallet } from './approvals.js'
 import { dollarsOf } from './chain.js'
-import { dropSite, load, putSite, setOwner, siteFor } from './store.js'
+import {
+  dropSite,
+  forgetConnected,
+  load,
+  markConnected,
+  putSite,
+  setOwner,
+  siteFor,
+} from './store.js'
 
 const chainId = networks[NETWORK].chainId
 const nowS = () => Math.floor(Date.now() / 1000)
@@ -67,6 +82,16 @@ export interface Terms {
   askAbove: string
 }
 
+/** The terms chosen in the budget window, with defaults for anything it left out. */
+export function budgetTerms(answer: PromptAnswer, reason: 'pay' | 'x402'): Terms {
+  const chosen: Partial<Terms> = answer.ok ? answer : {}
+  return {
+    limit: chosen.limit ?? (reason === 'x402' ? '2' : '20'),
+    period: chosen.period ?? (reason === 'x402' ? 'week' : 'day'),
+    askAbove: chosen.askAbove ?? '0.50',
+  }
+}
+
 /**
  * Gives a site its budget: a fresh key made here signs KovaCard's Claim for the wallet, Kova keeps
  * the terms, and the wallet switches it on with its passkey on mykova.app. The key is saved before
@@ -111,6 +136,8 @@ export async function connectSite(origin: string, terms: Terms): Promise<ApiKey>
     }
     await putSite(site)
   }
+  // A site with a budget can see the address it spends for.
+  await markConnected(origin)
   return switchOn(site)
 }
 
@@ -223,15 +250,21 @@ export async function removeSite(origin: string): Promise<void> {
   await dropSite(origin)
 }
 
+/** A site with no budget stops seeing the address. */
+export async function disconnectSite(origin: string): Promise<void> {
+  await forgetConnected(origin)
+}
+
 // ── What the popup shows ────────────────────────────────────────────────────────────────────
 
 export async function view(): Promise<{
   owner: Owner | null
   balance: string | null
   sites: SiteView[]
+  connected: string[]
 }> {
-  const { owner: me, sites } = await load()
-  if (!me) return { owner: null, balance: null, sites: [] }
+  const { owner: me, sites, connected } = await load()
+  if (!me) return { owner: null, balance: null, sites: [], connected: [] }
   const [balance, keys] = await Promise.all([
     dollarsOf(me.address),
     keysOf(me.address)
@@ -254,5 +287,8 @@ export async function view(): Promise<{
       } satisfies SiteView
     })
     .sort((a, b) => Number(b.spent) - Number(a.spent))
-  return { owner: me, balance, sites: list }
+  const plain = Object.keys(connected)
+    .filter((origin) => !sites[origin])
+    .sort((a, b) => (connected[b] ?? 0) - (connected[a] ?? 0))
+  return { owner: me, balance, sites: list, connected: plain }
 }

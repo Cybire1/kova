@@ -831,6 +831,10 @@ img {
   color: var(--paper);
   box-shadow: var(--soft);
 }
+.chip:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
 .other {
   display: flex;
   align-items: center;

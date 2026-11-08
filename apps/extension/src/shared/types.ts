@@ -75,15 +75,22 @@ export interface PopupState {
   owner: Owner | null
   balance: string | null
   sites: SiteView[]
+  /** Sites that see the wallet's address but have no budget: they can't spend. */
+  connected: string[]
   network: string
 }
 
-/** A question for the person, shown in Kova's own window (prompt.html). */
+/**
+ * A question for the person, shown in Kova's own window (prompt.html). Connecting only shares the
+ * address; a budget is asked for the first time a site wants to be paid, with what it asks.
+ */
 export type Prompt =
-  | { kind: 'connect'; origin: string; reason?: 'x402' | undefined; x402?: PromptX402 | undefined }
+  | { kind: 'connect'; origin: string }
+  | { kind: 'budget'; origin: string; reason: 'pay' | 'x402'; ask: PromptX402 }
   | { kind: 'pay'; origin: string; to: Address; amount: string; left: string; period: string }
   | ({ kind: 'x402'; origin: string; left: string; period: string } & PromptX402)
 
+/** What a site asks for: an amount, in which dollar, and what for if it said. */
 export interface PromptX402 {
   amount: string
   token: string
@@ -114,6 +121,7 @@ export type UiMessage =
   | { type: 'freeze'; origin: string }
   | { type: 'unfreeze'; origin: string }
   | { type: 'remove'; origin: string }
+  | { type: 'disconnect'; origin: string }
   | { type: 'freeze-all' }
   | { type: 'payments'; origin: string }
   | { type: 'open'; path: string }

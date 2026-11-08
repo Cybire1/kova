@@ -6,6 +6,7 @@ import { answerPrompt, onWalletAnswer, onWindowClosed, promptFor } from './appro
 import { handleRpc } from './provider.js'
 import {
   connectWallet,
+  disconnectSite,
   disconnectWallet,
   freezeAll,
   freezeSite,
@@ -15,7 +16,7 @@ import {
   unfreezeSite,
   view,
 } from './sites.js'
-import { siteFor } from './store.js'
+import { isConnected, siteFor } from './store.js'
 import { watchX402 } from './x402.js'
 
 /**
@@ -30,7 +31,7 @@ watchX402()
 /** Tells a site's open tabs its accounts changed (connected, removed). */
 async function notify(origin: string) {
   const me = await owner()
-  const accounts = me && (await siteFor(origin)) ? [me.address] : []
+  const accounts = me && (await isConnected(origin)) ? [me.address] : []
   const tabs = await chrome.tabs.query({ url: `${origin}/*` }).catch(() => [])
   for (const tab of tabs)
     if (tab.id !== undefined)
@@ -71,6 +72,10 @@ async function fromUi(message: UiMessage): Promise<unknown> {
       return unfreezeSite(message.origin)
     case 'remove':
       await removeSite(message.origin)
+      void notify(message.origin)
+      return null
+    case 'disconnect':
+      await disconnectSite(message.origin)
       void notify(message.origin)
       return null
     case 'freeze-all':

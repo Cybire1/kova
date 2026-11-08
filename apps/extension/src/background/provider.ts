@@ -15,15 +15,16 @@ import { NETWORK } from '../shared/config.js'
 import type { RpcResult } from '../shared/types.js'
 import { ask, askWallet, Cancelled } from './approvals.js'
 import { isRead, read } from './chain.js'
-import { connectSite, connectWallet, owner, paySite, siteKey, switchOn } from './sites.js'
-import { dropSite, siteFor } from './store.js'
+import { budgetTerms, connectSite, connectWallet, owner, paySite, siteKey } from './sites.js'
+import { dropSite, forgetConnected, isConnected, markConnected, siteFor } from './store.js'
 
 /**
- * Kova for Chrome as a wallet websites can use (EIP-1193, announced with EIP-6963). A site sees the
- * wallet's address once it has a budget, and everything it can make Kova do is spend that budget:
- * a dollar transfer (AUSD) is paid by the site's own key, within its limit, after one click. Reads
- * go straight to Monad. Sign-in messages are signed by the wallet on mykova.app. Permits and other
- * typed data are refused: no website gets an open-ended approval over the wallet.
+ * Kova for Chrome as a wallet websites can use (EIP-1193, announced with EIP-6963). Connecting only
+ * shows a site the wallet's address, like any wallet. Everything a site can make Kova do with money
+ * is spend a budget, which Kova asks for the first time the site wants to be paid: a dollar
+ * transfer (AUSD) is paid by the site's own key, within its limit. Reads go straight to Monad.
+ * Sign-in messages are signed by the wallet on mykova.app. Permits and other typed data are
+ * refused: no website gets an open-ended approval over the wallet.
  */
 
 export const CHAIN_HEX = `0x${networks[NETWORK].chainId.toString(16)}`
@@ -60,37 +61,20 @@ export function dollarTransfer(tx: unknown): { to: Address; amount: bigint } | n
   }
 }
 
-/** The site's budget is set up and on: what eth_accounts answers with. */
+/** The address a connected site sees (eth_accounts); a site that hasn't connected sees none. */
 async function accountsFor(origin: string): Promise<Address[]> {
   const me = await owner()
-  const site = await siteFor(origin)
-  return me && site ? [me.address] : []
+  return me && (await isConnected(origin)) ? [me.address] : []
 }
 
-/** Makes sure the wallet is connected and this site has a budget, asking for each if not. */
+/** Makes sure the wallet is connected and this site may see its address. No budget yet: that waits for a payment. */
 async function connect(origin: string): Promise<Address[]> {
   let me = await owner()
   if (!me) me = await connectWallet()
-  const site = await siteFor(origin)
-  if (site) {
-    const key = await siteKey(origin).catch(() => undefined)
-    if (key === undefined) throw new Error('Kova is unreachable. Try again.')
-    if (key && (key.status === 'active' || key.status === 'frozen')) return [me.address]
-    // Made here, but the wallet hasn't switched it on yet: just that step.
-    if (key && key.status === 'accepted') {
-      await switchOn(site)
-      return [me.address]
-    }
-    // Removed elsewhere: start again with a new key.
-    await dropSite(origin)
-  }
+  if (await isConnected(origin)) return [me.address]
   const answer = await ask({ kind: 'connect', origin })
   if (!answer.ok) throw userRejected()
-  await connectSite(origin, {
-    limit: answer.limit ?? '20',
-    period: answer.period ?? 'day',
-    askAbove: answer.askAbove ?? '0.50',
-  })
+  await markConnected(origin)
   return [me.address]
 }
 
@@ -132,6 +116,7 @@ async function route(origin: string, method: string, params: unknown): Promise<u
         ? [{ parentCapability: 'eth_accounts', invoker: origin }]
         : []
     case 'wallet_revokePermissions':
+      await forgetConnected(origin)
       return null
     case 'wallet_switchEthereumChain': {
       const want = (list[0] as { chainId?: string } | undefined)?.chainId
@@ -160,7 +145,8 @@ async function route(origin: string, method: string, params: unknown): Promise<u
 
 async function sendTransaction(origin: string, tx: unknown): Promise<Hex> {
   const me = await owner()
-  if (!me || !(await siteFor(origin))) throw new RpcError(4100, 'Connect this site to Kova first.')
+  if (!me || !(await isConnected(origin)))
+    throw new RpcError(4100, 'Connect this site to Kova first.')
   const from = (tx as { from?: unknown } | undefined)?.from
   if (typeof from === 'string' && isAddress(from) && !isAddressEqual(from, me.address))
     throw new RpcError(4100, 'That isn’t this wallet.')
@@ -169,17 +155,33 @@ async function sendTransaction(origin: string, tx: unknown): Promise<Hex> {
     throw refuse(
       'Kova pays websites in dollars from their budget. This kind of transaction isn’t something a site can ask Kova for yet.',
     )
-  const key = await siteKey(origin)
-  if (!key) throw new RpcError(4100, 'Kova doesn’t know this site’s budget any more.')
-  const answer = await ask({
-    kind: 'pay',
-    origin,
-    to: transfer.to,
-    amount: formatUnits(transfer.amount, 6),
-    left: key.left,
-    period: key.period,
-  })
-  if (!answer.ok) throw userRejected()
+  const amount = formatUnits(transfer.amount, 6)
+  let key = await siteKey(origin)
+  if (!key) {
+    // Its first payment (or its budget was removed elsewhere): the budget window shows what it
+    // asks, and saying yes there is the yes to this payment too.
+    if (await siteFor(origin)) await dropSite(origin)
+    const answer = await ask({
+      kind: 'budget',
+      origin,
+      reason: 'pay',
+      ask: { amount, token: 'AUSD', description: null },
+    })
+    if (!answer.ok) throw userRejected()
+    await connectSite(origin, budgetTerms(answer, 'pay'))
+    key = await siteKey(origin)
+    if (!key) throw new Error('Kova couldn’t read the new budget. Nothing moved.')
+  } else {
+    const answer = await ask({
+      kind: 'pay',
+      origin,
+      to: transfer.to,
+      amount,
+      left: key.left,
+      period: key.period,
+    })
+    if (!answer.ok) throw userRejected()
+  }
   if (transfer.amount > parseAmount(key.left))
     throw new RpcError(4100, `That’s more than this site has left: $${key.left}.`)
   const paid = await paySite(origin, transfer.to, transfer.amount)
@@ -191,7 +193,8 @@ async function sendTransaction(origin: string, tx: unknown): Promise<Hex> {
 /** A site's sign-in message: the wallet signs it on mykova.app, after showing exactly what it says. */
 async function personalSign(origin: string, params: unknown[]): Promise<Hex> {
   const me = await owner()
-  if (!me || !(await siteFor(origin))) throw new RpcError(4100, 'Connect this site to Kova first.')
+  if (!me || !(await isConnected(origin)))
+    throw new RpcError(4100, 'Connect this site to Kova first.')
   // Sites send [message, address]; a few send them the other way round.
   const [a, b] = params as [unknown, unknown]
   const raw = typeof a === 'string' && isAddress(a) && typeof b === 'string' ? b : a

@@ -5,9 +5,9 @@ import { Fav, host, Icon, Logo, Monad, money, price, send, Word } from './common
 import './styles.css'
 
 /**
- * Kova's own window for what a website asks: a budget when it connects, a payment from that budget,
- * or a pay-per-use price above the line. Opened by the background, never by the site; closing it
- * is a no.
+ * Kova's own window for what a website asks: to connect (it sees the address, nothing more), a
+ * budget the first time it wants to be paid, a payment from that budget, or a pay-per-use price
+ * above the line. Opened by the background, never by the site; closing it is a no.
  */
 
 const id = new URLSearchParams(location.search).get('id') ?? ''
@@ -36,6 +36,7 @@ function App() {
       </div>
     )
   if (prompt.kind === 'connect') return <Connect prompt={prompt} answer={answer} />
+  if (prompt.kind === 'budget') return <Budget prompt={prompt} answer={answer} />
   if (prompt.kind === 'pay') return <Pay prompt={prompt} answer={answer} />
   return <PerUse prompt={prompt} answer={answer} />
 }
@@ -65,13 +66,71 @@ function Connect({
   prompt: Extract<Prompt, { kind: 'connect' }>
   answer: (a: PromptAnswer) => void
 }) {
+  return (
+    <div className="pop win">
+      <Top />
+      <div className="pad">
+        <div className="who">
+          <Fav origin={prompt.origin} size={44} />
+          <div>
+            <b>{host(prompt.origin)} wants to connect</b>
+            <small>It sees your address. It can’t spend.</small>
+          </div>
+        </div>
+        <ul className="pts">
+          <li>
+            <span className="ck">
+              <Icon name="check" size={11} />
+            </span>
+            It can see your wallet’s address and balance, like any site you connect a wallet to.
+          </li>
+          <li>
+            <span className="ck">
+              <Icon name="check" size={11} />
+            </span>
+            It can’t move any money. If it asks to be paid, Kova asks you for a budget first.
+          </li>
+          <li>
+            <span className="ck">
+              <Icon name="check" size={11} />
+            </span>
+            Disconnect it any time from Kova for Chrome.
+          </li>
+        </ul>
+      </div>
+      <div className="bottom">
+        <button type="button" className="pbtn ink" onClick={() => answer({ ok: true })}>
+          Connect
+        </button>
+        <button type="button" className="pbtn soft" onClick={() => answer({ ok: false })}>
+          Not now
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** The smallest of the usual budgets that covers what the site asks, else that amount rounded up. */
+function firstLimit(asks: number, perUse: boolean): string {
+  if (perUse) return asks <= 5 ? '5' : asks <= 20 ? '20' : asks <= 50 ? '50' : 'other'
+  return asks <= 20 ? '20' : asks <= 50 ? '50' : 'other'
+}
+
+function Budget({
+  prompt,
+  answer,
+}: {
+  prompt: Extract<Prompt, { kind: 'budget' }>
+  answer: (a: PromptAnswer) => void
+}) {
   const perUse = prompt.reason === 'x402'
-  const [limit, setLimit] = useState<string>(perUse ? '5' : '20')
-  const [other, setOther] = useState('')
+  const asks = Number(prompt.ask.amount)
+  const [limit, setLimit] = useState<string>(firstLimit(asks, perUse))
+  const [other, setOther] = useState(asks > 50 ? String(Math.ceil(asks)) : '')
   const [period, setPeriod] = useState<'day' | 'week'>(perUse ? 'week' : 'day')
   const [line, setLine] = useState<string>('0.50')
   const chosen = limit === 'other' ? other : limit
-  const valid = /^\d{1,5}(\.\d{1,2})?$/.test(chosen) && Number(chosen) >= 1
+  const valid = /^\d{1,5}(\.\d{1,2})?$/.test(chosen) && Number(chosen) >= Math.max(1, asks)
   const askAbove = Math.min(Number(line), Number(chosen) || 0).toFixed(2)
 
   return (
@@ -82,14 +141,13 @@ function Connect({
           <Fav origin={prompt.origin} size={44} />
           <div>
             <b>
-              {perUse && prompt.x402
-                ? `${host(prompt.origin)} asks ${price(prompt.x402.amount)}`
-                : `${host(prompt.origin)} wants to connect`}
+              {host(prompt.origin)} asks{' '}
+              {perUse ? price(prompt.ask.amount) : money(prompt.ask.amount)}
             </b>
             <small>
               {perUse
-                ? (prompt.x402?.description ?? 'Give it a budget to pay as you go')
-                : 'Give it a budget, not your wallet'}
+                ? (prompt.ask.description ?? 'Give it a budget to pay as you go')
+                : 'Give it a budget to pay from, not your wallet'}
             </small>
           </div>
         </div>
@@ -100,6 +158,7 @@ function Connect({
               type="button"
               key={l}
               className={limit === l ? 'chip on' : 'chip'}
+              disabled={Number(l) < asks}
               onClick={() => setLimit(l)}
             >
               ${l}
@@ -118,7 +177,7 @@ function Connect({
             <span>$</span>
             <input
               inputMode="decimal"
-              placeholder="30"
+              placeholder={String(Math.max(30, Math.ceil(asks)))}
               value={other}
               onChange={(e) => setOther(e.target.value.replace(/[^\d.]/g, ''))}
               aria-label="Budget in dollars"
@@ -194,7 +253,10 @@ function Connect({
         <button type="button" className="pbtn soft" onClick={() => answer({ ok: false })}>
           Not now
         </button>
-        <span className="fine">Next, your passkey switches the budget on at mykova.app.</span>
+        <span className="fine">
+          Next, your wallet switches the budget on at mykova.app, then Kova pays{' '}
+          {perUse ? price(prompt.ask.amount) : money(prompt.ask.amount)}.
+        </span>
       </div>
     </div>
   )

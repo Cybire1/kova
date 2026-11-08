@@ -9,7 +9,7 @@ import { formatUnits } from 'viem'
 import { NETWORK } from '../shared/config.js'
 import type { PendingX402 } from '../shared/types.js'
 import { ask } from './approvals.js'
-import { connectSite, owner, payX402, siteKey } from './sites.js'
+import { budgetTerms, connectSite, connectWallet, owner, payX402, siteKey } from './sites.js'
 import { siteFor } from './store.js'
 
 /**
@@ -76,20 +76,17 @@ async function handle(tabId: number, url: string, header: string) {
 
 async function settle(p: PendingX402) {
   const description = p.resource?.description ?? null
-  // No wallet or no budget yet: one window sets both up, and says what it's for.
-  if (!(await owner()) || !(await siteFor(p.origin))) {
+  // No budget yet: the budget window says what the page asks, and sets one up.
+  if (!(await siteFor(p.origin))) {
     const answer = await ask({
-      kind: 'connect',
+      kind: 'budget',
       origin: p.origin,
       reason: 'x402',
-      x402: { amount: p.amount, token: p.token, description },
+      ask: { amount: p.amount, token: p.token, description },
     })
     if (!answer.ok) return
-    await connectSite(p.origin, {
-      limit: answer.limit ?? '2',
-      period: answer.period ?? 'week',
-      askAbove: answer.askAbove ?? '0.50',
-    })
+    if (!(await owner())) await connectWallet()
+    await connectSite(p.origin, budgetTerms(answer, 'x402'))
   }
   const key = await siteKey(p.origin)
   const site = await siteFor(p.origin)

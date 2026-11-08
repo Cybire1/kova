@@ -263,15 +263,16 @@ function Home({
         ) : null}
       </div>
 
-      {state.sites.length === 0 ? (
+      {state.sites.length === 0 && state.connected.length === 0 ? (
         <div className="empty">
           <img src="img/kovi-key.webp" alt="" />
           <b>Give sites a budget, not your wallet</b>
           <span>
-            Connect Kova on any Monad app. It gets its own limit, and you can freeze it any time.
+            Connect Kova on any Monad app. A site that wants to be paid gets its own limit, and you
+            can freeze it any time.
           </span>
         </div>
-      ) : (
+      ) : state.sites.length === 0 ? null : (
         <div className="sites">
           {state.sites.map((s) => (
             <div key={s.origin} className="site">
@@ -308,6 +309,34 @@ function Home({
           ))}
         </div>
       )}
+      {state.connected.length > 0 ? (
+        <>
+          <div className="lbl">
+            <span>Connected, no budget</span>
+          </div>
+          <div className="sites">
+            {state.connected.map((origin) => (
+              <div key={origin} className="site">
+                <span className="site-open">
+                  <Fav origin={origin} />
+                  <span>
+                    <b>{host(origin)}</b>
+                    <small>Sees your address · can’t spend</small>
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  className="link"
+                  disabled={busy !== null}
+                  onClick={() => void act(origin, () => send({ type: 'disconnect', origin }))}
+                >
+                  {busy === origin ? 'One moment…' : 'Disconnect'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : null}
       {error ? <p className="err pad">{error}</p> : null}
       <div className="foot">
         <Icon name="shield" />
