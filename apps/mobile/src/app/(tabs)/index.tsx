@@ -12,7 +12,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Circle } from 'react-native-svg'
-import { getSummary, naira } from '@/lib/api'
+import { getSummary } from '@/lib/api'
 import { getMonUsd } from '@/lib/chain'
 import { isTestnet } from '@/lib/config'
 import { formatUsd } from '@/lib/money'
@@ -118,17 +118,11 @@ export default function Home() {
     setRefreshing(false)
   }, [refresh, refreshTakings, refreshPrivate])
 
-  // Cash out from home: to a bank in naira, in the app, when this server has naira on; otherwise
-  // Ramp's off-ramp on the web, as Profile offers it (mainnet).
-  const [nairaOn, setNairaOn] = useState<boolean | null>(null)
-  useEffect(() => {
-    void naira.info().then((info) => setNairaOn(info.enabled))
-  }, [])
-  const ramp = nairaOn === false && !isTestnet
+  // One Cash out for every country: your accounts, or a new one starting with your own country
+  // (Nigeria opens naira). Testnet has naira only (Paystack test mode), so it goes straight there.
   const cashOut = useCallback(() => {
-    if (ramp) router.push('/cash-out-world')
-    else router.push('/cash-out')
-  }, [ramp])
+    router.push(isTestnet ? '/cash-out' : '/cash-out-world')
+  }, [])
 
   if (!profile) return null
   const empty = balance === 0n && !(monBalance && monBalance > 0n)
@@ -235,49 +229,34 @@ export default function Home() {
         </View>
       </View>
 
-      {/* Cash out, where everyone sees it: to any Nigerian bank in naira, or Ramp's off-ramp. */}
+      {/* Cash out, where everyone sees it: one button, and the next screen asks where to. */}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Cash out to any bank"
+        accessibilityLabel={
+          isTestnet ? 'Cash out. Naira, in seconds' : 'Cash out. To your bank or mobile money'
+        }
         onPress={cashOut}
         style={({ pressed }) => [styles.cashOut, pressed && { transform: [{ scale: 0.98 }] }]}
       >
         <View style={{ flex: 1, gap: 8 }}>
-          <Txt weight="bold" size={17} color={colors.white} style={{ letterSpacing: -0.3 }}>
-            Cash out to any bank
+          <Txt weight="bold" size={19} color={colors.dark} style={{ letterSpacing: -0.4 }}>
+            Cash out
           </Txt>
           <View style={styles.cashOutRow}>
-            {ramp ? null : (
-              <View style={styles.cashOutBanks}>
-                {BANK_LOGOS.map((bank) => (
-                  <Image key={bank.id} source={bank.logo} style={styles.cashOutBank} />
-                ))}
-              </View>
-            )}
-            <Txt weight="semi" size={13} color={colors.white} style={{ opacity: 0.9 }}>
-              {ramp ? 'To your bank or card' : 'Naira, in seconds'}
+            <View style={styles.cashOutBanks}>
+              {BANK_LOGOS.map((bank) => (
+                <Image key={bank.id} source={bank.logo} style={styles.cashOutBank} />
+              ))}
+            </View>
+            <Txt weight="semi" size={13} color={colors.dark} style={{ flexShrink: 1 }}>
+              {isTestnet ? 'Naira, in seconds' : 'To your bank or mobile money'}
             </Txt>
           </View>
         </View>
         <View style={styles.cashOutGo}>
-          <Icon name="arrow" size={18} color={colors.dark} />
+          <Icon name="arrow" size={18} color={colors.white} />
         </View>
       </Pressable>
-
-      {isTestnet ? null : (
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel="Cash out to another country"
-          onPress={() => router.push('/cash-out-world')}
-          hitSlop={8}
-          style={({ pressed }) => [styles.elsewhere, pressed && { opacity: 0.6 }]}
-        >
-          <Txt weight="semi" size={14} color={colors.muted}>
-            Or cash out to another country
-          </Txt>
-          <Icon name="arrow" size={14} color={colors.muted} />
-        </Pressable>
-      )}
 
       <KeysOnHome />
 
@@ -573,13 +552,6 @@ function ShopCard() {
 }
 
 const styles = StyleSheet.create({
-  elsewhere: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-    paddingHorizontal: 6,
-  },
   words: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -676,7 +648,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.white,
+    backgroundColor: colors.dark,
     alignItems: 'center',
     justifyContent: 'center',
   },

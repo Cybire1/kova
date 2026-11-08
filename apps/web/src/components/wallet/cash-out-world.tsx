@@ -27,13 +27,12 @@ import {
 } from '@/lib/wallet/payouts'
 import '@/styles/cash-out-world.css'
 import { ScreenHead } from './activity'
+import { readRecents, type Recent as NairaRecent } from './cash-out-naira'
+import { useNaira } from './naira'
 import { useWallet } from './provider'
 import { Keypad } from './ui'
 
-type Step = 'where' | 'country' | 'rail' | 'details' | 'amount' | 'review' | 'tracking'
-
-/** Countries offered first, after the one the browser is set to. */
-const POPULAR = ['US', 'GB', 'NG', 'KE', 'CA', 'EU', 'GH']
+type Step = 'where' | 'country' | 'verify' | 'rail' | 'details' | 'amount' | 'review' | 'tracking'
 
 /** The fields about the person (not the account), asked once and kept in this browser. */
 const ABOUT = [
@@ -71,15 +70,6 @@ const homeCountry = () => {
   const region = Intl.DateTimeFormat().resolvedOptions().locale.split('-').pop() ?? ''
   return /^[A-Z]{2}$/.test(region) ? region : ''
 }
-
-const shortName = (name: string) =>
-  name === 'United States'
-    ? 'USA'
-    : name === 'United Kingdom'
-      ? 'UK'
-      : name === 'United Arab Emirates'
-        ? 'UAE'
-        : name
 
 const clock = (iso: string) => {
   const d = new Date(iso)
@@ -164,7 +154,10 @@ const ways = (rails: Corridor[]) =>
  * Cash out to a bank, mobile money or a USDC wallet, almost anywhere, as in the app: a saved account
  * or a new one (where, how it should arrive, the account), an amount with what lands and when, a
  * check, the passkey, then the payout followed until it lands. The person's own address is asked
- * once and kept in this browser. Nigeria goes to the naira cash-out, whose rate is better.
+ * once and kept in this browser. It is the whole of Cash out, as in the app: the saved accounts
+ * (naira ones included) or a new one starting with the browser's country. Nigeria goes to the naira
+ * cash-out (PAJ, a better rate, no ID from Kova); anywhere else asks for the one-time ID check as a
+ * step of its own, only when it's needed.
  */
 export function CashOutWorld() {
   const { profile, balance, network, signMessage, signingAccount, refresh } = useWallet()
@@ -191,6 +184,18 @@ export function CashOutWorld() {
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const nairaInfo = useNaira()
+  /** Naira through PAJ: when it's on, Nigeria and the naira accounts open the naira cash-out. */
+  const nairaOn = nairaInfo?.enabled === true
+  const [nairaRecents, setNairaRecents] = useState<NairaRecent[]>([])
+
+  useEffect(() => {
+    setNairaRecents(readRecents())
+  }, [])
+  // Cashing out abroad is off on this server but naira is on: naira is the whole of Cash out.
+  useEffect(() => {
+    if (info && !info.live && nairaOn) router.replace('/wallet/cash-out/naira')
+  }, [info, nairaOn, router])
 
   useEffect(() => {
     void getPayoutsInfo()
@@ -249,14 +254,22 @@ export function CashOutWorld() {
         .catch(() => setBanks([]))
   }
 
+  const mustVerify = !!access?.required && access.verification !== 'verified'
+
   const pickCountry = (code: string) => {
-    if (code === 'NG') {
+    if (code === 'NG' && nairaOn) {
       router.push('/wallet/cash-out/naira')
       return
     }
     const rails = railsOf(code)
     setCountry(code)
     setSearch('')
+    // Anywhere else goes out in the person's own name: the ID check first, as a step of its own.
+    if (mustVerify) {
+      setProblem(null)
+      setStep('verify')
+      return
+    }
     if (rails.length === 1 && rails[0]) {
       choose(rails[0])
       return
@@ -285,14 +298,13 @@ export function CashOutWorld() {
         .catch(() => setRate(null))
   }
 
-  /** Kova said the ID check comes first: back to the first step, which shows where it stands. */
+  /** Kova said the ID check comes first: the check's own step, which shows where it stands. */
   const needsCheck = (e: unknown) => {
     if (!(e instanceof PayoutError) || !e.verification) return false
     setAccess({ required: true, verification: e.verification })
-    setStep('where')
+    setStep('verify')
     return true
   }
-  const mustVerify = !!access?.required && access.verification !== 'verified'
 
   const save = async () => {
     if (!profile || !corridor) return
@@ -382,6 +394,7 @@ export function CashOutWorld() {
   const back = () => {
     setProblem(null)
     if (step === 'country') setStep('where')
+    else if (step === 'verify') setStep(country ? 'country' : 'where')
     else if (step === 'rail') setStep('country')
     else if (step === 'details') setStep(railsOf(corridor?.country).length > 1 ? 'rail' : 'country')
     else if (step === 'amount') setStep('where')
@@ -394,8 +407,8 @@ export function CashOutWorld() {
       ? 'Cash out'
       : step === 'country'
         ? 'Where to?'
-        : step === 'rail'
-          ? placeName(country)
+        : step === 'rail' || step === 'verify'
+          ? placeName(country) || 'Cash out'
           : step === 'details'
             ? (corridor?.title ?? 'Details')
             : step === 'amount'
@@ -410,7 +423,7 @@ export function CashOutWorld() {
   const progress =
     step === 'country'
       ? 1
-      : step === 'rail'
+      : step === 'rail' || step === 'verify'
         ? 2
         : step === 'details'
           ? 3
@@ -424,6 +437,33 @@ export function CashOutWorld() {
   const aboutFields = split === -1 ? [] : fields.slice(split)
   const aboutComplete = aboutFields.every((f) => f.optional || !!values[f.key])
   const setValue = (key: string) => (v: string) => setValues((prev) => ({ ...prev, [key]: v }))
+
+  /** Every saved account in one list: naira ones (in this browser) first, then the rest. */
+  const saved = [
+    ...(nairaOn ? nairaRecents : []).map((r) => ({
+      key: `ng-${r.bankCode}-${r.accountNumber}`,
+      flag: 'NG',
+      title: `${r.bankName} ••${r.accountNumber.slice(-4)}`,
+      detail: `${r.name} · Naira, in seconds`,
+      open: () =>
+        router.push(
+          `/wallet/cash-out/naira?recent=${encodeURIComponent(`${r.bankCode}:${r.accountNumber}`)}`,
+        ),
+    })),
+    ...(recipients ?? []).map((r) => {
+      const way = wayOf(r)
+      return {
+        key: r.id,
+        flag: way ? flagCode(way) : flagCode(r),
+        title: r.label,
+        detail: `${r.title} · ${r.currency}`,
+        open: () => startAmount(r),
+      }
+    }),
+  ]
+  const verification: Exclude<Verification, 'verified'> =
+    access?.verification && access.verification !== 'verified' ? access.verification : 'needed'
+  const place = country && country !== 'WW' ? placeName(country) : ''
 
   return (
     <div className="w-screen cw">
@@ -452,51 +492,92 @@ export function CashOutWorld() {
             <small>From your Kova dollars</small>
             <strong>{balance === null ? '—' : formatUsd(balance)}</strong>
           </p>
-          {mustVerify ? (
-            <VerifyFirst
-              verification={access?.verification ?? 'needed'}
-              onGo={() => router.push('/wallet/card')}
-            />
-          ) : null}
-          {!mustVerify && recipients && recipients.length > 0 ? (
+          {saved.length > 0 ? (
             <>
               <p className="cw-head">
-                <strong>Send to</strong>
-                <small>{recipients.length} saved</small>
+                <strong>Your accounts</strong>
+                <small>{saved.length} saved</small>
               </p>
               <ul className="cw-card">
-                {recipients.map((r) => {
-                  const way = wayOf(r)
-                  return (
-                    <li key={r.id}>
-                      <button type="button" className="cw-row" onClick={() => startAmount(r)}>
-                        <Flag code={way ? flagCode(way) : flagCode(r)} />
-                        <span className="cw-text">
-                          <strong>{r.label}</strong>
-                          <small>
-                            {r.title} · {r.currency}
-                          </small>
-                        </span>
-                        <Icon name="arrow" size={16} />
-                      </button>
-                    </li>
-                  )
-                })}
+                {saved.map((a) => (
+                  <li key={a.key}>
+                    <button type="button" className="cw-row" onClick={a.open}>
+                      <Flag code={a.flag} />
+                      <span className="cw-text">
+                        <strong>{a.title}</strong>
+                        <small>{a.detail}</small>
+                      </span>
+                      <Icon name="arrow" size={16} />
+                    </button>
+                  </li>
+                ))}
               </ul>
             </>
           ) : null}
-          {mustVerify ? null : (
-            <button type="button" className="cw-add" onClick={() => setStep('country')}>
-              <span className="cw-add-dot">
-                <Icon name="plus" size={16} />
-              </span>
-              <span className="cw-text">
-                <strong>New account</strong>
-                <small>A bank or mobile money, almost anywhere</small>
+          <button type="button" className="cw-add" onClick={() => setStep('country')}>
+            <span className="cw-add-dot">
+              <Icon name="plus" size={16} />
+            </span>
+            <span className="cw-text">
+              <strong>New</strong>
+              <small>A bank or mobile money</small>
+            </span>
+          </button>
+        </>
+      ) : null}
+
+      {info?.live && step === 'verify' ? (
+        <div className="cw-flow cw-check">
+          <span className="cw-check-icon" aria-hidden="true">
+            <Icon name={verification === 'checking' ? 'clock' : 'user'} size={22} />
+          </span>
+          <h2 className="cw-ask">{VERIFY_COPY[verification].title}</h2>
+          <p className="cw-check-body">
+            {verification === 'needed'
+              ? `Money to ${place || 'another country'} goes from an account in your name, so Kova’s banking partner checks it’s you. It takes a few minutes.`
+              : VERIFY_COPY[verification].body}
+          </p>
+          {verification === 'needed' ? (
+            <ul className="cw-needs">
+              {CHECK_NEEDS.map((line) => (
+                <li key={line}>
+                  <span className="cw-tick" aria-hidden="true">
+                    <Icon name="check" size={14} />
+                  </span>
+                  {line}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <button
+            type="button"
+            className="pill pill-block cw-gap"
+            data-tone="ink"
+            onClick={() =>
+              router.push(
+                verification === 'needed' ? '/wallet/card?check=1&from=cash-out' : '/wallet/card',
+              )
+            }
+          >
+            <span className="pill-label">{VERIFY_COPY[verification].cta}</span>
+            <span className="pill-cap">
+              <Icon name="arrow" size={18} />
+            </span>
+          </button>
+          {nairaOn && homeCountry() === 'NG' ? (
+            <button
+              type="button"
+              className="pill pill-block cw-gap-s"
+              data-tone="paper"
+              onClick={() => router.push('/wallet/cash-out/naira')}
+            >
+              <span className="pill-label">Cash out in naira instead</span>
+              <span className="pill-cap">
+                <Icon name="arrow" size={18} />
               </span>
             </button>
-          )}
-        </>
+          ) : null}
+        </div>
       ) : null}
 
       {info?.live && step === 'country'
@@ -505,11 +586,29 @@ export function CashOutWorld() {
             const shown = named.filter((c) =>
               `${c.name} ${c.rails[0]?.currency ?? ''} ${ways(c.rails)}`.toLowerCase().includes(q),
             )
-            const home = homeCountry()
-            const suggested = [...new Set([home === 'NG' ? '' : home, ...POPULAR].filter(Boolean))]
-              .map((code) => named.find((c) => c.code === code))
-              .filter((c): c is (typeof named)[number] => !!c)
-              .slice(0, 3)
+            // The country the browser is set to comes first, on its own.
+            const mine = q ? undefined : named.find((c) => c.code === homeCountry())
+            const rest = mine ? shown.filter((c) => c.code !== mine.code) : shown
+            const isNaira = (code: string) => code === 'NG' && nairaOn
+            const countryRow = (c: (typeof named)[number]) => (
+              <li key={c.code}>
+                <button type="button" className="cw-row" onClick={() => pickCountry(c.code)}>
+                  <Flag code={c.code} />
+                  <span className="cw-text">
+                    <span className="cw-title">
+                      <strong>{c.name}</strong>
+                      {isNaira(c.code) && mustVerify ? <em className="cw-badge">No ID</em> : null}
+                    </span>
+                    <small>{isNaira(c.code) ? 'Any bank, naira in seconds' : ways(c.rails)}</small>
+                  </span>
+                  {isNaira(c.code) ? (
+                    <Icon name="arrow" size={16} />
+                  ) : (
+                    <span className="cw-aside">{c.rails[0]?.currency}</span>
+                  )}
+                </button>
+              </li>
+            )
             return (
               <>
                 <label className="cw-search">
@@ -521,52 +620,18 @@ export function CashOutWorld() {
                     aria-label="Search countries"
                   />
                 </label>
-                {!q ? (
+                {mine ? (
                   <>
-                    <p className="cw-label">Where you live, and popular</p>
-                    <div className="cw-tiles">
-                      {suggested.map((c) => (
-                        <button
-                          key={c.code}
-                          type="button"
-                          className="cw-tile"
-                          onClick={() => pickCountry(c.code)}
-                        >
-                          <Flag code={c.code} size={34} />
-                          <strong>{shortName(c.name)}</strong>
-                          <small>
-                            {c.rails[0]?.currency}
-                            {c.rails.some((r) => r.speed === 'Instant') ? ' · Instant' : ''}
-                          </small>
-                        </button>
-                      ))}
-                    </div>
+                    <p className="cw-label">Your country</p>
+                    <ul className="cw-card">{countryRow(mine)}</ul>
                   </>
                 ) : null}
-                <p className="cw-label">{q ? `${shown.length} found` : 'All countries'}</p>
-                {shown.length ? (
-                  <ul className="cw-card">
-                    {shown.map((c) => (
-                      <li key={c.code}>
-                        <button
-                          type="button"
-                          className="cw-row"
-                          onClick={() => pickCountry(c.code)}
-                        >
-                          <Flag code={c.code} />
-                          <span className="cw-text">
-                            <strong>{c.name}</strong>
-                            <small>
-                              {c.code === 'NG'
-                                ? 'Bank account, at the best naira rate'
-                                : ways(c.rails)}
-                            </small>
-                          </span>
-                          <span className="cw-aside">{c.rails[0]?.currency}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                <p className="cw-label cw-label-row">
+                  <span>{q ? `${shown.length} found` : 'All countries'}</span>
+                  {mustVerify && !q ? <small>One-time ID check first</small> : null}
+                </p>
+                {rest.length ? (
+                  <ul className="cw-card">{rest.map(countryRow)}</ul>
                 ) : (
                   <div className="cw-card cw-empty">
                     <strong>Not listed by name</strong>
@@ -999,9 +1064,9 @@ const VERIFY_COPY: Record<
   { title: string; body: string; cta: string }
 > = {
   needed: {
-    title: 'Verify your ID first',
-    body: 'A cash-out abroad goes out in your own name, so Kova’s banking partner checks your ID once. It’s the same check as the dollar card.',
-    cta: 'Verify my ID',
+    title: 'Check your ID, once',
+    body: 'Money abroad goes from an account in your name, so Kova’s banking partner checks it’s you. It takes a few minutes.',
+    cta: 'Check my ID',
   },
   checking: {
     title: 'Your ID is being checked',
@@ -1015,22 +1080,12 @@ const VERIFY_COPY: Record<
   },
 }
 
-/** The first step while the ID check is needed: what's left to do, and the way to the check. */
-function VerifyFirst({ verification, onGo }: { verification: Verification; onGo: () => void }) {
-  const copy = VERIFY_COPY[verification === 'verified' ? 'checking' : verification]
-  return (
-    <div className="cw-verify">
-      <strong>{copy.title}</strong>
-      <p>{copy.body}</p>
-      <button type="button" className="pill" data-tone="ink" onClick={onGo}>
-        <span className="pill-label">{copy.cta}</span>
-        <span className="pill-cap">
-          <Icon name="arrow" size={18} />
-        </span>
-      </button>
-    </div>
-  )
-}
+/** What the ID check asks for (the dollar card's check, components/wallet/dollar-card.tsx). */
+const CHECK_NEEDS = [
+  'A passport, driver’s licence or national ID',
+  'A bill or bank statement with your address',
+  'Done once, for every country and your dollar card',
+]
 
 function Stage({
   title,

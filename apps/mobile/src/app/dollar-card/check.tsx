@@ -60,7 +60,8 @@ type Shot = { uri: string; base64: string }
 export default function CardCheckScreen() {
   const { profile, signMessage } = useWallet()
   // Development only: ?step=photo or ?step=address opens that step, to look at it on a simulator.
-  const { step: opened } = useLocalSearchParams<{ step?: string }>()
+  // `from=cash-out`: opened from Cash out, so it goes back there when the check is sent.
+  const { step: opened, from } = useLocalSearchParams<{ step?: string; from?: string }>()
   const [step, setStep] = useState<'details' | 'photo' | 'address'>(
     __DEV__ && (opened === 'photo' || opened === 'address') ? opened : 'details',
   )
@@ -137,7 +138,8 @@ export default function CardCheckScreen() {
         ...(kind ? { id_number: { type: kind, value: digits } } : {}),
         address_proof: { type: proofType, file: proof.base64, mime: 'image/jpeg' },
       })
-      router.replace('/dollar-card')
+      if (from === 'cash-out' && router.canGoBack()) router.back()
+      else router.replace('/dollar-card')
     } catch (e) {
       setError(problemOf(e))
     } finally {

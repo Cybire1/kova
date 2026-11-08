@@ -1,7 +1,7 @@
 import { parseAmount } from '@kova/monad'
 import * as Haptics from 'expo-haptics'
-import { router, useLocalSearchParams } from 'expo-router'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -14,8 +14,10 @@ import {
   View,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { naira } from '@/lib/api'
 import { DEMO_BALANCE, demoCashOutOn, demoSend } from '@/lib/demo-cashout'
 import { applyKey, formatUsd } from '@/lib/money'
+import { loadNairaRecents, type NairaRecent, recentKey } from '@/lib/naira-recents'
 import {
   addRecipient,
   type CashOutAccess,
@@ -43,10 +45,12 @@ import { Icon } from '@/ui/Icon'
 import { Keypad } from '@/ui/Keypad'
 import { Header, PillButton, RoundButton, Screen, Txt } from '@/ui/primitives'
 
-type Step = 'where' | 'country' | 'rail' | 'details' | 'amount' | 'review' | 'tracking'
-
-/** Countries offered first, after the one the phone is set to. */
-const POPULAR = ['US', 'GB', 'NG', 'KE', 'CA', 'EU', 'GH']
+/**
+ * Cash out, for every country: your saved accounts (naira ones included), or a new one starting
+ * with the country the phone is set to. Nigeria hands over to the naira screen (PAJ, no ID from
+ * Kova); anywhere else asks for the one-time ID check as a step of its own, only when it's needed.
+ */
+type Step = 'where' | 'country' | 'verify' | 'rail' | 'details' | 'amount' | 'review' | 'tracking'
 
 /** The fields about the person (not the account), which Kova asks once and keeps on the phone. */
 const ABOUT = [
@@ -101,22 +105,40 @@ export default function CashOutWorld() {
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  /** Naira through PAJ: when it's on, Nigeria and the naira accounts open the naira screen. */
+  const [nairaOn, setNairaOn] = useState(false)
+  const [nairaRecents, setNairaRecents] = useState<NairaRecent[]>([])
 
   useEffect(() => {
     void getPayoutsInfo()
       .then(setInfo)
       .catch((e) => setProblem(e instanceof Error ? e.message : 'Kova is unreachable.'))
+    void naira
+      .info()
+      .then((i) => setNairaOn(i.enabled))
+      .catch(() => setNairaOn(false))
+    void loadNairaRecents().then(setNairaRecents)
   }, [])
   useEffect(() => {
     if (!profile) return
-    void getCashOutAccounts(profile.address)
-      .then((r) => {
-        setRecipients(r.recipients)
-        setAccess(r.access)
-      })
-      .catch(() => setRecipients([]))
     void load<Record<string, string> | null>(aboutKey(profile.address), null).then(setAbout)
   }, [profile])
+  // The saved accounts and where the ID check stands, again on coming back from the check.
+  useFocusEffect(
+    useCallback(() => {
+      if (!profile) return
+      void getCashOutAccounts(profile.address)
+        .then((r) => {
+          setRecipients(r.recipients)
+          setAccess(r.access)
+        })
+        .catch(() => setRecipients((list) => list ?? []))
+    }, [profile]),
+  )
+  // Cashing out abroad is off on this server but naira is on: naira is the whole of Cash out.
+  useEffect(() => {
+    if (info && !info.live && nairaOn) router.replace('/cash-out')
+  }, [info, nairaOn])
 
   // Development only: `?step=country`, `?step=rail&country=US`, `?step=details&corridor=…`, or
   // `?step=amount|review|tracking` with the first saved account, to open a step for screenshots.
@@ -251,15 +273,23 @@ export default function CashOutWorld() {
         .catch(() => setBanks([]))
   }
 
+  const mustVerify = !!access?.required && access.verification !== 'verified'
+
   const pickCountry = (code: string) => {
-    if (code === 'NG') {
-      // Naira goes through PAJ: a better rate than converting through Nuvion.
+    if (code === 'NG' && nairaOn) {
+      // Naira goes through PAJ: a better rate than converting through Nuvion, and no ID from Kova.
       router.replace('/cash-out')
       return
     }
     const rails = railsOf(code)
     setCountry(code)
     setSearch('')
+    // Anywhere else goes out in the person's own name: the ID check first, as a step of its own.
+    if (mustVerify) {
+      setProblem(null)
+      setStep('verify')
+      return
+    }
     if (rails.length === 1 && rails[0]) {
       choose(rails[0])
       return
@@ -275,14 +305,19 @@ export default function CashOutWorld() {
     else setRate(1)
   }
 
-  /** Kova said the ID check comes first: back to the first step, which shows where it stands. */
+  /** Kova said the ID check comes first: the check's own step, which shows where it stands. */
   const needsCheck = (e: unknown) => {
     if (!(e instanceof PayoutError) || !e.verification) return false
     setAccess({ required: true, verification: e.verification })
-    setStep('where')
+    setStep('verify')
     return true
   }
-  const mustVerify = !!access?.required && access.verification !== 'verified'
+
+  // Back from the ID check and it passed: carry on to the country that was picked.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only when the check's answer changes
+  useEffect(() => {
+    if (step === 'verify' && !mustVerify && country) pickCountry(country)
+  }, [mustVerify])
 
   const saveAccount = async () => {
     if (!profile || !corridor) return
@@ -393,6 +428,7 @@ export default function CashOutWorld() {
   const back = () => {
     setProblem(null)
     if (step === 'country') setStep('where')
+    else if (step === 'verify') setStep(country ? 'country' : 'where')
     else if (step === 'rail') setStep('country')
     else if (step === 'details') setStep(railsOf(corridor?.country).length > 1 ? 'rail' : 'country')
     else if (step === 'amount') setStep('where')
@@ -406,8 +442,8 @@ export default function CashOutWorld() {
       ? 'Cash out'
       : step === 'country'
         ? 'Where to?'
-        : step === 'rail'
-          ? placeName(country)
+        : step === 'rail' || step === 'verify'
+          ? placeName(country) || 'Cash out'
           : step === 'details'
             ? (corridor?.title ?? 'Details')
             : step === 'amount'
@@ -422,7 +458,7 @@ export default function CashOutWorld() {
   const progress =
     step === 'country'
       ? 1
-      : step === 'rail'
+      : step === 'rail' || step === 'verify'
         ? 2
         : step === 'details'
           ? 3
@@ -435,6 +471,29 @@ export default function CashOutWorld() {
   const accountFields = split === -1 ? fields : fields.slice(0, split)
   const aboutFields = split === -1 ? [] : fields.slice(split)
   const aboutComplete = aboutFields.every((f) => f.optional || !!values[f.key])
+
+  /** Every saved account in one list: naira ones (on this phone) first, then the rest. */
+  const saved = [
+    ...(nairaOn ? nairaRecents : []).map((r) => ({
+      key: `ng-${recentKey(r)}`,
+      flag: 'NG',
+      title: `${r.bankName} ••${r.accountNumber.slice(-4)}`,
+      detail: `${r.name} · Naira, in seconds`,
+      open: () => router.replace({ pathname: '/cash-out', params: { recent: recentKey(r) } }),
+    })),
+    ...(recipients ?? []).map((r) => {
+      const way = wayOf(r)
+      return {
+        key: r.id,
+        flag: way ? flagCode(way) : flagCode(r),
+        title: r.label,
+        detail: `${r.title} · ${r.currency}`,
+        open: () => void startAmount(r),
+      }
+    }),
+  ]
+  const verification: Exclude<Verification, 'verified'> =
+    access?.verification && access.verification !== 'verified' ? access.verification : 'needed'
 
   return (
     <Screen>
@@ -471,59 +530,107 @@ export default function CashOutWorld() {
             {balance === null ? '—' : formatUsd(balance)}
           </Txt>
 
-          {mustVerify ? <VerifyFirst verification={access?.verification ?? 'needed'} /> : null}
-
-          {!mustVerify && recipients && recipients.length > 0 ? (
+          {saved.length > 0 ? (
             <>
               <View style={styles.groupHead}>
                 <Txt weight="bold" size={13}>
-                  Send to
+                  Your accounts
                 </Txt>
                 <Txt size={12} color={colors.muted}>
-                  {recipients.length} saved
+                  {saved.length} saved
                 </Txt>
               </View>
               <View style={styles.card}>
-                {recipients.map((r, i) => {
-                  const way = wayOf(r)
-                  return (
-                    <Row
-                      key={r.id}
-                      flag={way ? flagCode(way) : flagCode(r)}
-                      title={r.label}
-                      detail={`${r.title} · ${r.currency}`}
-                      last={i === recipients.length - 1}
-                      onPress={() => void startAmount(r)}
-                    />
-                  )
-                })}
+                {saved.map((s, i) => (
+                  <Row
+                    key={s.key}
+                    flag={s.flag}
+                    title={s.title}
+                    detail={s.detail}
+                    last={i === saved.length - 1}
+                    onPress={s.open}
+                  />
+                ))}
               </View>
             </>
           ) : null}
 
-          {mustVerify ? null : (
-            <Pressable
-              accessibilityRole="button"
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="New. A bank or mobile money"
+            onPress={() => {
+              void Haptics.selectionAsync()
+              setStep('country')
+            }}
+            style={({ pressed }) => [styles.addRow, pressed && { opacity: 0.7 }]}
+          >
+            <View style={styles.addDot}>
+              <Icon name="plus" size={16} color={colors.dark} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt weight="bold" size={15}>
+                New
+              </Txt>
+              <Txt size={12} color={colors.muted}>
+                A bank or mobile money
+              </Txt>
+            </View>
+          </Pressable>
+        </ScrollView>
+      ) : null}
+
+      {info?.live && step === 'verify' ? (
+        <View style={[styles.flow, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <ScrollView contentContainerStyle={{ paddingTop: 12, paddingBottom: 12, gap: 12 }}>
+            <View style={styles.verifyIcon}>
+              <Icon
+                name={verification === 'checking' ? 'clock' : 'user'}
+                size={22}
+                color={colors.dark}
+              />
+            </View>
+            <Txt weight="bold" size={26} style={{ letterSpacing: -0.6 }}>
+              {VERIFY_COPY[verification].title}
+            </Txt>
+            <Txt size={15} color={colors.muted} style={{ lineHeight: 21 }}>
+              {verification === 'needed'
+                ? `Money to ${country && country !== 'WW' ? placeName(country) : 'another country'} goes from an account in your name, so Kova’s banking partner checks it’s you. It takes a few minutes.`
+                : VERIFY_COPY[verification].body}
+            </Txt>
+            {verification === 'needed' ? (
+              <View style={{ gap: 12, marginTop: 6 }}>
+                {CHECK_NEEDS.map((line) => (
+                  <View key={line} style={styles.needRow}>
+                    <View style={styles.needTick}>
+                      <Icon name="check" size={14} color={colors.white} strokeWidth={3} />
+                    </View>
+                    <Txt weight="semi" size={15} style={{ flex: 1 }}>
+                      {line}
+                    </Txt>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </ScrollView>
+          <View style={{ gap: 10 }}>
+            <PillButton
+              label={VERIFY_COPY[verification].cta}
               onPress={() => {
                 void Haptics.selectionAsync()
-                setStep('country')
+                if (verification === 'needed')
+                  router.push({ pathname: '/dollar-card/check', params: { from: 'cash-out' } })
+                else router.push('/dollar-card')
               }}
-              style={({ pressed }) => [styles.addRow, pressed && { opacity: 0.7 }]}
-            >
-              <View style={styles.addDot}>
-                <Icon name="plus" size={16} color={colors.dark} />
-              </View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Txt weight="bold" size={15}>
-                  New account
-                </Txt>
-                <Txt size={12} color={colors.muted}>
-                  A bank or mobile money, almost anywhere
-                </Txt>
-              </View>
-            </Pressable>
-          )}
-        </ScrollView>
+            />
+            {nairaOn && homeCountry() === 'NG' ? (
+              <PillButton
+                label="Cash out in naira instead"
+                tone="white"
+                onPress={() => router.replace('/cash-out')}
+              />
+            ) : null}
+          </View>
+        </View>
       ) : null}
 
       {info?.live && step === 'country' ? (
@@ -552,65 +659,45 @@ export default function CashOutWorld() {
                   .toLowerCase()
                   .includes(q),
               )
-              const home = homeCountry()
-              const suggested = [
-                ...new Set([home === 'NG' ? '' : home, ...POPULAR].filter(Boolean)),
-              ]
-                .map((code) => named.find((c) => c.code === code))
-                .filter((c): c is (typeof named)[number] => !!c)
-                .slice(0, 3)
+              // The country the phone is set to comes first, on its own.
+              const mine = q ? undefined : named.find((c) => c.code === homeCountry())
+              const rest = mine ? shown.filter((c) => c.code !== mine.code) : shown
+              const isNaira = (code: string) => code === 'NG' && nairaOn
+              const countryRow = (c: (typeof named)[number], last: boolean) => (
+                <Row
+                  key={c.code}
+                  flag={c.code}
+                  title={c.name}
+                  detail={isNaira(c.code) ? 'Any bank, naira in seconds' : ways(c.rails)}
+                  aside={isNaira(c.code) ? undefined : c.rails[0]?.currency}
+                  badge={isNaira(c.code) && mustVerify ? 'No ID' : undefined}
+                  last={last}
+                  onPress={() => pickCountry(c.code)}
+                />
+              )
               return (
                 <>
-                  {!q ? (
+                  {mine ? (
                     <>
                       <Txt weight="bold" size={12} color={colors.muted} style={styles.label}>
-                        Where you live, and popular
+                        Your country
                       </Txt>
-                      <View style={styles.tiles}>
-                        {suggested.map((c) => (
-                          <Pressable
-                            key={c.code}
-                            accessibilityRole="button"
-                            accessibilityLabel={c.name}
-                            onPress={() => {
-                              void Haptics.selectionAsync()
-                              pickCountry(c.code)
-                            }}
-                            style={({ pressed }) => [styles.tile, pressed && { opacity: 0.7 }]}
-                          >
-                            <Flag code={c.code} size={34} />
-                            <View style={{ gap: 1 }}>
-                              <Txt weight="bold" size={14} numberOfLines={1}>
-                                {shortName(c.name)}
-                              </Txt>
-                              <Txt size={11} color={colors.muted}>
-                                {c.rails[0]?.currency}
-                                {c.rails.some((r) => r.speed === 'Instant') ? ' · Instant' : ''}
-                              </Txt>
-                            </View>
-                          </Pressable>
-                        ))}
-                      </View>
+                      <View style={styles.card}>{countryRow(mine, true)}</View>
                     </>
                   ) : null}
-                  <Txt weight="bold" size={12} color={colors.muted} style={styles.label}>
-                    {q ? `${shown.length} found` : 'All countries'}
-                  </Txt>
-                  {shown.length ? (
+                  <View style={styles.labelRow}>
+                    <Txt weight="bold" size={12} color={colors.muted}>
+                      {q ? `${shown.length} found` : 'All countries'}
+                    </Txt>
+                    {mustVerify && !q ? (
+                      <Txt size={12} color={colors.muted}>
+                        One-time ID check first
+                      </Txt>
+                    ) : null}
+                  </View>
+                  {rest.length ? (
                     <View style={styles.card}>
-                      {shown.map((c, i) => (
-                        <Row
-                          key={c.code}
-                          flag={c.code}
-                          title={c.name}
-                          detail={
-                            c.code === 'NG' ? 'Bank account, at the best naira rate' : ways(c.rails)
-                          }
-                          aside={c.rails[0]?.currency}
-                          last={i === shown.length - 1}
-                          onPress={() => pickCountry(c.code)}
-                        />
-                      ))}
+                      {rest.map((c, i) => countryRow(c, i === rest.length - 1))}
                     </View>
                   ) : (
                     <View style={[styles.card, { padding: 16, gap: 4 }]}>
@@ -1124,16 +1211,6 @@ const brief = (speed: string) =>
     ? 'By tomorrow'
     : speed.replace(' business days', ' days').replace('Under a minute', 'In a minute')
 
-/** Short names for the small tiles. */
-const shortName = (name: string) =>
-  name === 'United States'
-    ? 'USA'
-    : name === 'United Kingdom'
-      ? 'UK'
-      : name === 'United Arab Emirates'
-        ? 'UAE'
-        : name
-
 /** "19:36", from a payout's time. */
 const clock = (iso: string) => {
   const d = new Date(iso)
@@ -1187,6 +1264,7 @@ function Row({
   title,
   detail,
   aside,
+  badge,
   last,
   onPress,
 }: {
@@ -1194,6 +1272,8 @@ function Row({
   title: string
   detail: string
   aside?: string
+  /** A small chip beside the title, such as "No ID". */
+  badge?: string
   last?: boolean
   onPress: () => void
 }) {
@@ -1209,9 +1289,18 @@ function Row({
     >
       <Flag code={flag} size={36} />
       <View style={{ flex: 1, gap: 1 }}>
-        <Txt weight="bold" size={15} numberOfLines={1}>
-          {title}
-        </Txt>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Txt weight="bold" size={15} numberOfLines={1} style={{ flexShrink: 1 }}>
+            {title}
+          </Txt>
+          {badge ? (
+            <View style={styles.badge}>
+              <Txt weight="bold" size={11} color={colors.dark}>
+                {badge}
+              </Txt>
+            </View>
+          ) : null}
+        </View>
         <Txt size={12} color={colors.muted} numberOfLines={1}>
           {detail}
         </Txt>
@@ -1570,9 +1659,9 @@ const VERIFY_COPY: Record<
   { title: string; body: string; cta: string }
 > = {
   needed: {
-    title: 'Verify your ID first',
-    body: 'A cash-out abroad goes out in your own name, so Kova’s banking partner checks your ID once. It’s the same check as the dollar card.',
-    cta: 'Verify my ID',
+    title: 'Check your ID, once',
+    body: 'Money abroad goes from an account in your name, so Kova’s banking partner checks it’s you. It takes a few minutes.',
+    cta: 'Check my ID',
   },
   checking: {
     title: 'Your ID is being checked',
@@ -1586,33 +1675,12 @@ const VERIFY_COPY: Record<
   },
 }
 
-/** The first step while the ID check is needed: what's left to do, and the way to the check. */
-function VerifyFirst({ verification }: { verification: Verification }) {
-  const copy = VERIFY_COPY[verification === 'verified' ? 'checking' : verification]
-  return (
-    <View style={styles.verify}>
-      <View style={styles.verifyIcon}>
-        <Icon name={verification === 'checking' ? 'clock' : 'user'} size={20} color={colors.dark} />
-      </View>
-      <Txt weight="bold" size={20} style={{ letterSpacing: -0.4 }}>
-        {copy.title}
-      </Txt>
-      <Txt size={15} color={colors.muted} style={{ lineHeight: 21 }}>
-        {copy.body}
-      </Txt>
-      <View style={{ marginTop: 8 }}>
-        <PillButton
-          label={copy.cta}
-          icon="arrow"
-          onPress={() => {
-            void Haptics.selectionAsync()
-            router.push('/dollar-card')
-          }}
-        />
-      </View>
-    </View>
-  )
-}
+/** What the ID check asks for (the dollar card's check, apps/mobile/src/app/dollar-card/check.tsx). */
+const CHECK_NEEDS = [
+  'A passport, driver’s licence or national ID',
+  'A bill or bank statement with your address',
+  'Done once, for every country and your dollar card',
+]
 
 function Problem({ text }: { text: string }) {
   return (
@@ -1624,14 +1692,30 @@ function Problem({ text }: { text: string }) {
 
 const styles = StyleSheet.create({
   pad: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 32 },
-  verify: {
-    marginTop: 20,
-    gap: 8,
-    padding: 18,
-    borderRadius: 24,
-    borderWidth: 2,
+  needRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  needTick: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.teal,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginTop: 18,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  badge: {
+    paddingHorizontal: 9,
+    paddingVertical: 2,
+    borderRadius: 999,
+    borderWidth: 1.5,
     borderColor: colors.line,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.tealSoft,
   },
   verifyIcon: {
     width: 40,

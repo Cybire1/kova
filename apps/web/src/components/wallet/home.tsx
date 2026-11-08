@@ -9,7 +9,6 @@ import { InstallPrompt } from './install'
 import { KeysOnHome } from './keys'
 import { MonWalletCard } from './mon'
 import { MoneyRow } from './money'
-import { useNaira } from './naira'
 import { isUnnamed, useWallet } from './provider'
 import { StocksCard } from './stocks'
 import { OtherTokensCard } from './tokens'
@@ -22,8 +21,6 @@ import { ActionTile, Avatar, BalanceCard, EntryRow } from './ui'
  */
 export function Home() {
   const { profile, balance, monBalance, activity, contacts, network } = useWallet()
-  // Cash out goes straight to naira when this server has it on, as the app's does.
-  const naira = useNaira()
   if (!profile) return null
   const empty = balance === 0n && !(monBalance && monBalance > 0n)
 
@@ -79,35 +76,30 @@ export function Home() {
         </div>
       </div>
 
-      {/* Cash out, where everyone sees it: to any Nigerian bank (naira), or with Ramp elsewhere. */}
+      {/* Cash out, where everyone sees it: one button, and the next screen asks where to (your
+          accounts, or a new one starting with your own country). Testnet has naira only. */}
       <Link
-        href={naira?.enabled === false ? '/wallet/cash-out/world' : '/wallet/cash-out/naira'}
+        href={network === 'mainnet' ? '/wallet/cash-out/world' : '/wallet/cash-out/naira'}
         className="w-cashout"
       >
         <span className="w-cashout-text">
-          <strong>Cash out to any bank</strong>
+          <strong>Cash out</strong>
           <span className="w-cashout-row">
-            {naira?.enabled === false ? null : (
-              <span className="w-cashout-banks" aria-hidden="true">
-                {['opay', 'moniepoint', 'gtbank', 'kuda'].map((bank) => (
-                  // biome-ignore lint/performance/noImgElement: a 96 px logo, already sized
-                  <img key={bank} src={`/banks/${bank}.png`} alt="" width={22} height={22} />
-                ))}
-              </span>
-            )}
-            <small>{naira?.enabled === false ? 'To your bank or card' : 'Naira, in seconds'}</small>
+            <span className="w-cashout-banks" aria-hidden="true">
+              {['opay', 'moniepoint', 'gtbank', 'kuda'].map((bank) => (
+                // biome-ignore lint/performance/noImgElement: a 96 px logo, already sized
+                <img key={bank} src={`/banks/${bank}.png`} alt="" width={22} height={22} />
+              ))}
+            </span>
+            <small>
+              {network === 'mainnet' ? 'To your bank or mobile money' : 'Naira, in seconds'}
+            </small>
           </span>
         </span>
         <span className="w-cashout-go" aria-hidden="true">
           <Icon name="arrow" size={18} />
         </span>
       </Link>
-      {network === 'mainnet' ? (
-        <Link href="/wallet/cash-out/world" className="w-elsewhere">
-          Or cash out to another country
-          <Icon name="arrow" size={14} />
-        </Link>
-      ) : null}
 
       {/* Savings and the dollar card, right under cash-out, where people look for their money. */}
       <MoneyRow />

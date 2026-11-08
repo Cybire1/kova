@@ -8985,7 +8985,8 @@ button.w-chip-private:disabled {
   border: 2px solid var(--line);
   border-radius: 1.5rem;
   background: var(--coral);
-  color: #fff;
+  /* Dark text on coral, as on every bright colour in Kova: it reads in either appearance. */
+  color: var(--dark);
   text-decoration: none;
   transition: transform 0.45s var(--spring);
 }
@@ -9003,7 +9004,7 @@ button.w-chip-private:disabled {
 }
 
 .w-cashout-text strong {
-  font-size: 1.0625rem;
+  font-size: 1.1875rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -9018,7 +9019,6 @@ button.w-chip-private:disabled {
 .w-cashout-row small {
   font-size: 0.8125rem;
   font-weight: 600;
-  opacity: 0.9;
 }
 
 .w-cashout-banks {
@@ -9041,8 +9041,8 @@ button.w-chip-private:disabled {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background: #fff;
-  color: var(--dark);
+  background: var(--dark);
+  color: #fff;
 }
 
 /*
@@ -9669,20 +9669,4 @@ button.w-chip-private:disabled {
   .w-install-arrow {
     animation: none;
   }
-}
-
-.w-elsewhere {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  margin-top: 0.625rem;
-  padding: 0 0.375rem;
-  color: var(--muted);
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.w-elsewhere:hover {
-  color: var(--ink);
 }

@@ -14,13 +14,17 @@ export const DEMO_API = 'https://api-monad-mainnet.up.railway.app'
 export const DEMO_BALANCE = 144_020_000n
 
 let on = false
+/** `cashout=demo-check`: a wallet that hasn't done the ID check yet, to see Cash out ask for it. */
+let check = false
 let saved: Recipient[] = []
 const payouts = new Map<string, { payout: Payout; at: number }>()
 
 export const demoCashOutOn = () => __DEV__ && on
+export const demoNeedsCheck = () => __DEV__ && on && check
 
-export function startDemoCashOut() {
+export function startDemoCashOut(options: { check?: boolean } = {}) {
   on = true
+  check = !!options.check
   saved = [
     recipient(
       'us_ach',
@@ -76,7 +80,8 @@ function recipient(
   }
 }
 
-export const demoRecipients = () => saved
+/** Before the ID check, only accounts in the person's own name would count: none yet. */
+export const demoRecipients = () => (check ? [] : saved)
 
 export function demoAddRecipient(
   corridor: {

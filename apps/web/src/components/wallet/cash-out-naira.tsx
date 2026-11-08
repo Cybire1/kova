@@ -27,7 +27,7 @@ interface Bank {
 }
 
 /** Someone this browser cashed out to before, kept here only. */
-interface Recent {
+export interface Recent {
   name: string
   bankCode: string
   bankName: string
@@ -57,7 +57,8 @@ function readUnit(): Unit {
   }
 }
 
-function readRecents(): Recent[] {
+/** The naira accounts this browser cashed out to, newest first (Cash out lists them too). */
+export function readRecents(): Recent[] {
   try {
     const list = JSON.parse(localStorage.getItem(RECENTS) ?? '[]') as Recent[]
     return Array.isArray(list) ? list : []
@@ -124,9 +125,17 @@ export function NairaCashOut() {
     setCashOut(null)
   }, [])
 
+  /** From Cash out's list (?recent=058:0123456789): the saved account to pay, picked already. */
+  const [preset, setPreset] = useState<Recent | null>(null)
+  /** That account is being named after the amount: its review opens once the bank names it. */
+  const [autoReview, setAutoReview] = useState(false)
+
   useEffect(() => {
-    setRecents(readRecents())
+    const list = readRecents()
+    setRecents(list)
     setUnit(readUnit())
+    const key = new URLSearchParams(window.location.search).get('recent')
+    if (key) setPreset(list.find((r) => `${r.bankCode}:${r.accountNumber}` === key) ?? null)
   }, [])
 
   /** Naira ⇄ dollars, keeping the amount: what's on screen becomes the other side of the quote. */
@@ -246,6 +255,27 @@ export function NairaCashOut() {
   const quote = () => {
     if (named && cashOut) setStep('review')
   }
+
+  /** After the amount: who gets it, with the saved account from Cash out already being named. */
+  const toRecipient = () => {
+    setStep('recipient')
+    if (!preset) return
+    setAccount(preset.accountNumber)
+    setAutoReview(true)
+    const known = banks.find((b) => b.code === preset.bankCode)
+    void checkName(
+      known ?? { name: preset.bankName, code: preset.bankCode, logo: preset.logo },
+      preset.accountNumber,
+    )
+  }
+  // Named: straight to the review. Not found, or the bank didn't answer: the step stays open.
+  useEffect(() => {
+    if (!autoReview || step !== 'recipient') return
+    if (check?.state === 'named' && cashOut) {
+      setAutoReview(false)
+      setStep('review')
+    } else if (check?.state === 'missed' || problem) setAutoReview(false)
+  }, [autoReview, step, check, cashOut, problem])
 
   const send = async () => {
     if (!cashOut || !bank || !named) return
@@ -621,6 +651,12 @@ export function NairaCashOut() {
               </button>
             ) : null}
           </div>
+          {preset ? (
+            <p className="cx-rate">
+              To <strong>{titleCase(preset.name)}</strong> · {preset.bankName} ••
+              {preset.accountNumber.slice(-4)}
+            </p>
+          ) : null}
           <p className="cx-rate">
             {info?.cash_out_rate ? `${nairaText(Number(info.cash_out_rate))} per $1 · ` : ''}No fees
             · Lands in seconds
@@ -631,7 +667,7 @@ export function NairaCashOut() {
             className="pill pill-block cx-go"
             data-tone="ink"
             disabled={!amountOk || !estimate}
-            onClick={() => setStep('recipient')}
+            onClick={toRecipient}
           >
             <span className="pill-label">Continue</span>
             <span className="pill-cap">

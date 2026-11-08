@@ -10,6 +10,7 @@ import {
   DEMO_API,
   demoAddRecipient,
   demoCashOutOn,
+  demoNeedsCheck,
   demoPayout,
   demoQuote,
   demoRecipients,
@@ -172,7 +173,12 @@ export async function getCashOutAccounts(
   address: Address,
 ): Promise<{ recipients: Recipient[]; access: CashOutAccess }> {
   if (demoCashOutOn())
-    return { recipients: demoRecipients(), access: { required: false, verification: null } }
+    return {
+      recipients: demoRecipients(),
+      access: demoNeedsCheck()
+        ? { required: true, verification: 'needed' }
+        : { required: false, verification: null },
+    }
   const r = await api<{
     data: Recipient[]
     verification_required?: boolean

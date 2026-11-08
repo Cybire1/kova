@@ -753,3 +753,94 @@
 .cw-receipt div + div {
   border-top: 1.5px solid var(--hairline);
 }
+
+/* The country list: "Your country" on its own, a chip for the one with no ID check. */
+.cw-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cw-label-row small {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.cw-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cw-badge {
+  flex: none;
+  padding: 1px 8px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--teal-soft, #a9c9c9);
+  color: var(--dark);
+  font-size: 0.6875rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+/* The ID check, as a step of its own: only abroad, only once, never a dead end. */
+.cw-check {
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.cw-check-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--teal-soft, #a9c9c9);
+  color: var(--dark);
+}
+
+.cw-check .cw-ask {
+  font-size: 1.625rem;
+}
+
+.cw-check-body {
+  margin: 0;
+  max-width: 34rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.cw-needs {
+  display: grid;
+  gap: 12px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.cw-needs li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cw-tick {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+}
+
+.cw-gap-s {
+  margin-top: 10px;
+}

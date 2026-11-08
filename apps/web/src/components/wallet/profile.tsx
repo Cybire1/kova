@@ -98,25 +98,20 @@ export function Profile() {
         </span>
       </div>
 
-      {/* Mainnet only: on testnet there's nothing real to cash out. */}
-      {network === 'mainnet' ? (
-        <Link href="/wallet/cash-out/world" className="w-add-chain">
-          <span>
-            <strong>Cash out to any country</strong>
-            <small>Banks, mobile money and Interac, in 20+ countries</small>
-          </span>
-          <Icon name="out" size={16} />
-        </Link>
-      ) : null}
-      {network === 'mainnet' ? (
-        <Link href="/wallet/cash-out" className="w-add-chain">
-          <span>
-            <strong>Cash out</strong>
-            <small>To your bank or card, with Ramp Network</small>
-          </span>
-          <Icon name="out" size={16} />
-        </Link>
-      ) : null}
+      {/* One Cash out, as on Home: your accounts, or a new one starting with your own country.
+          Testnet has naira only, in the payment partner's test mode. */}
+      <Link
+        href={network === 'mainnet' ? '/wallet/cash-out/world' : '/wallet/cash-out/naira'}
+        className="w-add-chain"
+      >
+        <span>
+          <strong>Cash out</strong>
+          <small>
+            {network === 'mainnet' ? 'To your bank or mobile money' : 'Naira, in seconds'}
+          </small>
+        </span>
+        <Icon name="out" size={16} />
+      </Link>
 
       <Link href="/wallet/private" className="w-add-chain">
         <span>

@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { type NairaBank, type NairaInfo, naira } from '@/lib/api'
 import type { CashOutToPay } from '@/lib/chain'
 import { applyKey, formatUsd, groupTyped, type Key, toBase } from '@/lib/money'
+import { NAIRA_RECENTS, type NairaRecent, recentKey } from '@/lib/naira-recents'
 import { usePrivate } from '@/lib/private'
 import { useSessionCovers } from '@/lib/session'
 import { colors, fonts, inkAt, pair } from '@/lib/theme'
@@ -39,15 +40,8 @@ import { SlideToSend } from '@/ui/send/SlideToSend'
 type Step = 'amount' | 'account' | 'review' | 'sending' | 'done'
 
 /** Someone this phone cashed out to before. Kept on the phone only, never sent anywhere. */
-interface Recent {
-  name: string
-  bankCode: string
-  bankName: string
-  accountNumber: string
-  logo?: string | null
-}
-
-const RECENTS = 'kova.naira.recents.v1'
+type Recent = NairaRecent
+const RECENTS = NAIRA_RECENTS
 const UNIT = 'kova.naira.unit.v1'
 
 /** What the amount is typed in: naira (what the bank account gets) or dollars (what leaves). */
@@ -121,7 +115,12 @@ export default function CashOutScreen() {
     bank?: string
     account?: string
     step?: string
+    /** From Cash out's list: the saved account to pay ("058:0123456789"), picked already. */
+    recent?: string
   }>()
+  const preset = dev.recent ? recents.find((r) => recentKey(r) === dev.recent) : undefined
+  /** A saved account was picked before the amount: its review opens once the bank names it. */
+  const [autoReview, setAutoReview] = useState(false)
 
   useEffect(() => {
     live.current = true
@@ -353,6 +352,26 @@ export default function CashOutScreen() {
       void review()
   }, [named])
 
+  // A saved account from Cash out's list: once the bank has named it, straight to the review.
+  // If the bank can't find it, the account step stays open to fix it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only when the name check answers
+  useEffect(() => {
+    if (!autoReview || step !== 'account') return
+    if (named) {
+      setAutoReview(false)
+      void review()
+    } else if (missed.length || problem) setAutoReview(false)
+  }, [named, missed, problem])
+
+  /** After the amount: the account step, with the saved account from Cash out already checked. */
+  const toAccount = () => {
+    setStep('account')
+    if (preset && named?.number !== preset.accountNumber) {
+      setAutoReview(true)
+      pickRecent(preset)
+    } else if (preset && named) void review()
+  }
+
   const remember = async (r: Recent) => {
     const next = [
       r,
@@ -456,7 +475,11 @@ export default function CashOutScreen() {
                 : undefined
         }
         subtitle={
-          step === 'account' && amount > 0n ? `$${dollars(amount)} → ${preview ?? '…'}` : undefined
+          step === 'account' && amount > 0n
+            ? `$${dollars(amount)} → ${preview ?? '…'}`
+            : step === 'amount' && preset
+              ? `To ${preset.name} · ${preset.bankName} ••${preset.accountNumber.slice(-4)}`
+              : undefined
         }
         backIcon={step === 'account' || step === 'review' ? 'back' : 'close'}
         onBack={
@@ -560,7 +583,7 @@ export default function CashOutScreen() {
             <PillButton
               label={over ? 'More than you have' : tooSmall ? 'At least $1' : 'Continue'}
               disabled={amount === 0n || over || tooSmall}
-              onPress={() => setStep('account')}
+              onPress={toAccount}
             />
           </View>
         </View>

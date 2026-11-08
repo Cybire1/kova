@@ -468,8 +468,10 @@ export default function Dev() {
         // real flow, with `limit` dollars a day and `pin`, then shows the Card tab.
         // dollarcard=demo: a pretend approved dollar card (lib/demo-card.ts), to try its screens.
         if (params.dollarcard === 'demo') startDemoCard()
-        // cashout=demo: three saved cash-out accounts and payouts that land (lib/demo-cashout.ts).
-        if (params.cashout === 'demo') startDemoCashOut()
+        // cashout=demo: three saved cash-out accounts and payouts that land (lib/demo-cashout.ts);
+        // cashout=demo-check: the same before the ID check, to see Cash out ask for it.
+        if (params.cashout === 'demo' || params.cashout === 'demo-check')
+          startDemoCashOut({ check: params.cashout === 'demo-check' })
         if (params.card === 'link' && wallet.profile) {
           setStep('linking a card')
           // newcard=1: a fresh software card, when this install's last one is linked to an old wallet.

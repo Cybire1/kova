@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { Icon } from '@/components/brand'
 import { formatUsd, toBase } from '@/lib/wallet/money'
@@ -36,6 +37,14 @@ export function DollarCardScreen() {
   const [data, setData] = useState<DollarCard | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
   const [view, setView] = useState<'home' | 'check' | 'top-up' | 'withdraw' | 'details'>('home')
+  const router = useRouter()
+  // Opened from Cash out (?check=1&from=cash-out): straight to the ID check, then back to Cash out.
+  const [fromCashOut, setFromCashOut] = useState(false)
+  useEffect(() => {
+    const asked = new URLSearchParams(window.location.search)
+    if (asked.get('check') === '1') setView('check')
+    setFromCashOut(asked.get('from') === 'cash-out')
+  }, [])
   const load = useCallback(async () => {
     if (!address) return
     try {
@@ -57,7 +66,16 @@ export function DollarCardScreen() {
       </div>
     )
   if (view === 'check')
-    return <Check onBack={() => setView('home')} onSent={(d) => (setData(d), setView('home'))} />
+    return (
+      <Check
+        onBack={() => (fromCashOut ? router.back() : setView('home'))}
+        onSent={(d) => {
+          setData(d)
+          if (fromCashOut) router.push('/wallet/cash-out/world')
+          else setView('home')
+        }}
+      />
+    )
   if (view === 'details') return <Details onClose={() => setView('home')} />
   if (!data.live)
     return <Waitlist data={data} onRequested={() => setData({ ...data, requested: true })} />

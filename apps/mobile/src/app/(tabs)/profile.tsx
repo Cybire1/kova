@@ -1,13 +1,12 @@
 import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { router, useLocalSearchParams } from 'expo-router'
-import * as WebBrowser from 'expo-web-browser'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import QRCode from 'react-native-qrcode-svg'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { naira } from '@/lib/api'
-import { isTestnet, network, webUrl } from '@/lib/config'
+import { isTestnet, network } from '@/lib/config'
 import { personLink } from '@/lib/links'
 import { currencyInfo, type DisplayCurrency, formatUsd } from '@/lib/money'
 import { type Look, usePrefs } from '@/lib/prefs'
@@ -182,54 +181,31 @@ export default function Profile() {
         <Stat value={formatUsd(stats.moved).replace(/\.\d+$/, '')} label="Moved" />
       </View>
 
-      {/* Ramp's off-ramp runs on the web, where the same passkey opens this wallet. Mainnet only:
-          on testnet there's nothing real to cash out. */}
-      {isTestnet ? null : (
+      {/* One Cash out, as on Home: your accounts, or a new one starting with your own country
+          (app/cash-out-world.tsx). Testnet has naira only, in Paystack's test mode. */}
+      {isTestnet ? (
+        <NairaRow />
+      ) : (
         <Sticker
           radius={24}
-          accessibilityLabel="Cash out to your bank or card"
-          onPress={() => void WebBrowser.openBrowserAsync(`${webUrl}/wallet/cash-out`)}
-          style={{ height: 62, marginTop: 14 }}
-        >
-          <View style={styles.cashOut}>
-            <View style={{ flex: 1 }}>
-              <Txt weight="semi" size={16}>
-                Cash out
-              </Txt>
-              <Txt size={13} color={colors.muted}>
-                To your bank or card, with Ramp Network
-              </Txt>
-            </View>
-            <Icon name="arrow" size={20} />
-          </View>
-        </Sticker>
-      )}
-
-      {/* Banks, mobile money, Interac and USDC wallets in 20+ countries, through Nuvion. */}
-      {isTestnet ? null : (
-        <Sticker
-          radius={24}
-          accessibilityLabel="Cash out to any country"
+          accessibilityLabel="Cash out. To your bank or mobile money"
           onPress={() => router.push('/cash-out-world')}
           style={{ height: 62, marginTop: 14 }}
         >
           <View style={[styles.cashOut, { gap: 14 }]}>
-            <Txt size={22}>🌍</Txt>
+            <Icon name="bank" size={22} />
             <View style={{ flex: 1 }}>
               <Txt weight="semi" size={16}>
-                Cash out to any country
+                Cash out
               </Txt>
               <Txt size={13} color={colors.muted} numberOfLines={1}>
-                Banks, mobile money and Interac, in 20+ countries
+                To your bank or mobile money
               </Txt>
             </View>
             <Icon name="arrow" size={20} />
           </View>
         </Sticker>
       )}
-
-      {/* Naira through Paystack: dollars to any Nigerian bank account (app/cash-out.tsx). */}
-      <NairaRow />
 
       {/* Dollars people sent privately, waiting at one-time addresses only this wallet can open. */}
       <PrivateRow />
