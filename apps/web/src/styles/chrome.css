@@ -1,0 +1,263 @@
+/* mykova.app/chrome: Kova for Chrome and its live demo (app/chrome/page.tsx, components/try-chrome.tsx). Builds on home.css. */
+
+/* The hero's picture: the budget window, and the toolbar's list of sites in front of it. */
+.kl .ch-visual {
+  background: var(--vis-coral);
+}
+.kl .ch-win,
+.kl .ch-list {
+  position: absolute;
+  overflow: hidden;
+  box-shadow: var(--lift);
+  background: var(--card);
+}
+.kl .ch-win {
+  right: 8%;
+  top: 52px;
+  width: 300px;
+  border-radius: 26px;
+  transform: translateY(28px);
+  opacity: 0;
+  transition:
+    transform 1.3s var(--ease),
+    opacity 0.9s var(--ease);
+}
+.kl .ch-list {
+  left: 6%;
+  bottom: 48px;
+  width: 290px;
+  border-radius: 24px;
+  z-index: 2;
+  transform: rotate(-5deg) translateY(44px);
+  opacity: 0;
+  transition:
+    transform 1.4s var(--ease) 0.18s,
+    opacity 1s var(--ease) 0.18s;
+}
+.kl .s-visual.in .ch-win {
+  transform: translateY(var(--vy, 0px));
+  opacity: 1;
+}
+.kl .s-visual.in .ch-list {
+  transform: rotate(-4deg);
+  opacity: 1;
+}
+.kl .ch-list:hover {
+  transform: rotate(-1.5deg) translateY(-6px);
+}
+.kl .ch-win img,
+.kl .ch-list img {
+  width: 100%;
+  height: auto;
+}
+
+/* The live demo */
+.kl .ch-try .lede {
+  max-width: 34em;
+}
+.kl .ch-live {
+  margin-top: 34px;
+}
+.kl .ch-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--tile);
+  font-size: 14px;
+  font-weight: 600;
+}
+.kl .ch-status .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--faint);
+  flex: none;
+}
+.kl .ch-status.on .dot {
+  background: var(--teal);
+  box-shadow: 0 0 0 4px var(--teal-wash);
+}
+.kl .ch-status.off .dot {
+  background: var(--coral);
+}
+.kl .ch-status-link {
+  color: var(--coral);
+  font-weight: 700;
+  text-decoration: none;
+}
+.kl .ch-steps {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.kl .ch-steps li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--tile);
+  border-radius: 28px;
+  padding: 28px;
+  transition: background 0.5s var(--ease);
+}
+.kl .ch-steps li.done {
+  background: var(--teal-wash);
+}
+.kl .ch-steps .num {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--coral);
+}
+.kl .ch-steps li.done .num {
+  color: var(--teal);
+}
+.kl .ch-steps h3 {
+  margin-top: 14px;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+.kl .ch-steps p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+.kl .ch-act {
+  margin-top: auto;
+  padding-top: 22px;
+}
+.kl .ch-btn {
+  height: 48px;
+  padding: 0 22px;
+  font-size: 15px;
+}
+.kl .ch-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+.kl .ch-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--teal);
+  text-decoration: none;
+}
+.kl a.ch-ok:hover {
+  text-decoration: underline;
+}
+.kl .ch-ok::before {
+  content: "";
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background:
+    var(--teal)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m6 12.5 4 4 8-9' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / 14px no-repeat;
+  flex: none;
+}
+.kl .ch-steps .ch-err {
+  color: var(--coral-2);
+  font-weight: 600;
+  font-size: 14px;
+}
+.kl .ch-fine {
+  margin: 16px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+/* Why it's different */
+.kl .ch-why-grid {
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: 64px;
+  align-items: start;
+}
+.kl .ch-why h2 {
+  max-width: 12em;
+}
+.kl .ch-why-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.kl .ch-why-list li {
+  padding: 26px 0;
+  border-top: 1px solid var(--line-2);
+}
+.kl .ch-why-list li:last-child {
+  border-bottom: 1px solid var(--line-2);
+}
+.kl .ch-why-list h3 {
+  font-size: 21px;
+  letter-spacing: -0.02em;
+}
+.kl .ch-why-list p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 34em;
+}
+
+/* Install */
+.kl .ch-get {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+}
+.kl .ch-get span {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+@media (max-width: 1080px) {
+  .kl .ch-steps {
+    grid-template-columns: 1fr;
+  }
+  .kl .ch-why-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+}
+@media (max-width: 760px) {
+  .kl .ch-visual {
+    height: 560px;
+  }
+  .kl .ch-win {
+    width: 250px;
+    right: 6%;
+    top: 36px;
+  }
+  .kl .ch-list {
+    width: 240px;
+    left: 5%;
+    bottom: 36px;
+  }
+  .kl .ch-steps li {
+    padding: 22px;
+    border-radius: 24px;
+  }
+  .kl .ch-status {
+    border-radius: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kl .ch-win,
+  .kl .ch-list {
+    opacity: 1;
+    transform: none;
+  }
+}

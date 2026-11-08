@@ -38,6 +38,9 @@ export const EXTENSION_IDS = [
     .filter((id) => /^[a-p]{32}$/.test(id)),
 ]
 
+/** Kova for Chrome to load unpacked, served from public/chrome until the Web Store listing is live. */
+export const CHROME_ZIP = '/chrome/kova-chrome-0.1.0.zip'
+
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/
 const UUID = /^[0-9a-f-]{36}$/i
 

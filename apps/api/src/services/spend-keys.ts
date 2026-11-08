@@ -22,6 +22,7 @@ import {
   paymentSignatureHeader,
   paymentTypedData,
   randomNonce,
+  readPaymentSignature,
   readRequirement,
   siteName,
   splitPermit,
@@ -1349,6 +1350,81 @@ export async function refundUncollectedX402(): Promise<number> {
     }
   }
   return refunded
+}
+
+/**
+ * A site collects a pay-per-use payment Kova signed for it (the PAYMENT-SIGNATURE it was sent):
+ * Kova submits the float's transfer and pays the gas, so a site paid in AUSD needs no facilitator
+ * of its own. Only payments signed by Kova's float are taken, so the gas is always for money Kova
+ * sent. Collecting twice is harmless: Monad says the second time that it's already been used.
+ */
+export async function collectX402(header: string): Promise<{
+  already: boolean
+  tx: Hex | null
+  token: Token
+  from: Address
+  to: Address
+  amount: bigint
+}> {
+  const payer = x402Payer()
+  const read = readPaymentSignature(header)
+  if (!read) throw new KovaError('invalid_request', 'That isn’t a payment Kova can read.')
+  const { accepted, authorization, signature } = read
+  if (accepted.network !== `eip155:${network.chainId}`)
+    throw new KovaError('invalid_request', 'Kova collects payments on Monad only.')
+  const token = x402Token(accepted.asset)
+  if (!token) throw new KovaError('invalid_request', 'Kova collects AUSD and USDC only.')
+  if (!isAddressEqual(authorization.from, payer.address))
+    throw new KovaError('invalid_request', 'Kova only collects payments Kova signed.')
+  if (
+    !isAddressEqual(authorization.to, accepted.payTo) ||
+    authorization.value !== BigInt(accepted.amount)
+  )
+    throw new KovaError('invalid_request', 'The payment doesn’t match what the site asked for.')
+
+  const used = () =>
+    publicClient
+      .readContract({
+        address: token.address,
+        abi: eip3009Abi,
+        functionName: 'authorizationState',
+        args: [payer.address, authorization.nonce],
+      })
+      .catch(() => null)
+  const before = await used()
+  if (before === null) throw new KovaError('chain_error', 'Monad didn’t answer. Try again.')
+  let tx: Hex | null = null
+  if (!before) {
+    try {
+      tx = (await relayAuthorization(token, authorization, signature)).receipt.transactionHash
+    } catch (error) {
+      // Another request may have collected it a moment ago.
+      if ((await used()) !== true) throw error
+    }
+  }
+
+  const [row] = await db
+    .select()
+    .from(schema.keyPayments)
+    .where(
+      and(
+        eq(schema.keyPayments.kind, 'x402'),
+        sql`${schema.keyPayments.request}->>'nonce' = ${authorization.nonce}`,
+      ),
+    )
+    .limit(1)
+  const request = row?.request as Record<string, unknown> | null | undefined
+  if (row && request && !request.outcome)
+    await settle(row, { request: { ...request, outcome: 'collected', collect_tx: tx } })
+
+  return {
+    already: before,
+    tx,
+    token,
+    from: authorization.from,
+    to: authorization.to,
+    amount: authorization.value,
+  }
 }
 
 // ── Agents paying ───────────────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { parseAmount } from '@kova/monad'
+import { formatAmount, parseAmount } from '@kova/monad'
 import { Hono } from 'hono'
 import { type Address, getAddress, type Hex, isAddress, isHex } from 'viem'
 import { z } from 'zod'
@@ -17,6 +17,7 @@ import {
   approvalMessageFor,
   approvalsFor,
   chargeIdFrom,
+  collectX402,
   completePayment,
   createAgent,
   createInvite,
@@ -69,6 +70,7 @@ import {
  *   POST /key-payments/:id/complete        the key's signature: Kova cosigns and pays
  *   POST /keys/:id/x402                    a website's key pays a site that asked (HTTP 402)
  *   POST /keys/:id/self-freeze             a key freezes itself; only the owner switches it back on
+ *   POST /x402/collect                     a site collects a pay-per-use payment Kova signed for it
  * An agent's side takes its Bearer token (and /mcp does the same over MCP):
  *   GET  /agent/status   POST /agent/pay   POST /agent/pay_charge   GET /agent/payments/:id   GET /agent/history
  */
@@ -455,6 +457,22 @@ export const spendKeyRoutes = new Hono()
     limit(`key-freeze:${row.id}`, 20, 60_000, 'Too many tries this minute.')
     const updated = await selfFreezeKey(row, { at: body.at, signature: body.signature as Hex })
     return c.json(await serializeKey(updated))
+  })
+  .post('/x402/collect', async (c) => {
+    const body = await bodyOf(c, z.object({ payment: z.string().min(16).max(8000) }))
+    limit(`x402-collect:${clientIp(c)}`, 60, 60_000, 'Too many payments this minute.')
+    const collected = await collectX402(body.payment)
+    return c.json({
+      object: 'x402_collection',
+      status: 'collected',
+      already: collected.already,
+      transaction: collected.tx,
+      network: `eip155:${network.chainId}`,
+      token: collected.token.currency,
+      amount: formatAmount(collected.amount),
+      payer: collected.from,
+      pay_to: collected.to,
+    })
   })
   .post('/key-payments/:id/complete', async (c) => {
     const payment = await paymentRow(c.req.param('id'))

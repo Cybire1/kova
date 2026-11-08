@@ -1,5 +1,11 @@
 import { runMigrations, schema } from '@kova/db'
-import { claimTypedData, keySelfFreezeMessage } from '@kova/monad'
+import {
+  claimTypedData,
+  keySelfFreezeMessage,
+  paymentSignatureHeader,
+  randomNonce,
+  tokens,
+} from '@kova/monad'
 import { eq } from 'drizzle-orm'
 import { type Address, getAddress } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
@@ -254,10 +260,67 @@ describe.runIf(ready)('a pay-per-use payment the site never collected', () => {
       where: eq(schema.keyPayments.id, waiting.id),
     })
     expect(after?.status).toBe('paid')
-    expect((after?.request as { outcome?: string }).outcome).toBeUndefined()
+    expect((after?.request as { outcome?: string } | undefined)?.outcome).toBeUndefined()
     const untouched = await db.query.keyPayments.findFirst({
       where: eq(schema.keyPayments.id, settled.id),
     })
-    expect((untouched?.request as { outcome?: string }).outcome).toBe('collected')
+    expect((untouched?.request as { outcome?: string } | undefined)?.outcome).toBe('collected')
+  })
+})
+
+describe.runIf(ready)('a site collecting a pay-per-use payment', () => {
+  const float = privateKeyToAccount(config.KOVA_X402_PAYER_KEY as `0x${string}`)
+  const site = privateKeyToAccount(generatePrivateKey()).address
+  const ausd = tokens.testnet.AUSD?.address as Address
+  const requirement = {
+    scheme: 'exact' as const,
+    network: 'eip155:10143',
+    amount: '10000',
+    asset: ausd,
+    payTo: site,
+    maxTimeoutSeconds: 300,
+  }
+  const header = (from: Address, to: Address = site, value = 10_000n) => {
+    const now = BigInt(Math.floor(Date.now() / 1000))
+    return paymentSignatureHeader({
+      requirement,
+      authorization: {
+        from,
+        to,
+        value,
+        validAfter: now - 60n,
+        validBefore: now + 300n,
+        nonce: randomNonce(),
+      },
+      signature: `0x${'11'.repeat(65)}`,
+    })
+  }
+
+  it('refuses what it can’t read', async () => {
+    const r = await call('/v1/x402/collect', { payment: 'bm90IGEgcGF5bWVudCBhdCBhbGw=' })
+    expect(r.status).toBeGreaterThanOrEqual(400)
+    expect(r.body.error?.message).toMatch(/isn’t a payment Kova can read/)
+  })
+
+  it('collects only payments Kova’s float signed, so it never pays gas for anyone else', async () => {
+    const stranger = privateKeyToAccount(generatePrivateKey()).address
+    const r = await call('/v1/x402/collect', { payment: header(stranger) })
+    expect(r.status).toBeGreaterThanOrEqual(400)
+    expect(r.body.error?.message).toMatch(/only collects payments Kova signed/)
+  })
+
+  it('refuses a payment that doesn’t match what the site asked for', async () => {
+    const elsewhere = privateKeyToAccount(generatePrivateKey()).address
+    const r = await call('/v1/x402/collect', { payment: header(float.address, elsewhere) })
+    expect(r.status).toBeGreaterThanOrEqual(400)
+    expect(r.body.error?.message).toMatch(/doesn’t match/)
+    const less = await call('/v1/x402/collect', { payment: header(float.address, site, 9_999n) })
+    expect(less.body.error?.message).toMatch(/doesn’t match/)
+  })
+
+  it('refuses a forged signature before spending any gas', async () => {
+    const r = await call('/v1/x402/collect', { payment: header(float.address) })
+    expect(r.status).toBeGreaterThanOrEqual(400)
+    expect(r.body.error?.message).toMatch(/not signed by the wallet paying/)
   })
 })
