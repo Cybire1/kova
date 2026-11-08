@@ -11,6 +11,13 @@
   margin-top: 1.25rem;
 }
 
+/* Buying paused (KOVA_STOCKS_BUYING): the note takes the whole row, under Sell if there is one. */
+.tr-actions .w-st-paused {
+  grid-column: 1 / -1;
+  margin: 0;
+  text-align: center;
+}
+
 .tr-actions-ghost {
   display: block;
   height: var(--pill-h);

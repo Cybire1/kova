@@ -154,6 +154,7 @@ const { network, settlementToken } = await import('../src/chain.js')
 const saved = {
   network: config.KOVA_NETWORK,
   trading: config.KOVA_STOCKS_TRADING,
+  buying: config.KOVA_STOCKS_BUYING,
   contract: config.KOVA_STOCKS_CONTRACT,
 }
 
@@ -164,6 +165,7 @@ beforeAll(async () => {
 beforeEach(() => {
   config.KOVA_NETWORK = 'mainnet'
   config.KOVA_STOCKS_TRADING = '1'
+  config.KOVA_STOCKS_BUYING = '1'
   config.KOVA_STOCKS_CONTRACT = KOVA_STOCKS
   state.price = 400n
   state.halted = false
@@ -175,6 +177,7 @@ beforeEach(() => {
 afterEach(() => {
   config.KOVA_NETWORK = saved.network
   config.KOVA_STOCKS_TRADING = saved.trading
+  config.KOVA_STOCKS_BUYING = saved.buying
   config.KOVA_STOCKS_CONTRACT = saved.contract
 })
 
@@ -327,6 +330,32 @@ describe('switched off', () => {
   })
 })
 
+describe('buying paused', () => {
+  it('refuses new buys but still lets people sell what they hold', async () => {
+    const wallet = await attested()
+    // A quote taken just before the pause can't be bought with either.
+    const before = await quoted(wallet, 'buy', 10_000_000n)
+    config.KOVA_STOCKS_BUYING = '0'
+    const access = await call(`/wallets/${wallet.address}/stocks/access`)
+    expect(access.body).toMatchObject({ live: true, buying: false, allowed: true })
+    const buy = await call(`/wallets/${wallet.address}/stocks/quote`, {
+      body: { side: 'buy', symbol: 'TSLAx', amount: '10000000' },
+    })
+    expect(buy.status).toBe(409)
+    expect(message(buy.body)).toMatch(/paused for now\. You can still sell/)
+    const direct = await call(`/wallets/${wallet.address}/stocks/buy`, {
+      body: await buyApproval(wallet, before),
+    })
+    expect(direct.status).toBe(409)
+    expect(message(direct.body)).toMatch(/paused for now/)
+    // Selling isn't paused: a sell quote goes through as before.
+    state.held.set(wallet.address.toLowerCase(), 25_000_000_000_000_000n)
+    const sell = await quoted(wallet, 'sell', 25_000_000_000_000_000n)
+    expect(sell.sell).toBeDefined()
+    expect(state.sent).toHaveLength(0)
+  })
+})
+
 describe('who may trade', () => {
   it('lets a wallet in Nigeria in, with the exact statement to sign', async () => {
     const wallet = newWallet()
@@ -334,6 +363,7 @@ describe('who may trade', () => {
     expect(res.body).toEqual({
       object: 'stock_access',
       live: true,
+      buying: true,
       country: 'NG',
       allowed: true,
       reason: null,

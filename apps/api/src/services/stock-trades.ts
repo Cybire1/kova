@@ -71,6 +71,12 @@ export const tradingLive = (): boolean =>
 
 export const TRADING_OFF = 'Buying and selling stocks isn’t open yet.'
 
+/** New buys are open: trading is live and buying isn't paused (KOVA_STOCKS_BUYING). Selling never waits on this. */
+export const buyingOpen = (): boolean => tradingLive() && config.KOVA_STOCKS_BUYING === '1'
+
+export const BUYING_PAUSED =
+  'Buying stock tokens is paused for now. You can still sell what you have.'
+
 function contract(): Address {
   if (!tradingLive() || !config.KOVA_STOCKS_CONTRACT)
     throw new KovaError('conflict', TRADING_OFF, { live: false })
@@ -119,6 +125,7 @@ export async function stockAccess(wallet: Address, ip: string) {
     return {
       object: 'stock_access' as const,
       live: false,
+      buying: false,
       country: countryOf(ip),
       allowed: false,
       reason: TRADING_OFF,
@@ -131,6 +138,7 @@ export async function stockAccess(wallet: Address, ip: string) {
   return {
     object: 'stock_access' as const,
     live: true,
+    buying: buyingOpen(),
     country,
     allowed: reason === null,
     reason,
@@ -232,6 +240,8 @@ export async function quote(
   input: { side: Side; symbol: string; amount: bigint },
 ) {
   const kovaStocks = contract()
+  if (input.side === 'buy' && !buyingOpen())
+    throw new KovaError('conflict', BUYING_PAUSED, { buying: false })
   const country = await requireAccess(wallet, ip)
   const listing = await findStock(input.symbol).catch(() => {
     throw unreachable()
@@ -465,6 +475,7 @@ export async function buy(
   },
 ) {
   const kovaStocks = contract()
+  if (!buyingOpen()) throw new KovaError('conflict', BUYING_PAUSED, { buying: false })
   await requireAccess(wallet, ip)
   const row = await openQuote(wallet, input.quoteId, 'buy')
   const { authorization } = input

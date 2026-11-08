@@ -404,17 +404,19 @@ export function StockDetail({ symbol }: { symbol: string }) {
         </p>
       ) : access?.live ? (
         <div className="tr-actions">
-          <button
-            type="button"
-            className="pill pill-block"
-            data-tone="coral"
-            onClick={() => setTrading('buy')}
-          >
-            <span className="pill-label">{held ? 'Buy' : `Buy ${stock.name}`}</span>
-            <span className="pill-cap">
-              <Icon name="plus" size={18} />
-            </span>
-          </button>
+          {access.buying === false ? null : (
+            <button
+              type="button"
+              className="pill pill-block"
+              data-tone="coral"
+              onClick={() => setTrading('buy')}
+            >
+              <span className="pill-label">{held ? 'Buy' : `Buy ${stock.name}`}</span>
+              <span className="pill-cap">
+                <Icon name="plus" size={18} />
+              </span>
+            </button>
+          )}
           {held ? (
             <button
               type="button"
@@ -427,6 +429,12 @@ export function StockDetail({ symbol }: { symbol: string }) {
                 <Icon name="minus" size={18} />
               </span>
             </button>
+          ) : null}
+          {access.buying === false ? (
+            <p className="w-fine w-st-paused">
+              Buying stock tokens is paused for now.
+              {held ? ' You can still sell what you have.' : ''}
+            </p>
           ) : null}
         </div>
       ) : profile && !access && !accessFailed ? (

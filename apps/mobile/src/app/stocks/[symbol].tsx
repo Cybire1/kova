@@ -295,21 +295,27 @@ export default function StockScreen() {
             {stock.name} can’t be bought on Monad yet: no market there carries it. Its price is
             shown here for reference.
           </Txt>
+        ) : access?.live && access.buying === false && !held ? (
+          <Txt size={14} color={colors.muted} style={{ textAlign: 'center', lineHeight: 20 }}>
+            Buying stock tokens is paused for now.
+          </Txt>
         ) : access?.live ? (
           <View style={styles.trade}>
-            <View style={{ flex: 1 }}>
-              <PillButton
-                label={held ? 'Buy' : `Buy ${stock.name}`}
-                icon="plus"
-                tone="coral"
-                onPress={() =>
-                  router.push({
-                    pathname: '/stocks/buy',
-                    params: { symbol: stock.symbol, side: 'buy' },
-                  })
-                }
-              />
-            </View>
+            {access.buying === false ? null : (
+              <View style={{ flex: 1 }}>
+                <PillButton
+                  label={held ? 'Buy' : `Buy ${stock.name}`}
+                  icon="plus"
+                  tone="coral"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/stocks/buy',
+                      params: { symbol: stock.symbol, side: 'buy' },
+                    })
+                  }
+                />
+              </View>
+            )}
             {held ? (
               <View style={{ flex: 1 }}>
                 <PillButton

@@ -110,6 +110,12 @@ const schema = z.object({
    * KOVA_STOCKS_CONTRACT (Monad mainnet, where the stocks are). Off, its routes answer live: false.
    */
   KOVA_STOCKS_TRADING: z.enum(['0', '1']).default('0'),
+  /**
+   * New buys, on top of KOVA_STOCKS_TRADING. Paused (`0`) until Kova knows offering stock tokens is
+   * allowed where its people are (Nigeria's SEC registers platforms offering foreign shares). Selling
+   * what people already hold stays open either way.
+   */
+  KOVA_STOCKS_BUYING: z.enum(['0', '1']).default('0'),
   KOVA_STOCKS_CONTRACT: z
     .string()
     .regex(/^0x[0-9a-fA-F]{40}$/)

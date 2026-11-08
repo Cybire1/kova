@@ -34,6 +34,8 @@ export const STOCKS_NETWORK = getNetwork('mainnet')
 export interface StockAccess {
   object: 'stock_access'
   live: boolean
+  /** New buys are open. False while Kova pauses buying; selling stays open. Older APIs leave it out. */
+  buying?: boolean
   country: string | null
   allowed: boolean
   reason: string | null
