@@ -37,6 +37,7 @@
     "drizzle-orm": "0.45.2",
     "geoip-country": "5.0.202610280233",
     "hono": "4.13.8",
+    "libphonenumber-js": "1.13.14",
     "ox": "0.14.45",
     "viem": "2.56.8",
     "zod": "4.6.5"

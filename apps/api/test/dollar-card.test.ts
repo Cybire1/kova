@@ -1,5 +1,6 @@
 import { runMigrations, schema } from '@kova/db'
 import { eq } from 'drizzle-orm'
+import { getAddress } from 'viem'
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -78,6 +79,12 @@ function fakeNuvion() {
     frozen: false,
     failNextTransfer: false,
     failNextCardDetails: false,
+    /** Nuvion already has this person (409 error_duplicate_resource on a new individual). */
+    duplicatePerson: false,
+    /** The card provider behind Nuvion refuses the card (503 on POST /virtual-cards). */
+    providerRefusesCard: false,
+    /** The cardholder each POST /virtual-cards asked for. */
+    cardholders: [] as Array<Record<string, unknown>>,
     cardsIssued: 0,
     deleted: false,
     calls: [] as string[],
@@ -112,6 +119,16 @@ function fakeNuvion() {
       if (method === 'GET' && path === '/entities')
         return ok({ data: [{ id: 'ent_1', is_root: true, status: 'approved' }] })
       if (method === 'POST' && path === '/individual-entities') {
+        if (state.duplicatePerson)
+          return new Response(
+            JSON.stringify({
+              status: 'error',
+              message:
+                'A record with this person already exists. Please use different details or check your existing records.',
+              code: 'error_duplicate_resource',
+            }),
+            { status: 409 },
+          )
         state.individual = body
         return ok({ entity: { id: 'ent_1', status: 'incomplete' }, person: { id: 'per_1' } }, 201)
       }
@@ -220,6 +237,16 @@ function fakeNuvion() {
         return ok({ id: `tr_${state.transfers.length}` }, 201)
       }
       if (method === 'POST' && path === '/virtual-cards') {
+        state.cardholders.push(body.cardholder)
+        if (state.providerRefusesCard)
+          return new Response(
+            JSON.stringify({
+              status: 'error',
+              message: 'One of our partner services is temporarily unavailable.',
+              code: 'error_system_dependency_unavailable',
+            }),
+            { status: 503 },
+          )
         state.cardsIssued++
         state.balance -= 50
         // A card made after one was deleted is a new card with its own id.
@@ -370,6 +397,58 @@ describe('dollar card (Nuvion)', () => {
     expect(await dollarCardFor(wallet)).toMatchObject({ stage: 'card' })
     expect(nuvion.cardsIssued).toBe(1)
     expect(nuvion.transfers.filter((t) => t.reference.startsWith('kova-card-fee-'))).toHaveLength(1)
+  })
+
+  it('gives the card provider an E.164 phone, even one typed with its leading 0', async () => {
+    const nuvion = fakeNuvion()
+    const wallet = newWallet()
+    await startCheck(
+      wallet,
+      { ...person, phone: '+234 0801 234 5678', email: ' Ada@Example.com ' },
+      files,
+    )
+    nuvion.status = 'approved'
+    expect(await dollarCardFor(wallet)).toMatchObject({ stage: 'card' })
+    expect(nuvion.cardholders[0]).toMatchObject({
+      phone_number: '+2348012345678',
+      email: 'ada@example.com',
+    })
+  })
+
+  it('refuses a phone that can’t be real before anything reaches Nuvion', async () => {
+    const nuvion = fakeNuvion()
+    await expect(startCheck(newWallet(), { ...person, phone: '+2341' }, files)).rejects.toThrow(
+      /country code/,
+    )
+    expect(nuvion.calls).not.toContain('POST /individual-entities')
+  })
+
+  it('names the other Kova wallet when Nuvion already has the person, never “use different details”', async () => {
+    const nuvion = fakeNuvion()
+    const first = newWallet()
+    const me = {
+      ...person,
+      email: `ada.${Date.now()}@example.com`,
+      phone: `+234803${String(Math.floor(Math.random() * 1e7)).padStart(7, '0')}`,
+    }
+    await startCheck(first, me, files)
+    nuvion.duplicatePerson = true
+    const again = startCheck(newWallet(), me, files)
+    await expect(again).rejects.toThrow(
+      `another Kova wallet, the one ending ${getAddress(first).slice(-4)}`,
+    )
+    await expect(again).rejects.not.toThrow(/different details/)
+  })
+
+  it('asks for the card again in minutes, not on every refresh, when the card provider refuses it', async () => {
+    const nuvion = fakeNuvion()
+    const wallet = newWallet()
+    await startCheck(wallet, person, files)
+    nuvion.status = 'approved'
+    nuvion.providerRefusesCard = true
+    expect(await dollarCardFor(wallet)).toMatchObject({ stage: 'checking', approved: true })
+    expect(await dollarCardFor(wallet)).toMatchObject({ stage: 'checking', approved: true })
+    expect(nuvion.calls.filter((call) => call === 'POST /virtual-cards')).toHaveLength(1)
   })
 
   it('shares one issuance when two status requests arrive after approval', async () => {

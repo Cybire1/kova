@@ -67,6 +67,7 @@ async function nuvion<T>(
     const said = body?.error?.message ?? body?.message ?? `Nuvion answered ${response.status}.`
     // A 422 lists each missing or wrong field: name them, so the holder knows what to fix.
     const problems = (body?.validations ?? body?.error?.validations ?? []).flatMap(problemsOf)
+    // With Nuvion's request id: what its support needs to say which field its partner refused.
     if (problems.length || response.status >= 500)
       console.error(
         '[nuvion]',
@@ -75,6 +76,7 @@ async function nuvion<T>(
         response.status,
         said,
         problems,
+        `request ${response.headers.get('x-request-id') ?? 'unknown'}`,
       )
     throw new NuvionRefused(
       response.status,

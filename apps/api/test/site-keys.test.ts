@@ -276,7 +276,10 @@ describe.runIf(ready)('a pay-per-use payment the site never collected', () => {
 })
 
 describe.runIf(ready)('a site collecting a pay-per-use payment', () => {
-  const float = privateKeyToAccount(config.KOVA_X402_PAYER_KEY as `0x${string}`)
+  // Read even when the block is skipped (no keys here): a throwaway key keeps it from failing.
+  const float = privateKeyToAccount(
+    ready ? (config.KOVA_X402_PAYER_KEY as `0x${string}`) : generatePrivateKey(),
+  )
   const site = privateKeyToAccount(generatePrivateKey()).address
   const ausd = tokens.testnet.AUSD?.address as Address
   const requirement = {

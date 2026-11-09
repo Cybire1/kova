@@ -98,7 +98,9 @@ vi.mock('../src/services/paj.js', () => {
 
 /** KyberSwap: AUSD buys USDC at 0.9998, whatever the size. */
 const routes: bigint[] = []
-vi.mock('../src/services/swap.js', () => ({
+vi.mock('../src/services/swap.js', async (importOriginal) => ({
+  // The real ABI: the cash-out contract's calls are encoded with it (it lives in swap.ts now).
+  cashOutAbi: (await importOriginal<typeof import('../src/services/swap.js')>()).cashOutAbi,
   swapRoute: vi.fn(async (_in: string, _out: string, amountIn: bigint, exclude: string[] = []) => {
     routes.push(amountIn)
     excluded.push([...exclude])

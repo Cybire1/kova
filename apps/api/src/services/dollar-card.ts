@@ -1,12 +1,20 @@
 import { schema, uuidv7 } from '@kova/db'
 import { formatAmount, type TransferAuthorization } from '@kova/monad'
-import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm'
-import { type Address, encodeFunctionData, erc20Abi, type Hex, isAddressEqual } from 'viem'
+import { and, desc, eq, gte, inArray, ne, or, sql } from 'drizzle-orm'
+import {
+  type Address,
+  encodeFunctionData,
+  erc20Abi,
+  getAddress,
+  type Hex,
+  isAddressEqual,
+} from 'viem'
 import { feePayerAddress, publicClient, settlementToken } from '../chain.js'
 import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
 import { relayAuthorization, relayReady, sendFromRelayer } from '../relay.js'
+import { cleanEmail, e164 } from './contact-format.js'
 import { hasRequested } from './money.js'
 import {
   accountBalance,
@@ -235,6 +243,13 @@ async function deletedCardOf(wallet: Address): Promise<Card | null> {
 
 /** Why the last try at making a holder's card failed, kept while it keeps failing. */
 const issueProblems = new Map<string, string>()
+/**
+ * When to ask for a holder's card again after the card provider refused it (Nuvion's 503 on
+ * POST /virtual-cards: "the card provider rejected the request", not an outage, so asking on every
+ * refresh of the card screen fails the same way). Every few minutes is enough.
+ */
+const issueAgainAt = new Map<string, number>()
+const ISSUE_PAUSE_MS = 10 * 60_000
 
 /** Focus and foreground refreshes can arrive together; share the same issuance attempt. */
 const issuing = new Map<string, Promise<Holder>>()
@@ -244,9 +259,11 @@ function issueOnce(holder: Holder): Promise<Holder> {
   const job = (async () => {
     const fresh = (await holderOf(holder.wallet as Address)) ?? holder
     if (await cardOf(holder.wallet as Address)) return fresh
+    if ((issueAgainAt.get(holder.id) ?? 0) > Date.now()) return fresh
     try {
       const made = await issue(fresh)
       issueProblems.delete(holder.id)
+      issueAgainAt.delete(holder.id)
       return made
     } catch (error) {
       issueProblems.set(
@@ -366,12 +383,25 @@ async function issue(holder: Holder): Promise<Holder> {
   }
   if (!row.email || !row.phone)
     throw new KovaError('chain_error', 'The card issuer needs an email and phone for this card.')
+  // The card provider takes only E.164 phones and clean emails: fix ones saved before Kova did
+  // ("+2340803…" → "+234803…"), and keep the fixed copy.
+  const contact = { email: cleanEmail(row.email), phone: e164(row.phone) ?? row.phone }
+  if (contact.email !== row.email || contact.phone !== row.phone)
+    row =
+      (
+        await db
+          .update(schema.cardHolders)
+          .set({ ...contact, updatedAt: new Date() })
+          .where(eq(schema.cardHolders.id, row.id))
+          .returning()
+      )[0] ?? row
   const cardId =
     existingCard ??
-    (await issueVirtualCard(row.entityId, accountId, {
-      ...row,
-      email: row.email,
-      phone: row.phone,
+    (await issueVirtualCard(row.entityId, accountId, { ...row, ...contact }).catch((e) => {
+      // The card provider refused to make it: ask again in a few minutes, not on every refresh.
+      if (e instanceof NuvionRefused && e.status >= 500)
+        issueAgainAt.set(row.id, Date.now() + ISSUE_PAUSE_MS)
+      throw e
     }))
   const secrets = await cardSecrets(cardId, row.entityId)
   await db.insert(schema.dollarCards).values({
@@ -541,11 +571,19 @@ type Upload = { base64: string; mime: string; backBase64?: string }
  */
 export async function startCheck(
   wallet: Address,
-  person: Person,
+  given: Person,
   files: { identity: Upload; address: Upload },
 ) {
   if (!dollarCardLive())
     throw new KovaError('conflict', 'The dollar card isn’t switched on for this server yet.')
+  // As the card provider will want them later: an E.164 phone ("+2340803…" → "+234803…").
+  const phone = e164(given.phone)
+  if (!phone)
+    throw new KovaError(
+      'invalid_request',
+      'Enter your phone number with its country code, like +234 803 123 4567.',
+    )
+  const person: Person = { ...given, email: cleanEmail(given.email), phone }
   const mine = and(
     eq(schema.cardHolders.wallet, wallet.toLowerCase()),
     eq(schema.cardHolders.network, net),
@@ -598,13 +636,42 @@ export async function startCheck(
   } catch (e) {
     if (!(e instanceof NuvionRefused)) throw e
     console.error('[dollar-card] check refused:', e.status, e.code ?? '', e.message)
+    // 409: Nuvion has this person already. Its own words ("use different details") would push
+    // people to make details up; say where they are instead.
+    const said =
+      e.status === 409
+        ? await alreadyOnFile(wallet, person, given)
+        : `The card issuer couldn’t take that: ${e.message}`
     await db
       .update(schema.cardHolders)
-      .set({ reason: e.message, updatedAt: new Date() })
+      .set({ reason: e.status === 409 ? said : e.message, updatedAt: new Date() })
       .where(mine)
-    throw new KovaError('invalid_request', `The card issuer couldn’t take that: ${e.message}`)
+    throw new KovaError('invalid_request', said)
   }
   return dollarCardFor(wallet)
+}
+
+/**
+ * Nuvion already has this person: most often from an earlier check on another Kova wallet (a new
+ * phone, a reinstall), which this names by its last four characters so they can open it. It never
+ * moves that record to this wallet: anyone who knew the person's name and email could ask that.
+ */
+async function alreadyOnFile(wallet: Address, person: Person, given: Person): Promise<string> {
+  const other = await db.query.cardHolders.findFirst({
+    where: and(
+      eq(schema.cardHolders.network, net),
+      ne(schema.cardHolders.wallet, wallet.toLowerCase()),
+      or(
+        sql`lower(${schema.cardHolders.email}) = ${person.email}`,
+        inArray(schema.cardHolders.phone, [...new Set([person.phone, given.phone])]),
+      ),
+    ),
+    // More than one: the one used last is the one they'll recognise.
+    orderBy: desc(schema.cardHolders.updatedAt),
+  })
+  return other
+    ? `You’ve already done this check with another Kova wallet, the one ending ${getAddress(other.wallet).slice(-4)}. Open that wallet to use your card and cash out.`
+    : 'Kova’s banking partner already has you on file, from another account. Write to Kova and we’ll sort it out.'
 }
 
 /** Wallets topping up right now, so two taps at once can't both slip under the daily cap. */

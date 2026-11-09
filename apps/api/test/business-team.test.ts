@@ -53,7 +53,11 @@ async function signIn(wallet: PrivateKeyAccount, merchant?: string) {
   const message = challenge.body.message as string
   return call('/v1/sign_in', {
     method: 'POST',
-    body: { message, signature: await wallet.signMessage({ message }), ...(merchant ? { merchant } : {}) },
+    body: {
+      message,
+      signature: await wallet.signMessage({ message }),
+      ...(merchant ? { merchant } : {}),
+    },
   })
 }
 
@@ -107,7 +111,12 @@ describe('a business with branches and a team', () => {
     const added = await call('/v1/business/members', {
       method: 'POST',
       key,
-      body: { wallet: cashier.address, name: 'Tunde', role: 'cashier', branch_ids: [lekki.body.id] },
+      body: {
+        wallet: cashier.address,
+        name: 'Tunde',
+        role: 'cashier',
+        branch_ids: [lekki.body.id],
+      },
     })
     expect(added.status).toBe(201)
     expect(added.body).toMatchObject({ role: 'cashier', branches: [{ name: 'Lekki' }] })
@@ -137,7 +146,11 @@ describe('a business with branches and a team', () => {
 
     const asAccountant = (await signIn(accountant)).body.key as string
     expect((await call('/v1/business/audit', { key: asAccountant })).status).toBe(200)
-    const settings = await call('/v1/account', { method: 'PATCH', key: asAccountant, body: { name: 'x' } })
+    const settings = await call('/v1/account', {
+      method: 'PATCH',
+      key: asAccountant,
+      body: { name: 'x' },
+    })
     expect(settings.status).toBe(403)
     expect(settings.body.error?.message).toMatch(/As accountant/)
   })
@@ -173,13 +186,17 @@ describe('a business with branches and a team', () => {
 
   it('keeps an audit trail of who did what, by name', async () => {
     const trail = await call('/v1/business/audit', { key })
-    const events = trail.body.data as { action: string; subject: string | null; actor: { name: string } }[]
+    const events = trail.body.data as {
+      action: string
+      subject: string | null
+      actor: { name: string }
+    }[]
     const actions = events.map((e) => e.action)
     expect(actions).toEqual(
       expect.arrayContaining(['branch.added', 'member.added', 'member.removed', 'session.opened']),
     )
-    expect(events.find((e) => e.action === 'member.added' && e.subject === 'Chidi')?.actor.name).toBe(
-      'Bola (admin)',
-    )
+    expect(
+      events.find((e) => e.action === 'member.added' && e.subject === 'Chidi')?.actor.name,
+    ).toBe('Bola (admin)')
   })
 })
