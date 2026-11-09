@@ -243,6 +243,8 @@ async function deletedCardOf(wallet: Address): Promise<Card | null> {
 
 /** Why the last try at making a holder's card failed, kept while it keeps failing. */
 const issueProblems = new Map<string, string>()
+/** For Kova's dashboard: why this holder's card isn't made yet, if a try failed since the restart. */
+export const cardIssueProblem = (holderId: string) => issueProblems.get(holderId) ?? null
 /**
  * When to ask for a holder's card again after the card provider refused it (Nuvion's 503 on
  * POST /virtual-cards: "the card provider rejected the request", not an outage, so asking on every

@@ -61,7 +61,7 @@ async function count(query: ReturnType<typeof sql>): Promise<number> {
 }
 
 /** Every Kova wallet, first seen: the signals only Kova wallets leave. */
-const seen = sql`
+export const seen = sql`
   select lower(id) as address, created_at as at from wallet_vaults
   union all select lower(address), created_at from note_keys
   union all select lower(address), claimed_at from test_dollar_claims

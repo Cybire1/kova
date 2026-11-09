@@ -1,12 +1,11 @@
-import { timingSafeEqual } from 'node:crypto'
 import { schema, uuidv7 } from '@kova/db'
 import { asc, eq, inArray } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { config } from '../config.js'
 import { db } from '../db.js'
 import { KovaError } from '../errors.js'
 import { clientIp, limit } from '../limits.js'
+import { requireAdmin } from '../services/admin-auth.js'
 
 /**
  * Kova for iPhone, while it's in TestFlight: people ask for the beta with their email, and Kova's
@@ -40,15 +39,7 @@ async function body<T>(
 }
 
 /** Kova's team only. Without KOVA_ADMIN_SECRET, or with the wrong one, these routes aren't there. */
-function admin(c: { req: { header: (name: string) => string | undefined } }) {
-  const secret = config.KOVA_ADMIN_SECRET
-  const given = c.req.header('x-kova-admin')
-  if (!secret || !given) throw new KovaError('not_found', 'No such endpoint')
-  const a = Buffer.from(given)
-  const b = Buffer.from(secret)
-  if (a.length !== b.length || !timingSafeEqual(a, b))
-    throw new KovaError('not_found', 'No such endpoint')
-}
+const admin = requireAdmin
 
 const csvCell = (value: string | null) => {
   const text = value ?? ''

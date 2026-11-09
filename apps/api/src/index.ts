@@ -6,6 +6,7 @@ import { feePayerAddress, network } from './chain.js'
 import { config } from './config.js'
 import { errorHandler } from './errors.js'
 import { accountRoutes } from './routes/account.js'
+import { adminRoutes } from './routes/admin.js'
 import { businessRoutes } from './routes/business.js'
 import { cardRoutes, cardTapRoutes } from './routes/cards.js'
 import { catalogRoutes } from './routes/catalog.js'
@@ -84,6 +85,8 @@ app.route('/v1', takingsRoutes)
 app.route('/v1', businessRoutes)
 app.route('/v1', statsRoutes)
 app.route('/v1', iosBetaRoutes)
+// Before any route group with its own key check (cards, reports): these answer to x-kova-admin.
+app.route('/v1', adminRoutes)
 app.route('/v1', ussdRoutes)
 app.route('/v1', phoneRoutes)
 app.route('/v1', cardRoutes)
