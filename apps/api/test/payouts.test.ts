@@ -601,6 +601,27 @@ describe('cash-outs through Nuvion', () => {
     expect(usd.row).toMatchObject({ currency: 'USD', amountTo: 2500n, fxQuoteId: null })
   })
 
+  it('says Kova’s side is down, not the person’s, when Nuvion refuses Kova’s own key', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              status: 'error',
+              message: 'Your credentials are invalid or have expired.',
+              code: 'error_auth_credentials_invalid',
+            }),
+            { status: 401 },
+          ),
+      ),
+    )
+    const tried = addRecipient(newWallet(), 'ca_interac_email', person)
+    await expect(tried).rejects.toMatchObject({ code: 'chain_error' })
+    await expect(tried).rejects.toThrow(/isn’t working for us right now/)
+    await expect(tried).rejects.not.toThrow(/credentials/)
+  })
+
   it('refuses a recipient Nuvion won’t take, before any money could move', async () => {
     const nuvion = fakeNuvion()
     nuvion.refuseDetail = true

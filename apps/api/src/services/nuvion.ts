@@ -49,6 +49,20 @@ async function nuvion<T>(
     error?: { code?: string; message?: string; validations?: Problem[] }
     data?: T
   } | null
+  // 401 is Nuvion refusing Kova's own API key (expired, revoked or wrong for this URL), never
+  // anything the person did: say it's down on Kova's side, and shout in the logs so it's fixed.
+  if (response.status === 401) {
+    console.error(
+      '[nuvion] KOVA’S NUVION API KEY WAS REFUSED (401): replace NUVION_API_KEY.',
+      init.method ?? 'GET',
+      path.split('?')[0],
+      body?.error?.code ?? body?.code ?? '',
+    )
+    throw new KovaError(
+      'chain_error',
+      'Kova’s banking partner isn’t working for us right now. Nothing was sent or saved. Try again later.',
+    )
+  }
   if (!response.ok || !body || body.status === 'error') {
     const said = body?.error?.message ?? body?.message ?? `Nuvion answered ${response.status}.`
     // A 422 lists each missing or wrong field: name them, so the holder knows what to fix.
