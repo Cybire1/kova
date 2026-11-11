@@ -2,9 +2,10 @@ import { ApiError, kovaPublic } from '@/lib/api'
 
 /**
  * The iPhone beta's waitlist (the API's routes/ios-beta.ts), from the /waitlist page and the cards
- * that lead to it: an email, a name if they gave one, and where they signed up from.
+ * that lead to it: an email, a name if they gave one, and where they signed up from. Kova for
+ * Chrome's waitlist (mykova.app/chrome) is the same list, with the source "chrome".
  */
-const SOURCES = new Set(['iphone-page', 'home', 'try'])
+const SOURCES = new Set(['iphone-page', 'home', 'try', 'chrome'])
 
 export async function POST(request: Request) {
   const input = (await request.json().catch(() => ({}))) as Record<string, unknown>

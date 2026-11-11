@@ -1,6 +1,8 @@
 import { tokens } from '@kova/monad'
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import type { CSSProperties } from 'react'
+import { ChromeWaitlist } from '@/components/chrome-waitlist'
 import { HomeMotion } from '@/components/home-motion'
 import { SiteFooter, SiteNav, SiteSprite } from '@/components/site'
 import { TryChrome } from '@/components/try-chrome'
@@ -13,7 +15,7 @@ import '../../styles/chrome.css'
 // KOVA_TRY_PAY_TO is read when the page is asked for, so it can be set without a rebuild.
 export const dynamic = 'force-dynamic'
 
-const TITLE = 'Kova for Chrome · Give every site a budget'
+const TITLE = 'Kova for Chrome · Join the waitlist'
 const DESCRIPTION =
   'A wallet for websites. Connecting shows a site your address and nothing else. When it wants to be paid, it gets its own limit, enforced on Monad, and one switch freezes it.'
 
@@ -51,6 +53,52 @@ const VERSUS = [
     'A seed phrase to write down and guard.',
     'Your passkey or Google: the same wallet as the Kova app.',
   ],
+] as const
+
+/**
+ * While the Chrome Web Store reviews it, the page is a waitlist: no download, and no demo that
+ * needs the extension. Set to true the day it's in the store, and the demo and the install steps
+ * come back.
+ */
+const AVAILABLE = false
+
+/** What it does, each with the extension's own window for it (public/site/chrome-*-shot.webp). */
+const FEATURES = [
+  {
+    shot: 'connect',
+    tone: 'coral',
+    title: 'Connect. Nothing more.',
+    body: 'A site sees your address and balance, like any wallet. It can’t move a cent.',
+    alt: 'Kova’s window: orbit.trade wants to connect. It sees your address. It can’t spend.',
+  },
+  {
+    shot: 'budget',
+    tone: 'teal',
+    title: 'A budget, not your wallet.',
+    body: 'The first time a site asks to be paid, you pick its limit: $5, $20 or $50, a day or a week.',
+    alt: 'Kova’s window: orbit.trade asks $5.00. It can spend up to $20 a day.',
+  },
+  {
+    shot: 'cent',
+    tone: 'ice',
+    title: 'Pages that cost a cent.',
+    body: 'A page that asks for a payment is paid from that site’s budget, and it opens.',
+    alt: 'Kova’s window: pixel.news asks 1¢ to open this page, from its budget.',
+  },
+  {
+    shot: 'over',
+    tone: 'coral',
+    title: 'It can’t take more.',
+    body: 'Every limit is enforced on Monad. A hacked site gets its budget, never your balance.',
+    alt: 'Kova’s window: orbit.trade asks to pay $1,264.50 with $0.00 left today. That’s more than this site has left.',
+  },
+  {
+    shot: 'sites',
+    tone: 'teal',
+    title: 'Freeze one site. Or all of them.',
+    body: 'See what every site has spent. One switch stops it, and only your passkey turns it back on.',
+    alt: 'Kova’s popup: four sites can spend, each with its own switch, and Freeze all.',
+  },
 ] as const
 
 const INSTALL = [
@@ -94,24 +142,24 @@ export default function ChromePage() {
                 freezes it.
               </p>
               <div className="ctas">
-                <a className="btn b-ink" href="#try">
-                  Try it on this page
+                <a className="btn b-ink" href="#waitlist">
+                  Join the waitlist
                   <span className="o">
                     <svg aria-hidden="true" className="i" style={{ rotate: '90deg' }}>
                       <use href="#i-arrow" />
                     </svg>
                   </span>
                 </a>
-                <a className="btn b-soft" href={CHROME_ZIP} download>
-                  Download for Chrome
+                <a className="btn b-soft" href="#what">
+                  See what it does
                 </a>
               </div>
               <p className="ad-note">
                 <svg aria-hidden="true" className="i">
                   <use href="#i-lock" />
                 </svg>
-                Coming to the Chrome Web Store. Until then it installs in developer mode, in about a
-                minute.
+                In review at the Chrome Web Store. Join the waitlist and we’ll write to you the day
+                it’s there.
               </p>
             </div>
             <div
@@ -199,24 +247,50 @@ export default function ChromePage() {
           </div>
         </section>
 
-        <section className="sec ch-try" id="try" aria-labelledby="ch-try">
+        <section className="sec ch-feats" id="what" aria-labelledby="ch-feats">
           <div className="wrap">
-            <span className="ktag">Try it here</span>
-            <h2 id="ch-try">Three steps. Eleven cents.</h2>
-            <p className="lede">
-              This page is a site like any other. Connect Kova for Chrome to it, let it ask for a
-              tip, then open an article that costs a cent.
-            </p>
-            {ausd ? (
-              <TryChrome
-                network={network}
-                ausd={ausd.address}
-                payTo={tryPayTo()}
-                tip={TIP.toString()}
-              />
-            ) : null}
+            <span className="ktag">What it does</span>
+            <h2 id="ch-feats">Everything it does, in five windows.</h2>
+            <ul className="ch-feat-grid">
+              {FEATURES.map((f) => (
+                <li key={f.shot} className={`ch-feat rv t-${f.tone}`}>
+                  <span className="ch-feat-shot">
+                    <Image
+                      src={`/site/chrome-${f.shot}-shot.webp`}
+                      alt={f.alt}
+                      width={800}
+                      height={f.shot === 'sites' ? 1333 : 1224}
+                      sizes="(max-width: 760px) 70vw, 300px"
+                    />
+                  </span>
+                  <h3>{f.title}</h3>
+                  <p>{f.body}</p>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
+
+        {AVAILABLE ? (
+          <section className="sec ch-try" id="try" aria-labelledby="ch-try">
+            <div className="wrap">
+              <span className="ktag">Try it here</span>
+              <h2 id="ch-try">Three steps. Eleven cents.</h2>
+              <p className="lede">
+                This page is a site like any other. Connect Kova for Chrome to it, let it ask for a
+                tip, then open an article that costs a cent.
+              </p>
+              {ausd ? (
+                <TryChrome
+                  network={network}
+                  ausd={ausd.address}
+                  payTo={tryPayTo()}
+                  tip={TIP.toString()}
+                />
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
         <section className="sec ch-vs" aria-labelledby="ch-vs">
           <div className="wrap">
@@ -260,32 +334,54 @@ export default function ChromePage() {
           </div>
         </section>
 
-        <section className="sec ad-how" id="get" aria-labelledby="ch-get">
-          <div className="wrap">
-            <span className="ktag">Install it</span>
-            <h2 id="ch-get">Three steps, about a minute.</h2>
-            <ol className="ad-steps">
-              {INSTALL.map(([title, body], i) => (
-                <li key={title}>
-                  <span className="num">0{i + 1}</span>
-                  <h3>{title}</h3>
-                  <p>{body}</p>
-                </li>
-              ))}
-            </ol>
-            <div className="ch-get">
-              <a className="btn b-ink" href={CHROME_ZIP} download>
-                Download Kova for Chrome
-                <span className="o">
-                  <svg aria-hidden="true" className="i" style={{ rotate: '90deg' }}>
-                    <use href="#i-arrow" />
-                  </svg>
+        {AVAILABLE ? (
+          <section className="sec ad-how" id="get" aria-labelledby="ch-get">
+            <div className="wrap">
+              <span className="ktag">Install it</span>
+              <h2 id="ch-get">Three steps, about a minute.</h2>
+              <ol className="ad-steps">
+                {INSTALL.map(([title, body], i) => (
+                  <li key={title}>
+                    <span className="num">0{i + 1}</span>
+                    <h3>{title}</h3>
+                    <p>{body}</p>
+                  </li>
+                ))}
+              </ol>
+              <div className="ch-get">
+                <a className="btn b-ink" href={CHROME_ZIP} download>
+                  Download Kova for Chrome
+                  <span className="o">
+                    <svg aria-hidden="true" className="i" style={{ rotate: '90deg' }}>
+                      <use href="#i-arrow" />
+                    </svg>
+                  </span>
+                </a>
+                <span>
+                  Version 0.1.0 · for Chrome and other Chromium browsers ·{' '}
+                  {mainnet ? 'Monad' : 'Monad testnet'}
                 </span>
-              </a>
-              <span>
-                Version 0.1.0 · for Chrome and other Chromium browsers ·{' '}
-                {mainnet ? 'Monad' : 'Monad testnet'}
-              </span>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="sec ch-wl" id="waitlist" aria-labelledby="ch-wl">
+          <div className="wrap">
+            <div className="ch-wl-card">
+              <img
+                className="ch-wl-kovi"
+                src="/site/kovi-key.webp"
+                alt=""
+                width={220}
+                height={220}
+              />
+              <span className="ktag">In review at the Chrome Web Store</span>
+              <h2 id="ch-wl">Get it the day it’s in the store.</h2>
+              <p className="lede">
+                Leave your email. One message when Kova for Chrome is live, with the link to add it.
+              </p>
+              <ChromeWaitlist />
             </div>
           </div>
         </section>

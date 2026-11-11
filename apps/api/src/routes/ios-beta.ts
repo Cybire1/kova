@@ -17,7 +17,8 @@ import { requireAdmin } from '../services/admin-auth.js'
  *   POST /ios-beta/invited     marks emails as invited: { emails } (x-kova-admin)
  */
 
-export const IOS_BETA_SOURCES = ['iphone-page', 'home', 'try', 'wallet'] as const
+/** 'chrome' is Kova for Chrome's waitlist (mykova.app/chrome), kept on the same list. */
+export const IOS_BETA_SOURCES = ['iphone-page', 'home', 'try', 'wallet', 'chrome'] as const
 
 const email = z.string().trim().toLowerCase().email().max(200)
 const joinBody = z.object({

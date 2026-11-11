@@ -1744,7 +1744,7 @@ export const iosBetaRequests = pgTable(
     email: text('email').notNull(),
     name: text('name'),
     country: text('country'),
-    /** Where they asked from: iphone-page, home or try. */
+    /** Where they asked from: iphone-page, home, try, wallet, or chrome (Kova for Chrome's waitlist). */
     source: text('source').notNull().default('iphone-page'),
     createdAt: createdAt(),
     invitedAt: timestamp('invited_at', { withTimezone: true }),
