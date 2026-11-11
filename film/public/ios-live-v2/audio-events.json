@@ -1,0 +1,64 @@
+{
+  "source": "wall/music/a.mp3",
+  "removed": [
+    4.8,
+    7.8
+  ],
+  "hit": 5.06,
+  "events": [
+    {
+      "path": "spot/sfx/type.mp3",
+      "frame": 4,
+      "at": 0.13333333333333333,
+      "peak_dbfs": -28
+    },
+    {
+      "path": "link/sfx/tap.mp3",
+      "frame": 40,
+      "at": 1.3333333333333333,
+      "peak_dbfs": -25
+    },
+    {
+      "path": "audio/sfx/whoosh-real.wav",
+      "frame": 62,
+      "at": 2.066666666666667,
+      "peak_dbfs": -24
+    },
+    {
+      "path": "link/sfx/land.mp3",
+      "frame": 82,
+      "at": 2.7333333333333334,
+      "peak_dbfs": -27
+    },
+    {
+      "path": "audio/sfx/swish.mp3",
+      "frame": 98,
+      "at": 3.2666666666666666,
+      "peak_dbfs": -26
+    },
+    {
+      "path": "spot/sfx/type.mp3",
+      "frame": 108,
+      "at": 3.6,
+      "peak_dbfs": -29
+    },
+    {
+      "path": "spot/sfx/type.mp3",
+      "frame": 120,
+      "at": 4.0,
+      "peak_dbfs": -29
+    },
+    {
+      "path": "audio/sfx/pop.mp3",
+      "frame": 152,
+      "at": 5.066666666666666,
+      "peak_dbfs": -26
+    },
+    {
+      "path": "link/sfx/tap.mp3",
+      "frame": 152,
+      "at": 5.066666666666666,
+      "peak_dbfs": -27
+    }
+  ]
+}

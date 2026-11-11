@@ -1,0 +1,304 @@
+{
+  "voiceId": "EXAVITQu4vr4xnSDxMaL",
+  "lines": [
+    {
+      "id": "hook",
+      "file": "ramps/audio/vo-1.mp3",
+      "duration": 2.96,
+      "words": [
+        {
+          "text": "Kova",
+          "start": 0,
+          "end": 0.32
+        },
+        {
+          "text": "now",
+          "start": 0.4,
+          "end": 0.64
+        },
+        {
+          "text": "has",
+          "start": 0.72,
+          "end": 0.96
+        },
+        {
+          "text": "on-ramps",
+          "start": 1.04,
+          "end": 1.68
+        },
+        {
+          "text": "and",
+          "start": 1.76,
+          "end": 2
+        },
+        {
+          "text": "off-ramps.",
+          "start": 2.08,
+          "end": 2.96
+        }
+      ]
+    },
+    {
+      "id": "in",
+      "file": "ramps/audio/vo-2.mp3",
+      "duration": 3.76,
+      "words": [
+        {
+          "text": "Top",
+          "start": 0,
+          "end": 0.24
+        },
+        {
+          "text": "up",
+          "start": 0.32,
+          "end": 0.48
+        },
+        {
+          "text": "from",
+          "start": 0.56,
+          "end": 0.8
+        },
+        {
+          "text": "any",
+          "start": 0.88,
+          "end": 1.04
+        },
+        {
+          "text": "Nigerian",
+          "start": 1.12,
+          "end": 1.76
+        },
+        {
+          "text": "bank,",
+          "start": 2.08,
+          "end": 2.44
+        },
+        {
+          "text": "by",
+          "start": 2.48,
+          "end": 2.64
+        },
+        {
+          "text": "transfer.",
+          "start": 3.16,
+          "end": 3.76
+        }
+      ]
+    },
+    {
+      "id": "lands",
+      "file": "ramps/audio/vo-3.mp3",
+      "duration": 3.12,
+      "words": [
+        {
+          "text": "10",
+          "start": 0,
+          "end": 0.16
+        },
+        {
+          "text": "seconds",
+          "start": 0.24,
+          "end": 0.56
+        },
+        {
+          "text": "later,",
+          "start": 0.64,
+          "end": 1.28
+        },
+        {
+          "text": "it’s",
+          "start": 1.36,
+          "end": 1.52
+        },
+        {
+          "text": "dollars",
+          "start": 1.6,
+          "end": 2
+        },
+        {
+          "text": "in",
+          "start": 2.08,
+          "end": 2.16
+        },
+        {
+          "text": "Kova.",
+          "start": 2.24,
+          "end": 3.12
+        }
+      ]
+    },
+    {
+      "id": "crypto",
+      "file": "ramps/audio/vo-4.mp3",
+      "duration": 4.96,
+      "words": [
+        {
+          "text": "Or",
+          "start": 0,
+          "end": 0.16
+        },
+        {
+          "text": "deposit",
+          "start": 0.4,
+          "end": 0.64
+        },
+        {
+          "text": "crypto",
+          "start": 0.72,
+          "end": 1.2
+        },
+        {
+          "text": "from",
+          "start": 1.28,
+          "end": 1.44
+        },
+        {
+          "text": "11",
+          "start": 1.52,
+          "end": 2
+        },
+        {
+          "text": "networks.",
+          "start": 2.08,
+          "end": 3.04
+        },
+        {
+          "text": "It",
+          "start": 3.08,
+          "end": 3.12
+        },
+        {
+          "text": "arrives",
+          "start": 3.2,
+          "end": 3.68
+        },
+        {
+          "text": "as",
+          "start": 3.76,
+          "end": 3.92
+        },
+        {
+          "text": "dollars.",
+          "start": 4.04,
+          "end": 4.96
+        }
+      ]
+    },
+    {
+      "id": "out",
+      "file": "ramps/audio/vo-5.mp3",
+      "duration": 2.64,
+      "words": [
+        {
+          "text": "Cash",
+          "start": 0,
+          "end": 0.24
+        },
+        {
+          "text": "out",
+          "start": 0.32,
+          "end": 0.56
+        },
+        {
+          "text": "to",
+          "start": 0.68,
+          "end": 0.8
+        },
+        {
+          "text": "any",
+          "start": 0.88,
+          "end": 1.12
+        },
+        {
+          "text": "Nigerian",
+          "start": 1.16,
+          "end": 1.76
+        },
+        {
+          "text": "bank.",
+          "start": 1.84,
+          "end": 2.64
+        }
+      ]
+    },
+    {
+      "id": "done",
+      "file": "ramps/audio/vo-6.mp3",
+      "duration": 2.16,
+      "words": [
+        {
+          "text": "Done",
+          "start": 0,
+          "end": 0.32
+        },
+        {
+          "text": "in",
+          "start": 0.48,
+          "end": 0.56
+        },
+        {
+          "text": "11",
+          "start": 0.64,
+          "end": 1.04
+        },
+        {
+          "text": "seconds.",
+          "start": 1.2,
+          "end": 2.16
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "file": "ramps/audio/vo-7.mp3",
+      "duration": 5.68,
+      "words": [
+        {
+          "text": "Kova.",
+          "start": 0,
+          "end": 0.8
+        },
+        {
+          "text": "No",
+          "start": 0.88,
+          "end": 1.04
+        },
+        {
+          "text": "exchange.",
+          "start": 1.12,
+          "end": 2.08
+        },
+        {
+          "text": "No",
+          "start": 2.16,
+          "end": 2.24
+        },
+        {
+          "text": "P2P.",
+          "start": 2.32,
+          "end": 3.36
+        },
+        {
+          "text": "Try",
+          "start": 3.44,
+          "end": 3.68
+        },
+        {
+          "text": "it",
+          "start": 3.76,
+          "end": 3.92
+        },
+        {
+          "text": "at",
+          "start": 4,
+          "end": 4.16
+        },
+        {
+          "text": "mykova.app.",
+          "start": 4.24,
+          "end": 5.76
+        }
+      ]
+    }
+  ]
+}

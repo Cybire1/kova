@@ -1,0 +1,406 @@
+{
+ "lines": [
+  {
+   "id": "hook",
+   "text": "This phone has no apps, and no internet. Watch it get paid.",
+   "duration": 4.72,
+   "words": [
+    {
+     "text": "This",
+     "start": 0,
+     "end": 0.24
+    },
+    {
+     "text": "phone",
+     "start": 0.32,
+     "end": 0.56
+    },
+    {
+     "text": "has",
+     "start": 0.64,
+     "end": 0.8
+    },
+    {
+     "text": "no",
+     "start": 0.88,
+     "end": 1.12
+    },
+    {
+     "text": "apps,",
+     "start": 1.2,
+     "end": 1.68
+    },
+    {
+     "text": "and",
+     "start": 1.84,
+     "end": 2
+    },
+    {
+     "text": "no",
+     "start": 2.16,
+     "end": 2.32
+    },
+    {
+     "text": "internet.",
+     "start": 2.4,
+     "end": 3.28
+    },
+    {
+     "text": "Watch",
+     "start": 3.44,
+     "end": 3.68
+    },
+    {
+     "text": "it",
+     "start": 3.72,
+     "end": 3.76
+    },
+    {
+     "text": "get",
+     "start": 3.84,
+     "end": 4.08
+    },
+    {
+     "text": "paid.",
+     "start": 4.32,
+     "end": 4.72
+    }
+   ]
+  },
+  {
+   "id": "send",
+   "text": "With Kova, you send dollars to a phone number.",
+   "duration": 2.8,
+   "words": [
+    {
+     "text": "With",
+     "start": 0,
+     "end": 0.16
+    },
+    {
+     "text": "Kova,",
+     "start": 0.24,
+     "end": 0.88
+    },
+    {
+     "text": "you",
+     "start": 0.96,
+     "end": 1.04
+    },
+    {
+     "text": "send",
+     "start": 1.12,
+     "end": 1.36
+    },
+    {
+     "text": "dollars",
+     "start": 1.48,
+     "end": 1.76
+    },
+    {
+     "text": "to",
+     "start": 1.84,
+     "end": 1.92
+    },
+    {
+     "text": "a",
+     "start": 1.96,
+     "end": 2
+    },
+    {
+     "text": "phone",
+     "start": 2.08,
+     "end": 2.24
+    },
+    {
+     "text": "number.",
+     "start": 2.32,
+     "end": 2.8
+    }
+   ]
+  },
+  {
+   "id": "slide",
+   "text": "Pick the number, pick the amount, slide to send. It settles on Monad in about a second.",
+   "duration": 6.56,
+   "words": [
+    {
+     "text": "Pick",
+     "start": 0,
+     "end": 0.24
+    },
+    {
+     "text": "the",
+     "start": 0.28,
+     "end": 0.32
+    },
+    {
+     "text": "number,",
+     "start": 0.4,
+     "end": 1.04
+    },
+    {
+     "text": "pick",
+     "start": 1.16,
+     "end": 1.28
+    },
+    {
+     "text": "the",
+     "start": 1.32,
+     "end": 1.36
+    },
+    {
+     "text": "amount,",
+     "start": 1.6,
+     "end": 2.16
+    },
+    {
+     "text": "slide",
+     "start": 2.24,
+     "end": 2.64
+    },
+    {
+     "text": "to",
+     "start": 2.68,
+     "end": 2.72
+    },
+    {
+     "text": "send.",
+     "start": 2.88,
+     "end": 3.76
+    },
+    {
+     "text": "It",
+     "start": 3.84,
+     "end": 3.92
+    },
+    {
+     "text": "settles",
+     "start": 4,
+     "end": 4.32
+    },
+    {
+     "text": "on",
+     "start": 4.4,
+     "end": 4.48
+    },
+    {
+     "text": "Monad",
+     "start": 4.56,
+     "end": 4.96
+    },
+    {
+     "text": "in",
+     "start": 5.04,
+     "end": 5.12
+    },
+    {
+     "text": "about",
+     "start": 5.24,
+     "end": 5.36
+    },
+    {
+     "text": "a",
+     "start": 5.44,
+     "end": 5.52
+    },
+    {
+     "text": "second.",
+     "start": 5.6,
+     "end": 6.56
+    }
+   ]
+  },
+  {
+   "id": "text",
+   "text": "On their phone, a text: the dollars are in their Kova pocket.",
+   "duration": 4.4,
+   "words": [
+    {
+     "text": "On",
+     "start": 0,
+     "end": 0.16
+    },
+    {
+     "text": "their",
+     "start": 0.28,
+     "end": 0.4
+    },
+    {
+     "text": "phone,",
+     "start": 0.68,
+     "end": 1.013
+    },
+    {
+     "text": "a",
+     "start": 1.067,
+     "end": 1.12
+    },
+    {
+     "text": "text:",
+     "start": 1.36,
+     "end": 2
+    },
+    {
+     "text": "the",
+     "start": 2.08,
+     "end": 2.16
+    },
+    {
+     "text": "dollars",
+     "start": 2.24,
+     "end": 2.56
+    },
+    {
+     "text": "are",
+     "start": 2.64,
+     "end": 2.72
+    },
+    {
+     "text": "in",
+     "start": 2.8,
+     "end": 2.88
+    },
+    {
+     "text": "their",
+     "start": 2.96,
+     "end": 3.04
+    },
+    {
+     "text": "Kova",
+     "start": 3.12,
+     "end": 3.44
+    },
+    {
+     "text": "pocket.",
+     "start": 3.48,
+     "end": 4.4
+    }
+   ]
+  },
+  {
+   "id": "dial",
+   "text": "To spend it, they dial a short code, and enter their PIN.",
+   "duration": 3.84,
+   "words": [
+    {
+     "text": "To",
+     "start": 0,
+     "end": 0.08
+    },
+    {
+     "text": "spend",
+     "start": 0.16,
+     "end": 0.48
+    },
+    {
+     "text": "it,",
+     "start": 0.56,
+     "end": 0.88
+    },
+    {
+     "text": "they",
+     "start": 0.96,
+     "end": 1.04
+    },
+    {
+     "text": "dial",
+     "start": 1.08,
+     "end": 1.36
+    },
+    {
+     "text": "a",
+     "start": 1.4,
+     "end": 1.44
+    },
+    {
+     "text": "short",
+     "start": 1.52,
+     "end": 1.76
+    },
+    {
+     "text": "code,",
+     "start": 1.84,
+     "end": 2.24
+    },
+    {
+     "text": "and",
+     "start": 2.32,
+     "end": 2.4
+    },
+    {
+     "text": "enter",
+     "start": 2.48,
+     "end": 2.72
+    },
+    {
+     "text": "their",
+     "start": 2.84,
+     "end": 2.96
+    },
+    {
+     "text": "PIN.",
+     "start": 3.12,
+     "end": 3.84
+    }
+   ]
+  },
+  {
+   "id": "close",
+   "text": "No app. No data. Dollars for every phone. That’s Kova.",
+   "duration": 5.44,
+   "words": [
+    {
+     "text": "No",
+     "start": 0,
+     "end": 0.24
+    },
+    {
+     "text": "app.",
+     "start": 0.4,
+     "end": 1.04
+    },
+    {
+     "text": "No",
+     "start": 1.12,
+     "end": 1.2
+    },
+    {
+     "text": "data.",
+     "start": 1.36,
+     "end": 2.16
+    },
+    {
+     "text": "Dollars",
+     "start": 2.24,
+     "end": 2.64
+    },
+    {
+     "text": "for",
+     "start": 2.72,
+     "end": 2.88
+    },
+    {
+     "text": "every",
+     "start": 2.96,
+     "end": 3.2
+    },
+    {
+     "text": "phone.",
+     "start": 3.28,
+     "end": 4.08
+    },
+    {
+     "text": "That’s",
+     "start": 4.16,
+     "end": 4.48
+    },
+    {
+     "text": "Kova.",
+     "start": 4.52,
+     "end": 5.44
+    }
+   ]
+  }
+ ]
+}

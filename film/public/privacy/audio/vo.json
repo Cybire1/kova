@@ -1,0 +1,494 @@
+{
+  "voiceId": "EXAVITQu4vr4xnSDxMaL",
+  "lines": [
+    {
+      "id": "hook",
+      "file": "privacy/audio/vo-1.mp3",
+      "duration": 6.08,
+      "words": [
+        {
+          "text": "On",
+          "start": 0,
+          "end": 0.16
+        },
+        {
+          "text": "a",
+          "start": 0.24,
+          "end": 0.28
+        },
+        {
+          "text": "blockchain,",
+          "start": 0.32,
+          "end": 1.28
+        },
+        {
+          "text": "every",
+          "start": 1.36,
+          "end": 1.6
+        },
+        {
+          "text": "payment",
+          "start": 1.68,
+          "end": 2.08
+        },
+        {
+          "text": "is",
+          "start": 2.16,
+          "end": 2.32
+        },
+        {
+          "text": "public.",
+          "start": 2.4,
+          "end": 3.36
+        },
+        {
+          "text": "Here",
+          "start": 3.48,
+          "end": 3.6
+        },
+        {
+          "text": "is",
+          "start": 3.68,
+          "end": 3.76
+        },
+        {
+          "text": "how",
+          "start": 3.84,
+          "end": 3.92
+        },
+        {
+          "text": "Kova",
+          "start": 4,
+          "end": 4.4
+        },
+        {
+          "text": "keeps",
+          "start": 4.56,
+          "end": 4.8
+        },
+        {
+          "text": "yours",
+          "start": 4.88,
+          "end": 5.28
+        },
+        {
+          "text": "private.",
+          "start": 5.36,
+          "end": 6.08
+        }
+      ]
+    },
+    {
+      "id": "send",
+      "file": "privacy/audio/vo-2.mp3",
+      "duration": 3.6,
+      "words": [
+        {
+          "text": "Ada",
+          "start": 0,
+          "end": 0.32
+        },
+        {
+          "text": "sends",
+          "start": 0.4,
+          "end": 0.72
+        },
+        {
+          "text": "Sam",
+          "start": 0.92,
+          "end": 1.12
+        },
+        {
+          "text": "$20,",
+          "start": 1.2,
+          "end": 2.4
+        },
+        {
+          "text": "privately.",
+          "start": 2.52,
+          "end": 3.6
+        }
+      ]
+    },
+    {
+      "id": "address",
+      "file": "privacy/audio/vo-3.mp3",
+      "duration": 6.4,
+      "words": [
+        {
+          "text": "Kova",
+          "start": 0,
+          "end": 0.32
+        },
+        {
+          "text": "pays",
+          "start": 0.4,
+          "end": 0.64
+        },
+        {
+          "text": "a",
+          "start": 0.72,
+          "end": 0.8
+        },
+        {
+          "text": "brand",
+          "start": 1,
+          "end": 1.2
+        },
+        {
+          "text": "new",
+          "start": 1.28,
+          "end": 1.36
+        },
+        {
+          "text": "address,",
+          "start": 1.44,
+          "end": 2.24
+        },
+        {
+          "text": "made",
+          "start": 2.32,
+          "end": 2.56
+        },
+        {
+          "text": "for",
+          "start": 2.64,
+          "end": 2.72
+        },
+        {
+          "text": "this",
+          "start": 2.8,
+          "end": 3.04
+        },
+        {
+          "text": "one",
+          "start": 3.12,
+          "end": 3.36
+        },
+        {
+          "text": "payment.",
+          "start": 3.84,
+          "end": 4.36
+        },
+        {
+          "text": "Only",
+          "start": 4.4,
+          "end": 4.72
+        },
+        {
+          "text": "Sam",
+          "start": 4.8,
+          "end": 5.12
+        },
+        {
+          "text": "can",
+          "start": 5.2,
+          "end": 5.28
+        },
+        {
+          "text": "open",
+          "start": 5.36,
+          "end": 5.6
+        },
+        {
+          "text": "it.",
+          "start": 5.96,
+          "end": 6.4
+        }
+      ]
+    },
+    {
+      "id": "note",
+      "file": "privacy/audio/vo-4.mp3",
+      "duration": 7.04,
+      "words": [
+        {
+          "text": "Then",
+          "start": 0,
+          "end": 0.24
+        },
+        {
+          "text": "it",
+          "start": 0.32,
+          "end": 0.4
+        },
+        {
+          "text": "posts",
+          "start": 0.6,
+          "end": 0.8
+        },
+        {
+          "text": "a",
+          "start": 0.88,
+          "end": 0.96
+        },
+        {
+          "text": "sealed",
+          "start": 1.04,
+          "end": 1.36
+        },
+        {
+          "text": "note",
+          "start": 1.44,
+          "end": 1.76
+        },
+        {
+          "text": "on",
+          "start": 1.84,
+          "end": 1.92
+        },
+        {
+          "text": "Monad.",
+          "start": 2,
+          "end": 3
+        },
+        {
+          "text": "Anyone",
+          "start": 3.04,
+          "end": 3.44
+        },
+        {
+          "text": "can",
+          "start": 3.52,
+          "end": 3.6
+        },
+        {
+          "text": "tell",
+          "start": 3.68,
+          "end": 3.92
+        },
+        {
+          "text": "something",
+          "start": 4.08,
+          "end": 4.24
+        },
+        {
+          "text": "arrived.",
+          "start": 4.32,
+          "end": 5.32
+        },
+        {
+          "text": "Not",
+          "start": 5.36,
+          "end": 5.6
+        },
+        {
+          "text": "who",
+          "start": 5.68,
+          "end": 5.76
+        },
+        {
+          "text": "it",
+          "start": 5.84,
+          "end": 5.88
+        },
+        {
+          "text": "is",
+          "start": 5.92,
+          "end": 6.08
+        },
+        {
+          "text": "for.",
+          "start": 6.16,
+          "end": 7.12
+        }
+      ]
+    },
+    {
+      "id": "find",
+      "file": "privacy/audio/vo-5.mp3",
+      "duration": 5.28,
+      "words": [
+        {
+          "text": "Sam's",
+          "start": 0,
+          "end": 0.4
+        },
+        {
+          "text": "phone",
+          "start": 0.48,
+          "end": 0.8
+        },
+        {
+          "text": "checks",
+          "start": 1,
+          "end": 1.2
+        },
+        {
+          "text": "every",
+          "start": 1.28,
+          "end": 1.52
+        },
+        {
+          "text": "note",
+          "start": 1.6,
+          "end": 1.84
+        },
+        {
+          "text": "with",
+          "start": 1.92,
+          "end": 2
+        },
+        {
+          "text": "his",
+          "start": 2.12,
+          "end": 2.24
+        },
+        {
+          "text": "own",
+          "start": 2.32,
+          "end": 2.56
+        },
+        {
+          "text": "key,",
+          "start": 2.64,
+          "end": 3.24
+        },
+        {
+          "text": "finds",
+          "start": 3.28,
+          "end": 3.787
+        },
+        {
+          "text": "his,",
+          "start": 3.973,
+          "end": 4.213
+        },
+        {
+          "text": "and",
+          "start": 4.267,
+          "end": 4.32
+        },
+        {
+          "text": "opens",
+          "start": 4.4,
+          "end": 4.64
+        },
+        {
+          "text": "it.",
+          "start": 4.72,
+          "end": 5.36
+        }
+      ]
+    },
+    {
+      "id": "spend",
+      "file": "privacy/audio/vo-6.mp3",
+      "duration": 5.92,
+      "words": [
+        {
+          "text": "He",
+          "start": 0,
+          "end": 0.16
+        },
+        {
+          "text": "spends",
+          "start": 0.2,
+          "end": 0.48
+        },
+        {
+          "text": "it",
+          "start": 0.56,
+          "end": 0.72
+        },
+        {
+          "text": "right",
+          "start": 0.8,
+          "end": 0.96
+        },
+        {
+          "text": "from",
+          "start": 1.04,
+          "end": 1.2
+        },
+        {
+          "text": "there.",
+          "start": 1.6,
+          "end": 2.04
+        },
+        {
+          "text": "Kova",
+          "start": 2.08,
+          "end": 2.32
+        },
+        {
+          "text": "pays",
+          "start": 2.4,
+          "end": 2.64
+        },
+        {
+          "text": "the",
+          "start": 2.72,
+          "end": 2.8
+        },
+        {
+          "text": "gas,",
+          "start": 3.04,
+          "end": 3.36
+        },
+        {
+          "text": "so",
+          "start": 3.44,
+          "end": 3.52
+        },
+        {
+          "text": "his",
+          "start": 3.64,
+          "end": 3.76
+        },
+        {
+          "text": "own",
+          "start": 3.84,
+          "end": 4.08
+        },
+        {
+          "text": "wallet",
+          "start": 4.28,
+          "end": 4.48
+        },
+        {
+          "text": "never",
+          "start": 4.56,
+          "end": 4.8
+        },
+        {
+          "text": "shows",
+          "start": 4.88,
+          "end": 5.12
+        },
+        {
+          "text": "up.",
+          "start": 5.28,
+          "end": 5.92
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "file": "privacy/audio/vo-7.mp3",
+      "duration": 3.12,
+      "words": [
+        {
+          "text": "Send",
+          "start": 0,
+          "end": 0.32
+        },
+        {
+          "text": "privately.",
+          "start": 0.48,
+          "end": 1.6
+        },
+        {
+          "text": "Spend",
+          "start": 1.68,
+          "end": 2.08
+        },
+        {
+          "text": "privately.",
+          "start": 2.24,
+          "end": 3.2
+        }
+      ]
+    }
+  ]
+}

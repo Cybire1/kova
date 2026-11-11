@@ -1,0 +1,28 @@
+{
+  "duration": 58,
+  "bpm": 100,
+  "captions": [
+    [0.0, "A blockchain address is like a glass mailbox."],
+    [3.4, "Anyone can watch every payment Ada gets."],
+    [7.0, "Stealth addresses fix this. Ada never shares a mailbox."],
+    [10.4, "She mixes a secret colour with a common one, and shares the mix."],
+    [14.5, "Sam wants to pay Ada. He picks a secret colour too."],
+    [17.6, "He mixes it with Ada’s shared colour."],
+    [20.2, "That mix makes a brand-new mailbox, just for this payment."],
+    [23.0, "He pins a hint on a public board: his secret, mixed with the common colour."],
+    [27.0, "To find it, Ada mixes each hint with her secret."],
+    [31.4, "Only her secret recreates Sam’s mix, so only she finds it."],
+    [34.6, "Anyone else mixes the wrong colours and gets nowhere."],
+    [38.0, "Only Ada’s key, with that same mix, can open it."],
+    [41.8, "A helper pays the network fee, so the new mailbox never needs gas."],
+    [46.0, "Every payment gets a new mailbox. Only Ada can find them."]
+  ],
+  "scenes": { "glass": 0, "recipe": 7.0, "pay": 14.5, "find": 27.0, "spend": 38.0, "recap": 46.0, "end": 51.5 },
+  "glass": { "coins": [0.5, 1.1, 1.7], "onlookers": 3.0 },
+  "recipe": { "secret": 7.6, "common": 8.4, "mix": 10.6, "note": 12.2 },
+  "pay": { "sam": 15.0, "secret": 15.6, "mix": 17.8, "mailbox": 20.4, "coin": 21.6, "board": 22.8, "hint": 23.4 },
+  "find": { "first": 27.8, "step": 0.6, "match": 3, "line": 30.2, "onlooker": 34.6 },
+  "spend": { "key": 38.6, "fly": 39.6, "open": 40.4, "coin": 40.8, "helper": 41.8, "stamp": 42.6 },
+  "recap": { "boxes": 46.3, "ticks": 48.0 },
+  "end": { "at": 51.6 }
+}

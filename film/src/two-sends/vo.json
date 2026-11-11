@@ -1,0 +1,79 @@
+[
+  {
+    "id": "hook",
+    "at": 6,
+    "to": 160,
+    "text": "Ada pays Sam privately, twice. Watch where the money lands.",
+    "dur": 4.8
+  },
+  {
+    "id": "switch",
+    "at": 166,
+    "to": 288,
+    "text": "One switch: send privately.",
+    "dur": 2.8
+  },
+  {
+    "id": "sent1",
+    "at": 292,
+    "to": 445,
+    "text": "Sent in about a second, and Sam’s phone knows it’s from Ada.",
+    "dur": 4.4
+  },
+  {
+    "id": "sees1",
+    "at": 450,
+    "to": 600,
+    "text": "But on Monad, it went to an address made for this one payment.",
+    "dur": 4.08
+  },
+  {
+    "id": "scan1",
+    "at": 604,
+    "to": 755,
+    "text": "No Sam anywhere, and only Sam’s keys can open it.",
+    "dur": 4
+  },
+  {
+    "id": "start2",
+    "at": 758,
+    "to": 900,
+    "text": "Payment two: same Ada, same Sam, same switch.",
+    "dur": 4.8
+  },
+  {
+    "id": "sent2",
+    "at": 902,
+    "to": 988,
+    "text": "Sent, in under a second.",
+    "dur": 2.56
+  },
+  {
+    "id": "sees2",
+    "at": 992,
+    "to": 1142,
+    "text": "This time, it went to a completely different address.",
+    "dur": 3.44
+  },
+  {
+    "id": "erc",
+    "at": 1142,
+    "to": 1240,
+    "text": "And Sam’s phone still finds it.",
+    "dur": 2.48
+  },
+  {
+    "id": "reveal",
+    "at": 1240,
+    "to": 1446,
+    "text": "Two payments. Two addresses. Both Sam’s. And only Sam can move them.",
+    "dur": 5.76
+  },
+  {
+    "id": "end",
+    "at": 1450,
+    "to": 1530,
+    "text": "Send privately, with Kova.",
+    "dur": 2.32
+  }
+]

@@ -1,0 +1,189 @@
+{
+  "fps": 30,
+  "bpm": 120,
+  "duration": 17.2,
+  "note": "Times in seconds. hits are where the music/SFX land; cuts (frames) sit 2 frames before each hit. Bars start at 7.5 - 2k (the drop is a downbeat). v4: no cut at the end; the board becomes the phone (rise 12.55-13.05) and the resolve (13.9; the Tesla page holds 0.78 s first) raises the Bought sheet, then the camera pushes in on the receipt (14.7-16.5) raises the Bought sheet.",
+  "downbeat": 7.5,
+  "hits": {
+    "five": 0.5,
+    "morph": 1.25,
+    "tap": 3.0,
+    "fee": 4.5,
+    "wallet": 6.0,
+    "drop": 7.5,
+    "nvda": 8.25,
+    "spy": 9.25,
+    "spyPrice": 10.0,
+    "qqq": 11.0,
+    "qqqPrice": 11.5,
+    "board": 12.25,
+    "end": 13.9
+  },
+  "vo": {
+    "hook": 0.0,
+    "tap": 3.0,
+    "fee": 4.45,
+    "end": 13.9
+  },
+  "voTempo": {
+    "hook": 1.15
+  },
+  "voCut": {
+    "end": [
+      0.92,
+      1.16
+    ]
+  },
+  "names": [
+    {
+      "symbol": "TSLAx",
+      "src": [
+        0.0,
+        0.66
+      ],
+      "at": 7.48
+    },
+    {
+      "symbol": "NVDAx",
+      "src": [
+        0.98,
+        1.72
+      ],
+      "at": 8.2
+    },
+    {
+      "symbol": "SPYx",
+      "src": [
+        2.15,
+        3.88
+      ],
+      "at": 9.0
+    },
+    {
+      "symbol": "QQQx",
+      "src": [
+        4.27,
+        5.8
+      ],
+      "at": 10.82
+    }
+  ],
+  "words": {
+    "hook": {
+      "This": 0.009,
+      "is": 0.278,
+      "what": 0.452,
+      "$5": 0.626,
+      "of": 1.252,
+      "Tesla": 1.396,
+      "looks": 1.878,
+      "like": 2.191,
+      "on": 2.365,
+      "Monad": 2.504
+    },
+    "tap": {
+      "One": 3.0,
+      "tap": 3.36,
+      "in": 3.72,
+      "Kova": 3.92
+    },
+    "fee": {
+      "Kova": 4.47,
+      "pays": 4.85,
+      "the": 5.25,
+      "fee": 5.41,
+      "Nobody": 6.09,
+      "else": 6.69,
+      "holds": 6.93,
+      "it": 7.25
+    }
+  },
+  "price": {
+    "TSLAx": 7.75,
+    "NVDAx": 8.5,
+    "SPYx": 10.0,
+    "QQQx": 11.5
+  },
+  "kovi": {
+    "fall": [
+      3.08,
+      3.36
+    ],
+    "plane": [
+      6.0,
+      6.9
+    ]
+  },
+  "spin": [
+    0.0,
+    0.433
+  ],
+  "prices": {
+    "source": "https://api-monad-mainnet.up.railway.app/v1/stocks",
+    "fetchedAt": "2026-10-29T17:54:53.699Z",
+    "stocks": [
+      {
+        "symbol": "TSLAx",
+        "name": "Tesla",
+        "ticker": "TSLA",
+        "price": 404.275,
+        "logo": "https://xstocks-metadata.backed.fi/logos/tokens/TSLAx.png",
+        "period": "market"
+      },
+      {
+        "symbol": "NVDAx",
+        "name": "Nvidia",
+        "ticker": "NVDA",
+        "price": 212.911,
+        "logo": "https://xstocks-metadata.backed.fi/logos/tokens/NVDAx.png",
+        "period": "market"
+      },
+      {
+        "symbol": "SPYx",
+        "name": "S&P 500",
+        "ticker": "SPY",
+        "price": 766.99,
+        "logo": "https://xstocks-metadata.backed.fi/logos/tokens/SPYx.png",
+        "period": "market"
+      },
+      {
+        "symbol": "QQQx",
+        "name": "Nasdaq 100",
+        "ticker": "QQQ",
+        "price": 712.9335,
+        "logo": "https://xstocks-metadata.backed.fi/logos/tokens/QQQx.png",
+        "period": "market"
+      }
+    ]
+  },
+  "cuts": {
+    "tap": 88,
+    "fee": 133,
+    "wallet": 178,
+    "drop": 223,
+    "nvda": 246,
+    "spy": 276,
+    "spyPrice": 298,
+    "qqq": 328,
+    "qqqPrice": 343,
+    "board": 366
+  },
+  "phone": {
+    "rise": [
+      12.55,
+      13.05
+    ],
+    "fly": [
+      12.6,
+      13.05
+    ],
+    "sheet": [
+      13.83,
+      14.13
+    ],
+    "zoom": [
+      14.7,
+      16.5
+    ]
+  }
+}

@@ -1,0 +1,361 @@
+{
+  "voiceId": "EXAVITQu4vr4xnSDxMaL",
+  "lines": [
+    {
+      "id": "alert",
+      "file": "credit-alert/audio/vo-1.mp3",
+      "duration": 1.04,
+      "words": [
+        {
+          "text": "Credit",
+          "start": 0,
+          "end": 0.4
+        },
+        {
+          "text": "alert.",
+          "start": 0.64,
+          "end": 1.04
+        }
+      ]
+    },
+    {
+      "id": "before",
+      "file": "credit-alert/audio/vo-2.mp3",
+      "duration": 4.72,
+      "words": [
+        {
+          "text": "11",
+          "start": 0,
+          "end": 0.4
+        },
+        {
+          "text": "seconds",
+          "start": 0.56,
+          "end": 0.88
+        },
+        {
+          "text": "earlier,",
+          "start": 1.04,
+          "end": 1.84
+        },
+        {
+          "text": "this",
+          "start": 1.96,
+          "end": 2.08
+        },
+        {
+          "text": "was",
+          "start": 2.2,
+          "end": 2.32
+        },
+        {
+          "text": "$2",
+          "start": 2.4,
+          "end": 3.12
+        },
+        {
+          "text": "in",
+          "start": 3.16,
+          "end": 3.2
+        },
+        {
+          "text": "a",
+          "start": 3.28,
+          "end": 3.36
+        },
+        {
+          "text": "Kova",
+          "start": 3.4,
+          "end": 3.68
+        },
+        {
+          "text": "wallet.",
+          "start": 3.76,
+          "end": 4.72
+        }
+      ]
+    },
+    {
+      "id": "amount",
+      "file": "credit-alert/audio/vo-3.mp3",
+      "duration": 2.88,
+      "words": [
+        {
+          "text": "Type",
+          "start": 0,
+          "end": 0.32
+        },
+        {
+          "text": "the",
+          "start": 0.36,
+          "end": 0.4
+        },
+        {
+          "text": "dollars.",
+          "start": 0.48,
+          "end": 1.52
+        },
+        {
+          "text": "See",
+          "start": 1.6,
+          "end": 1.68
+        },
+        {
+          "text": "the",
+          "start": 1.76,
+          "end": 1.84
+        },
+        {
+          "text": "naira.",
+          "start": 1.92,
+          "end": 2.88
+        }
+      ]
+    },
+    {
+      "id": "bank",
+      "file": "credit-alert/audio/vo-4.mp3",
+      "duration": 4.72,
+      "words": [
+        {
+          "text": "Type",
+          "start": 0,
+          "end": 0.16
+        },
+        {
+          "text": "the",
+          "start": 0.24,
+          "end": 0.32
+        },
+        {
+          "text": "account",
+          "start": 0.4,
+          "end": 0.72
+        },
+        {
+          "text": "number.",
+          "start": 0.8,
+          "end": 1.6
+        },
+        {
+          "text": "Pick",
+          "start": 1.68,
+          "end": 1.84
+        },
+        {
+          "text": "the",
+          "start": 1.92,
+          "end": 1.96
+        },
+        {
+          "text": "bank.",
+          "start": 2,
+          "end": 2.96
+        },
+        {
+          "text": "Kova",
+          "start": 3.04,
+          "end": 3.36
+        },
+        {
+          "text": "checks",
+          "start": 3.44,
+          "end": 3.68
+        },
+        {
+          "text": "the",
+          "start": 3.76,
+          "end": 3.84
+        },
+        {
+          "text": "name.",
+          "start": 3.92,
+          "end": 4.72
+        }
+      ]
+    },
+    {
+      "id": "send",
+      "file": "credit-alert/audio/vo-5.mp3",
+      "duration": 3.2,
+      "words": [
+        {
+          "text": "No",
+          "start": 0,
+          "end": 0.16
+        },
+        {
+          "text": "fees.",
+          "start": 0.32,
+          "end": 1.12
+        },
+        {
+          "text": "No",
+          "start": 1.2,
+          "end": 1.28
+        },
+        {
+          "text": "crypto",
+          "start": 1.36,
+          "end": 1.76
+        },
+        {
+          "text": "to",
+          "start": 1.84,
+          "end": 1.92
+        },
+        {
+          "text": "buy",
+          "start": 2.04,
+          "end": 2.16
+        },
+        {
+          "text": "first.",
+          "start": 2.24,
+          "end": 3.2
+        }
+      ]
+    },
+    {
+      "id": "moves",
+      "file": "credit-alert/audio/vo-6.mp3",
+      "duration": 4.08,
+      "words": [
+        {
+          "text": "Monad",
+          "start": 0,
+          "end": 0.48
+        },
+        {
+          "text": "moves",
+          "start": 0.64,
+          "end": 0.96
+        },
+        {
+          "text": "the",
+          "start": 1.04,
+          "end": 1.08
+        },
+        {
+          "text": "dollars.",
+          "start": 1.12,
+          "end": 2
+        },
+        {
+          "text": "The",
+          "start": 2.04,
+          "end": 2.08
+        },
+        {
+          "text": "naira",
+          "start": 2.16,
+          "end": 2.56
+        },
+        {
+          "text": "lands",
+          "start": 2.72,
+          "end": 3.04
+        },
+        {
+          "text": "in",
+          "start": 3.08,
+          "end": 3.12
+        },
+        {
+          "text": "the",
+          "start": 3.16,
+          "end": 3.2
+        },
+        {
+          "text": "bank.",
+          "start": 3.28,
+          "end": 4.08
+        }
+      ]
+    },
+    {
+      "id": "done",
+      "file": "credit-alert/audio/vo-7.mp3",
+      "duration": 2.16,
+      "words": [
+        {
+          "text": "Done",
+          "start": 0,
+          "end": 0.32
+        },
+        {
+          "text": "in",
+          "start": 0.48,
+          "end": 0.56
+        },
+        {
+          "text": "11",
+          "start": 0.64,
+          "end": 1.12
+        },
+        {
+          "text": "seconds.",
+          "start": 1.2,
+          "end": 2.16
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "file": "credit-alert/audio/vo-8.mp3",
+      "duration": 5.44,
+      "words": [
+        {
+          "text": "Kova.",
+          "start": 0,
+          "end": 0.88
+        },
+        {
+          "text": "Dollars",
+          "start": 0.96,
+          "end": 1.36
+        },
+        {
+          "text": "to",
+          "start": 1.44,
+          "end": 1.68
+        },
+        {
+          "text": "any",
+          "start": 1.76,
+          "end": 1.92
+        },
+        {
+          "text": "Nigerian",
+          "start": 2,
+          "end": 2.56
+        },
+        {
+          "text": "bank.",
+          "start": 2.64,
+          "end": 3.32
+        },
+        {
+          "text": "Try",
+          "start": 3.36,
+          "end": 3.6
+        },
+        {
+          "text": "it",
+          "start": 3.72,
+          "end": 3.84
+        },
+        {
+          "text": "at",
+          "start": 3.92,
+          "end": 4
+        },
+        {
+          "text": "mykova.app.",
+          "start": 4.12,
+          "end": 5.52
+        }
+      ]
+    }
+  ]
+}

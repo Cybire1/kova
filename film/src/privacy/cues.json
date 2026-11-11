@@ -1,0 +1,80 @@
+{
+  "fps": 30,
+  "bpm": 120,
+  "duration": 43.0,
+  "note": "Times in seconds. The strip (what anyone can read on Monad) rises at 7.2 and stays. Real run: Monad testnet, 13 Oct 2026 (public/private/run.json).",
+  "vo": {
+    "hook": 0.3,
+    "send": 6.9,
+    "address": 11.0,
+    "note": 17.9,
+    "find": 25.4,
+    "spend": 31.2,
+    "end": 37.8
+  },
+  "cuts": {
+    "send": 6.8,
+    "address": 10.8,
+    "note": 17.7,
+    "find": 25.2,
+    "spend": 31.0,
+    "end": 37.5
+  },
+  "strip": {
+    "rise": 7.2,
+    "entry1": 13.6,
+    "envelope": [
+      21.7,
+      22.5
+    ],
+    "entry2": 22.6,
+    "notWho": 23.5,
+    "nothingNew": 27.0,
+    "entry3": 33.4,
+    "search": 35.3
+  },
+  "moments": {
+    "names": 2.6,
+    "lift1": 8.6,
+    "address": 11.7,
+    "lock": 15.2,
+    "arrival": 25.25,
+    "lift2": 29.4,
+    "paid": 33.2
+  },
+  "run": {
+    "ada": "0x7FFaDcA4e2eE6f1D064569fbA4449E48767C31fD",
+    "sam": "0x29cFE607BbC434fc51AEf6eC20E143fE75Bb1b22",
+    "oneTime": "0x16032bA54b158D6918E2159de1266ea7c2E0Dad6",
+    "bakery": "0x15C10305a8FA5Eebf65f6369aE4547BDBfe49cFB",
+    "send": {
+      "tx": "0x730ae1eece22bc8a56fcdffa98ed1afb6d5b20d5a5725ba1f662e8302c9962d3",
+      "block": 70553800
+    },
+    "announce": {
+      "tx": "0xf2ee38478129d039b8611ff078be8f577d026bfb666cb7f3ead532351383a379",
+      "block": 70553803,
+      "bytes": 201
+    },
+    "spend": {
+      "tx": "0xd0180cdd1dea58bec331db695bbef9ca11a665cfc52de201af0d583ebd94c63f",
+      "block": 70554621
+    }
+  },
+  "hook": {
+    "eyes": [
+      -0.6,
+      0.27
+    ],
+    "kovi": [
+      3.78,
+      4.18
+    ],
+    "shutter": [
+      4.86,
+      5.12
+    ],
+    "squint": 5.2,
+    "cheer": 5.7
+  }
+}

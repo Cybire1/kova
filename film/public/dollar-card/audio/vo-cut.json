@@ -1,0 +1,170 @@
+{
+ "voiceId": "EXAVITQu4vr4xnSDxMaL",
+ "lines": [
+  {
+   "id": "hook",
+   "file": "dollar-card/audio/vo-1.mp3",
+   "duration": 2.72,
+   "words": [
+    {
+     "text": "Your",
+     "start": 0.0,
+     "end": 0.331
+    },
+    {
+     "text": "Kova",
+     "start": 0.331,
+     "end": 0.663
+    },
+    {
+     "text": "dollars",
+     "start": 0.663,
+     "end": 1.175
+    },
+    {
+     "text": "are",
+     "start": 1.175,
+     "end": 1.446
+    },
+    {
+     "text": "now",
+     "start": 1.446,
+     "end": 1.717
+    },
+    {
+     "text": "a",
+     "start": 1.717,
+     "end": 1.868
+    },
+    {
+     "text": "Mastercard.",
+     "start": 1.868,
+     "end": 2.561
+    }
+   ]
+  },
+  {
+   "id": "topup",
+   "file": "dollar-card/audio/vo-2-cut.wav",
+   "duration": 1.6,
+   "words": [
+    {
+     "text": "Top",
+     "start": 0.0,
+     "end": 0.221
+    },
+    {
+     "text": "it",
+     "start": 0.221,
+     "end": 0.393
+    },
+    {
+     "text": "up",
+     "start": 0.393,
+     "end": 0.565
+    },
+    {
+     "text": "from",
+     "start": 0.565,
+     "end": 0.835
+    },
+    {
+     "text": "your",
+     "start": 0.835,
+     "end": 1.105
+    },
+    {
+     "text": "balance.",
+     "start": 1.105,
+     "end": 1.522
+    }
+   ]
+  },
+  {
+   "id": "spend",
+   "file": "dollar-card/audio/vo-3-cut.wav",
+   "duration": 2.1,
+   "words": [
+    {
+     "text": "Then",
+     "start": 0,
+     "end": 0.25
+    },
+    {
+     "text": "spend",
+     "start": 0.25,
+     "end": 0.55
+    },
+    {
+     "text": "it",
+     "start": 0.55,
+     "end": 0.79
+    },
+    {
+     "text": "anywhere",
+     "start": 0.92,
+     "end": 1.45
+    },
+    {
+     "text": "online.",
+     "start": 1.45,
+     "end": 2.02
+    }
+   ]
+  },
+  {
+   "id": "paid",
+   "file": "dollar-card/audio/vo-4-cut.wav",
+   "duration": 0.62,
+   "words": [
+    {
+     "text": "Paid.",
+     "start": 0.0,
+     "end": 0.542
+    }
+   ]
+  },
+  {
+   "id": "there",
+   "file": "dollar-card/audio/vo-5.mp3",
+   "duration": 2.08,
+   "words": [
+    {
+     "text": "And",
+     "start": 0.0,
+     "end": 0.216
+    },
+    {
+     "text": "it's",
+     "start": 0.216,
+     "end": 0.432
+    },
+    {
+     "text": "right",
+     "start": 0.432,
+     "end": 0.744
+    },
+    {
+     "text": "there",
+     "start": 0.744,
+     "end": 1.056
+    },
+    {
+     "text": "on",
+     "start": 1.056,
+     "end": 1.224
+    },
+    {
+     "text": "your",
+     "start": 1.224,
+     "end": 1.488
+    },
+    {
+     "text": "card.",
+     "start": 1.488,
+     "end": 1.752
+    }
+   ]
+  }
+ ]
+}

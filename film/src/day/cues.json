@@ -1,0 +1,185 @@
+{
+  "bpm": 120,
+  "duration": 53,
+  "sections": {
+    "hook": 0,
+    "groove": 6,
+    "lift": 18,
+    "peak": 30,
+    "breath": 38,
+    "riser": 42,
+    "hit": 44,
+    "end": 48
+  },
+  "shots": [
+    {
+      "id": "pay",
+      "at": 0,
+      "to": 6
+    },
+    {
+      "id": "send",
+      "at": 6,
+      "to": 10
+    },
+    {
+      "id": "private",
+      "at": 10,
+      "to": 14
+    },
+    {
+      "id": "offline",
+      "at": 14,
+      "to": 18
+    },
+    {
+      "id": "link",
+      "at": 18,
+      "to": 21
+    },
+    {
+      "id": "stocks",
+      "at": 21,
+      "to": 24
+    },
+    {
+      "id": "card",
+      "at": 24,
+      "to": 27
+    },
+    {
+      "id": "shop",
+      "at": 27,
+      "to": 30
+    },
+    {
+      "id": "payroll",
+      "at": 30,
+      "to": 32
+    },
+    {
+      "id": "kovacard",
+      "at": 32,
+      "to": 34
+    },
+    {
+      "id": "cashout",
+      "at": 34,
+      "to": 38
+    },
+    {
+      "id": "basic",
+      "at": 38,
+      "to": 42
+    },
+    {
+      "id": "total",
+      "at": 42,
+      "to": 48
+    },
+    {
+      "id": "end",
+      "at": 48,
+      "to": 53
+    }
+  ],
+  "lines": [
+    {
+      "n": "01",
+      "label": "MIA'S BAKERY",
+      "amount": "−$7.75",
+      "sub": "table 3 · fee $0.00",
+      "at": 4.0
+    },
+    {
+      "n": "02",
+      "label": "SENT TO MIA",
+      "amount": "−$2.50",
+      "sub": "arrived in 1.44 s",
+      "at": 8.0
+    },
+    {
+      "n": "03",
+      "label": "FROM MIA, PRIVATELY",
+      "amount": "+$2.00",
+      "sub": "to 0x1b7E…5842, made for it",
+      "at": 12.0
+    },
+    {
+      "n": "04",
+      "label": "NO SIGNAL",
+      "amount": "−$1.00",
+      "sub": "settled once back online",
+      "at": 17.0
+    },
+    {
+      "n": "05",
+      "label": "A LINK",
+      "amount": "−$5.00",
+      "sub": "anyone you send it to",
+      "at": 19.5
+    },
+    {
+      "n": "06",
+      "label": "TESLA",
+      "amount": "−$5.00",
+      "sub": "0.01225 TSLAx",
+      "at": 23.0
+    },
+    {
+      "n": "07",
+      "label": "NAME-CHEAP.COM",
+      "amount": "−$2.20",
+      "sub": "dollar card •• 3421",
+      "at": 25.5
+    },
+    {
+      "n": "08",
+      "label": "WOVEN POUCH",
+      "amount": "+$9.00",
+      "sub": "sold at your own till",
+      "at": 28.5
+    },
+    {
+      "n": "09",
+      "label": "PAYROLL, 3 PEOPLE",
+      "amount": "−$3.00",
+      "sub": "each to a one-time address",
+      "at": 30.5
+    },
+    {
+      "n": "10",
+      "label": "KOVA CARD",
+      "amount": "$50/day",
+      "sub": "the limit you set",
+      "at": 32.5
+    },
+    {
+      "n": "11",
+      "label": "M-PESA, KENYA",
+      "amount": "−$50.00",
+      "sub": "KES 6,334.46",
+      "at": 37.5
+    },
+    {
+      "n": "12",
+      "label": "A BASIC PHONE",
+      "amount": "+$1.00",
+      "sub": "*384*53916#",
+      "at": 39.0
+    }
+  ],
+  "total": {
+    "at": 44.0,
+    "headline": 46.0,
+    "tear": 46.8
+  },
+  "basic": {
+    "sms": 39.0,
+    "dial": 40.6
+  },
+  "end": {
+    "at": 48.0,
+    "kovi": 48.6
+  }
+}

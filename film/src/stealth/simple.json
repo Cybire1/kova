@@ -1,0 +1,20 @@
+{
+  "duration": 47,
+  "bpm": 100,
+  "captions": [
+    [0.0, "Normally, you have one wallet address. Call it Address A."],
+    [3.6, "Everyone who pays you sends money to Address A."],
+    [7.0, "Anyone can look up Address A and see every payment, and your balance."],
+    [12.5, "With a stealth address, you share a code instead."],
+    [16.5, "Three people pay you using that code."],
+    [20.0, "Each payment lands at a brand-new address: B, C and D."],
+    [25.0, "To everyone else, B, C and D look like three strangers."],
+    [29.5, "Each payment leaves a small clue that only your key can recognise."],
+    [33.5, "So your wallet finds B, C and D, and shows one balance."],
+    [37.5, "And only your key can spend from them."]
+  ],
+  "scenes": { "a": 0, "code": 12.5, "pay": 16.5, "end": 41.5 },
+  "a": { "coins": [3.9, 4.7, 5.5], "onlookers": 7.3 },
+  "pay": { "payers": 16.8, "first": 20.2, "step": 1.1, "strangers": 25.0, "clues": 29.8, "scan": 30.9, "ticks": 33.7, "total": 35.2, "spend": 37.9 },
+  "end": { "at": 41.5 }
+}

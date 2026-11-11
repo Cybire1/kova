@@ -1,0 +1,107 @@
+{
+  "source": "wall/music/a.mp3",
+  "events": [
+    {
+      "file": "spot/sfx/tick.mp3",
+      "frame": 2,
+      "seconds": 0.0667,
+      "peak_dbfs": -29
+    },
+    {
+      "file": "spot/sfx/tick.mp3",
+      "frame": 17,
+      "seconds": 0.5667,
+      "peak_dbfs": -29
+    },
+    {
+      "file": "spot/sfx/tick.mp3",
+      "frame": 32,
+      "seconds": 1.0667,
+      "peak_dbfs": -29
+    },
+    {
+      "file": "audio/sfx/whoosh-real.wav",
+      "frame": 61,
+      "seconds": 2.0333,
+      "peak_dbfs": -20
+    },
+    {
+      "file": "spot/sfx/thud.mp3",
+      "frame": 62,
+      "seconds": 2.0667,
+      "peak_dbfs": -18
+    },
+    {
+      "file": "spot/sfx/type.mp3",
+      "frame": 62,
+      "seconds": 2.0667,
+      "peak_dbfs": -27
+    },
+    {
+      "file": "spot/sfx/type.mp3",
+      "frame": 65,
+      "seconds": 2.1667,
+      "peak_dbfs": -27
+    },
+    {
+      "file": "spot/sfx/type.mp3",
+      "frame": 68,
+      "seconds": 2.2667,
+      "peak_dbfs": -27
+    },
+    {
+      "file": "spot/sfx/type.mp3",
+      "frame": 71,
+      "seconds": 2.3667,
+      "peak_dbfs": -27
+    },
+    {
+      "file": "audio/sfx/pullout.mp3",
+      "frame": 83,
+      "seconds": 2.7667,
+      "peak_dbfs": -26
+    },
+    {
+      "file": "audio/sfx/whoosh-real.wav",
+      "frame": 153,
+      "seconds": 5.1,
+      "peak_dbfs": -23
+    },
+    {
+      "file": "link/sfx/land.mp3",
+      "frame": 177,
+      "seconds": 5.9,
+      "peak_dbfs": -24
+    },
+    {
+      "file": "spot/sfx/tick.mp3",
+      "frame": 184,
+      "seconds": 6.1333,
+      "peak_dbfs": -30
+    },
+    {
+      "file": "spot/sfx/tick.mp3",
+      "frame": 197,
+      "seconds": 6.5667,
+      "peak_dbfs": -30
+    },
+    {
+      "file": "link/sfx/tap.mp3",
+      "frame": 242,
+      "seconds": 8.0667,
+      "peak_dbfs": -23
+    }
+  ],
+  "master_input": {
+    "input_i": "-19.27",
+    "input_tp": "-4.12",
+    "input_lra": "14.00",
+    "input_thresh": "-30.62",
+    "output_i": "-14.37",
+    "output_tp": "-1.50",
+    "output_lra": "5.10",
+    "output_thresh": "-25.17",
+    "normalization_type": "dynamic",
+    "target_offset": "0.37"
+  }
+}

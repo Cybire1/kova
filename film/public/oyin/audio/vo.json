@@ -1,0 +1,200 @@
+{
+  "voiceId": "EXAVITQu4vr4xnSDxMaL",
+  "lines": [
+    {
+      "id": "hook",
+      "file": "oyin/audio/vo-1.mp3",
+      "duration": 1.76,
+      "words": [
+        {
+          "text": "This",
+          "start": 0,
+          "end": 0.32
+        },
+        {
+          "text": "link",
+          "start": 0.4,
+          "end": 0.64
+        },
+        {
+          "text": "is",
+          "start": 0.72,
+          "end": 0.8
+        },
+        {
+          "text": "a",
+          "start": 0.88,
+          "end": 0.92
+        },
+        {
+          "text": "restaurant.",
+          "start": 0.96,
+          "end": 1.76
+        }
+      ]
+    },
+    {
+      "id": "order",
+      "file": "oyin/audio/vo-2.mp3",
+      "duration": 2.24,
+      "words": [
+        {
+          "text": "Anyone",
+          "start": 0,
+          "end": 0.4
+        },
+        {
+          "text": "can",
+          "start": 0.48,
+          "end": 0.64
+        },
+        {
+          "text": "open",
+          "start": 0.72,
+          "end": 0.96
+        },
+        {
+          "text": "it",
+          "start": 1.04,
+          "end": 1.2
+        },
+        {
+          "text": "and",
+          "start": 1.28,
+          "end": 1.44
+        },
+        {
+          "text": "order.",
+          "start": 1.52,
+          "end": 2.32
+        }
+      ]
+    },
+    {
+      "id": "pay",
+      "file": "oyin/audio/vo-3.mp3",
+      "duration": 2.32,
+      "words": [
+        {
+          "text": "And",
+          "start": 0,
+          "end": 0.16
+        },
+        {
+          "text": "pay,",
+          "start": 0.24,
+          "end": 0.88
+        },
+        {
+          "text": "in",
+          "start": 0.96,
+          "end": 1.12
+        },
+        {
+          "text": "seconds.",
+          "start": 1.2,
+          "end": 2.32
+        }
+      ]
+    },
+    {
+      "id": "proof",
+      "file": "oyin/audio/vo-4.mp3",
+      "duration": 4.72,
+      "words": [
+        {
+          "text": "$6.50,",
+          "start": 0,
+          "end": 1.04
+        },
+        {
+          "text": "paid",
+          "start": 1.12,
+          "end": 1.36
+        },
+        {
+          "text": "in",
+          "start": 1.44,
+          "end": 1.68
+        },
+        {
+          "text": "14",
+          "start": 1.76,
+          "end": 2.24
+        },
+        {
+          "text": "seconds.",
+          "start": 2.32,
+          "end": 3.2
+        },
+        {
+          "text": "No",
+          "start": 3.28,
+          "end": 3.44
+        },
+        {
+          "text": "card",
+          "start": 3.52,
+          "end": 3.76
+        },
+        {
+          "text": "fees.",
+          "start": 3.84,
+          "end": 4.72
+        }
+      ]
+    },
+    {
+      "id": "end",
+      "file": "oyin/audio/vo-5.mp3",
+      "duration": 4.32,
+      "words": [
+        {
+          "text": "Your",
+          "start": 0,
+          "end": 0.24
+        },
+        {
+          "text": "shop",
+          "start": 0.32,
+          "end": 0.64
+        },
+        {
+          "text": "is",
+          "start": 0.72,
+          "end": 0.8
+        },
+        {
+          "text": "a",
+          "start": 0.88,
+          "end": 0.96
+        },
+        {
+          "text": "link.",
+          "start": 1.04,
+          "end": 1.76
+        },
+        {
+          "text": "Make",
+          "start": 1.88,
+          "end": 2
+        },
+        {
+          "text": "yours",
+          "start": 2.08,
+          "end": 2.48
+        },
+        {
+          "text": "at",
+          "start": 2.56,
+          "end": 2.72
+        },
+        {
+          "text": "mykova.app.",
+          "start": 2.8,
+          "end": 4.4
+        }
+      ]
+    }
+  ]
+}

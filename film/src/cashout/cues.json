@@ -1,0 +1,121 @@
+{
+  "note": "One timeline for the picture (Film.tsx) and the score (scripts/cashout/score.py). 120 bpm: a beat is 0.5 s, a bar 2 s from 0. Recording times (from) are seconds into public/cashout/run.mp4, found with scripts/cashout/events.py.",
+  "duration": 34.0,
+  "bpm": 120,
+  "hook": {
+    "from": 14.67,
+    "lineAt": 0.25,
+    "names": [
+      [
+        "KENYA",
+        0.4
+      ],
+      [
+        "MEXICO",
+        1.3
+      ],
+      [
+        "GHANA",
+        2.2
+      ],
+      [
+        "THE UK",
+        3.0
+      ]
+    ]
+  },
+  "board": {
+    "at": 4.0,
+    "rows": [
+      4.5,
+      5.0,
+      5.5,
+      6.0,
+      6.5,
+      7.0
+    ],
+    "keep": 9.5
+  },
+  "run": {
+    "at": 10.0,
+    "cuts": [
+      {
+        "at": 10.0,
+        "to": 12.45,
+        "from": 19.47
+      },
+      {
+        "at": 12.45,
+        "to": 14.45,
+        "from": 22.27
+      },
+      {
+        "at": 14.45,
+        "to": 15.95,
+        "from": 25.45
+      },
+      {
+        "at": 15.95,
+        "to": 17.45,
+        "from": 29.42
+      },
+      {
+        "at": 17.45,
+        "to": 18.45,
+        "from": 33.05
+      },
+      {
+        "at": 18.45,
+        "to": 20.95,
+        "from": 35.28
+      }
+    ]
+  },
+  "ticket": {
+    "to": 10.4,
+    "by": 13.8,
+    "send": 16.9,
+    "gets": 17.6,
+    "status": 18.7,
+    "landed": 24.0
+  },
+  "peak": {
+    "at": 20.95,
+    "to": 26.0,
+    "from": 40.52
+  },
+  "wall": {
+    "at": 26.0,
+    "flags": 26.15,
+    "title": 27.8,
+    "line": 28.4
+  },
+  "end": {
+    "at": 31.0
+  },
+  "numbers": {
+    "send": "$50.00",
+    "gets": "KES 6,336.82",
+    "fee": "$0.25"
+  },
+  "keys": [
+    14.7,
+    14.77,
+    14.84,
+    14.91,
+    14.98,
+    15.05,
+    15.12,
+    15.19,
+    15.26,
+    15.33,
+    15.4,
+    15.47,
+    15.54,
+    15.61,
+    15.68,
+    15.75,
+    16.6,
+    16.87
+  ]
+}
