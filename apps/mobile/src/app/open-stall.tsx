@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics'
-import { Redirect, router } from 'expo-router'
-import { useEffect, useState } from 'react'
+import { Redirect, router, useLocalSearchParams } from 'expo-router'
+import { useEffect, useRef, useState } from 'react'
 import {
   KeyboardAvoidingView,
   Platform,
@@ -45,6 +45,37 @@ export default function OpenStall() {
   const [tagline, setTagline] = useState('')
   const [step, setStep] = useState<OpenStep | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
+  const dev = useLocalSearchParams<{ film?: string; tagline?: string }>()
+  const submitRef = useRef<((name: string, tagline: string) => Promise<void>) | null>(null)
+
+  // Development only, for the launch film: `?film=<name>&tagline=<line>` types them into the sign
+  // a letter at a time, as someone would, then opens the stall for real.
+  const filmed = useRef(false)
+  useEffect(() => {
+    if (!__DEV__ || !dev.film || !profile || filmed.current) return
+    filmed.current = true
+    const typedName = dev.film
+    const typedLine = dev.tagline ?? ''
+    let cancelled = false
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+    void (async () => {
+      await wait(900)
+      for (let i = 1; i <= typedName.length && !cancelled; i++) {
+        setName(typedName.slice(0, i))
+        await wait(85)
+      }
+      await wait(350)
+      for (let i = 1; i <= typedLine.length && !cancelled; i++) {
+        setTagline(typedLine.slice(0, i))
+        await wait(35)
+      }
+      await wait(700)
+      if (!cancelled) await submitRef.current?.(typedName, typedLine)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [dev.film, dev.tagline, profile])
 
   // Already runs a shop from this phone: go to it. Half set up (a dropped connection, or the
   // phone unpaired as its till), stay here and finish.
@@ -66,10 +97,13 @@ export default function OpenStall() {
   const valid = name.trim().length >= 2
   const sign = width - 40
 
-  const submit = async () => {
+  const submit = async (stallName = name, line = tagline) => {
     setProblem(null)
     try {
-      await open({ name: name.trim(), tagline, phone, settleTo: profile.address }, setStep)
+      await open(
+        { name: stallName.trim(), tagline: line, phone, settleTo: profile.address },
+        setStep,
+      )
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
       setMode('terminal')
       // Leave the wallet behind entirely, so a swipe back can't land on it.
@@ -81,6 +115,7 @@ export default function OpenStall() {
       setStep(null)
     }
   }
+  submitRef.current = submit
 
   return (
     <Screen bg={colors.paper}>

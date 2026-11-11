@@ -260,6 +260,10 @@ export default function Dev() {
     offline?: string
     /** Keys through the real flow: allowance | team | agent | accept | on | freeze | unfreeze. */
     keys?: string
+    /** `saved`: mark this wallet's recovery words as saved, as the recovery screen does. */
+    words?: string
+    /** A note to send with `send=` (sealed for the two of you, as the send sheet does). */
+    note?: string
     /** Who an allowance or budget is for. */
     for?: string
     /** day or week. */
@@ -380,6 +384,7 @@ export default function Dev() {
           setStep('funding')
           await wallet.addMoney().catch(() => {})
         }
+        if (params.words === 'saved') await walletRef.current.markWordsSaved()
         if (params.unpair) await terminal.unpair()
         if (params.pair) {
           setStep('pairing')
@@ -678,7 +683,7 @@ export default function Dev() {
           const entry = await wallet.send(
             { address: params.send as `0x${string}`, name: params.payee || 'Tunde' },
             BigInt(params.amount),
-            undefined,
+            params.note,
             { privately: params.private === '1' },
           )
           console.log(
